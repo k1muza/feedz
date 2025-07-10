@@ -1,9 +1,8 @@
-
 'use client';
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Package, Home, ShoppingCart, Users, LineChart, FaWheatAwn } from 'lucide-react';
+import { Package, Home, ShoppingCart, Users, LineChart, Wheat } from 'lucide-react';
 
 import {
   SidebarMenu,
@@ -25,7 +24,7 @@ export default function AdminSidebar() {
     <>
       <SidebarHeader>
         <div className="flex items-center gap-2 p-2">
-            <FaWheatAwn className="h-6 w-6 text-primary" />
+            <Wheat className="h-6 w-6 text-primary" />
             <span className="font-semibold text-lg">FeedSport Admin</span>
         </div>
       </SidebarHeader>
