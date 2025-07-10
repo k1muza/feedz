@@ -10,14 +10,7 @@ import dynamic from 'next/dynamic';
 import { useRef } from 'react';
 
 // Dynamically import ReactQuill to avoid SSR issues
-const ReactQuill = dynamic(
-  async () => {
-    const { default: RQ } = await import('react-quill');
-    // eslint-disable-next-line react/display-name
-    return ({ forwardedRef, ...props }: any) => <RQ ref={forwardedRef} {...props} />;
-  },
-  { ssr: false }
-);
+const ReactQuill = dynamic(() => import('react-quill'), { ssr: false });
 
 
 interface BlogPostFormProps {
@@ -33,7 +26,6 @@ type FormValues = {
 
 export const BlogPostForm = ({ post }: BlogPostFormProps) => {
   const router = useRouter();
-  const quillRef = useRef(null);
 
   const { register, handleSubmit, formState: { errors }, control } = useForm<FormValues>({
     defaultValues: {
@@ -84,9 +76,9 @@ export const BlogPostForm = ({ post }: BlogPostFormProps) => {
                  <Controller
                     name="content"
                     control={control}
+                    rules={{ required: 'Content is required.'}}
                     render={({ field }) => (
                         <ReactQuill
-                            forwardedRef={quillRef}
                             theme="snow"
                             value={field.value}
                             onChange={field.onChange}
