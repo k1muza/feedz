@@ -27,11 +27,12 @@ const TiptapToolbar = ({ editor }: { editor: any | null }) => {
   }
 
   return (
-    <div className="border border-input bg-transparent rounded-md p-1 flex flex-wrap gap-1">
+    <div className="border border-gray-700 bg-gray-800 rounded-md p-1 flex flex-wrap gap-1">
       <Toggle
         size="sm"
         pressed={editor.isActive('heading', { level: 2 })}
         onPressedChange={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+        className="text-gray-400 hover:bg-gray-700 data-[state=on]:bg-indigo-600 data-[state=on]:text-white"
       >
         <Heading2 className="h-4 w-4" />
       </Toggle>
@@ -39,6 +40,7 @@ const TiptapToolbar = ({ editor }: { editor: any | null }) => {
         size="sm"
         pressed={editor.isActive('bold')}
         onPressedChange={() => editor.chain().focus().toggleBold().run()}
+        className="text-gray-400 hover:bg-gray-700 data-[state=on]:bg-indigo-600 data-[state=on]:text-white"
       >
         <Bold className="h-4 w-4" />
       </Toggle>
@@ -46,6 +48,7 @@ const TiptapToolbar = ({ editor }: { editor: any | null }) => {
         size="sm"
         pressed={editor.isActive('italic')}
         onPressedChange={() => editor.chain().focus().toggleItalic().run()}
+        className="text-gray-400 hover:bg-gray-700 data-[state=on]:bg-indigo-600 data-[state=on]:text-white"
       >
         <Italic className="h-4 w-4" />
       </Toggle>
@@ -53,6 +56,7 @@ const TiptapToolbar = ({ editor }: { editor: any | null }) => {
         size="sm"
         pressed={editor.isActive('bulletList')}
         onPressedChange={() => editor.chain().focus().toggleBulletList().run()}
+        className="text-gray-400 hover:bg-gray-700 data-[state=on]:bg-indigo-600 data-[state=on]:text-white"
       >
         <List className="h-4 w-4" />
       </Toggle>
@@ -60,6 +64,7 @@ const TiptapToolbar = ({ editor }: { editor: any | null }) => {
         size="sm"
         pressed={editor.isActive('orderedList')}
         onPressedChange={() => editor.chain().focus().toggleOrderedList().run()}
+        className="text-gray-400 hover:bg-gray-700 data-[state=on]:bg-indigo-600 data-[state=on]:text-white"
       >
         <ListOrdered className="h-4 w-4" />
       </Toggle>
@@ -130,13 +135,13 @@ export const BlogPostForm = ({ post }: BlogPostFormProps) => {
                         },
                         editorProps: {
                           attributes: {
-                            class: 'prose prose-invert dark:prose-invert min-h-[250px] w-full max-w-none rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50',
+                            class: 'prose prose-invert min-h-[250px] w-full max-w-none rounded-b-md border border-gray-700 bg-gray-900 px-3 py-2 text-sm text-gray-200 shadow-sm placeholder:text-muted-foreground focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 disabled:cursor-not-allowed disabled:opacity-50',
                           },
                         },
                       })
 
                       return (
-                        <div className="flex flex-col gap-2">
+                        <div className="flex flex-col gap-0">
                            <TiptapToolbar editor={editor} />
                            <EditorContent editor={editor} />
                         </div>
