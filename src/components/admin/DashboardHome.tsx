@@ -1,7 +1,5 @@
-import { getAnimals } from '@/data/animals';
-import { getIngredients } from '@/data/ingredients';
-import { getNutrients } from '@/data/nutrients';
-import { Activity, AlertCircle, Database, List, Package } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Activity, AlertCircle, Database, List, Package, Loader2 } from 'lucide-react';
 import {
   Bar,
   BarChart,
@@ -15,7 +13,9 @@ import {
   XAxis,
   YAxis
 } from 'recharts';
-
+import type { Animal } from '@/types/animals';
+import type { Ingredient } from '@/types';
+import type { Nutrient } from '@/types';
 
 interface TooltipProps {
   active?: boolean;
@@ -25,7 +25,6 @@ interface TooltipProps {
     payload: { category: string; name: string; value: number }}[];
 }
 
-// Custom tooltip for charts
 const CustomTooltip = ({ active, payload }: TooltipProps) => {
   if (active && payload && payload.length) {
     return (
@@ -40,11 +39,58 @@ const CustomTooltip = ({ active, payload }: TooltipProps) => {
   return null;
 };
 
+const LoadingSkeleton = () => (
+  <div className="flex items-center justify-center h-full">
+    <Loader2 className="w-8 h-8 text-indigo-400 animate-spin" />
+  </div>
+);
+
 export function DashboardHome() {
-  // Fetch data
-  const ingredients = getIngredients();
-  const nutrients = getNutrients();
-  const animals = getAnimals();
+  const [ingredients, setIngredients] = useState<Ingredient[]>([]);
+  const [nutrients, setNutrients] = useState<Nutrient[]>([]);
+  const [animals, setAnimals] = useState<Animal[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        setLoading(true);
+        const [ingredientsRes, nutrientsRes, animalsRes] = await Promise.all([
+          fetch('/api/ingredients'),
+          fetch('/api/nutrients'),
+          fetch('/api/animals'),
+        ]);
+        const ingredientsData = await ingredientsRes.json();
+        const nutrientsData = await nutrientsRes.json();
+        const animalsData = await animalsRes.json();
+
+        setIngredients(ingredientsData);
+        setNutrients(nutrientsData);
+        setAnimals(animalsData);
+      } catch (error) {
+        console.error("Failed to fetch dashboard data", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchData();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="space-y-8 p-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-white">Dashboard Overview</h1>
+            <p className="text-gray-400">Your feed formulation insights at a glance</p>
+          </div>
+        </div>
+        <div className="flex justify-center items-center h-96">
+            <Loader2 className="w-12 h-12 text-indigo-400 animate-spin" />
+        </div>
+      </div>
+    );
+  }
 
   // Stats
   const totalIngredients = ingredients.length;
@@ -69,11 +115,9 @@ export function DashboardHome() {
     value: a.programs.length 
   }));
   
-  // Colors for charts
   const COLORS = ['#8884d8', '#82ca9d', '#ffc658', '#ff7f7f', '#8dd1e1', '#a4de6c', '#d0ed57'];
   const BAR_COLORS = ['#8884d8', '#82ca9d', '#ffc658', '#ff7f7f', '#8dd1e1', '#a4de6c', '#d0ed57'];
 
-  // Recently added ingredients (last 5)
   const recentIngredients = [...ingredients]
     .sort((a, b) => b.id.localeCompare(a.id))
     .slice(0, 5);
