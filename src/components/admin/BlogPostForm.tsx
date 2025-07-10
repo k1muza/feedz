@@ -2,13 +2,12 @@
 'use client';
 
 import { BlogPost } from '@/types';
-import { Save } from 'lucide-react';
+import { Save, Heading1, Heading2, Heading3, Bold, Italic, Strikethrough, List, ListOrdered, Quote, Minus, Undo, Redo } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useForm, SubmitHandler, Controller } from 'react-hook-form';
 import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import { Toggle } from '@/components/ui/toggle';
-import { Bold, Italic, List, ListOrdered, Heading2 } from 'lucide-react';
 
 interface BlogPostFormProps {
   post?: BlogPost;
@@ -27,7 +26,15 @@ const TiptapToolbar = ({ editor }: { editor: any | null }) => {
   }
 
   return (
-    <div className="border border-gray-700 bg-gray-800 rounded-md p-1 flex flex-wrap gap-1">
+    <div className="border-t border-x border-gray-700 bg-gray-800 rounded-t-md p-1 flex flex-wrap items-center gap-1">
+      <Toggle
+        size="sm"
+        pressed={editor.isActive('heading', { level: 1 })}
+        onPressedChange={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
+        className="text-gray-400 hover:bg-gray-700 data-[state=on]:bg-indigo-600 data-[state=on]:text-white"
+      >
+        <Heading1 className="h-4 w-4" />
+      </Toggle>
       <Toggle
         size="sm"
         pressed={editor.isActive('heading', { level: 2 })}
@@ -36,6 +43,17 @@ const TiptapToolbar = ({ editor }: { editor: any | null }) => {
       >
         <Heading2 className="h-4 w-4" />
       </Toggle>
+       <Toggle
+        size="sm"
+        pressed={editor.isActive('heading', { level: 3 })}
+        onPressedChange={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
+        className="text-gray-400 hover:bg-gray-700 data-[state=on]:bg-indigo-600 data-[state=on]:text-white"
+      >
+        <Heading3 className="h-4 w-4" />
+      </Toggle>
+      
+      <div className="w-px h-6 bg-gray-600 mx-1"></div>
+
       <Toggle
         size="sm"
         pressed={editor.isActive('bold')}
@@ -52,6 +70,17 @@ const TiptapToolbar = ({ editor }: { editor: any | null }) => {
       >
         <Italic className="h-4 w-4" />
       </Toggle>
+       <Toggle
+        size="sm"
+        pressed={editor.isActive('strike')}
+        onPressedChange={() => editor.chain().focus().toggleStrike().run()}
+        className="text-gray-400 hover:bg-gray-700 data-[state=on]:bg-indigo-600 data-[state=on]:text-white"
+      >
+        <Strikethrough className="h-4 w-4" />
+      </Toggle>
+
+      <div className="w-px h-6 bg-gray-600 mx-1"></div>
+
       <Toggle
         size="sm"
         pressed={editor.isActive('bulletList')}
@@ -68,6 +97,40 @@ const TiptapToolbar = ({ editor }: { editor: any | null }) => {
       >
         <ListOrdered className="h-4 w-4" />
       </Toggle>
+       <Toggle
+        size="sm"
+        pressed={editor.isActive('blockquote')}
+        onPressedChange={() => editor.chain().focus().toggleBlockquote().run()}
+        className="text-gray-400 hover:bg-gray-700 data-[state=on]:bg-indigo-600 data-[state=on]:text-white"
+      >
+        <Quote className="h-4 w-4" />
+      </Toggle>
+       <button
+        type="button"
+        onClick={() => editor.chain().focus().setHorizontalRule().run()}
+        className="p-2 text-gray-400 hover:bg-gray-700 hover:text-white rounded-md"
+      >
+        <Minus className="h-4 w-4" />
+      </button>
+
+       <div className="w-px h-6 bg-gray-600 mx-1"></div>
+
+        <button
+          type="button"
+          onClick={() => editor.chain().focus().undo().run()}
+          disabled={!editor.can().undo()}
+          className="p-2 text-gray-400 hover:bg-gray-700 hover:text-white rounded-md disabled:opacity-50"
+        >
+          <Undo className="h-4 w-4" />
+        </button>
+        <button
+          type="button"
+          onClick={() => editor.chain().focus().redo().run()}
+          disabled={!editor.can().redo()}
+          className="p-2 text-gray-400 hover:bg-gray-700 hover:text-white rounded-md disabled:opacity-50"
+        >
+          <Redo className="h-4 w-4" />
+        </button>
     </div>
   )
 }
@@ -119,6 +182,9 @@ export const BlogPostForm = ({ post }: BlogPostFormProps) => {
                        const editor = useEditor({
                         extensions: [
                           StarterKit.configure({
+                            heading: {
+                              levels: [1, 2, 3],
+                            },
                             bulletList: {
                               keepMarks: true,
                               keepAttributes: false,
@@ -135,7 +201,7 @@ export const BlogPostForm = ({ post }: BlogPostFormProps) => {
                         },
                         editorProps: {
                           attributes: {
-                            class: 'prose prose-invert min-h-[250px] w-full max-w-none rounded-b-md border border-gray-700 bg-gray-900 px-3 py-2 text-sm text-gray-200 shadow-sm placeholder:text-muted-foreground focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 disabled:cursor-not-allowed disabled:opacity-50',
+                            class: 'prose prose-invert min-h-[250px] w-full max-w-none rounded-b-md border-x border-b border-gray-700 bg-gray-900 px-3 py-2 text-sm text-gray-200 shadow-sm placeholder:text-muted-foreground focus:border-indigo-500 focus:outline-none focus:ring-0 disabled:cursor-not-allowed disabled:opacity-50',
                           },
                         },
                       })
