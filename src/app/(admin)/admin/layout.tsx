@@ -7,6 +7,7 @@ import {
   Droplet,
   FileText,
   Home,
+  Image as ImageIcon,
   Menu,
   Package,
   Pencil,
@@ -36,6 +37,7 @@ export default function DashboardLayout({
     { path: '/admin/sales', label: 'Sales', icon: ShoppingCart },
     { path: '/admin/purchases', label: 'Purchases', icon: ShoppingBag },
     { path: '/admin/products', label: 'Products', icon: Package },
+    { path: '/admin/assets', label: 'Assets', icon: ImageIcon },
     { path: '/admin/blog', label: 'Blog', icon: FileText },
     { path: '/admin/settings', label: 'Settings', icon: SettingsIcon },
   ];

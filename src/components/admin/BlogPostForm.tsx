@@ -2,12 +2,16 @@
 'use client';
 
 import { BlogPost } from '@/types';
-import { Save, Heading1, Heading2, Heading3, Bold, Italic, Strikethrough, List, ListOrdered, Quote, Minus, Undo, Redo } from 'lucide-react';
+import { Save, Heading1, Heading2, Heading3, Bold, Italic, Strikethrough, List, ListOrdered, Quote, Minus, Undo, Redo, Image as ImageIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 import { useForm, SubmitHandler, Controller } from 'react-hook-form';
 import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import { Toggle } from '@/components/ui/toggle';
+import { AssetSelectionModal } from './AssetSelectionModal';
+import Image from 'next/image';
+
 
 interface BlogPostFormProps {
   post?: BlogPost;
@@ -18,6 +22,7 @@ type FormValues = {
   category: string;
   excerpt: string;
   content: string;
+  image: string;
 };
 
 const TiptapToolbar = ({ editor }: { editor: any | null }) => {
@@ -138,15 +143,19 @@ const TiptapToolbar = ({ editor }: { editor: any | null }) => {
 
 export const BlogPostForm = ({ post }: BlogPostFormProps) => {
   const router = useRouter();
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const { register, handleSubmit, formState: { errors }, control } = useForm<FormValues>({
+  const { register, handleSubmit, formState: { errors }, control, setValue, watch } = useForm<FormValues>({
     defaultValues: {
       title: post?.title || '',
       category: post?.category || '',
       excerpt: post?.excerpt || '',
       content: post?.content || '',
+      image: post?.image || '',
     },
   });
+
+  const featuredImage = watch('image');
 
   const onSubmit: SubmitHandler<FormValues> = (data) => {
     console.log(data);
@@ -154,7 +163,14 @@ export const BlogPostForm = ({ post }: BlogPostFormProps) => {
     router.push('/admin/blog');
   };
 
+  const handleImageSelect = (imageSrc: string) => {
+    setValue('image', imageSrc);
+    setIsModalOpen(false);
+  };
+
+
   return (
+    <>
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Left Column: Main Content */}
@@ -250,20 +266,20 @@ export const BlogPostForm = ({ post }: BlogPostFormProps) => {
           </div>
           <div className="bg-gray-800/50 border border-gray-700 rounded-xl p-6">
             <label className="block text-sm font-medium text-gray-300">Featured Image</label>
-            <div className="mt-2 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-600 border-dashed rounded-md">
-              <div className="space-y-1 text-center">
-                 <svg className="mx-auto h-12 w-12 text-gray-500" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true">
-                    <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
-                 </svg>
-                <div className="flex text-sm text-gray-400">
-                  <label htmlFor="file-upload" className="relative cursor-pointer bg-gray-700 rounded-md font-medium text-indigo-400 hover:text-indigo-300 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-offset-gray-800 focus-within:ring-indigo-500 px-1">
-                    <span>Upload a file</span>
-                    <input id="file-upload" name="file-upload" type="file" className="sr-only" />
-                  </label>
-                  <p className="pl-1">or drag and drop</p>
-                </div>
-                <p className="text-xs text-gray-500">PNG, JPG, GIF up to 10MB</p>
-              </div>
+            <div className="mt-2">
+                {featuredImage ? (
+                    <div className="relative aspect-video w-full rounded-md overflow-hidden border-2 border-dashed border-gray-600">
+                        <Image src={featuredImage} alt="Featured Image" fill className="object-cover" />
+                    </div>
+                ) : (
+                    <div className="flex justify-center items-center aspect-video w-full border-2 border-gray-600 border-dashed rounded-md">
+                        <ImageIcon className="h-12 w-12 text-gray-500" />
+                    </div>
+                )}
+                 <button type="button" onClick={() => setIsModalOpen(true)} className="mt-2 w-full px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg flex items-center justify-center space-x-2 transition-colors">
+                    <ImageIcon className="w-4 h-4" />
+                    <span>{featuredImage ? 'Change' : 'Select'} Image</span>
+                </button>
             </div>
           </div>
         </div>
@@ -286,5 +302,12 @@ export const BlogPostForm = ({ post }: BlogPostFormProps) => {
         </button>
       </div>
     </form>
+
+    <AssetSelectionModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSelect={handleImageSelect}
+    />
+    </>
   );
 };
