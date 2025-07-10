@@ -1,3 +1,4 @@
+
 'use client';
 
 import { BlogPost } from '@/types';
@@ -72,12 +73,14 @@ export const BlogPostForm = ({ post }: BlogPostFormProps) => {
                     name="content"
                     control={control}
                     render={({ field }) => (
+                      <div>
                         <ReactQuill
                             theme="snow"
                             value={field.value}
                             onChange={field.onChange}
                             modules={quillModules}
                         />
+                      </div>
                     )}
                  />
               </div>
