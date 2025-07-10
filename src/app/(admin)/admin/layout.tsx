@@ -12,7 +12,9 @@ import {
   Search,
   Settings as SettingsIcon,
   User,
-  X
+  X,
+  ShoppingCart,
+  ShoppingBag,
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -30,8 +32,8 @@ export default function DashboardLayout({
   const navItems = [
     { path: '/admin', label: 'Dashboard', icon: Home },
     { path: '/admin/stock', label: 'Stock Management', icon: Package },
-    { path: '/admin/ingredients', label: 'Ingredients', icon: DatabaseIcon },
-    { path: '/admin/ratios', label: 'Feed Ratios', icon: Pencil },
+    { path: '/admin/sales', label: 'Sales', icon: ShoppingCart },
+    { path: '/admin/purchases', label: 'Purchases', icon: ShoppingBag },
     { path: '/admin/animals', label: 'Animals', icon: Cat },
     { path: '/admin/settings', label: 'Settings', icon: SettingsIcon },
   ];
@@ -112,7 +114,7 @@ export default function DashboardLayout({
               <Menu className="w-5 h-5" />
             </button>
             <h2 className="text-xl font-semibold text-gray-100">
-              {navItems.find(item => pathname === item.path)?.label || 'Dashboard'}
+              {navItems.find(item => pathname.startsWith(item.path))?.label || 'Dashboard'}
             </h2>
           </div>
           
