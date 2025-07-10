@@ -1,44 +1,34 @@
-import type { Metadata } from 'next';
-import './globals.css';
-import { Toaster } from '@/components/ui/toaster';
-import { Header } from '@/components/layout/header';
-import { Footer } from '@/components/layout/footer';
-import { cn } from '@/lib/utils';
+import { GoogleAnalytics } from "@next/third-parties/google";
+import { Metadata } from "next";
+import { Geist, Geist_Mono } from "next/font/google";
+
+const geistSans = Geist({
+  variable: "--font-geist-sans",
+  subsets: ["latin"],
+});
+
+const geistMono = Geist_Mono({
+  variable: "--font-geist-mono",
+  subsets: ["latin"],
+});
 
 export const metadata: Metadata = {
-  title: {
-    default: 'Feedz - AI-Powered Animal Feed Solutions',
-    template: '%s | Feedz',
-  },
-  description:
-    'Discover optimal feed ingredient combinations for your livestock with Feedz. AI-powered recommendations for better nutrition and performance.',
+  title: "FeedSport International",
+  description: "Providing agricultural solutions to farmers.",
 };
 
 export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+  children, // Will be either main or invoice layout + pages
+}: {
+  children: React.ReactNode
+}) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
-          rel="stylesheet"
-        />
-      </head>
-      <body
-        className={cn(
-          'min-h-screen bg-background font-body text-foreground antialiased flex flex-col'
-        )}
-      >
-        <Header />
-        <main className="flex-grow">{children}</main>
-        <Footer />
-        <Toaster />
+    <html lang="en">
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+        {children}
       </body>
+
+      <GoogleAnalytics gaId="G-EPHLVQPHS9" />
     </html>
-  );
+  )
 }
