@@ -1,3 +1,4 @@
+'use client';
 
 import { ArrowDown, ArrowUp, BarChart, CircleUser, MoreHorizontal, Package } from 'lucide-react';
 import { OverviewChart } from '@/components/admin/OverviewChart';
