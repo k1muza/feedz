@@ -1,84 +1,68 @@
 
 "use client"
 
-import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis } from "recharts"
+import { Bar, BarChart, CartesianGrid, ResponsiveContainer, XAxis, YAxis } from "recharts"
 
-const data = [
-  {
-    name: "Jan",
-    total: Math.floor(Math.random() * 5000) + 1000,
-  },
-  {
-    name: "Feb",
-    total: Math.floor(Math.random() * 5000) + 1000,
-  },
-  {
-    name: "Mar",
-    total: Math.floor(Math.random() * 5000) + 1000,
-  },
-  {
-    name: "Apr",
-    total: Math.floor(Math.random() * 5000) + 1000,
-  },
-  {
-    name: "May",
-    total: Math.floor(Math.random() * 5000) + 1000,
-  },
-  {
-    name: "Jun",
-    total: Math.floor(Math.random() * 5000) + 1000,
-  },
-  {
-    name: "Jul",
-    total: Math.floor(Math.random() * 5000) + 1000,
-  },
-  {
-    name: "Aug",
-    total: Math.floor(Math.random() * 5000) + 1000,
-  },
-  {
-    name: "Sep",
-    total: Math.floor(Math.random() * 5000) + 1000,
-  },
-  {
-    name: "Oct",
-    total: Math.floor(Math.random() * 5000) + 1000,
-  },
-  {
-    name: "Nov",
-    total: Math.floor(Math.random() * 5000) + 1000,
-  },
-  {
-    name: "Dec",
-    total: Math.floor(Math.random() * 5000) + 1000,
-  },
+import {
+  ChartConfig,
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+} from "@/components/ui/chart"
+
+const chartData = [
+  { month: "Jan", sales: 186 },
+  { month: "Feb", sales: 305 },
+  { month: "Mar", sales: 237 },
+  { month: "Apr", sales: 273 },
+  { month: "May", sales: 209 },
+  { month: "Jun", sales: 214 },
+  { month: "Jul", sales: 280 },
+  { month: "Aug", sales: 150 },
+  { month: "Sep", sales: 220 },
+  { month: "Oct", sales: 340 },
+  { month: "Nov", sales: 250 },
+  { month: "Dec", sales: 180 },
 ]
+
+const chartConfig = {
+  sales: {
+    label: "Sales",
+    color: "hsl(var(--primary))",
+  },
+} satisfies ChartConfig
 
 export function OverviewChart() {
   return (
-    <ResponsiveContainer width="100%" height={350}>
-      <BarChart data={data}>
+    <ChartContainer config={chartConfig} className="min-h-[200px] w-full">
+      <BarChart 
+        accessibilityLayer 
+        data={chartData}
+        margin={{
+            left: 12,
+            right: 12,
+        }}
+      >
+        <CartesianGrid vertical={false} />
         <XAxis
-          dataKey="name"
-          stroke="#888888"
-          fontSize={12}
+          dataKey="month"
           tickLine={false}
           axisLine={false}
+          tickMargin={8}
+          tickFormatter={(value) => value.slice(0, 3)}
         />
         <YAxis
-          stroke="#888888"
-          fontSize={12}
-          tickLine={false}
-          axisLine={false}
-          tickFormatter={(value) => `$${value}`}
+            tickLine={false}
+            axisLine={false}
+            tickMargin={8}
+            tickCount={5}
         />
-        <Bar
-          dataKey="total"
-          fill="currentColor"
-          radius={[4, 4, 0, 0]}
-          className="fill-primary"
+        <ChartTooltip
+          cursor={false}
+          content={<ChartTooltipContent indicator="line" />}
         />
+        <Bar dataKey="sales" fill="var(--color-sales)" radius={8} />
       </BarChart>
-    </ResponsiveContainer>
+    </ChartContainer>
   )
 }

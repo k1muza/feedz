@@ -10,17 +10,17 @@ export default function AdminLayout({
 }>) {
   return (
     <SidebarProvider>
-      <Sidebar>
-        <AdminSidebar />
-      </Sidebar>
-      <SidebarInset>
-        <div className="flex flex-col min-h-screen">
+      <div className="flex min-h-screen w-full bg-muted/40">
+        <Sidebar variant="sidebar" collapsible="icon">
+          <AdminSidebar />
+        </Sidebar>
+        <div className="flex flex-col sm:gap-4 sm:py-4 sm:pl-14 flex-1">
           <AdminHeader />
-          <main className="flex-1 p-4 md:p-8 pt-6 bg-gray-50/50">
+          <main className="grid flex-1 items-start gap-4 p-4 sm:px-6 sm:py-0 md:gap-8">
             {children}
           </main>
         </div>
-      </SidebarInset>
+      </div>
     </SidebarProvider>
   );
 }

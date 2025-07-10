@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Package, Home, ShoppingCart, Users, LineChart, Wheat } from 'lucide-react';
+import { Package, Home, ShoppingCart, Users, LineChart, Wheat, LayoutGrid, BarChart3 } from 'lucide-react';
 
 import {
   SidebarMenu,
@@ -11,9 +11,10 @@ import {
   SidebarHeader,
   SidebarContent,
   SidebarFooter,
+  SidebarGroup,
+  SidebarGroupLabel,
 } from '@/components/ui/sidebar';
 import { Separator } from '@/components/ui/separator';
-import { Badge } from '@/components/ui/badge';
 
 export default function AdminSidebar() {
   const pathname = usePathname();
@@ -24,52 +25,48 @@ export default function AdminSidebar() {
     <>
       <SidebarHeader>
         <div className="flex items-center gap-2 p-2">
-            <Wheat className="h-6 w-6 text-primary" />
-            <span className="font-semibold text-lg">FeedSport Admin</span>
+            <Wheat className="h-8 w-8 text-primary" />
+            <span className="font-semibold text-xl group-data-[collapsible=icon]:hidden">FeedSport</span>
         </div>
       </SidebarHeader>
-      <Separator />
+      
       <SidebarContent>
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton href="/admin" isActive={isActive('/admin')} tooltip="Dashboard">
-              <Home />
-              <span>Dashboard</span>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-          <SidebarMenuItem>
-            <SidebarMenuButton href="/admin/orders" isActive={isActive('/admin/orders')} tooltip="Orders">
-              <ShoppingCart />
-              <span>Orders</span>
-              <Badge className="ml-auto flex h-6 w-6 shrink-0 items-center justify-center rounded-full">6</Badge>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-          <SidebarMenuItem>
-            <SidebarMenuButton href="/admin/products" isActive={isActive('/admin/products')} tooltip="Products">
-              <Package />
-              <span>Products</span>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-          <SidebarMenuItem>
-            <SidebarMenuButton href="/admin/users" isActive={isActive('/admin/users')} tooltip="Customers">
-              <Users />
-              <span>Customers</span>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-          <SidebarMenuItem>
-            <SidebarMenuButton href="/admin/analytics" isActive={isActive('/admin/analytics')} tooltip="Analytics">
-              <LineChart />
-              <span>Analytics</span>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
+        <SidebarGroup>
+          <SidebarGroupLabel>MENU</SidebarGroupLabel>
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton href="/admin" isActive={isActive('/admin')} tooltip="Dashboard">
+                <LayoutGrid />
+                <span>Dashboard</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton href="/admin/analytics" isActive={isActive('/admin/analytics')} tooltip="Analytics">
+                <BarChart3 />
+                <span>Analytics</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton href="/admin/products" isActive={isActive('/admin/products')} tooltip="Products">
+                <Package />
+                <span>Products</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton href="/admin/orders" isActive={isActive('/admin/orders')} tooltip="Orders">
+                <ShoppingCart />
+                <span>Orders</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton href="/admin/users" isActive={isActive('/admin/users')} tooltip="Customers">
+                <Users />
+                <span>Customers</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarGroup>
       </SidebarContent>
-      <Separator />
-      <SidebarFooter>
-        <div className="p-4 text-xs text-muted-foreground">
-            &copy; {new Date().getFullYear()} FeedSport
-        </div>
-      </SidebarFooter>
     </>
   );
 }
