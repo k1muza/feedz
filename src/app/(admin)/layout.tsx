@@ -1,4 +1,4 @@
-
+import "@/app/globals.css";
 import { SidebarProvider, Sidebar, SidebarInset } from "@/components/ui/sidebar";
 import AdminSidebar from "@/components/admin/AdminSidebar";
 import AdminHeader from "@/components/admin/AdminHeader";
