@@ -1,8 +1,8 @@
 import { Product } from "@/types";
 import { getIngredients } from "./ingredients";
 
-
-export const ALL_PRODUCTS: Product[] = [
+// Make this a let so it can be mutated
+let ALL_PRODUCTS: Product[] = [
   // Protein Sources
   {
     id: 'soy-48',
@@ -105,6 +105,15 @@ export const getProducts = (): Product[] => {
     }
   })
 }
+
+// Function to update stock
+export const updateStock = (productId: string, newStock: number) => {
+  const productIndex = ALL_PRODUCTS.findIndex(p => p.id === productId);
+  if (productIndex !== -1) {
+    ALL_PRODUCTS[productIndex].stock = newStock;
+  }
+};
+
 
 // Helper functions
 export const getFeaturedProducts = (): Product[] => {

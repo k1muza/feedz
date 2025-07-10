@@ -1,8 +1,8 @@
-
 'use client';
 
 import { useState } from "react";
-import { ShoppingBag, Plus, Download, ChevronDown, ChevronUp, Search, Filter } from "lucide-react";
+import { ShoppingBag, Plus, Download, Search, Filter, X } from "lucide-react";
+import { Product, getProducts, updateStock } from "@/data/products";
 
 interface PurchaseOrder {
   id: string;
@@ -10,50 +10,49 @@ interface PurchaseOrder {
   date: string;
   total: number;
   status: 'Pending' | 'Completed' | 'Cancelled';
-  items: number;
+  items: { productId: string, quantity: number, productName: string }[];
 }
 
 export const PurchasesManagement = () => {
-  const [sortConfig, setSortConfig] = useState<{key: keyof PurchaseOrder; direction: 'asc' | 'desc'} | null>(null);
-  
-  const purchaseOrders: PurchaseOrder[] = [
-    { id: 'PO-2023-001', supplier: 'AgriCorp', date: '2023-05-20', total: 12500, status: 'Completed', items: 3 },
-    { id: 'PO-2023-002', supplier: 'ProteinPlus', date: '2023-05-22', total: 8750, status: 'Completed', items: 2 },
-    { id: 'PO-2023-003', supplier: 'GrainMasters', date: '2023-05-25', total: 22000, status: 'Pending', items: 5 },
-    { id: 'PO-2023-004', supplier: 'MarineSupplies', date: '2023-05-28', total: 6400, status: 'Cancelled', items: 1 },
-    { id: 'PO-2023-005', supplier: 'NutriScience', date: '2023-06-01', total: 950, status: 'Pending', items: 1 },
-  ];
+  const [purchases, setPurchases] = useState<PurchaseOrder[]>([
+    { id: 'PO-2023-001', supplier: 'AgriCorp', date: '2023-05-20', total: 12500, status: 'Completed', items: [{productId: 'en-cg', quantity: 10, productName: 'Corn, grain, yellow'}] },
+  ]);
+  const [showPurchaseForm, setShowPurchaseForm] = useState(false);
+  const [newPurchase, setNewPurchase] = useState({ supplier: '', productId: '', quantity: 0 });
+  const products = getProducts();
 
-  const sortedOrders = [...purchaseOrders].sort((a, b) => {
-    if (!sortConfig) return 0;
-    if (a[sortConfig.key] < b[sortConfig.key]) {
-      return sortConfig.direction === 'asc' ? -1 : 1;
-    }
-    if (a[sortConfig.key] > b[sortConfig.key]) {
-      return sortConfig.direction === 'asc' ? 1 : -1;
-    }
-    return 0;
-  });
+  const handleAddPurchase = () => {
+    if (newPurchase.supplier && newPurchase.productId && newPurchase.quantity > 0) {
+      const product = products.find(p => p.id === newPurchase.productId);
+      if (!product) return;
 
-  const requestSort = (key: keyof PurchaseOrder) => {
-    let direction: 'asc' | 'desc' = 'asc';
-    if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
-      direction = 'desc';
-    }
-    setSortConfig({ key, direction });
-  };
+      const purchaseAmount = product.price * newPurchase.quantity * 0.8; // Assume purchase price is 80% of sale price
 
-  const getStatusChip = (status: PurchaseOrder['status']) => {
-    switch (status) {
-      case 'Completed': return 'bg-green-900/30 text-green-400';
-      case 'Pending': return 'bg-amber-900/30 text-amber-400';
-      case 'Cancelled': return 'bg-red-900/30 text-red-400';
+      const purchase: PurchaseOrder = {
+        id: `PO-${Date.now().toString().slice(-4)}`,
+        supplier: newPurchase.supplier,
+        date: new Date().toISOString().split('T')[0],
+        total: purchaseAmount,
+        status: 'Completed',
+        items: [{
+          productId: product.id,
+          quantity: newPurchase.quantity,
+          productName: product.ingredient?.name || 'Unknown Product'
+        }]
+      };
+
+      setPurchases([...purchases, purchase]);
+
+      // Update stock
+      updateStock(product.id, product.stock + newPurchase.quantity);
+      
+      setShowPurchaseForm(false);
+      setNewPurchase({ supplier: '', productId: '', quantity: 0 });
     }
   };
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div className="flex items-center space-x-3">
           <ShoppingBag className="w-6 h-6 text-indigo-400" />
@@ -62,7 +61,7 @@ export const PurchasesManagement = () => {
           </h2>
         </div>
         <div className="flex space-x-3">
-          <button className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg flex items-center space-x-2 transition-colors">
+          <button onClick={() => setShowPurchaseForm(true)} className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg flex items-center space-x-2 transition-colors">
             <Plus className="w-4 h-4" />
             <span>New Purchase</span>
           </button>
@@ -73,7 +72,6 @@ export const PurchasesManagement = () => {
         </div>
       </div>
 
-      {/* Filters and Search */}
       <div className="flex flex-col md:flex-row gap-4">
         <div className="relative flex-1">
           <Search className="absolute top-1/2 left-3 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -89,40 +87,30 @@ export const PurchasesManagement = () => {
         </button>
       </div>
 
-      {/* Purchases Table */}
       <div className="bg-gray-800/50 border border-gray-700 rounded-xl overflow-hidden">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-700">
             <thead className="bg-gray-800">
               <tr>
-                {['id', 'supplier', 'date', 'total', 'status'].map((key) => (
-                  <th 
-                    key={key}
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider cursor-pointer"
-                    onClick={() => requestSort(key as keyof PurchaseOrder)}
-                  >
-                    <div className="flex items-center">
-                      {key.replace('_', ' ')}
-                      {sortConfig?.key === key && (
-                        sortConfig.direction === 'asc' ? 
-                          <ChevronUp className="ml-1 w-4 h-4" /> : 
-                          <ChevronDown className="ml-1 w-4 h-4" />
-                      )}
-                    </div>
-                  </th>
-                ))}
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">PO Number</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Supplier</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Date</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Items</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Total</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Status</th>
                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-700">
-              {sortedOrders.map((order) => (
+              {purchases.map((order) => (
                 <tr key={order.id} className="hover:bg-gray-700/50 transition-colors">
                   <td className="px-6 py-4 whitespace-nowrap font-medium text-indigo-400">{order.id}</td>
                   <td className="px-6 py-4 whitespace-nowrap">{order.supplier}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-gray-400">{order.date}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-gray-400">{order.items.map(i => `${i.quantity} x ${i.productName}`).join(', ')}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-gray-400">${order.total.toLocaleString()}</td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-2 py-1 rounded-full text-xs ${getStatusChip(order.status)}`}>
+                    <span className={`px-2 py-1 rounded-full text-xs ${order.status === 'Completed' ? 'bg-green-900/30 text-green-400' : 'bg-amber-900/30 text-amber-400'}`}>
                       {order.status}
                     </span>
                   </td>
@@ -135,6 +123,71 @@ export const PurchasesManagement = () => {
           </table>
         </div>
       </div>
+
+       {showPurchaseForm && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+          <div className="bg-gray-800 border border-gray-700 rounded-xl w-full max-w-md">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-medium">Create New Purchase Order</h3>
+                <button 
+                  onClick={() => setShowPurchaseForm(false)}
+                  className="text-gray-400 hover:text-gray-200"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm text-gray-400 mb-2">Supplier Name</label>
+                  <input 
+                    type="text"
+                    value={newPurchase.supplier}
+                    onChange={(e) => setNewPurchase({...newPurchase, supplier: e.target.value})}
+                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm text-gray-400 mb-2">Product</label>
+                  <select
+                    value={newPurchase.productId}
+                    onChange={(e) => setNewPurchase({...newPurchase, productId: e.target.value})}
+                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg"
+                  >
+                      <option value="">Select Product</option>
+                      {products.map(p => <option key={p.id} value={p.id}>{p.ingredient?.name}</option>)}
+                  </select>
+                </div>
+                 <div>
+                  <label className="block text-sm text-gray-400 mb-2">Quantity (tons)</label>
+                  <input 
+                    type="number" 
+                    value={newPurchase.quantity}
+                    onChange={(e) => setNewPurchase({...newPurchase, quantity: Number(e.target.value)})}
+                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg"
+                  />
+                </div>
+                <div className="flex justify-end space-x-3 pt-4">
+                  <button 
+                    type="button" 
+                    onClick={() => setShowPurchaseForm(false)}
+                    className="px-4 py-2 border border-gray-600 rounded-lg hover:bg-gray-700"
+                  >
+                    Cancel
+                  </button>
+                  <button 
+                    type="button" 
+                    onClick={handleAddPurchase}
+                    className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg"
+                  >
+                    Create Purchase Order
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
