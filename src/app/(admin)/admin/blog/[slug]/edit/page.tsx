@@ -3,9 +3,11 @@
 import { BlogPostForm } from '@/components/admin/BlogPostForm';
 import { allBlogPosts } from '@/data/blog';
 import { notFound } from 'next/navigation';
+import React from 'react';
 
 export default function EditBlogPostPage({ params }: { params: { slug: string } }) {
-  const post = allBlogPosts.find(p => p.slug === params.slug);
+  const { slug } = React.use(params);
+  const post = allBlogPosts.find(p => p.slug === slug);
 
   if (!post) {
     notFound();
