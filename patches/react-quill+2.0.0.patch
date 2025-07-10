@@ -1,0 +1,70 @@
+diff --git a/node_modules/react-quill/lib/component.js b/node_modules/react-quill/lib/component.js
+index 92c8541..895ac86 100644
+--- a/node_modules/react-quill/lib/component.js
++++ b/node_modules/react-quill/lib/component.js
+@@ -194,13 +194,7 @@
+ 	},
+ 
+ 	getEditorNode: function getEditorNode() {
+-		// The editor is the first child of the container div
+-		// https://github.com/zenoamaro/react-quill/issues/253#issuecomment-294971802
+-		return ReactDOM.findDOMNode(this).firstChild;
+-	},
+-
+-	getEditingAreaNode: function getEditingAreaNode() {
+-		return ReactDOM.findDOMNode(this).querySelector('.ql-editor');
++ return this.editorNode;
+ 	},
+ 
+ 	getSelection: function getSelection() {
+@@ -291,10 +285,11 @@
+ 		var editor = this.createEditor(
+ 			this.getEditorNode(),
+ 			this.getEditorConfig()
+-		);
+-		// Restore editor from dangerously-set-inner-html, if specified
+-		if (this.props.dangerouslySetInnerHTML) {
+-			this.getEditorNode().innerHTML = this.props.dangerouslySetInnerHTML.__html;
++        );
++        this.editorNode = editor.container;
++		// Restore editor from dangerously-set-inner-html, if specified.
++		if (this.props.dangerouslySetInnerHTML) {			
++			this.editorNode.innerHTML = this.props.dangerouslySetInnerHTML.__html;
+ 		}
+ 		// Otherwise, set contents from value, if specified
+ 		else {
+diff --git a/node_modules/react-quill/lib/index.js b/node_modules/react-quill/lib/index.js
+index 95156f0..b45101a 100644
+--- a/node_modules/react-quill/lib/index.js
++++ b/node_modules/react-quill/lib/index.js
+@@ -194,13 +194,7 @@
+ 	},
+ 
+ 	getEditorNode: function getEditorNode() {
+-		// The editor is the first child of the container div
+-		// https://github.com/zenoamaro/react-quill/issues/253#issuecomment-294971802
+-		return ReactDOM.findDOMNode(this).firstChild;
+-	},
+-
+-	getEditingAreaNode: function getEditingAreaNode() {
+-		return ReactDOM.findDOMNode(this).querySelector('.ql-editor');
++ return this.editorNode;
+ 	},
+ 
+ 	getSelection: function getSelection() {
+@@ -291,10 +285,11 @@
+ 		var editor = this.createEditor(
+ 			this.getEditorNode(),
+ 			this.getEditorConfig()
+-		);
+-		// Restore editor from dangerously-set-inner-html, if specified
+-		if (this.props.dangerouslySetInnerHTML) {
+-			this.getEditorNode().innerHTML = this.props.dangerouslySetInnerHTML.__html;
++        );
++        this.editorNode = editor.container;
++		// Restore editor from dangerously-set-inner-html, if specified.
++		if (this.props.dangerouslySetInnerHTML) {			
++			this.editorNode.innerHTML = this.props.dangerouslySetInnerHTML.__html;
+ 		}
+ 		// Otherwise, set contents from value, if specified
+ 		else {
