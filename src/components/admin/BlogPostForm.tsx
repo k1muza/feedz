@@ -2,16 +2,13 @@
 'use client';
 
 import { BlogPost } from '@/types';
-import { Save, Upload } from 'lucide-react';
+import { Save } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useForm, SubmitHandler, Controller } from 'react-hook-form';
-import 'react-quill/dist/quill.snow.css'; // import styles
-import dynamic from 'next/dynamic';
-import { useRef } from 'react';
-
-// Dynamically import ReactQuill to avoid SSR issues
-const ReactQuill = dynamic(() => import('react-quill'), { ssr: false });
-
+import { useEditor, EditorContent } from '@tiptap/react'
+import StarterKit from '@tiptap/starter-kit'
+import { Toggle } from '@/components/ui/toggle';
+import { Bold, Italic, List, ListOrdered, Heading2 } from 'lucide-react';
 
 interface BlogPostFormProps {
   post?: BlogPost;
@@ -23,6 +20,53 @@ type FormValues = {
   excerpt: string;
   content: string;
 };
+
+const TiptapToolbar = ({ editor }: { editor: any | null }) => {
+  if (!editor) {
+    return null
+  }
+
+  return (
+    <div className="border border-input bg-transparent rounded-md p-1 flex flex-wrap gap-1">
+      <Toggle
+        size="sm"
+        pressed={editor.isActive('heading', { level: 2 })}
+        onPressedChange={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+      >
+        <Heading2 className="h-4 w-4" />
+      </Toggle>
+      <Toggle
+        size="sm"
+        pressed={editor.isActive('bold')}
+        onPressedChange={() => editor.chain().focus().toggleBold().run()}
+      >
+        <Bold className="h-4 w-4" />
+      </Toggle>
+      <Toggle
+        size="sm"
+        pressed={editor.isActive('italic')}
+        onPressedChange={() => editor.chain().focus().toggleItalic().run()}
+      >
+        <Italic className="h-4 w-4" />
+      </Toggle>
+      <Toggle
+        size="sm"
+        pressed={editor.isActive('bulletList')}
+        onPressedChange={() => editor.chain().focus().toggleBulletList().run()}
+      >
+        <List className="h-4 w-4" />
+      </Toggle>
+      <Toggle
+        size="sm"
+        pressed={editor.isActive('orderedList')}
+        onPressedChange={() => editor.chain().focus().toggleOrderedList().run()}
+      >
+        <ListOrdered className="h-4 w-4" />
+      </Toggle>
+    </div>
+  )
+}
+
 
 export const BlogPostForm = ({ post }: BlogPostFormProps) => {
   const router = useRouter();
@@ -39,18 +83,7 @@ export const BlogPostForm = ({ post }: BlogPostFormProps) => {
   const onSubmit: SubmitHandler<FormValues> = (data) => {
     console.log(data);
     // Here you would typically call an API to save the data
-    // For now, we'll just log it and redirect
     router.push('/admin/blog');
-  };
-
-  const quillModules = {
-    toolbar: [
-      [{ 'header': [1, 2, 3, false] }],
-      ['bold', 'italic', 'underline', 'strike', 'blockquote'],
-      [{ 'list': 'ordered' }, { 'list': 'bullet' }],
-      ['link', 'image'],
-      ['clean']
-    ],
   };
 
   return (
@@ -72,21 +105,46 @@ export const BlogPostForm = ({ post }: BlogPostFormProps) => {
           </div>
           <div className="bg-gray-800/50 border border-gray-700 rounded-xl p-6">
               <label className="block text-sm font-medium text-gray-300 mb-2">Post Content</label>
-               <div className="bg-white text-black rounded-md">
+               <div className="text-white rounded-md">
                  <Controller
                     name="content"
                     control={control}
                     rules={{ required: 'Content is required.'}}
-                    render={({ field }) => (
-                        <ReactQuill
-                            theme="snow"
-                            value={field.value}
-                            onChange={field.onChange}
-                            modules={quillModules}
-                        />
-                    )}
+                    render={({ field }) => {
+                       const editor = useEditor({
+                        extensions: [
+                          StarterKit.configure({
+                            bulletList: {
+                              keepMarks: true,
+                              keepAttributes: false,
+                            },
+                            orderedList: {
+                              keepMarks: true,
+                              keepAttributes: false, 
+                            },
+                          }),
+                        ],
+                        content: field.value,
+                        onUpdate: ({ editor }) => {
+                          field.onChange(editor.getHTML());
+                        },
+                        editorProps: {
+                          attributes: {
+                            class: 'prose prose-invert dark:prose-invert min-h-[250px] w-full max-w-none rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50',
+                          },
+                        },
+                      })
+
+                      return (
+                        <div className="flex flex-col gap-2">
+                           <TiptapToolbar editor={editor} />
+                           <EditorContent editor={editor} />
+                        </div>
+                      )
+                    }}
                  />
               </div>
+               {errors.content && <p className="text-red-500 text-xs mt-1">{errors.content.message}</p>}
           </div>
         </div>
 
@@ -123,7 +181,9 @@ export const BlogPostForm = ({ post }: BlogPostFormProps) => {
             <label className="block text-sm font-medium text-gray-300">Featured Image</label>
             <div className="mt-2 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-600 border-dashed rounded-md">
               <div className="space-y-1 text-center">
-                <Upload className="mx-auto h-12 w-12 text-gray-500" />
+                 <svg className="mx-auto h-12 w-12 text-gray-500" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true">
+                    <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+                 </svg>
                 <div className="flex text-sm text-gray-400">
                   <label htmlFor="file-upload" className="relative cursor-pointer bg-gray-700 rounded-md font-medium text-indigo-400 hover:text-indigo-300 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-offset-gray-800 focus-within:ring-indigo-500 px-1">
                     <span>Upload a file</span>
