@@ -1,6 +1,3 @@
-'use client';
-
-import { useState } from "react";
 import { Plus, Download, MoreHorizontal, Search, Filter, Edit, Trash2, Eye } from "lucide-react";
 import {
   DropdownMenu,

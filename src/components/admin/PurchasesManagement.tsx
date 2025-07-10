@@ -1,6 +1,3 @@
-'use client';
-
-import { useState } from "react";
 import { ShoppingBag, Plus, Download, Search, Filter, X } from "lucide-react";
 import { Product, getProducts, updateStock } from "@/data/products";
 
@@ -14,42 +11,10 @@ interface PurchaseOrder {
 }
 
 export const PurchasesManagement = () => {
-  const [purchases, setPurchases] = useState<PurchaseOrder[]>([
+  const purchases: PurchaseOrder[] = [
     { id: 'PO-2023-001', supplier: 'AgriCorp', date: '2023-05-20', total: 12500, status: 'Completed', items: [{productId: 'en-cg', quantity: 10, productName: 'Corn, grain, yellow'}] },
-  ]);
-  const [showPurchaseForm, setShowPurchaseForm] = useState(false);
-  const [newPurchase, setNewPurchase] = useState({ supplier: '', productId: '', quantity: 0 });
+  ];
   const products = getProducts();
-
-  const handleAddPurchase = () => {
-    if (newPurchase.supplier && newPurchase.productId && newPurchase.quantity > 0) {
-      const product = products.find(p => p.id === newPurchase.productId);
-      if (!product) return;
-
-      const purchaseAmount = product.price * newPurchase.quantity * 0.8; // Assume purchase price is 80% of sale price
-
-      const purchase: PurchaseOrder = {
-        id: `PO-${Date.now().toString().slice(-4)}`,
-        supplier: newPurchase.supplier,
-        date: new Date().toISOString().split('T')[0],
-        total: purchaseAmount,
-        status: 'Completed',
-        items: [{
-          productId: product.id,
-          quantity: newPurchase.quantity,
-          productName: product.ingredient?.name || 'Unknown Product'
-        }]
-      };
-
-      setPurchases([...purchases, purchase]);
-
-      // Update stock
-      updateStock(product.id, product.stock + newPurchase.quantity);
-      
-      setShowPurchaseForm(false);
-      setNewPurchase({ supplier: '', productId: '', quantity: 0 });
-    }
-  };
 
   return (
     <div className="space-y-6">
@@ -61,7 +26,7 @@ export const PurchasesManagement = () => {
           </h2>
         </div>
         <div className="flex space-x-3">
-          <button onClick={() => setShowPurchaseForm(true)} className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg flex items-center space-x-2 transition-colors">
+          <button className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg flex items-center space-x-2 transition-colors">
             <Plus className="w-4 h-4" />
             <span>New Purchase</span>
           </button>
@@ -123,71 +88,6 @@ export const PurchasesManagement = () => {
           </table>
         </div>
       </div>
-
-       {showPurchaseForm && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-          <div className="bg-gray-800 border border-gray-700 rounded-xl w-full max-w-md">
-            <div className="p-6">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-medium">Create New Purchase Order</h3>
-                <button 
-                  onClick={() => setShowPurchaseForm(false)}
-                  className="text-gray-400 hover:text-gray-200"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm text-gray-400 mb-2">Supplier Name</label>
-                  <input 
-                    type="text"
-                    value={newPurchase.supplier}
-                    onChange={(e) => setNewPurchase({...newPurchase, supplier: e.target.value})}
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm text-gray-400 mb-2">Product</label>
-                  <select
-                    value={newPurchase.productId}
-                    onChange={(e) => setNewPurchase({...newPurchase, productId: e.target.value})}
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg"
-                  >
-                      <option value="">Select Product</option>
-                      {products.map(p => <option key={p.id} value={p.id}>{p.ingredient?.name}</option>)}
-                  </select>
-                </div>
-                 <div>
-                  <label className="block text-sm text-gray-400 mb-2">Quantity (tons)</label>
-                  <input 
-                    type="number" 
-                    value={newPurchase.quantity}
-                    onChange={(e) => setNewPurchase({...newPurchase, quantity: Number(e.target.value)})}
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg"
-                  />
-                </div>
-                <div className="flex justify-end space-x-3 pt-4">
-                  <button 
-                    type="button" 
-                    onClick={() => setShowPurchaseForm(false)}
-                    className="px-4 py-2 border border-gray-600 rounded-lg hover:bg-gray-700"
-                  >
-                    Cancel
-                  </button>
-                  <button 
-                    type="button" 
-                    onClick={handleAddPurchase}
-                    className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg"
-                  >
-                    Create Purchase Order
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

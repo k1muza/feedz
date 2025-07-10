@@ -1,5 +1,3 @@
-'use client';
-
 import { useState } from "react";
 import { Package, Plus, Download, Edit2, History, ChevronDown, ChevronUp, X, Check, Minus } from "lucide-react";
 import { Product, getProducts, updateStock } from "@/data/products";
@@ -37,11 +35,11 @@ export const StockManagement = () => {
     let aValue, bValue;
 
     if (key === 'name' || key === 'category') {
-      aValue = a.ingredient?.[key] || '';
-      bValue = b.ingredient?.[key] || '';
+      aValue = a.ingredient?.[key as keyof typeof a.ingredient] || '';
+      bValue = b.ingredient?.[key as keyof typeof b.ingredient] || '';
     } else {
-      aValue = a[key];
-      bValue = b[key];
+      aValue = a[key as keyof Product];
+      bValue = b[key as keyof Product];
     }
     
     if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;

@@ -1,6 +1,3 @@
-
-'use client';
-
 import { AssetManagement } from '@/components/admin/AssetManagement';
 
 export default function AssetsPage() {

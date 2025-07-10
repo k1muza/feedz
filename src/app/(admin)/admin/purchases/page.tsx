@@ -1,6 +1,3 @@
-
-'use client';
-
 import { PurchasesManagement } from '@/components/admin/PurchasesManagement';
 
 export default function PurchasesPage() {

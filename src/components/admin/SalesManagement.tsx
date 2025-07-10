@@ -1,6 +1,3 @@
-'use client';
-
-import { useState } from "react";
 import { ShoppingCart, Plus, Download, Search, Filter, X } from "lucide-react";
 import { Product, getProducts, updateStock } from "@/data/products";
 
@@ -14,43 +11,10 @@ interface Sale {
 }
 
 export const SalesManagement = () => {
-  const [sales, setSales] = useState<Sale[]>([
-    { id: 'INV-2023-0123', customer: 'Green Valley Farms', date: '2023-05-18', total: 7200, status: 'Paid', items: [{productId: 'soy-48', quantity: 5, productName: 'Soybean Meal'}] },
-  ]);
-  const [showSaleForm, setShowSaleForm] = useState(false);
-  const [newSale, setNewSale] = useState({ customer: '', productId: '', quantity: 0 });
-  const products = getProducts();
-
-  const handleAddSale = () => {
-    if (newSale.customer && newSale.productId && newSale.quantity > 0) {
-        const product = products.find(p => p.id === newSale.productId);
-        if (!product) return;
-
-        const saleAmount = product.price * newSale.quantity;
-
-        const sale: Sale = {
-            id: `INV-${Date.now().toString().slice(-4)}`,
-            customer: newSale.customer,
-            date: new Date().toISOString().split('T')[0],
-            total: saleAmount,
-            status: 'Pending',
-            items: [{
-                productId: product.id,
-                quantity: newSale.quantity,
-                productName: product.ingredient?.name || 'Unknown Product'
-            }]
-        };
-
-        setSales([...sales, sale]);
-        
-        // Update stock
-        updateStock(product.id, product.stock - newSale.quantity);
-
-        setShowSaleForm(false);
-        setNewSale({ customer: '', productId: '', quantity: 0 });
-    }
-  }
-
+    const sales: Sale[] = [
+        { id: 'INV-2023-0123', customer: 'Green Valley Farms', date: '2023-05-18', total: 7200, status: 'Paid', items: [{productId: 'soy-48', quantity: 5, productName: 'Soybean Meal'}] },
+    ];
+    const products = getProducts();
 
   return (
     <div className="space-y-6">
@@ -62,7 +26,7 @@ export const SalesManagement = () => {
           </h2>
         </div>
         <div className="flex space-x-3">
-          <button onClick={() => setShowSaleForm(true)} className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg flex items-center space-x-2 transition-colors">
+          <button className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg flex items-center space-x-2 transition-colors">
             <Plus className="w-4 h-4" />
             <span>New Sale</span>
           </button>
@@ -124,71 +88,6 @@ export const SalesManagement = () => {
           </table>
         </div>
       </div>
-      
-      {showSaleForm && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-          <div className="bg-gray-800 border border-gray-700 rounded-xl w-full max-w-md">
-            <div className="p-6">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-medium">Create New Sale</h3>
-                <button 
-                  onClick={() => setShowSaleForm(false)}
-                  className="text-gray-400 hover:text-gray-200"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm text-gray-400 mb-2">Customer Name</label>
-                  <input 
-                    type="text"
-                    value={newSale.customer}
-                    onChange={(e) => setNewSale({...newSale, customer: e.target.value})}
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm text-gray-400 mb-2">Product</label>
-                  <select
-                    value={newSale.productId}
-                    onChange={(e) => setNewSale({...newSale, productId: e.target.value})}
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg"
-                  >
-                      <option value="">Select Product</option>
-                      {products.map(p => <option key={p.id} value={p.id}>{p.ingredient?.name}</option>)}
-                  </select>
-                </div>
-                 <div>
-                  <label className="block text-sm text-gray-400 mb-2">Quantity (tons)</label>
-                  <input 
-                    type="number" 
-                    value={newSale.quantity}
-                    onChange={(e) => setNewSale({...newSale, quantity: Number(e.target.value)})}
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg"
-                  />
-                </div>
-                <div className="flex justify-end space-x-3 pt-4">
-                  <button 
-                    type="button" 
-                    onClick={() => setShowSaleForm(false)}
-                    className="px-4 py-2 border border-gray-600 rounded-lg hover:bg-gray-700"
-                  >
-                    Cancel
-                  </button>
-                  <button 
-                    type="button" 
-                    onClick={handleAddSale}
-                    className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg"
-                  >
-                    Create Sale
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

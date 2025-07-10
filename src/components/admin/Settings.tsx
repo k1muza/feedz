@@ -1,3 +1,5 @@
+'use client'
+
 import { Bell, Edit2, Lock, Plus, Save, Settings as SettingsIcon, Trash2, User, X } from "lucide-react";
 import { useState } from "react";
 

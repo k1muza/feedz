@@ -1,5 +1,3 @@
-'use client';
-
 import { ProductsManagement } from '@/components/admin/ProductsManagement';
 
 export default function ProductsPage() {

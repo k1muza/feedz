@@ -1,6 +1,3 @@
-'use client';
-
-import { useState } from "react";
 import { Plus, Download, MoreHorizontal, Search, Filter, Edit, Trash2, Eye } from "lucide-react";
 import {
   DropdownMenu,
@@ -11,10 +8,9 @@ import {
 import Link from "next/link";
 import Image from "next/image";
 import { allBlogPosts } from "@/data/blog";
-import { BlogPost } from "@/types";
 
 export const BlogManagement = () => {
-  const [posts, setPosts] = useState<BlogPost[]>(allBlogPosts);
+  const posts = allBlogPosts;
 
   return (
     <div className="space-y-6">
