@@ -1,3 +1,5 @@
+'use client';
+
 import { useState } from "react";
 import { Package, Plus, Download, Edit2, History, ChevronDown, ChevronUp, X, Check, Minus } from "lucide-react";
 import { Product, getProducts, updateStock } from "@/data/products";
