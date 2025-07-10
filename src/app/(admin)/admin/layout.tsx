@@ -115,7 +115,7 @@ export default function DashboardLayout({
               <Menu className="w-5 h-5" />
             </button>
             <h2 className="text-xl font-semibold text-gray-100">
-              {navItems.find(item => pathname.startsWith(item.path) && (path !== '/admin' || pathname === '/admin'))?.label || 'Dashboard'}
+              {navItems.find(item => pathname.startsWith(item.path) && (item.path !== '/admin' || pathname === '/admin'))?.label || 'Dashboard'}
             </h2>
           </div>
           
