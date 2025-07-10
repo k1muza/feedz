@@ -7,8 +7,18 @@ import { useRouter } from 'next/navigation';
 import { useForm, SubmitHandler, Controller } from 'react-hook-form';
 import 'react-quill/dist/quill.snow.css'; // import styles
 import dynamic from 'next/dynamic';
+import { useRef } from 'react';
 
-const ReactQuill = dynamic(() => import('react-quill'), { ssr: false });
+// Dynamically import ReactQuill to avoid SSR issues
+const ReactQuill = dynamic(
+  async () => {
+    const { default: RQ } = await import('react-quill');
+    // eslint-disable-next-line react/display-name
+    return ({ forwardedRef, ...props }: any) => <RQ ref={forwardedRef} {...props} />;
+  },
+  { ssr: false }
+);
+
 
 interface BlogPostFormProps {
   post?: BlogPost;
@@ -23,6 +33,8 @@ type FormValues = {
 
 export const BlogPostForm = ({ post }: BlogPostFormProps) => {
   const router = useRouter();
+  const quillRef = useRef(null);
+
   const { register, handleSubmit, formState: { errors }, control } = useForm<FormValues>({
     defaultValues: {
       title: post?.title || '',
@@ -73,14 +85,13 @@ export const BlogPostForm = ({ post }: BlogPostFormProps) => {
                     name="content"
                     control={control}
                     render={({ field }) => (
-                      <div>
                         <ReactQuill
+                            forwardedRef={quillRef}
                             theme="snow"
                             value={field.value}
                             onChange={field.onChange}
                             modules={quillModules}
                         />
-                      </div>
                     )}
                  />
               </div>
