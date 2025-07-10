@@ -34,6 +34,7 @@ export default function DashboardLayout({
     { path: '/admin/stock', label: 'Stock Management', icon: Package },
     { path: '/admin/sales', label: 'Sales', icon: ShoppingCart },
     { path: '/admin/purchases', label: 'Purchases', icon: ShoppingBag },
+    { path: '/admin/products', label: 'Products', icon: Package },
     { path: '/admin/animals', label: 'Animals', icon: Cat },
     { path: '/admin/settings', label: 'Settings', icon: SettingsIcon },
   ];
@@ -69,7 +70,7 @@ export default function DashboardLayout({
               key={path}
               href={path}
               className={`flex items-center w-full px-4 py-3 rounded-lg transition-all group ${
-                pathname === path
+                pathname.startsWith(path) && (path !== '/admin' || pathname === '/admin')
                   ? 'bg-indigo-500/10 text-indigo-400 border-l-4 border-indigo-400' 
                   : 'text-gray-400 hover:bg-gray-800/50 hover:text-gray-200'
               }`}
@@ -114,7 +115,7 @@ export default function DashboardLayout({
               <Menu className="w-5 h-5" />
             </button>
             <h2 className="text-xl font-semibold text-gray-100">
-              {navItems.find(item => pathname.startsWith(item.path))?.label || 'Dashboard'}
+              {navItems.find(item => pathname.startsWith(item.path) && (path !== '/admin' || pathname === '/admin'))?.label || 'Dashboard'}
             </h2>
           </div>
           
