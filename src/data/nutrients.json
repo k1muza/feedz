@@ -1,0 +1,800 @@
+[
+  {
+    "id": "1",
+    "name": "Dry matter",
+    "description": "Indicates the amount of nutrients in feed excluding water",
+    "unit": "%",
+    "categoryId": "main"
+  },
+  {
+    "id": "2",
+    "name": "Crude protein",
+    "description": "Essential for growth and repair of body tissues",
+    "unit": "%",
+    "categoryId": "main"
+  },
+  {
+    "id": "3",
+    "name": "Crude fat",
+    "description": "Major energy source, also affects fat-soluble vitamin absorption and storage",
+    "unit": "%",
+    "categoryId": "main"
+  },
+  {
+    "id": "4",
+    "name": "Crude fibre",
+    "description": "Important for digestive health, impacts digestion and metabolism of nutrients",
+    "unit": "%",
+    "categoryId": "main"
+  },
+  {
+    "id": "5",
+    "name": "Calcium",
+    "description": "Essential for bone formation and metabolic functions",
+    "unit": "%",
+    "categoryId": "minerals"
+  },
+  {
+    "id": "6",
+    "name": "Phosphorus",
+    "description": "Works closely with calcium, important for bones and teeth",
+    "unit": "%",
+    "categoryId": "minerals"
+  },
+  {
+    "id": "7",
+    "name": "Available P broiler",
+    "description": "Works closely with calcium, important for bones and teeth",
+    "unit": "%",
+    "categoryId": "minerals"
+  },
+  {
+    "id": "8",
+    "name": "Sodium",
+    "description": "Vital for osmoregulation, nerve function, and as part of various body systems",
+    "unit": "%",
+    "categoryId": "minerals"
+  },
+  {
+    "id": "9",
+    "name": "Chlorine",
+    "description": "Vital for osmoregulation, nerve function, and as part of various body systems",
+    "unit": "%",
+    "categoryId": "minerals"
+  },
+  {
+    "id": "10",
+    "name": "Potassium",
+    "description": "Vital for osmoregulation, nerve function, and as part of various body systems",
+    "unit": "%",
+    "categoryId": "minerals"
+  },
+  {
+    "id": "12",
+    "name": "Metabolizable Energy (ME)",
+    "description": "Energy available from feed that is usable by the animal after metabolic processes",
+    "unit": "kcal/lb",
+    "categoryId": "energy"
+  },
+  {
+    "id": "13",
+    "name": "AMEn broiler (kcal)",
+    "description": "Energy available from feed that is usable by the animal after metabolic processes",
+    "unit": "kcal/kg",
+    "categoryId": "energy"
+  },
+  {
+    "id": "14",
+    "name": "AMEn broiler (MJ)",
+    "description": "Energy available from feed that is usable by the animal after metabolic processes",
+    "unit": "MJ/kg",
+    "categoryId": "energy"
+  },
+  {
+    "id": "15",
+    "name": "C18:2 linoleic acid",
+    "description": "An essential fatty acid important for healthy skin and coat",
+    "unit": "%",
+    "categoryId": "fatty-acids"
+  },
+  {
+    "id": "16",
+    "name": "Choline",
+    "description": "Vital for liver function and overall metabolism",
+    "unit": "mg/kg",
+    "categoryId": "vitamins"
+  },
+  {
+    "id": "17",
+    "name": "Lysine",
+    "description": "",
+    "unit": "%",
+    "categoryId": "amino-acids"
+  },
+  {
+    "id": "18",
+    "name": "Lysine, ileal standardized, poultry",
+    "description": "",
+    "unit": "%",
+    "categoryId": "amino-acids"
+  },
+  {
+    "id": "19",
+    "name": "Methionine",
+    "description": "",
+    "unit": "%",
+    "categoryId": "amino-acids"
+  },
+  {
+    "id": "20",
+    "name": "Methionine, ileal standardized, poultry",
+    "description": "",
+    "unit": "%",
+    "categoryId": "amino-acids"
+  },
+  {
+    "id": "21",
+    "name": "Methionine + cystine",
+    "description": "",
+    "unit": "%",
+    "categoryId": "amino-acids"
+  },
+  {
+    "id": "22",
+    "name": "Methionine + cystine, ileal standardized, poultry",
+    "description": "",
+    "unit": "%",
+    "categoryId": "amino-acids"
+  },
+  {
+    "id": "23",
+    "name": "Threonine",
+    "description": "",
+    "unit": "%",
+    "categoryId": "amino-acids"
+  },
+  {
+    "id": "24",
+    "name": "Threonine, ileal standardized, poultry",
+    "description": "",
+    "unit": "%",
+    "categoryId": "amino-acids"
+  },
+  {
+    "id": "25",
+    "name": "Tryptophan",
+    "description": "",
+    "unit": "%",
+    "categoryId": "amino-acids"
+  },
+  {
+    "id": "26",
+    "name": "Tryptophan, ileal standardized, poultry",
+    "description": "",
+    "unit": "%",
+    "categoryId": "amino-acids"
+  },
+  {
+    "id": "27",
+    "name": "Arginine",
+    "description": "",
+    "unit": "%",
+    "categoryId": "amino-acids"
+  },
+  {
+    "id": "28",
+    "name": "Arginine, ileal standardized, poultry",
+    "description": "",
+    "unit": "%",
+    "categoryId": "amino-acids"
+  },
+  {
+    "id": "29",
+    "name": "Isoleucine",
+    "description": "",
+    "unit": "%",
+    "categoryId": "amino-acids"
+  },
+  {
+    "id": "30",
+    "name": "Isoleucine, ileal standardized, poultry",
+    "description": "",
+    "unit": "%",
+    "categoryId": "amino-acids"
+  },
+  {
+    "id": "31",
+    "name": "Valine",
+    "description": "",
+    "unit": "%",
+    "categoryId": "amino-acids"
+  },
+  {
+    "id": "32",
+    "name": "Valine, ileal standardized, poultry",
+    "description": "",
+    "unit": "%",
+    "categoryId": "amino-acids"
+  },
+  {
+    "id": "33",
+    "name": "Copper",
+    "description": "",
+    "unit": "mg/kg",
+    "categoryId": "minerals"
+  },
+  {
+    "id": "34",
+    "name": "Iodine",
+    "description": "",
+    "unit": "mg/kg",
+    "categoryId": "minerals"
+  },
+  {
+    "id": "35",
+    "name": "Iron",
+    "description": "",
+    "unit": "mg/kg",
+    "categoryId": "minerals"
+  },
+  {
+    "id": "36",
+    "name": "Manganese",
+    "description": "",
+    "unit": "mg/kg",
+    "categoryId": "minerals"
+  },
+  {
+    "id": "37",
+    "name": "Selenium",
+    "description": "",
+    "unit": "mg/kg",
+    "categoryId": "minerals"
+  },
+  {
+    "id": "38",
+    "name": "Zinc",
+    "description": "",
+    "unit": "mg/kg",
+    "categoryId": "minerals"
+  },
+  {
+    "id": "39",
+    "name": "Vitamin A",
+    "description": "",
+    "unit": "IU/kg",
+    "categoryId": "vitamins"
+  },
+  {
+    "id": "40",
+    "name": "Vitamin D",
+    "description": "",
+    "unit": "IU/kg",
+    "categoryId": "vitamins"
+  },
+  {
+    "id": "41",
+    "name": "Vitamin E",
+    "description": "",
+    "unit": "mg/kg",
+    "categoryId": "vitamins"
+  },
+  {
+    "id": "42",
+    "name": "Vitamin K",
+    "description": "",
+    "unit": "mg/kg",
+    "categoryId": "vitamins"
+  },
+  {
+    "id": "43",
+    "name": "Vitamin B1 thiamin",
+    "description": "",
+    "unit": "mg/kg",
+    "categoryId": "vitamins"
+  },
+  {
+    "id": "44",
+    "name": "Vitamin B2 riboflavin",
+    "description": "",
+    "unit": "mg/kg",
+    "categoryId": "vitamins"
+  },
+  {
+    "id": "45",
+    "name": "Niacin",
+    "description": "",
+    "unit": "mg/kg",
+    "categoryId": "vitamins"
+  },
+  {
+    "id": "46",
+    "name": "Pantothenic Acid",
+    "description": "",
+    "unit": "mg/kg",
+    "categoryId": "vitamins"
+  },
+  {
+    "id": "47",
+    "name": "Vitamin B6 pyridoxine",
+    "description": "",
+    "unit": "mg/kg",
+    "categoryId": "vitamins"
+  },
+  {
+    "id": "48",
+    "name": "Biotin",
+    "description": "",
+    "unit": "mg/kg",
+    "categoryId": "vitamins"
+  },
+  {
+    "id": "49",
+    "name": "Folic acid",
+    "description": "",
+    "unit": "mg/kg",
+    "categoryId": "vitamins"
+  },
+  {
+    "id": "50",
+    "name": "Vitamin B12",
+    "description": "",
+    "unit": "µg/kg",
+    "categoryId": "vitamins"
+  },
+  {
+    "id": "51",
+    "name": "Leucine",
+    "description": "",
+    "unit": "%",
+    "categoryId": "amino-acids"
+  },
+  {
+    "id": "52",
+    "name": "Ash",
+    "description": "",
+    "unit": "%",
+    "categoryId": "main"
+  },
+  {
+    "id": "53",
+    "name": "Insoluble ash",
+    "description": "",
+    "unit": "%",
+    "categoryId": "main"
+  },
+  {
+    "id": "54",
+    "name": "NDF",
+    "description": "",
+    "unit": "%",
+    "categoryId": "main"
+  },
+  {
+    "id": "55",
+    "name": "ADF",
+    "description": "",
+    "unit": "%",
+    "categoryId": "main"
+  },
+  {
+    "id": "56",
+    "name": "Lignin",
+    "description": "",
+    "unit": "%",
+    "categoryId": "main"
+  },
+  {
+    "id": "57",
+    "name": "Water insoluble cell walls",
+    "description": "",
+    "unit": "%",
+    "categoryId": "main"
+  },
+  {
+    "id": "58",
+    "name": "Starch",
+    "description": "",
+    "unit": "%",
+    "categoryId": "main"
+  },
+  {
+    "id": "59",
+    "name": "Starch, enzymatic method",
+    "description": "",
+    "unit": "%",
+    "categoryId": "main"
+  },
+  {
+    "id": "60",
+    "name": "Total sugars",
+    "description": "",
+    "unit": "%",
+    "categoryId": "main"
+  },
+  {
+    "id": "61",
+    "name": "Gross energy (kcal)",
+    "description": "",
+    "unit": "kcal/kg",
+    "categoryId": "main"
+  },
+  {
+    "id": "62",
+    "name": "Gross energy (MJ)",
+    "description": "",
+    "unit": "MJ/kg",
+    "categoryId": "main"
+  },
+  {
+    "id": "63",
+    "name": "Phytate phosphorus",
+    "description": "",
+    "unit": "g/kg",
+    "categoryId": "minerals"
+  },
+  {
+    "id": "64",
+    "name": "Magnesium",
+    "description": "",
+    "unit": "%",
+    "categoryId": "minerals"
+  },
+  {
+    "id": "65",
+    "name": "Sulfur",
+    "description": "",
+    "unit": "%",
+    "categoryId": "minerals"
+  },
+  {
+    "id": "66",
+    "name": "Dietary cation-anion difference",
+    "description": "",
+    "unit": "mEq/kg",
+    "categoryId": "minerals"
+  },
+  {
+    "id": "67",
+    "name": "Electrolyte balance",
+    "description": "",
+    "unit": "mEq/kg",
+    "categoryId": "minerals"
+  },
+  {
+    "id": "68",
+    "name": "Cobalt",
+    "description": "",
+    "unit": "mg/kg",
+    "categoryId": "minerals"
+  },
+  {
+    "id": "69",
+    "name": "Molybdenum",
+    "description": "",
+    "unit": "mg/kg",
+    "categoryId": "minerals"
+  },
+  {
+    "id": "71",
+    "name": "C6 + C8 + C10 fatty acids",
+    "description": "",
+    "unit": "%",
+    "categoryId": "fatty-acids"
+  },
+  {
+    "id": "72",
+    "name": "C12:0 lauric acid",
+    "description": "",
+    "unit": "%",
+    "categoryId": "fatty-acids"
+  },
+  {
+    "id": "73",
+    "name": "C14:0 myristic acid",
+    "description": "",
+    "unit": "%",
+    "categoryId": "fatty-acids"
+  },
+  {
+    "id": "74",
+    "name": "C16:0 palmitic acid",
+    "description": "",
+    "unit": "%",
+    "categoryId": "fatty-acids"
+  },
+  {
+    "id": "75",
+    "name": "C18:0 stearic acid",
+    "description": "",
+    "unit": "%",
+    "categoryId": "fatty-acids"
+  },
+  {
+    "id": "76",
+    "name": "C18:1 oleic acid",
+    "description": "",
+    "unit": "%",
+    "categoryId": "fatty-acids"
+  },
+  {
+    "id": "77",
+    "name": "C18:3 linolenic acid",
+    "description": "",
+    "unit": "%",
+    "categoryId": "fatty-acids"
+  },
+  {
+    "id": "79",
+    "name": "C20:0 arachidic acid",
+    "description": "",
+    "unit": "%",
+    "categoryId": "fatty-acids"
+  },
+  {
+    "id": "80",
+    "name": "C20:1 eicosenoic acid",
+    "description": "",
+    "unit": "%",
+    "categoryId": "fatty-acids"
+  },
+  {
+    "id": "81",
+    "name": "C20:2 eicosadienoic acid",
+    "description": "",
+    "unit": "%",
+    "categoryId": "fatty-acids"
+  },
+  {
+    "id": "82",
+    "name": "C20:3 eicosatrienoic acid",
+    "description": "",
+    "unit": "%",
+    "categoryId": "fatty-acids"
+  },
+  {
+    "id": "83",
+    "name": "C20:4 arachidonic acid",
+    "description": "",
+    "unit": "%",
+    "categoryId": "fatty-acids"
+  },
+  {
+    "id": "84",
+    "name": "C22:0 docosanoic acid",
+    "description": "",
+    "unit": "%",
+    "categoryId": "fatty-acids"
+  },
+  {
+    "id": "85",
+    "name": "C22:6 docosahexaenoic acid",
+    "description": "",
+    "unit": "%",
+    "categoryId": "fatty-acids"
+  },
+  {
+    "id": "86",
+    "name": "C24:0 lignoceric acid",
+    "description": "",
+    "unit": "%",
+    "categoryId": "fatty-acids"
+  },
+  {
+    "id": "87",
+    "name": "Fatty acids",
+    "description": "",
+    "unit": "%",
+    "categoryId": "fatty-acids"
+  },
+  {
+    "id": "88",
+    "name": "C16:1 palmitoleic acid",
+    "description": "",
+    "unit": "%",
+    "categoryId": "fatty-acids"
+  },
+  {
+    "id": "89",
+    "name": "C18:4 stearidonic acid",
+    "description": "",
+    "unit": "%",
+    "categoryId": "fatty-acids"
+  },
+  {
+    "id": "90",
+    "name": "C20:5 eicosapentaenoic acid",
+    "description": "",
+    "unit": "%",
+    "categoryId": "fatty-acids"
+  },
+  {
+    "id": "91",
+    "name": "C22:0 behenic acid",
+    "description": "",
+    "unit": "%",
+    "categoryId": "fatty-acids"
+  },
+  {
+    "id": "92",
+    "name": "C22:1 erucic acid",
+    "description": "",
+    "unit": "%",
+    "categoryId": "fatty-acids"
+  },
+  {
+    "id": "93",
+    "name": "Vitamin C",
+    "description": "",
+    "unit": "mg/kg",
+    "categoryId": "vitamins"
+  },
+  {
+    "id": "94",
+    "name": "Cystine",
+    "description": "",
+    "unit": "%",
+    "categoryId": "amino-acids"
+  },
+  {
+    "id": "95",
+    "name": "Phenylalanine",
+    "description": "",
+    "unit": "%",
+    "categoryId": "amino-acids"
+  },
+  {
+    "id": "96",
+    "name": "Tyrosine",
+    "description": "",
+    "unit": "%",
+    "categoryId": "amino-acids"
+  },
+  {
+    "id": "97",
+    "name": "Phenylalanine + Tyrosine",
+    "description": "",
+    "unit": "%",
+    "categoryId": "amino-acids"
+  },
+  {
+    "id": "98",
+    "name": "Histidine",
+    "description": "",
+    "unit": "%",
+    "categoryId": "amino-acids"
+  },
+  {
+    "id": "99",
+    "name": "Alanine",
+    "description": "",
+    "unit": "%",
+    "categoryId": "amino-acids"
+  },
+  {
+    "id": "100",
+    "name": "Aspartic acid",
+    "description": "",
+    "unit": "%",
+    "categoryId": "amino-acids"
+  },
+  {
+    "id": "101",
+    "name": "Glutamic acid",
+    "description": "",
+    "unit": "%",
+    "categoryId": "amino-acids"
+  },
+  {
+    "id": "102",
+    "name": "Glycine",
+    "description": "",
+    "unit": "%",
+    "categoryId": "amino-acids"
+  },
+  {
+    "id": "103",
+    "name": "Serine",
+    "description": "",
+    "unit": "%",
+    "categoryId": "amino-acids"
+  },
+  {
+    "id": "104",
+    "name": "Proline",
+    "description": "",
+    "unit": "%",
+    "categoryId": "amino-acids"
+  },
+  {
+    "id": "105",
+    "name": "Cystine, ileal standardized, poultry",
+    "description": "",
+    "unit": "%",
+    "categoryId": "amino-acids"
+  },
+  {
+    "id": "106",
+    "name": "Leucine, ileal standardized, poultry",
+    "description": "",
+    "unit": "%",
+    "categoryId": "amino-acids"
+  },
+  {
+    "id": "107",
+    "name": "Phenylalanine, ileal standardized, poultry",
+    "description": "",
+    "unit": "%",
+    "categoryId": "amino-acids"
+  },
+  {
+    "id": "108",
+    "name": "Tyrosine, ileal standardized, poultry",
+    "description": "",
+    "unit": "%",
+    "categoryId": "amino-acids"
+  },
+  {
+    "id": "109",
+    "name": "Phenylalanine + tyrosine, ileal standardized, poultry",
+    "description": "",
+    "unit": "%",
+    "categoryId": "amino-acids"
+  },
+  {
+    "id": "110",
+    "name": "Histidine, ileal standardized, poultry",
+    "description": "",
+    "unit": "%",
+    "categoryId": "amino-acids"
+  },
+  {
+    "id": "111",
+    "name": "Alanine, ileal standardized, poultry",
+    "description": "",
+    "unit": "%",
+    "categoryId": "amino-acids"
+  },
+  {
+    "id": "112",
+    "name": "Aspartic acid, ileal standardized, poultry",
+    "description": "",
+    "unit": "%",
+    "categoryId": "amino-acids"
+  },
+  {
+    "id": "113",
+    "name": "Glutamic acid, ileal standardized, poultry",
+    "description": "",
+    "unit": "%",
+    "categoryId": "amino-acids"
+  },
+  {
+    "id": "114",
+    "name": "Glycine, ileal standardized, poultry",
+    "description": "",
+    "unit": "%",
+    "categoryId": "amino-acids"
+  },
+  {
+    "id": "115",
+    "name": "Serine, ileal standardized, poultry",
+    "description": "",
+    "unit": "%",
+    "categoryId": "amino-acids"
+  },
+  {
+    "id": "116",
+    "name": "Proline, ileal standardized, poultry",
+    "description": "",
+    "unit": "%",
+    "categoryId": "amino-acids"
+  },
+  {
+    "id": "117",
+    "name": "Xanthophylls",
+    "description": "",
+    "unit": "%",
+    "categoryId": "carotenoids"
+  }
+]

@@ -1,0 +1,3686 @@
+[
+  {
+    "id": 1,
+    "species": "Broiler Chickens",
+    "slug": "broiler-chickens",
+    "breed": "Ross 308",
+    "description": "Nutritional specifications for Ross 308 broilers based on different target live weights.",
+    "programs": [
+      {
+        "id": 1,
+        "market_segment": "<2.0 kg",
+        "stages": [
+          {
+            "id": 1,
+            "stage": "Starter",
+            "slug": "starter",
+            "period_days": {
+              "min": 0,
+              "max": 10
+            },
+            "feed_structure": "Crumble",
+            "feeding_amount_per_bird": {
+              "value": 297,
+              "unit": "g",
+              "notes": "Cumulative amount for the period"
+            },
+            "water_requirement": null,
+            "key_notes": "Feed specifications should be used as a guide only; adjustments may be necessary for local conditions, legislation and markets [14]. A withdrawal feed should be fed to meet local requirements for medication withdrawal times and can be formulated to the same standards as the final feed listed [14].",
+            "requirements": [
+              {
+                "nutrientId": "13",
+                "value": 2975.0
+              },
+              {
+                "nutrientId": "14",
+                "value": 12.4
+              },
+              {
+                "nutrientId": "18",
+                "value": 1.32
+              },
+              {
+                "nutrientId": "22",
+                "value": 1.0
+              },
+              {
+                "nutrientId": "20",
+                "value": 0.55
+              },
+              {
+                "nutrientId": "24",
+                "value": 0.88
+              },
+              {
+                "nutrientId": "32",
+                "value": 1.0
+              },
+              {
+                "nutrientId": "30",
+                "value": 0.88
+              },
+              {
+                "nutrientId": "28",
+                "value": 1.4
+              },
+              {
+                "nutrientId": "26",
+                "value": 0.21
+              },
+              {
+                "nutrientId": "106",
+                "value": 1.45
+              },
+              {
+                "nutrientId": "2",
+                "value": 23.0
+              },
+              {
+                "nutrientId": "5",
+                "value": 0.95
+              },
+              {
+                "nutrientId": "7",
+                "value": 0.5
+              },
+              {
+                "nutrientId": "64",
+                "min": 0.05,
+                "max": 0.3
+              },
+              {
+                "nutrientId": "8",
+                "min": 0.18,
+                "max": 0.23
+              },
+              {
+                "nutrientId": "9",
+                "min": 0.18,
+                "max": 0.23
+              },
+              {
+                "nutrientId": "10",
+                "min": 0.6,
+                "max": 0.9
+              },
+              {
+                "nutrientId": "33",
+                "value": 16.0
+              },
+              {
+                "nutrientId": "34",
+                "value": 1.25
+              },
+              {
+                "nutrientId": "35",
+                "value": 20.0
+              },
+              {
+                "nutrientId": "36",
+                "value": 120.0
+              },
+              {
+                "nutrientId": "37",
+                "value": 0.3
+              },
+              {
+                "nutrientId": "38",
+                "value": 120.0
+              },
+              {
+                "nutrientId": "39",
+                "value": 13000.0
+              },
+              {
+                "nutrientId": "40",
+                "value": 5000.0
+              },
+              {
+                "nutrientId": "41",
+                "value": 53.69
+              },
+              {
+                "nutrientId": "42",
+                "value": 4.0
+              },
+              {
+                "nutrientId": "43",
+                "value": 5.0
+              },
+              {
+                "nutrientId": "44",
+                "value": 9.0
+              },
+              {
+                "nutrientId": "45",
+                "value": 70.0
+              },
+              {
+                "nutrientId": "46",
+                "value": 25.0
+              },
+              {
+                "nutrientId": "47",
+                "value": 5.0
+              },
+              {
+                "nutrientId": "48",
+                "value": 0.35
+              },
+              {
+                "nutrientId": "49",
+                "value": 2.5
+              },
+              {
+                "nutrientId": "50",
+                "value": 20.0
+              },
+              {
+                "nutrientId": "16",
+                "value": 1700.0
+              },
+              {
+                "nutrientId": "17",
+                "value": 1.25
+              }
+            ]
+          },
+          {
+            "id": 2,
+            "stage": "Grower",
+            "slug": "grower",
+            "period_days": {
+              "min": 11,
+              "max": 24
+            },
+            "feed_structure": "Pellet",
+            "feeding_amount_per_bird": {
+              "value": 1208,
+              "unit": "g",
+              "notes": "Cumulative amount for the period"
+            },
+            "water_requirement": null,
+            "key_notes": "Feed specifications should be used as a guide only; adjustments may be necessary for local conditions, legislation and markets [14]. A withdrawal feed should be fed to meet local requirements for medication withdrawal times and can be formulated to the same standards as the final feed listed [14].",
+            "requirements": [
+              {
+                "nutrientId": "13",
+                "value": 3050.0
+              },
+              {
+                "nutrientId": "14",
+                "value": 12.8
+              },
+              {
+                "nutrientId": "18",
+                "value": 1.18
+              },
+              {
+                "nutrientId": "22",
+                "value": 0.92
+              },
+              {
+                "nutrientId": "20",
+                "value": 0.51
+              },
+              {
+                "nutrientId": "24",
+                "value": 0.79
+              },
+              {
+                "nutrientId": "32",
+                "value": 0.91
+              },
+              {
+                "nutrientId": "30",
+                "value": 0.8
+              },
+              {
+                "nutrientId": "28",
+                "value": 1.27
+              },
+              {
+                "nutrientId": "26",
+                "value": 0.19
+              },
+              {
+                "nutrientId": "106",
+                "value": 1.3
+              },
+              {
+                "nutrientId": "2",
+                "value": 21.5
+              },
+              {
+                "nutrientId": "5",
+                "value": 0.75
+              },
+              {
+                "nutrientId": "7",
+                "value": 0.42
+              },
+              {
+                "nutrientId": "64",
+                "min": 0.05,
+                "max": 0.3
+              },
+              {
+                "nutrientId": "8",
+                "min": 0.18,
+                "max": 0.23
+              },
+              {
+                "nutrientId": "9",
+                "min": 0.18,
+                "max": 0.23
+              },
+              {
+                "nutrientId": "10",
+                "min": 0.6,
+                "max": 0.9
+              },
+              {
+                "nutrientId": "33",
+                "value": 16.0
+              },
+              {
+                "nutrientId": "34",
+                "value": 1.25
+              },
+              {
+                "nutrientId": "35",
+                "value": 20.0
+              },
+              {
+                "nutrientId": "36",
+                "value": 120.0
+              },
+              {
+                "nutrientId": "37",
+                "value": 0.3
+              },
+              {
+                "nutrientId": "38",
+                "value": 120.0
+              },
+              {
+                "nutrientId": "39",
+                "value": 11000.0
+              },
+              {
+                "nutrientId": "40",
+                "value": 4500.0
+              },
+              {
+                "nutrientId": "41",
+                "value": 43.62
+              },
+              {
+                "nutrientId": "42",
+                "value": 3.6
+              },
+              {
+                "nutrientId": "43",
+                "value": 4.0
+              },
+              {
+                "nutrientId": "44",
+                "value": 8.0
+              },
+              {
+                "nutrientId": "45",
+                "value": 65.0
+              },
+              {
+                "nutrientId": "46",
+                "value": 20.0
+              },
+              {
+                "nutrientId": "47",
+                "value": 4.0
+              },
+              {
+                "nutrientId": "48",
+                "value": 0.28
+              },
+              {
+                "nutrientId": "49",
+                "value": 2.0
+              },
+              {
+                "nutrientId": "50",
+                "value": 18.0
+              },
+              {
+                "nutrientId": "16",
+                "value": 1600.0
+              },
+              {
+                "nutrientId": "17",
+                "value": 1.2
+              }
+            ]
+          },
+          {
+            "id": 3,
+            "stage": "Finisher",
+            "slug": "finisher",
+            "period_days": {
+              "min": 25,
+              "max": null,
+              "notes": "until market"
+            },
+            "feed_structure": "Pellet",
+            "feeding_amount_per_bird": {
+              "value": 1208,
+              "unit": "g",
+              "notes": "Cumulative amount for the period"
+            },
+            "water_requirement": null,
+            "key_notes": "Feed specifications should be used as a guide only; adjustments may be necessary for local conditions, legislation and markets [14]. A withdrawal feed should be fed to meet local requirements for medication withdrawal times and can be formulated to the same standards as the final feed listed [14].",
+            "requirements": [
+              {
+                "nutrientId": "13",
+                "value": 3100.0
+              },
+              {
+                "nutrientId": "14",
+                "value": 13.0
+              },
+              {
+                "nutrientId": "18",
+                "value": 1.08
+              },
+              {
+                "nutrientId": "22",
+                "value": 0.86
+              },
+              {
+                "nutrientId": "20",
+                "value": 0.48
+              },
+              {
+                "nutrientId": "24",
+                "value": 0.72
+              },
+              {
+                "nutrientId": "32",
+                "value": 0.84
+              },
+              {
+                "nutrientId": "30",
+                "value": 0.75
+              },
+              {
+                "nutrientId": "28",
+                "value": 1.17
+              },
+              {
+                "nutrientId": "26",
+                "value": 0.17
+              },
+              {
+                "nutrientId": "106",
+                "value": 1.19
+              },
+              {
+                "nutrientId": "2",
+                "value": 19.5
+              },
+              {
+                "nutrientId": "5",
+                "value": 0.65
+              },
+              {
+                "nutrientId": "7",
+                "value": 0.36
+              },
+              {
+                "nutrientId": "64",
+                "min": 0.05,
+                "max": 0.3
+              },
+              {
+                "nutrientId": "8",
+                "min": 0.18,
+                "max": 0.23
+              },
+              {
+                "nutrientId": "9",
+                "min": 0.18,
+                "max": 0.23
+              },
+              {
+                "nutrientId": "10",
+                "min": 0.6,
+                "max": 0.9
+              },
+              {
+                "nutrientId": "33",
+                "value": 16.0
+              },
+              {
+                "nutrientId": "34",
+                "value": 1.25
+              },
+              {
+                "nutrientId": "35",
+                "value": 20.0
+              },
+              {
+                "nutrientId": "36",
+                "value": 120.0
+              },
+              {
+                "nutrientId": "37",
+                "value": 0.3
+              },
+              {
+                "nutrientId": "38",
+                "value": 120.0
+              },
+              {
+                "nutrientId": "39",
+                "value": 10000.0
+              },
+              {
+                "nutrientId": "40",
+                "value": 4000.0
+              },
+              {
+                "nutrientId": "41",
+                "value": 36.91
+              },
+              {
+                "nutrientId": "42",
+                "value": 3.2
+              },
+              {
+                "nutrientId": "43",
+                "value": 3.0
+              },
+              {
+                "nutrientId": "44",
+                "value": 7.0
+              },
+              {
+                "nutrientId": "45",
+                "value": 50.0
+              },
+              {
+                "nutrientId": "46",
+                "value": 15.0
+              },
+              {
+                "nutrientId": "47",
+                "value": 3.0
+              },
+              {
+                "nutrientId": "48",
+                "value": 0.22
+              },
+              {
+                "nutrientId": "49",
+                "value": 1.8
+              },
+              {
+                "nutrientId": "50",
+                "value": 16.0
+              },
+              {
+                "nutrientId": "16",
+                "value": 1500.0
+              },
+              {
+                "nutrientId": "17",
+                "value": 1.0
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": 2,
+        "market_segment": "2.0 - 3.5 kg",
+        "stages": [
+          {
+            "id": 4,
+            "stage": "Starter",
+            "slug": "starter",
+            "period_days": {
+              "min": 0,
+              "max": 10
+            },
+            "feed_structure": "Crumble",
+            "feeding_amount_per_bird": {
+              "value": 297,
+              "unit": "g",
+              "notes": "Cumulative amount for the period"
+            },
+            "water_requirement": null,
+            "key_notes": "Feed specifications should be used as a guide only; adjustments may be necessary for local conditions, legislation and markets [17]. A withdrawal feed should be fed to meet local requirements for medication withdrawal times and can be formulated to the same standards as the final feed listed [17].",
+            "requirements": [
+              {
+                "nutrientId": "13",
+                "value": 2975.0
+              },
+              {
+                "nutrientId": "14",
+                "value": 12.4
+              },
+              {
+                "nutrientId": "18",
+                "value": 1.32
+              },
+              {
+                "nutrientId": "22",
+                "value": 1.0
+              },
+              {
+                "nutrientId": "20",
+                "value": 0.55
+              },
+              {
+                "nutrientId": "24",
+                "value": 0.88
+              },
+              {
+                "nutrientId": "32",
+                "value": 1.0
+              },
+              {
+                "nutrientId": "30",
+                "value": 0.88
+              },
+              {
+                "nutrientId": "28",
+                "value": 1.4
+              },
+              {
+                "nutrientId": "26",
+                "value": 0.21
+              },
+              {
+                "nutrientId": "106",
+                "value": 1.45
+              },
+              {
+                "nutrientId": "2",
+                "value": 23.0
+              },
+              {
+                "nutrientId": "5",
+                "value": 0.95
+              },
+              {
+                "nutrientId": "7",
+                "value": 0.5
+              },
+              {
+                "nutrientId": "64",
+                "min": 0.05,
+                "max": 0.3
+              },
+              {
+                "nutrientId": "8",
+                "min": 0.18,
+                "max": 0.23
+              },
+              {
+                "nutrientId": "9",
+                "min": 0.18,
+                "max": 0.23
+              },
+              {
+                "nutrientId": "10",
+                "min": 0.6,
+                "max": 0.9
+              },
+              {
+                "nutrientId": "33",
+                "value": 16.0
+              },
+              {
+                "nutrientId": "34",
+                "value": 1.25
+              },
+              {
+                "nutrientId": "35",
+                "value": 20.0
+              },
+              {
+                "nutrientId": "36",
+                "value": 120.0
+              },
+              {
+                "nutrientId": "37",
+                "value": 0.3
+              },
+              {
+                "nutrientId": "38",
+                "value": 120.0
+              },
+              {
+                "nutrientId": "39",
+                "value": 13000.0
+              },
+              {
+                "nutrientId": "40",
+                "value": 5000.0
+              },
+              {
+                "nutrientId": "41",
+                "value": 53.69
+              },
+              {
+                "nutrientId": "42",
+                "value": 4.0
+              },
+              {
+                "nutrientId": "43",
+                "value": 5.0
+              },
+              {
+                "nutrientId": "44",
+                "value": 9.0
+              },
+              {
+                "nutrientId": "45",
+                "value": 70.0
+              },
+              {
+                "nutrientId": "46",
+                "value": 25.0
+              },
+              {
+                "nutrientId": "47",
+                "value": 5.0
+              },
+              {
+                "nutrientId": "48",
+                "value": 0.35
+              },
+              {
+                "nutrientId": "49",
+                "value": 2.5
+              },
+              {
+                "nutrientId": "50",
+                "value": 20.0
+              },
+              {
+                "nutrientId": "16",
+                "value": 1700.0
+              },
+              {
+                "nutrientId": "17",
+                "value": 1.25
+              }
+            ]
+          },
+          {
+            "id": 5,
+            "stage": "Grower",
+            "slug": "grower",
+            "period_days": {
+              "min": 11,
+              "max": 24
+            },
+            "feed_structure": "Pellet",
+            "feeding_amount_per_bird": {
+              "value": 1208,
+              "unit": "g",
+              "notes": "Cumulative amount for the period"
+            },
+            "water_requirement": null,
+            "key_notes": "Feed specifications should be used as a guide only; adjustments may be necessary for local conditions, legislation and markets [17]. A withdrawal feed should be fed to meet local requirements for medication withdrawal times and can be formulated to the same standards as the final feed listed [17].",
+            "requirements": [
+              {
+                "nutrientId": "13",
+                "value": 3050.0
+              },
+              {
+                "nutrientId": "14",
+                "value": 12.8
+              },
+              {
+                "nutrientId": "18",
+                "value": 1.18
+              },
+              {
+                "nutrientId": "22",
+                "value": 0.92
+              },
+              {
+                "nutrientId": "20",
+                "value": 0.51
+              },
+              {
+                "nutrientId": "24",
+                "value": 0.79
+              },
+              {
+                "nutrientId": "32",
+                "value": 0.91
+              },
+              {
+                "nutrientId": "30",
+                "value": 0.8
+              },
+              {
+                "nutrientId": "28",
+                "value": 1.27
+              },
+              {
+                "nutrientId": "26",
+                "value": 0.19
+              },
+              {
+                "nutrientId": "106",
+                "value": 1.3
+              },
+              {
+                "nutrientId": "2",
+                "value": 21.5
+              },
+              {
+                "nutrientId": "5",
+                "value": 0.75
+              },
+              {
+                "nutrientId": "7",
+                "value": 0.42
+              },
+              {
+                "nutrientId": "64",
+                "min": 0.05,
+                "max": 0.3
+              },
+              {
+                "nutrientId": "8",
+                "min": 0.18,
+                "max": 0.23
+              },
+              {
+                "nutrientId": "9",
+                "min": 0.18,
+                "max": 0.23
+              },
+              {
+                "nutrientId": "10",
+                "min": 0.6,
+                "max": 0.9
+              },
+              {
+                "nutrientId": "33",
+                "value": 16.0
+              },
+              {
+                "nutrientId": "34",
+                "value": 1.25
+              },
+              {
+                "nutrientId": "35",
+                "value": 20.0
+              },
+              {
+                "nutrientId": "36",
+                "value": 120.0
+              },
+              {
+                "nutrientId": "37",
+                "value": 0.3
+              },
+              {
+                "nutrientId": "38",
+                "value": 120.0
+              },
+              {
+                "nutrientId": "39",
+                "value": 11000.0
+              },
+              {
+                "nutrientId": "40",
+                "value": 4500.0
+              },
+              {
+                "nutrientId": "41",
+                "value": 43.62
+              },
+              {
+                "nutrientId": "42",
+                "value": 3.6
+              },
+              {
+                "nutrientId": "43",
+                "value": 4.0
+              },
+              {
+                "nutrientId": "44",
+                "value": 8.0
+              },
+              {
+                "nutrientId": "45",
+                "value": 65.0
+              },
+              {
+                "nutrientId": "46",
+                "value": 20.0
+              },
+              {
+                "nutrientId": "47",
+                "value": 4.0
+              },
+              {
+                "nutrientId": "48",
+                "value": 0.28
+              },
+              {
+                "nutrientId": "49",
+                "value": 2.0
+              },
+              {
+                "nutrientId": "50",
+                "value": 18.0
+              },
+              {
+                "nutrientId": "16",
+                "value": 1600.0
+              },
+              {
+                "nutrientId": "17",
+                "value": 1.2
+              }
+            ]
+          },
+          {
+            "id": 6,
+            "stage": "Finisher 1",
+            "slug": "finisher-1",
+            "period_days": {
+              "min": 25,
+              "max": 39
+            },
+            "feed_structure": "Pellet",
+            "feeding_amount_per_bird": {
+              "value": 2925,
+              "unit": "g",
+              "notes": "Cumulative amount for the period"
+            },
+            "water_requirement": null,
+            "key_notes": "Feed specifications should be used as a guide only; adjustments may be necessary for local conditions, legislation and markets [17]. A withdrawal feed should be fed to meet local requirements for medication withdrawal times and can be formulated to the same standards as the final feed listed [17].",
+            "requirements": [
+              {
+                "nutrientId": "13",
+                "value": 3100.0
+              },
+              {
+                "nutrientId": "14",
+                "value": 13.0
+              },
+              {
+                "nutrientId": "18",
+                "value": 1.08
+              },
+              {
+                "nutrientId": "22",
+                "value": 0.86
+              },
+              {
+                "nutrientId": "20",
+                "value": 0.48
+              },
+              {
+                "nutrientId": "24",
+                "value": 0.72
+              },
+              {
+                "nutrientId": "32",
+                "value": 0.84
+              },
+              {
+                "nutrientId": "30",
+                "value": 0.75
+              },
+              {
+                "nutrientId": "28",
+                "value": 1.17
+              },
+              {
+                "nutrientId": "26",
+                "value": 0.17
+              },
+              {
+                "nutrientId": "106",
+                "value": 1.19
+              },
+              {
+                "nutrientId": "2",
+                "value": 19.5
+              },
+              {
+                "nutrientId": "5",
+                "value": 0.65
+              },
+              {
+                "nutrientId": "7",
+                "value": 0.36
+              },
+              {
+                "nutrientId": "64",
+                "min": 0.05,
+                "max": 0.3
+              },
+              {
+                "nutrientId": "8",
+                "min": 0.18,
+                "max": 0.23
+              },
+              {
+                "nutrientId": "9",
+                "min": 0.18,
+                "max": 0.23
+              },
+              {
+                "nutrientId": "10",
+                "min": 0.6,
+                "max": 0.9
+              },
+              {
+                "nutrientId": "33",
+                "value": 16.0
+              },
+              {
+                "nutrientId": "34",
+                "value": 1.25
+              },
+              {
+                "nutrientId": "35",
+                "value": 20.0
+              },
+              {
+                "nutrientId": "36",
+                "value": 120.0
+              },
+              {
+                "nutrientId": "37",
+                "value": 0.3
+              },
+              {
+                "nutrientId": "38",
+                "value": 120.0
+              },
+              {
+                "nutrientId": "39",
+                "value": 10000.0
+              },
+              {
+                "nutrientId": "40",
+                "value": 4000.0
+              },
+              {
+                "nutrientId": "41",
+                "value": 36.91
+              },
+              {
+                "nutrientId": "42",
+                "value": 3.2
+              },
+              {
+                "nutrientId": "43",
+                "value": 3.0
+              },
+              {
+                "nutrientId": "44",
+                "value": 7.0
+              },
+              {
+                "nutrientId": "45",
+                "value": 50.0
+              },
+              {
+                "nutrientId": "46",
+                "value": 15.0
+              },
+              {
+                "nutrientId": "47",
+                "value": 3.0
+              },
+              {
+                "nutrientId": "48",
+                "value": 0.22
+              },
+              {
+                "nutrientId": "49",
+                "value": 1.8
+              },
+              {
+                "nutrientId": "50",
+                "value": 16.0
+              },
+              {
+                "nutrientId": "16",
+                "value": 1500.0
+              },
+              {
+                "nutrientId": "17",
+                "value": 1.0
+              }
+            ]
+          },
+          {
+            "id": 7,
+            "stage": "Finisher 2",
+            "slug": "finisher-2",
+            "period_days": {
+              "min": 40,
+              "max": null,
+              "notes": "until market"
+            },
+            "feed_structure": "Pellet",
+            "feeding_amount_per_bird": {
+              "value": 3303,
+              "unit": "g",
+              "notes": "Cumulative amount for the period"
+            },
+            "water_requirement": null,
+            "key_notes": "Feed specifications should be used as a guide only; adjustments may be necessary for local conditions, legislation and markets [17]. A withdrawal feed should be fed to meet local requirements for medication withdrawal times and can be formulated to the same standards as the final feed listed [17].",
+            "requirements": [
+              {
+                "nutrientId": "13",
+                "value": 3100.0
+              },
+              {
+                "nutrientId": "14",
+                "value": 13.0
+              },
+              {
+                "nutrientId": "18",
+                "value": 1.08
+              },
+              {
+                "nutrientId": "22",
+                "value": 0.86
+              },
+              {
+                "nutrientId": "20",
+                "value": 0.48
+              },
+              {
+                "nutrientId": "24",
+                "value": 0.72
+              },
+              {
+                "nutrientId": "32",
+                "value": 0.84
+              },
+              {
+                "nutrientId": "30",
+                "value": 0.75
+              },
+              {
+                "nutrientId": "28",
+                "value": 1.17
+              },
+              {
+                "nutrientId": "26",
+                "value": 0.17
+              },
+              {
+                "nutrientId": "106",
+                "value": 1.19
+              },
+              {
+                "nutrientId": "2",
+                "value": 19.5
+              },
+              {
+                "nutrientId": "5",
+                "value": 0.65
+              },
+              {
+                "nutrientId": "7",
+                "value": 0.36
+              },
+              {
+                "nutrientId": "64",
+                "min": 0.05,
+                "max": 0.3
+              },
+              {
+                "nutrientId": "8",
+                "min": 0.18,
+                "max": 0.23
+              },
+              {
+                "nutrientId": "9",
+                "min": 0.18,
+                "max": 0.23
+              },
+              {
+                "nutrientId": "10",
+                "min": 0.6,
+                "max": 0.9
+              },
+              {
+                "nutrientId": "33",
+                "value": 16.0
+              },
+              {
+                "nutrientId": "34",
+                "value": 1.25
+              },
+              {
+                "nutrientId": "35",
+                "value": 20.0
+              },
+              {
+                "nutrientId": "36",
+                "value": 120.0
+              },
+              {
+                "nutrientId": "37",
+                "value": 0.3
+              },
+              {
+                "nutrientId": "38",
+                "value": 120.0
+              },
+              {
+                "nutrientId": "39",
+                "value": 10000.0
+              },
+              {
+                "nutrientId": "40",
+                "value": 4000.0
+              },
+              {
+                "nutrientId": "41",
+                "value": 36.91
+              },
+              {
+                "nutrientId": "42",
+                "value": 3.2
+              },
+              {
+                "nutrientId": "43",
+                "value": 3.0
+              },
+              {
+                "nutrientId": "44",
+                "value": 7.0
+              },
+              {
+                "nutrientId": "45",
+                "value": 50.0
+              },
+              {
+                "nutrientId": "46",
+                "value": 15.0
+              },
+              {
+                "nutrientId": "47",
+                "value": 3.0
+              },
+              {
+                "nutrientId": "48",
+                "value": 0.22
+              },
+              {
+                "nutrientId": "49",
+                "value": 1.8
+              },
+              {
+                "nutrientId": "50",
+                "value": 16.0
+              },
+              {
+                "nutrientId": "16",
+                "value": 1500.0
+              },
+              {
+                "nutrientId": "17",
+                "value": 1.0
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": 3,
+        "market_segment": ">3.5 kg",
+        "stages": [
+          {
+            "id": 8,
+            "stage": "Starter",
+            "slug": "starter",
+            "period_days": {
+              "min": 0,
+              "max": 10
+            },
+            "feed_structure": "Crumble",
+            "feeding_amount_per_bird": {
+              "value": 297,
+              "unit": "g",
+              "notes": "Cumulative amount for the period"
+            },
+            "water_requirement": null,
+            "key_notes": "Feed specifications should be used as a guide only; adjustments may be necessary for local conditions, legislation and markets [20]. A withdrawal feed should be fed to meet local requirements for medication withdrawal times and can be formulated to the same standards as the final feed listed [20].",
+            "requirements": [
+              {
+                "nutrientId": "13",
+                "value": 2975.0
+              },
+              {
+                "nutrientId": "14",
+                "value": 12.4
+              },
+              {
+                "nutrientId": "18",
+                "value": 1.32
+              },
+              {
+                "nutrientId": "22",
+                "value": 1.0
+              },
+              {
+                "nutrientId": "20",
+                "value": 0.55
+              },
+              {
+                "nutrientId": "24",
+                "value": 0.88
+              },
+              {
+                "nutrientId": "32",
+                "value": 1.0
+              },
+              {
+                "nutrientId": "30",
+                "value": 0.88
+              },
+              {
+                "nutrientId": "28",
+                "value": 1.4
+              },
+              {
+                "nutrientId": "26",
+                "value": 0.21
+              },
+              {
+                "nutrientId": "106",
+                "value": 1.45
+              },
+              {
+                "nutrientId": "2",
+                "value": 23.0
+              },
+              {
+                "nutrientId": "5",
+                "value": 0.95
+              },
+              {
+                "nutrientId": "7",
+                "value": 0.5
+              },
+              {
+                "nutrientId": "64",
+                "min": 0.05,
+                "max": 0.3
+              },
+              {
+                "nutrientId": "8",
+                "min": 0.18,
+                "max": 0.23
+              },
+              {
+                "nutrientId": "9",
+                "min": 0.18,
+                "max": 0.23
+              },
+              {
+                "nutrientId": "10",
+                "min": 0.6,
+                "max": 0.9
+              },
+              {
+                "nutrientId": "33",
+                "value": 16.0
+              },
+              {
+                "nutrientId": "34",
+                "value": 1.25
+              },
+              {
+                "nutrientId": "35",
+                "value": 20.0
+              },
+              {
+                "nutrientId": "36",
+                "value": 120.0
+              },
+              {
+                "nutrientId": "37",
+                "value": 0.3
+              },
+              {
+                "nutrientId": "38",
+                "value": 120.0
+              },
+              {
+                "nutrientId": "39",
+                "value": 13000.0
+              },
+              {
+                "nutrientId": "40",
+                "value": 5000.0
+              },
+              {
+                "nutrientId": "41",
+                "value": 53.69
+              },
+              {
+                "nutrientId": "42",
+                "value": 4.0
+              },
+              {
+                "nutrientId": "43",
+                "value": 5.0
+              },
+              {
+                "nutrientId": "44",
+                "value": 9.0
+              },
+              {
+                "nutrientId": "45",
+                "value": 70.0
+              },
+              {
+                "nutrientId": "46",
+                "value": 25.0
+              },
+              {
+                "nutrientId": "47",
+                "value": 5.0
+              },
+              {
+                "nutrientId": "48",
+                "value": 0.35
+              },
+              {
+                "nutrientId": "49",
+                "value": 2.5
+              },
+              {
+                "nutrientId": "50",
+                "value": 20.0
+              },
+              {
+                "nutrientId": "16",
+                "value": 1700.0
+              },
+              {
+                "nutrientId": "17",
+                "value": 1.25
+              }
+            ]
+          },
+          {
+            "id": 9,
+            "stage": "Grower",
+            "slug": "grower",
+            "period_days": {
+              "min": 11,
+              "max": 24
+            },
+            "feed_structure": "Pellet",
+            "feeding_amount_per_bird": {
+              "value": 1208,
+              "unit": "g",
+              "notes": "Cumulative amount for the period"
+            },
+            "water_requirement": null,
+            "key_notes": "Feed specifications should be used as a guide only; adjustments may be necessary for local conditions, legislation and markets [20]. A withdrawal feed should be fed to meet local requirements for medication withdrawal times and can be formulated to the same standards as the final feed listed [20].",
+            "requirements": [
+              {
+                "nutrientId": "13",
+                "value": 3050.0
+              },
+              {
+                "nutrientId": "14",
+                "value": 12.8
+              },
+              {
+                "nutrientId": "18",
+                "value": 1.18
+              },
+              {
+                "nutrientId": "22",
+                "value": 0.92
+              },
+              {
+                "nutrientId": "20",
+                "value": 0.51
+              },
+              {
+                "nutrientId": "24",
+                "value": 0.79
+              },
+              {
+                "nutrientId": "32",
+                "value": 0.91
+              },
+              {
+                "nutrientId": "30",
+                "value": 0.8
+              },
+              {
+                "nutrientId": "28",
+                "value": 1.27
+              },
+              {
+                "nutrientId": "26",
+                "value": 0.19
+              },
+              {
+                "nutrientId": "106",
+                "value": 1.3
+              },
+              {
+                "nutrientId": "2",
+                "value": 21.5
+              },
+              {
+                "nutrientId": "5",
+                "value": 0.75
+              },
+              {
+                "nutrientId": "7",
+                "value": 0.42
+              },
+              {
+                "nutrientId": "64",
+                "min": 0.05,
+                "max": 0.3
+              },
+              {
+                "nutrientId": "8",
+                "min": 0.18,
+                "max": 0.23
+              },
+              {
+                "nutrientId": "9",
+                "min": 0.18,
+                "max": 0.23
+              },
+              {
+                "nutrientId": "10",
+                "min": 0.6,
+                "max": 0.9
+              },
+              {
+                "nutrientId": "33",
+                "value": 16.0
+              },
+              {
+                "nutrientId": "34",
+                "value": 1.25
+              },
+              {
+                "nutrientId": "35",
+                "value": 20.0
+              },
+              {
+                "nutrientId": "36",
+                "value": 120.0
+              },
+              {
+                "nutrientId": "37",
+                "value": 0.3
+              },
+              {
+                "nutrientId": "38",
+                "value": 120.0
+              },
+              {
+                "nutrientId": "39",
+                "value": 11000.0
+              },
+              {
+                "nutrientId": "40",
+                "value": 4500.0
+              },
+              {
+                "nutrientId": "41",
+                "value": 43.62
+              },
+              {
+                "nutrientId": "42",
+                "value": 3.6
+              },
+              {
+                "nutrientId": "43",
+                "value": 4.0
+              },
+              {
+                "nutrientId": "44",
+                "value": 8.0
+              },
+              {
+                "nutrientId": "45",
+                "value": 65.0
+              },
+              {
+                "nutrientId": "46",
+                "value": 20.0
+              },
+              {
+                "nutrientId": "47",
+                "value": 4.0
+              },
+              {
+                "nutrientId": "48",
+                "value": 0.28
+              },
+              {
+                "nutrientId": "49",
+                "value": 2.0
+              },
+              {
+                "nutrientId": "50",
+                "value": 18.0
+              },
+              {
+                "nutrientId": "16",
+                "value": 1600.0
+              },
+              {
+                "nutrientId": "17",
+                "value": 1.2
+              }
+            ]
+          },
+          {
+            "id": 10,
+            "stage": "Finisher 1",
+            "slug": "finisher-1",
+            "period_days": {
+              "min": 25,
+              "max": 39
+            },
+            "feed_structure": "Pellet",
+            "feeding_amount_per_bird": {
+              "value": 2925,
+              "unit": "g",
+              "notes": "Cumulative amount for the period"
+            },
+            "water_requirement": null,
+            "key_notes": "Feed specifications should be used as a guide only; adjustments may be necessary for local conditions, legislation and markets [20]. A withdrawal feed should be fed to meet local requirements for medication withdrawal times and can be formulated to the same standards as the final feed listed [20].",
+            "requirements": [
+              {
+                "nutrientId": "13",
+                "value": 3100.0
+              },
+              {
+                "nutrientId": "14",
+                "value": 13.0
+              },
+              {
+                "nutrientId": "18",
+                "value": 1.08
+              },
+              {
+                "nutrientId": "22",
+                "value": 0.86
+              },
+              {
+                "nutrientId": "20",
+                "value": 0.48
+              },
+              {
+                "nutrientId": "24",
+                "value": 0.72
+              },
+              {
+                "nutrientId": "32",
+                "value": 0.84
+              },
+              {
+                "nutrientId": "30",
+                "value": 0.75
+              },
+              {
+                "nutrientId": "28",
+                "value": 1.17
+              },
+              {
+                "nutrientId": "26",
+                "value": 0.17
+              },
+              {
+                "nutrientId": "106",
+                "value": 1.19
+              },
+              {
+                "nutrientId": "2",
+                "value": 19.5
+              },
+              {
+                "nutrientId": "5",
+                "value": 0.65
+              },
+              {
+                "nutrientId": "7",
+                "value": 0.36
+              },
+              {
+                "nutrientId": "64",
+                "min": 0.05,
+                "max": 0.3
+              },
+              {
+                "nutrientId": "8",
+                "min": 0.18,
+                "max": 0.23
+              },
+              {
+                "nutrientId": "9",
+                "min": 0.18,
+                "max": 0.23
+              },
+              {
+                "nutrientId": "10",
+                "min": 0.6,
+                "max": 0.9
+              },
+              {
+                "nutrientId": "33",
+                "value": 16.0
+              },
+              {
+                "nutrientId": "34",
+                "value": 1.25
+              },
+              {
+                "nutrientId": "35",
+                "value": 20.0
+              },
+              {
+                "nutrientId": "36",
+                "value": 120.0
+              },
+              {
+                "nutrientId": "37",
+                "value": 0.3
+              },
+              {
+                "nutrientId": "38",
+                "value": 120.0
+              },
+              {
+                "nutrientId": "39",
+                "value": 10000.0
+              },
+              {
+                "nutrientId": "40",
+                "value": 4000.0
+              },
+              {
+                "nutrientId": "41",
+                "value": 36.91
+              },
+              {
+                "nutrientId": "42",
+                "value": 3.2
+              },
+              {
+                "nutrientId": "43",
+                "value": 3.0
+              },
+              {
+                "nutrientId": "44",
+                "value": 7.0
+              },
+              {
+                "nutrientId": "45",
+                "value": 50.0
+              },
+              {
+                "nutrientId": "46",
+                "value": 15.0
+              },
+              {
+                "nutrientId": "47",
+                "value": 3.0
+              },
+              {
+                "nutrientId": "48",
+                "value": 0.22
+              },
+              {
+                "nutrientId": "49",
+                "value": 1.8
+              },
+              {
+                "nutrientId": "50",
+                "value": 16.0
+              },
+              {
+                "nutrientId": "16",
+                "value": 1500.0
+              },
+              {
+                "nutrientId": "17",
+                "value": 1.0
+              }
+            ]
+          },
+          {
+            "id": 11,
+            "stage": "Finisher 2",
+            "slug": "finisher-2",
+            "period_days": {
+              "min": 40,
+              "max": 51
+            },
+            "feed_structure": "Pellet",
+            "feeding_amount_per_bird": {
+              "value": 2330,
+              "unit": "g",
+              "notes": "Cumulative amount for the period"
+            },
+            "water_requirement": null,
+            "key_notes": "Feed specifications should be used as a guide only; adjustments may be necessary for local conditions, legislation and markets [20]. A withdrawal feed should be fed to meet local requirements for medication withdrawal times and can be formulated to the same standards as the final feed listed [20].",
+            "requirements": [
+              {
+                "nutrientId": "13",
+                "value": 3125.0
+              },
+              {
+                "nutrientId": "14",
+                "value": 13.1
+              },
+              {
+                "nutrientId": "18",
+                "value": 1.02
+              },
+              {
+                "nutrientId": "22",
+                "value": 0.82
+              },
+              {
+                "nutrientId": "20",
+                "value": 0.45
+              },
+              {
+                "nutrientId": "24",
+                "value": 0.68
+              },
+              {
+                "nutrientId": "32",
+                "value": 0.8
+              },
+              {
+                "nutrientId": "30",
+                "value": 0.7
+              },
+              {
+                "nutrientId": "28",
+                "value": 1.12
+              },
+              {
+                "nutrientId": "26",
+                "value": 0.16
+              },
+              {
+                "nutrientId": "106",
+                "value": 1.12
+              },
+              {
+                "nutrientId": "2",
+                "value": 18.0
+              },
+              {
+                "nutrientId": "5",
+                "value": 0.6
+              },
+              {
+                "nutrientId": "7",
+                "value": 0.34
+              },
+              {
+                "nutrientId": "64",
+                "min": 0.05,
+                "max": 0.3
+              },
+              {
+                "nutrientId": "8",
+                "min": 0.18,
+                "max": 0.23
+              },
+              {
+                "nutrientId": "9",
+                "min": 0.18,
+                "max": 0.23
+              },
+              {
+                "nutrientId": "10",
+                "min": 0.6,
+                "max": 0.9
+              },
+              {
+                "nutrientId": "33",
+                "value": 16.0
+              },
+              {
+                "nutrientId": "34",
+                "value": 1.25
+              },
+              {
+                "nutrientId": "35",
+                "value": 20.0
+              },
+              {
+                "nutrientId": "36",
+                "value": 120.0
+              },
+              {
+                "nutrientId": "37",
+                "value": 0.3
+              },
+              {
+                "nutrientId": "38",
+                "value": 120.0
+              },
+              {
+                "nutrientId": "39",
+                "value": 10000.0
+              },
+              {
+                "nutrientId": "40",
+                "value": 4000.0
+              },
+              {
+                "nutrientId": "41",
+                "value": 36.91
+              },
+              {
+                "nutrientId": "42",
+                "value": 3.2
+              },
+              {
+                "nutrientId": "43",
+                "value": 3.0
+              },
+              {
+                "nutrientId": "44",
+                "value": 7.0
+              },
+              {
+                "nutrientId": "45",
+                "value": 50.0
+              },
+              {
+                "nutrientId": "46",
+                "value": 15.0
+              },
+              {
+                "nutrientId": "47",
+                "value": 3.0
+              },
+              {
+                "nutrientId": "48",
+                "value": 0.22
+              },
+              {
+                "nutrientId": "49",
+                "value": 1.8
+              },
+              {
+                "nutrientId": "50",
+                "value": 16.0
+              },
+              {
+                "nutrientId": "16",
+                "value": 1450.0
+              },
+              {
+                "nutrientId": "17",
+                "value": 1.0
+              }
+            ]
+          },
+          {
+            "id": 12,
+            "stage": "Finisher 3",
+            "slug": "finisher-3",
+            "period_days": {
+              "min": 52,
+              "max": null,
+              "notes": "until market"
+            },
+            "feed_structure": "Pellet",
+            "feeding_amount_per_bird": {
+              "value": 970,
+              "unit": "g",
+              "notes": "Cumulative amount for the period"
+            },
+            "water_requirement": null,
+            "key_notes": "Feed specifications should be used as a guide only; adjustments may be necessary for local conditions, legislation and markets [20]. A withdrawal feed should be fed to meet local requirements for medication withdrawal times and can be formulated to the same standards as the final feed listed [20].",
+            "requirements": [
+              {
+                "nutrientId": "13",
+                "value": 3150.0
+              },
+              {
+                "nutrientId": "14",
+                "value": 13.2
+              },
+              {
+                "nutrientId": "18",
+                "value": 0.96
+              },
+              {
+                "nutrientId": "22",
+                "value": 0.77
+              },
+              {
+                "nutrientId": "20",
+                "value": 0.42
+              },
+              {
+                "nutrientId": "24",
+                "value": 0.64
+              },
+              {
+                "nutrientId": "32",
+                "value": 0.77
+              },
+              {
+                "nutrientId": "30",
+                "value": 0.67
+              },
+              {
+                "nutrientId": "28",
+                "value": 1.08
+              },
+              {
+                "nutrientId": "26",
+                "value": 0.15
+              },
+              {
+                "nutrientId": "106",
+                "value": 1.06
+              },
+              {
+                "nutrientId": "2",
+                "value": 17.0
+              },
+              {
+                "nutrientId": "5",
+                "value": 0.55
+              },
+              {
+                "nutrientId": "7",
+                "value": 0.32
+              },
+              {
+                "nutrientId": "64",
+                "min": 0.05,
+                "max": 0.3
+              },
+              {
+                "nutrientId": "8",
+                "min": 0.18,
+                "max": 0.23
+              },
+              {
+                "nutrientId": "9",
+                "min": 0.18,
+                "max": 0.23
+              },
+              {
+                "nutrientId": "10",
+                "min": 0.6,
+                "max": 0.9
+              },
+              {
+                "nutrientId": "33",
+                "value": 16.0
+              },
+              {
+                "nutrientId": "34",
+                "value": 1.25
+              },
+              {
+                "nutrientId": "35",
+                "value": 20.0
+              },
+              {
+                "nutrientId": "36",
+                "value": 120.0
+              },
+              {
+                "nutrientId": "37",
+                "value": 0.3
+              },
+              {
+                "nutrientId": "38",
+                "value": 120.0
+              },
+              {
+                "nutrientId": "39",
+                "value": 10000.0
+              },
+              {
+                "nutrientId": "40",
+                "value": 4000.0
+              },
+              {
+                "nutrientId": "41",
+                "value": 36.91
+              },
+              {
+                "nutrientId": "42",
+                "value": 3.2
+              },
+              {
+                "nutrientId": "43",
+                "value": 3.0
+              },
+              {
+                "nutrientId": "44",
+                "value": 7.0
+              },
+              {
+                "nutrientId": "45",
+                "value": 50.0
+              },
+              {
+                "nutrientId": "46",
+                "value": 15.0
+              },
+              {
+                "nutrientId": "47",
+                "value": 3.0
+              },
+              {
+                "nutrientId": "48",
+                "value": 0.22
+              },
+              {
+                "nutrientId": "49",
+                "value": 1.8
+              },
+              {
+                "nutrientId": "50",
+                "value": 16.0
+              },
+              {
+                "nutrientId": "16",
+                "value": 1450.0
+              },
+              {
+                "nutrientId": "17",
+                "value": 1.0
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": 2,
+    "species": "Broiler Chickens",
+    "slug": "broiler-chickens",
+    "breed": "Cobb 500",
+    "description": "Nutritional specifications for Cobb 500 broilers based on market segments.",
+    "programs": [
+      {
+        "id": 5,
+        "market_segment": "Small Bird Market",
+        "stages": [
+          {
+            "id": 18,
+            "stage": "Starter",
+            "slug": "starter",
+            "period_days": {
+              "min": 0,
+              "max": 8
+            },
+            "feed_structure": "Crumble",
+            "feeding_amount_per_bird": {
+              "value": 250,
+              "unit": "g",
+              "notes": "Cumulative amount for the period"
+            },
+            "water_requirement": null,
+            "key_notes": "Balanced Digestible Amino Acid Ratio to Lysine (100%) specified [12].",
+            "requirements": [
+              {
+                "nutrientId": "2",
+                "min": 21.0,
+                "max": 22.0
+              },
+              {
+                "nutrientId": "14",
+                "value": 12.13
+              },
+              {
+                "nutrientId": "13",
+                "value": 2900.0
+              },
+              {
+                "nutrientId": "18",
+                "value": 1.26
+              },
+              {
+                "nutrientId": "20",
+                "value": 0.48
+              },
+              {
+                "nutrientId": "22",
+                "value": 0.94
+              },
+              {
+                "nutrientId": "26",
+                "value": 0.21
+              },
+              {
+                "nutrientId": "24",
+                "value": 0.86
+              },
+              {
+                "nutrientId": "28",
+                "value": 1.36
+              },
+              {
+                "nutrientId": "32",
+                "value": 0.96
+              },
+              {
+                "nutrientId": "30",
+                "value": 0.81
+              },
+              {
+                "nutrientId": "106",
+                "value": 1.39
+              },
+              {
+                "nutrientId": "5",
+                "value": 0.96
+              },
+              {
+                "nutrientId": "7",
+                "value": 0.54
+              },
+              {
+                "nutrientId": "8",
+                "min": 0.16,
+                "max": 0.23
+              },
+              {
+                "nutrientId": "9",
+                "min": 0.16,
+                "max": 0.3
+              },
+              {
+                "nutrientId": "10",
+                "min": 0.6,
+                "max": 0.95
+              },
+              {
+                "nutrientId": "15",
+                "value": 1.2
+              },
+              {
+                "nutrientId": "39",
+                "min": 10000.0,
+                "max": 13000.0
+              },
+              {
+                "nutrientId": "40",
+                "value": 5000.0
+              },
+              {
+                "nutrientId": "41",
+                "value": 53.69
+              },
+              {
+                "nutrientId": "42",
+                "value": 3.0
+              },
+              {
+                "nutrientId": "43",
+                "value": 3.0
+              },
+              {
+                "nutrientId": "44",
+                "value": 9.0
+              },
+              {
+                "nutrientId": "47",
+                "value": 4.0
+              },
+              {
+                "nutrientId": "50",
+                "value": 20.0
+              },
+              {
+                "nutrientId": "48",
+                "value": 0.175
+              },
+              {
+                "nutrientId": "16",
+                "value": 500.0
+              },
+              {
+                "nutrientId": "49",
+                "value": 2.0
+              },
+              {
+                "nutrientId": "45",
+                "value": 60.0
+              },
+              {
+                "nutrientId": "46",
+                "value": 15.0
+              },
+              {
+                "nutrientId": "36",
+                "value": 100.0
+              },
+              {
+                "nutrientId": "38",
+                "value": 100.0
+              },
+              {
+                "nutrientId": "35",
+                "value": 40.0
+              },
+              {
+                "nutrientId": "33",
+                "value": 15.0
+              },
+              {
+                "nutrientId": "34",
+                "value": 1.0
+              },
+              {
+                "nutrientId": "37",
+                "value": 0.35
+              }
+            ]
+          },
+          {
+            "id": 19,
+            "stage": "Grower 1",
+            "slug": "grower-1",
+            "period_days": {
+              "min": 9,
+              "max": 18
+            },
+            "feed_structure": "Crumble / Pellet",
+            "feeding_amount_per_bird": {
+              "value": 750,
+              "unit": "g",
+              "notes": "Cumulative amount for the period"
+            },
+            "water_requirement": null,
+            "key_notes": "Balanced Digestible Amino Acid Ratio to Lysine (100%) specified [12].",
+            "requirements": [
+              {
+                "nutrientId": "2",
+                "min": 19.0,
+                "max": 20.0
+              },
+              {
+                "nutrientId": "14",
+                "value": 12.34
+              },
+              {
+                "nutrientId": "13",
+                "value": 2950.0
+              },
+              {
+                "nutrientId": "18",
+                "value": 1.16
+              },
+              {
+                "nutrientId": "20",
+                "value": 0.47
+              },
+              {
+                "nutrientId": "22",
+                "value": 0.88
+              },
+              {
+                "nutrientId": "26",
+                "value": 0.18
+              },
+              {
+                "nutrientId": "24",
+                "value": 0.78
+              },
+              {
+                "nutrientId": "28",
+                "value": 1.25
+              },
+              {
+                "nutrientId": "32",
+                "value": 0.88
+              },
+              {
+                "nutrientId": "30",
+                "value": 0.75
+              },
+              {
+                "nutrientId": "106",
+                "value": 1.28
+              },
+              {
+                "nutrientId": "5",
+                "value": 0.8
+              },
+              {
+                "nutrientId": "7",
+                "value": 0.4
+              },
+              {
+                "nutrientId": "8",
+                "min": 0.16,
+                "max": 0.23
+              },
+              {
+                "nutrientId": "9",
+                "min": 0.16,
+                "max": 0.3
+              },
+              {
+                "nutrientId": "10",
+                "min": 0.6,
+                "max": 0.95
+              },
+              {
+                "nutrientId": "15",
+                "value": 1.2
+              },
+              {
+                "nutrientId": "39",
+                "value": 10000.0
+              },
+              {
+                "nutrientId": "40",
+                "value": 5000.0
+              },
+              {
+                "nutrientId": "41",
+                "value": 33.56
+              },
+              {
+                "nutrientId": "42",
+                "value": 3.0
+              },
+              {
+                "nutrientId": "43",
+                "value": 2.0
+              },
+              {
+                "nutrientId": "44",
+                "value": 8.0
+              },
+              {
+                "nutrientId": "47",
+                "value": 3.0
+              },
+              {
+                "nutrientId": "50",
+                "value": 15.0
+              },
+              {
+                "nutrientId": "48",
+                "value": 0.15
+              },
+              {
+                "nutrientId": "16",
+                "value": 400.0
+              },
+              {
+                "nutrientId": "49",
+                "value": 2.0
+              },
+              {
+                "nutrientId": "45",
+                "value": 50.0
+              },
+              {
+                "nutrientId": "46",
+                "value": 12.0
+              },
+              {
+                "nutrientId": "36",
+                "value": 100.0
+              },
+              {
+                "nutrientId": "38",
+                "value": 100.0
+              },
+              {
+                "nutrientId": "35",
+                "value": 40.0
+              },
+              {
+                "nutrientId": "33",
+                "value": 15.0
+              },
+              {
+                "nutrientId": "34",
+                "value": 1.0
+              },
+              {
+                "nutrientId": "37",
+                "value": 0.35
+              }
+            ]
+          },
+          {
+            "id": 20,
+            "stage": "Grower 2",
+            "slug": "grower-2",
+            "period_days": {
+              "min": 19,
+              "max": 28
+            },
+            "feed_structure": "Pellet",
+            "feeding_amount_per_bird": {
+              "value": 1350,
+              "unit": "g",
+              "notes": "Cumulative amount for the period"
+            },
+            "water_requirement": null,
+            "key_notes": "Balanced Digestible Amino Acid Ratio to Lysine (100%) specified [12].",
+            "requirements": [
+              {
+                "nutrientId": "2",
+                "min": 18.0,
+                "max": 19.0
+              },
+              {
+                "nutrientId": "14",
+                "value": 12.64
+              },
+              {
+                "nutrientId": "13",
+                "value": 3020.0
+              },
+              {
+                "nutrientId": "18",
+                "value": 1.08
+              },
+              {
+                "nutrientId": "20",
+                "value": 0.44
+              },
+              {
+                "nutrientId": "22",
+                "value": 0.83
+              },
+              {
+                "nutrientId": "26",
+                "value": 0.19
+              },
+              {
+                "nutrientId": "24",
+                "value": 0.71
+              },
+              {
+                "nutrientId": "28",
+                "value": 1.18
+              },
+              {
+                "nutrientId": "32",
+                "value": 0.82
+              },
+              {
+                "nutrientId": "30",
+                "value": 0.7
+              },
+              {
+                "nutrientId": "106",
+                "value": 1.19
+              },
+              {
+                "nutrientId": "5",
+                "value": 0.74
+              },
+              {
+                "nutrientId": "7",
+                "value": 0.37
+              },
+              {
+                "nutrientId": "8",
+                "min": 0.16,
+                "max": 0.23
+              },
+              {
+                "nutrientId": "9",
+                "min": 0.16,
+                "max": 0.3
+              },
+              {
+                "nutrientId": "10",
+                "min": 0.6,
+                "max": 0.95
+              },
+              {
+                "nutrientId": "15",
+                "value": 1.0
+              },
+              {
+                "nutrientId": "39",
+                "value": 10000.0
+              },
+              {
+                "nutrientId": "40",
+                "value": 5000.0
+              },
+              {
+                "nutrientId": "41",
+                "value": 33.56
+              },
+              {
+                "nutrientId": "42",
+                "value": 3.0
+              },
+              {
+                "nutrientId": "43",
+                "value": 2.0
+              },
+              {
+                "nutrientId": "44",
+                "value": 8.0
+              },
+              {
+                "nutrientId": "47",
+                "value": 3.0
+              },
+              {
+                "nutrientId": "50",
+                "value": 15.0
+              },
+              {
+                "nutrientId": "48",
+                "value": 0.15
+              },
+              {
+                "nutrientId": "16",
+                "value": 400.0
+              },
+              {
+                "nutrientId": "49",
+                "value": 2.0
+              },
+              {
+                "nutrientId": "45",
+                "value": 50.0
+              },
+              {
+                "nutrientId": "46",
+                "value": 12.0
+              },
+              {
+                "nutrientId": "36",
+                "value": 100.0
+              },
+              {
+                "nutrientId": "38",
+                "value": 100.0
+              },
+              {
+                "nutrientId": "35",
+                "value": 40.0
+              },
+              {
+                "nutrientId": "33",
+                "value": 15.0
+              },
+              {
+                "nutrientId": "34",
+                "value": 1.0
+              },
+              {
+                "nutrientId": "37",
+                "value": 0.35
+              }
+            ]
+          },
+          {
+            "id": 21,
+            "stage": "Finisher",
+            "slug": "finisher",
+            "period_days": {
+              "min": 29,
+              "max": null
+            },
+            "feed_structure": "Pellet",
+            "feeding_amount_per_bird": null,
+            "water_requirement": null,
+            "key_notes": "Balanced Digestible Amino Acid Ratio to Lysine (100%) specified [12]. Should withdrawal feed be required, use same finisher specifications [10].",
+            "requirements": [
+              {
+                "nutrientId": "2",
+                "min": 17.0,
+                "max": 18.0
+              },
+              {
+                "nutrientId": "14",
+                "value": 12.97
+              },
+              {
+                "nutrientId": "13",
+                "value": 3100.0
+              },
+              {
+                "nutrientId": "18",
+                "value": 1.04
+              },
+              {
+                "nutrientId": "20",
+                "value": 0.43
+              },
+              {
+                "nutrientId": "22",
+                "value": 0.8
+              },
+              {
+                "nutrientId": "26",
+                "value": 0.18
+              },
+              {
+                "nutrientId": "24",
+                "value": 0.67
+              },
+              {
+                "nutrientId": "28",
+                "value": 1.13
+              },
+              {
+                "nutrientId": "32",
+                "value": 0.8
+              },
+              {
+                "nutrientId": "30",
+                "value": 0.69
+              },
+              {
+                "nutrientId": "106",
+                "value": 1.14
+              },
+              {
+                "nutrientId": "5",
+                "value": 0.72
+              },
+              {
+                "nutrientId": "7",
+                "value": 0.36
+              },
+              {
+                "nutrientId": "8",
+                "min": 0.16,
+                "max": 0.23
+              },
+              {
+                "nutrientId": "9",
+                "min": 0.16,
+                "max": 0.3
+              },
+              {
+                "nutrientId": "10",
+                "min": 0.6,
+                "max": 0.95
+              },
+              {
+                "nutrientId": "15",
+                "value": 1.0
+              },
+              {
+                "nutrientId": "39",
+                "value": 10000.0
+              },
+              {
+                "nutrientId": "40",
+                "value": 5000.0
+              },
+              {
+                "nutrientId": "41",
+                "value": 33.56
+              },
+              {
+                "nutrientId": "42",
+                "value": 3.0
+              },
+              {
+                "nutrientId": "43",
+                "value": 2.0
+              },
+              {
+                "nutrientId": "44",
+                "value": 6.0
+              },
+              {
+                "nutrientId": "47",
+                "value": 3.0
+              },
+              {
+                "nutrientId": "50",
+                "value": 15.0
+              },
+              {
+                "nutrientId": "48",
+                "value": 0.15
+              },
+              {
+                "nutrientId": "16",
+                "value": 350.0
+              },
+              {
+                "nutrientId": "49",
+                "value": 1.5
+              },
+              {
+                "nutrientId": "45",
+                "value": 50.0
+              },
+              {
+                "nutrientId": "46",
+                "value": 10.0
+              },
+              {
+                "nutrientId": "36",
+                "value": 100.0
+              },
+              {
+                "nutrientId": "38",
+                "value": 100.0
+              },
+              {
+                "nutrientId": "35",
+                "value": 40.0
+              },
+              {
+                "nutrientId": "33",
+                "value": 15.0
+              },
+              {
+                "nutrientId": "34",
+                "value": 1.0
+              },
+              {
+                "nutrientId": "37",
+                "value": 0.35
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": 4,
+        "market_segment": "Medium and Large Bird Market",
+        "stages": [
+          {
+            "id": 13,
+            "stage": "Starter",
+            "slug": "starter",
+            "period_days": {
+              "min": 0,
+              "max": 12
+            },
+            "feed_structure": "Crumble",
+            "feeding_amount_per_bird": {
+              "value": 455,
+              "unit": "g",
+              "notes": "Cumulative amount for the period"
+            },
+            "water_requirement": null,
+            "key_notes": "Balanced Digestible Amino Acid Ratio to Lysine (100%) specified as: Methionine 38%, Methionine + Cystine 75%, Tryptophan 16%, Threonine 68%, Arginine 108%, Valine 76%, Isoleucine 64%, Leucine 110% [9].",
+            "requirements": [
+              {
+                "nutrientId": "2",
+                "min": 21.0,
+                "max": 22.0
+              },
+              {
+                "nutrientId": "14",
+                "value": 12.13
+              },
+              {
+                "nutrientId": "13",
+                "value": 2900.0
+              },
+              {
+                "nutrientId": "18",
+                "value": 1.26
+              },
+              {
+                "nutrientId": "20",
+                "value": 0.48
+              },
+              {
+                "nutrientId": "22",
+                "value": 0.94
+              },
+              {
+                "nutrientId": "26",
+                "value": 0.21
+              },
+              {
+                "nutrientId": "24",
+                "value": 0.86
+              },
+              {
+                "nutrientId": "28",
+                "value": 1.36
+              },
+              {
+                "nutrientId": "32",
+                "value": 0.96
+              },
+              {
+                "nutrientId": "30",
+                "value": 0.81
+              },
+              {
+                "nutrientId": "106",
+                "value": 1.39
+              },
+              {
+                "nutrientId": "5",
+                "value": 0.96
+              },
+              {
+                "nutrientId": "7",
+                "value": 0.58
+              },
+              {
+                "nutrientId": "8",
+                "min": 0.16,
+                "max": 0.23
+              },
+              {
+                "nutrientId": "9",
+                "min": 0.16,
+                "max": 0.3
+              },
+              {
+                "nutrientId": "10",
+                "min": 0.6,
+                "max": 0.95
+              },
+              {
+                "nutrientId": "15",
+                "value": 1.2
+              },
+              {
+                "nutrientId": "39",
+                "min": 10000.0,
+                "max": 13000.0
+              },
+              {
+                "nutrientId": "40",
+                "value": 5000.0
+              },
+              {
+                "nutrientId": "41",
+                "value": 53.69
+              },
+              {
+                "nutrientId": "42",
+                "value": 3.0
+              },
+              {
+                "nutrientId": "43",
+                "value": 3.0
+              },
+              {
+                "nutrientId": "44",
+                "value": 9.0
+              },
+              {
+                "nutrientId": "47",
+                "value": 4.0
+              },
+              {
+                "nutrientId": "50",
+                "value": 20.0
+              },
+              {
+                "nutrientId": "48",
+                "value": 0.175
+              },
+              {
+                "nutrientId": "16",
+                "value": 500.0
+              },
+              {
+                "nutrientId": "49",
+                "value": 2.0
+              },
+              {
+                "nutrientId": "45",
+                "value": 60.0
+              },
+              {
+                "nutrientId": "46",
+                "value": 15.0
+              },
+              {
+                "nutrientId": "36",
+                "value": 100.0
+              },
+              {
+                "nutrientId": "38",
+                "value": 100.0
+              },
+              {
+                "nutrientId": "35",
+                "value": 40.0
+              },
+              {
+                "nutrientId": "33",
+                "value": 15.0
+              },
+              {
+                "nutrientId": "34",
+                "value": 1.0
+              },
+              {
+                "nutrientId": "37",
+                "value": 0.35
+              }
+            ]
+          },
+          {
+            "id": 14,
+            "stage": "Grower 1",
+            "slug": "grower-1",
+            "period_days": {
+              "min": 13,
+              "max": 28
+            },
+            "feed_structure": "Pellet",
+            "feeding_amount_per_bird": {
+              "value": 2100,
+              "unit": "g",
+              "notes": "Cumulative amount for the period"
+            },
+            "water_requirement": null,
+            "key_notes": "Balanced Digestible Amino Acid Ratio to Lysine (100%) specified as: Methionine 40%, Methionine + Cystine 76%, Tryptophan 16%, Threonine 67%, Arginine 108%, Valine 76%, Isoleucine 64%, Leucine 110% [9].",
+            "requirements": [
+              {
+                "nutrientId": "2",
+                "min": 19.0,
+                "max": 20.0
+              },
+              {
+                "nutrientId": "14",
+                "value": 12.34
+              },
+              {
+                "nutrientId": "13",
+                "value": 2950.0
+              },
+              {
+                "nutrientId": "18",
+                "value": 1.16
+              },
+              {
+                "nutrientId": "20",
+                "value": 0.47
+              },
+              {
+                "nutrientId": "22",
+                "value": 0.88
+              },
+              {
+                "nutrientId": "26",
+                "value": 0.18
+              },
+              {
+                "nutrientId": "24",
+                "value": 0.78
+              },
+              {
+                "nutrientId": "28",
+                "value": 1.25
+              },
+              {
+                "nutrientId": "32",
+                "value": 0.88
+              },
+              {
+                "nutrientId": "30",
+                "value": 0.75
+              },
+              {
+                "nutrientId": "106",
+                "value": 1.28
+              },
+              {
+                "nutrientId": "5",
+                "value": 0.8
+              },
+              {
+                "nutrientId": "7",
+                "value": 0.4
+              },
+              {
+                "nutrientId": "8",
+                "min": 0.16,
+                "max": 0.23
+              },
+              {
+                "nutrientId": "9",
+                "min": 0.16,
+                "max": 0.3
+              },
+              {
+                "nutrientId": "10",
+                "min": 0.6,
+                "max": 0.95
+              },
+              {
+                "nutrientId": "15",
+                "value": 1.2
+              },
+              {
+                "nutrientId": "39",
+                "value": 10000.0
+              },
+              {
+                "nutrientId": "40",
+                "value": 5000.0
+              },
+              {
+                "nutrientId": "41",
+                "value": 33.56
+              },
+              {
+                "nutrientId": "42",
+                "value": 3.0
+              },
+              {
+                "nutrientId": "43",
+                "value": 2.0
+              },
+              {
+                "nutrientId": "44",
+                "value": 8.0
+              },
+              {
+                "nutrientId": "47",
+                "value": 3.0
+              },
+              {
+                "nutrientId": "50",
+                "value": 15.0
+              },
+              {
+                "nutrientId": "48",
+                "value": 0.15
+              },
+              {
+                "nutrientId": "16",
+                "value": 400.0
+              },
+              {
+                "nutrientId": "49",
+                "value": 2.0
+              },
+              {
+                "nutrientId": "45",
+                "value": 50.0
+              },
+              {
+                "nutrientId": "46",
+                "value": 12.0
+              },
+              {
+                "nutrientId": "36",
+                "value": 100.0
+              },
+              {
+                "nutrientId": "38",
+                "value": 100.0
+              },
+              {
+                "nutrientId": "35",
+                "value": 40.0
+              },
+              {
+                "nutrientId": "33",
+                "value": 15.0
+              },
+              {
+                "nutrientId": "34",
+                "value": 1.0
+              },
+              {
+                "nutrientId": "37",
+                "value": 0.35
+              }
+            ]
+          },
+          {
+            "id": 15,
+            "stage": "Grower 2",
+            "slug": "grower-2",
+            "period_days": {
+              "min": 29,
+              "max": 39
+            },
+            "feed_structure": "Pellet",
+            "feeding_amount_per_bird": {
+              "value": 2100,
+              "unit": "g",
+              "notes": "Cumulative amount for the period"
+            },
+            "water_requirement": null,
+            "key_notes": "Balanced Digestible Amino Acid Ratio to Lysine (100%) specified as: Methionine 41%, Methionine + Cystine 77%, Tryptophan 18%, Threonine 66%, Arginine 109%, Valine 76%, Isoleucine 65%, Leucine 110% [9].",
+            "requirements": [
+              {
+                "nutrientId": "2",
+                "min": 18.0,
+                "max": 19.0
+              },
+              {
+                "nutrientId": "14",
+                "value": 12.76
+              },
+              {
+                "nutrientId": "13",
+                "value": 3050.0
+              },
+              {
+                "nutrientId": "18",
+                "value": 1.06
+              },
+              {
+                "nutrientId": "20",
+                "value": 0.44
+              },
+              {
+                "nutrientId": "22",
+                "value": 0.82
+              },
+              {
+                "nutrientId": "26",
+                "value": 0.19
+              },
+              {
+                "nutrientId": "24",
+                "value": 0.7
+              },
+              {
+                "nutrientId": "28",
+                "value": 1.16
+              },
+              {
+                "nutrientId": "32",
+                "value": 0.81
+              },
+              {
+                "nutrientId": "30",
+                "value": 0.69
+              },
+              {
+                "nutrientId": "106",
+                "value": 1.17
+              },
+              {
+                "nutrientId": "5",
+                "value": 0.74
+              },
+              {
+                "nutrientId": "7",
+                "value": 0.37
+              },
+              {
+                "nutrientId": "8",
+                "min": 0.16,
+                "max": 0.23
+              },
+              {
+                "nutrientId": "9",
+                "min": 0.16,
+                "max": 0.3
+              },
+              {
+                "nutrientId": "10",
+                "min": 0.6,
+                "max": 0.95
+              },
+              {
+                "nutrientId": "15",
+                "value": 1.0
+              },
+              {
+                "nutrientId": "39",
+                "value": 10000.0
+              },
+              {
+                "nutrientId": "40",
+                "value": 5000.0
+              },
+              {
+                "nutrientId": "41",
+                "value": 33.56
+              },
+              {
+                "nutrientId": "42",
+                "value": 3.0
+              },
+              {
+                "nutrientId": "43",
+                "value": 2.0
+              },
+              {
+                "nutrientId": "44",
+                "value": 8.0
+              },
+              {
+                "nutrientId": "47",
+                "value": 3.0
+              },
+              {
+                "nutrientId": "50",
+                "value": 15.0
+              },
+              {
+                "nutrientId": "48",
+                "value": 0.15
+              },
+              {
+                "nutrientId": "16",
+                "value": 400.0
+              },
+              {
+                "nutrientId": "49",
+                "value": 2.0
+              },
+              {
+                "nutrientId": "45",
+                "value": 50.0
+              },
+              {
+                "nutrientId": "46",
+                "value": 12.0
+              },
+              {
+                "nutrientId": "36",
+                "value": 100.0
+              },
+              {
+                "nutrientId": "38",
+                "value": 100.0
+              },
+              {
+                "nutrientId": "35",
+                "value": 40.0
+              },
+              {
+                "nutrientId": "33",
+                "value": 15.0
+              },
+              {
+                "nutrientId": "34",
+                "value": 1.0
+              },
+              {
+                "nutrientId": "37",
+                "value": 0.35
+              }
+            ]
+          },
+          {
+            "id": 16,
+            "stage": "Finisher 1",
+            "slug": "finisher-1",
+            "period_days": {
+              "min": 40,
+              "max": 49
+            },
+            "feed_structure": "Pellet",
+            "feeding_amount_per_bird": {
+              "value": 2100,
+              "unit": "g",
+              "notes": "Cumulative amount for the period"
+            },
+            "water_requirement": null,
+            "key_notes": "Balanced Digestible Amino Acid Ratio to Lysine (100%) specified as: Methionine 41%, Methionine + Cystine 77%, Tryptophan 18%, Threonine 65%, Arginine 109%, Valine 77%, Isoleucine 66%, Leucine 110% [9].",
+            "requirements": [
+              {
+                "nutrientId": "2",
+                "min": 17.0,
+                "max": 18.0
+              },
+              {
+                "nutrientId": "14",
+                "value": 12.97
+              },
+              {
+                "nutrientId": "13",
+                "value": 3100.0
+              },
+              {
+                "nutrientId": "18",
+                "value": 0.96
+              },
+              {
+                "nutrientId": "20",
+                "value": 0.4
+              },
+              {
+                "nutrientId": "22",
+                "value": 0.74
+              },
+              {
+                "nutrientId": "26",
+                "value": 0.17
+              },
+              {
+                "nutrientId": "24",
+                "value": 0.62
+              },
+              {
+                "nutrientId": "28",
+                "value": 1.05
+              },
+              {
+                "nutrientId": "32",
+                "value": 0.74
+              },
+              {
+                "nutrientId": "30",
+                "value": 0.63
+              },
+              {
+                "nutrientId": "106",
+                "value": 1.06
+              },
+              {
+                "nutrientId": "5",
+                "value": 0.72
+              },
+              {
+                "nutrientId": "7",
+                "value": 0.36
+              },
+              {
+                "nutrientId": "8",
+                "min": 0.16,
+                "max": 0.23
+              },
+              {
+                "nutrientId": "9",
+                "min": 0.16,
+                "max": 0.3
+              },
+              {
+                "nutrientId": "10",
+                "min": 0.6,
+                "max": 0.95
+              },
+              {
+                "nutrientId": "15",
+                "value": 1.0
+              },
+              {
+                "nutrientId": "39",
+                "value": 10000.0
+              },
+              {
+                "nutrientId": "40",
+                "value": 5000.0
+              },
+              {
+                "nutrientId": "41",
+                "value": 33.56
+              },
+              {
+                "nutrientId": "42",
+                "value": 3.0
+              },
+              {
+                "nutrientId": "43",
+                "value": 2.0
+              },
+              {
+                "nutrientId": "44",
+                "value": 6.0
+              },
+              {
+                "nutrientId": "47",
+                "value": 3.0
+              },
+              {
+                "nutrientId": "50",
+                "value": 15.0
+              },
+              {
+                "nutrientId": "48",
+                "value": 0.15
+              },
+              {
+                "nutrientId": "16",
+                "value": 350.0
+              },
+              {
+                "nutrientId": "49",
+                "value": 1.5
+              },
+              {
+                "nutrientId": "45",
+                "value": 50.0
+              },
+              {
+                "nutrientId": "46",
+                "value": 10.0
+              },
+              {
+                "nutrientId": "36",
+                "value": 100.0
+              },
+              {
+                "nutrientId": "38",
+                "value": 100.0
+              },
+              {
+                "nutrientId": "35",
+                "value": 40.0
+              },
+              {
+                "nutrientId": "33",
+                "value": 15.0
+              },
+              {
+                "nutrientId": "34",
+                "value": 1.0
+              },
+              {
+                "nutrientId": "37",
+                "value": 0.35
+              }
+            ]
+          },
+          {
+            "id": 17,
+            "stage": "Finisher 2",
+            "slug": "finisher-2",
+            "period_days": {
+              "min": 50,
+              "max": null
+            },
+            "feed_structure": "Pellet",
+            "feeding_amount_per_bird": null,
+            "water_requirement": null,
+            "key_notes": "Balanced Digestible Amino Acid Ratio to Lysine (100%) specified as: Methionine 41%, Methionine + Cystine 77%, Tryptophan 18%, Threonine 65%, Arginine 110%, Valine 78%, Isoleucine 66%, Leucine 110% [9]. Should withdrawal feed be required, use same finisher specifications [10].",
+            "requirements": [
+              {
+                "nutrientId": "2",
+                "min": 17.0,
+                "max": 18.0
+              },
+              {
+                "nutrientId": "14",
+                "value": 13.18
+              },
+              {
+                "nutrientId": "13",
+                "value": 3150.0
+              },
+              {
+                "nutrientId": "18",
+                "value": 0.86
+              },
+              {
+                "nutrientId": "20",
+                "value": 0.35
+              },
+              {
+                "nutrientId": "22",
+                "value": 0.66
+              },
+              {
+                "nutrientId": "26",
+                "value": 0.15
+              },
+              {
+                "nutrientId": "24",
+                "value": 0.56
+              },
+              {
+                "nutrientId": "28",
+                "value": 0.95
+              },
+              {
+                "nutrientId": "32",
+                "value": 0.67
+              },
+              {
+                "nutrientId": "30",
+                "value": 0.57
+              },
+              {
+                "nutrientId": "106",
+                "value": 0.95
+              },
+              {
+                "nutrientId": "5",
+                "value": 0.68
+              },
+              {
+                "nutrientId": "7",
+                "value": 0.34
+              },
+              {
+                "nutrientId": "8",
+                "min": 0.16,
+                "max": 0.23
+              },
+              {
+                "nutrientId": "9",
+                "min": 0.16,
+                "max": 0.3
+              },
+              {
+                "nutrientId": "10",
+                "min": 0.6,
+                "max": 0.95
+              },
+              {
+                "nutrientId": "15",
+                "value": 1.0
+              },
+              {
+                "nutrientId": "39",
+                "value": 10000.0
+              },
+              {
+                "nutrientId": "40",
+                "value": 5000.0
+              },
+              {
+                "nutrientId": "41",
+                "value": 33.56
+              },
+              {
+                "nutrientId": "42",
+                "value": 3.0
+              },
+              {
+                "nutrientId": "43",
+                "value": 2.0
+              },
+              {
+                "nutrientId": "44",
+                "value": 6.0
+              },
+              {
+                "nutrientId": "47",
+                "value": 3.0
+              },
+              {
+                "nutrientId": "50",
+                "value": 15.0
+              },
+              {
+                "nutrientId": "48",
+                "value": 0.15
+              },
+              {
+                "nutrientId": "16",
+                "value": 350.0
+              },
+              {
+                "nutrientId": "49",
+                "value": 1.5
+              },
+              {
+                "nutrientId": "45",
+                "value": 50.0
+              },
+              {
+                "nutrientId": "46",
+                "value": 10.0
+              },
+              {
+                "nutrientId": "36",
+                "value": 100.0
+              },
+              {
+                "nutrientId": "38",
+                "value": 100.0
+              },
+              {
+                "nutrientId": "35",
+                "value": 40.0
+              },
+              {
+                "nutrientId": "33",
+                "value": 15.0
+              },
+              {
+                "nutrientId": "34",
+                "value": 1.0
+              },
+              {
+                "nutrientId": "37",
+                "value": 0.35
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+]
