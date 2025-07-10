@@ -5,6 +5,7 @@ import {
   Cat,
   Database as DatabaseIcon,
   Droplet,
+  FileText,
   Home,
   Menu,
   Package,
@@ -35,7 +36,7 @@ export default function DashboardLayout({
     { path: '/admin/sales', label: 'Sales', icon: ShoppingCart },
     { path: '/admin/purchases', label: 'Purchases', icon: ShoppingBag },
     { path: '/admin/products', label: 'Products', icon: Package },
-    { path: '/admin/animals', label: 'Animals', icon: Cat },
+    { path: '/admin/blog', label: 'Blog', icon: FileText },
     { path: '/admin/settings', label: 'Settings', icon: SettingsIcon },
   ];
 
