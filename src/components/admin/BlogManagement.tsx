@@ -1,3 +1,5 @@
+'use client';
+
 import { Plus, Download, MoreHorizontal, Search, Filter, Edit, Trash2, Eye } from "lucide-react";
 import {
   DropdownMenu,
@@ -7,10 +9,26 @@ import {
 } from "@/components/ui/dropdown-menu";
 import Link from "next/link";
 import Image from "next/image";
-import { allBlogPosts } from "@/data/blog";
+import { useEffect, useState } from "react";
+import { BlogPost } from "@/types";
+import { getAllBlogPosts } from "@/app/actions";
 
 export const BlogManagement = () => {
-  const posts = allBlogPosts;
+  const [posts, setPosts] = useState<BlogPost[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchPosts = async () => {
+      const allPosts = await getAllBlogPosts();
+      setPosts(allPosts);
+      setLoading(false);
+    }
+    fetchPosts();
+  }, []);
+
+  if (loading) {
+    return <div>Loading posts...</div>
+  }
 
   return (
     <div className="space-y-6">

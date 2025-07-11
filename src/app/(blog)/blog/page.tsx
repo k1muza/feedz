@@ -1,7 +1,7 @@
 import BlogCategories from '@/components/blog/BlogCategories';
 import NewsletterSignup from '@/components/blog/NewsletterSignup';
 import SecondaryHero from '@/components/common/SecondaryHero';
-import { allBlogPosts } from '@/data/blog';
+import { getAllBlogPosts } from '@/app/actions';
 import { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -15,9 +15,10 @@ export const metadata: Metadata = {
 };
 
 
-export default function BlogPage() {
-  const featuredPost = allBlogPosts.find(post => post.featured);
-  const recentPosts = allBlogPosts.filter(post => !post.featured);
+export default async function BlogPage() {
+  const allPosts = await getAllBlogPosts();
+  const featuredPost = allPosts.find(post => post.featured);
+  const recentPosts = allPosts.filter(post => !post.featured);
 
   return (
     <>

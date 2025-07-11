@@ -1,22 +1,37 @@
 'use client';
 
 import { BlogPostForm } from '@/components/admin/BlogPostForm';
-import { allBlogPosts } from '@/data/blog';
+import { getPostBySlug } from '@/app/actions';
 import { notFound } from 'next/navigation';
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import { BlogPost } from '@/types';
 
 export default function EditBlogPostPage({ params }: { params: { slug: string } }) {
-  const { slug } = React.use(params);
-  const post = allBlogPosts.find(p => p.slug === slug);
+  const { slug } = params;
+  const [post, setPost] = useState<BlogPost | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  if (!post) {
-    notFound();
+  useEffect(() => {
+    async function fetchPost() {
+      const fetchedPost = await getPostBySlug(slug);
+      if (!fetchedPost) {
+        notFound();
+      }
+      setPost(fetchedPost);
+      setLoading(false);
+    }
+    fetchPost();
+  }, [slug]);
+
+
+  if (loading) {
+    return <div>Loading...</div>; // Or a skeleton loader
   }
 
   return (
     <div>
       <h1 className="text-2xl font-bold text-white mb-6">Edit Blog Post</h1>
-      <BlogPostForm post={post} />
+      {post && <BlogPostForm post={post} />}
     </div>
   );
 }

@@ -1,3 +1,5 @@
+import { z } from "zod";
+
 export type TechnicalSpecs = {
   [key: string]: string;
 };
@@ -27,20 +29,27 @@ export type Author = {
   bio?: string;
 };
 
-export type BlogPost = {
-  id: string;
-  slug: string;
-  title: string;
-  excerpt: string;
-  content: string;
-  image: string;
-  category: string;
-  tags: string[];
-  featured: boolean;
-  date: string;
-  author: Author;
-  readingTime: string;
-};
+export const BlogPostSchema = z.object({
+  id: z.string(),
+  slug: z.string(),
+  title: z.string(),
+  excerpt: z.string(),
+  content: z.string(),
+  image: z.string().url(),
+  category: z.string(),
+  tags: z.array(z.string()),
+  featured: z.boolean(),
+  date: z.string(), // or z.date() if you parse it
+  author: z.object({
+    name: z.string(),
+    role: z.string(),
+    image: z.string().url(),
+  }),
+  readingTime: z.string(),
+});
+
+export type BlogPost = z.infer<typeof BlogPostSchema>;
+
 
 export interface Nutrient {
   id: string;

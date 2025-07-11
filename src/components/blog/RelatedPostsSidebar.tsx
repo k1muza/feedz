@@ -1,16 +1,29 @@
-import { allBlogPosts } from "@/data/blog";
+'use client'
+
+import { BlogPost } from "@/types";
 import Image from "next/image";
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { FaNewspaper } from "react-icons/fa";
+import { getAllBlogPosts } from "@/app/actions";
 
 interface RelatedPostsSidebarProps {
     currentPostId: string;
 }
 
 export function RelatedPostsSidebar({ currentPostId }: RelatedPostsSidebarProps) {
-    const relatedPosts = allBlogPosts
-        .filter(post => post.id !== currentPostId)
-        .slice(0, 4); // Get up to 4 other posts
+    const [relatedPosts, setRelatedPosts] = useState<BlogPost[]>([]);
+
+    useEffect(() => {
+        async function fetchPosts() {
+            const allPosts = await getAllBlogPosts();
+            const filtered = allPosts
+                .filter(post => post.id !== currentPostId)
+                .slice(0, 4);
+            setRelatedPosts(filtered);
+        }
+        fetchPosts();
+    }, [currentPostId]);
 
     return (
         <div className="sticky top-24 space-y-8">

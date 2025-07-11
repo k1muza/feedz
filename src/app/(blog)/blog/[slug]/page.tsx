@@ -1,9 +1,9 @@
 import React from 'react';
-import { allBlogPosts } from '@/data/blog';
 import { notFound } from 'next/navigation';
 import { Metadata, ResolvingMetadata } from 'next';
 import { BlogPostDetail } from '@/components/blog/BlogPostDetail';
 import SecondaryHero from '@/components/common/SecondaryHero';
+import { getAllBlogPosts, getPostBySlug } from '@/app/actions';
 
 type Props = {
   params: { slug: string }
@@ -13,8 +13,8 @@ export async function generateMetadata(
   { params }: Props,
   parent: ResolvingMetadata
 ): Promise<Metadata> {
-  const slug = params.slug;
-  const post = allBlogPosts.find(p => p.slug === slug);
+  const { slug } = params;
+  const post = await getPostBySlug(slug);
 
   if (!post) {
     return {
@@ -56,14 +56,15 @@ export async function generateMetadata(
 }
 
 export async function generateStaticParams() {
-  return allBlogPosts.map(post => ({
+  const allPosts = await getAllBlogPosts();
+  return allPosts.map(post => ({
     slug: post.slug,
   }));
 }
 
-const BlogDetailPage = ({ params }: Props) => {
+const BlogDetailPage = async ({ params }: Props) => {
     const { slug } = params;
-    const post = allBlogPosts.find(p => p.slug === slug);
+    const post = await getPostBySlug(slug);
 
     if (!post) {
       notFound();
