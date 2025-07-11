@@ -12,6 +12,9 @@ const fontSans = FontSans({
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://feedsport.co.zw'),
+  alternates: {
+    canonical: '/',
+  },
   title: {
     default: 'FeedSport International - AI-Optimized Animal Nutrition',
     template: '%s | FeedSport International',

@@ -32,6 +32,9 @@ export async function generateMetadata(
   return {
     title: `${product.ingredient?.name}`,
     description: product.ingredient?.description,
+    alternates: {
+      canonical: `/products/${product.id}`,
+    },
     openGraph: {
       title: `${product.ingredient?.name} | FeedSport`,
       description: product.ingredient?.description,
