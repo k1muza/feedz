@@ -11,6 +11,7 @@ const links = [
   { href: '/', label: 'Home' },
   { href: '/about', label: 'About' },
   { href: '/products', label: 'Products' },
+  { href: '/formulations', label: 'Formulations' },
   { href: '/blog', label: 'Resources' },
   { href: '/contact', label: 'Contact' },
 ]
@@ -51,7 +52,10 @@ export default function NavBar() {
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
 
-  const isActive = (href: string) => pathname === href || pathname.startsWith(href + '/')
+  const isActive = (href: string) => {
+    if (href === '/') return pathname === '/'
+    return pathname.startsWith(href)
+  }
 
   return (
     <nav

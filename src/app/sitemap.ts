@@ -11,9 +11,9 @@ export default function sitemap(): MetadataRoute.Sitemap {
     '/about',
     '/products',
     '/products/categories',
+    '/formulations',
     '/blog',
     '/contact',
-    '/ingredients',
   ].map((route) => ({
     url: `${baseUrl}${route}`,
     lastModified: new Date(),
