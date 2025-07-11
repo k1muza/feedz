@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useCallback } from 'react';
@@ -177,7 +178,7 @@ export const ImageUploadModal = ({ isOpen, onClose, onUploadSuccess }: ImageUplo
         </div>
 
         <div className="p-4 border-t border-gray-700 flex justify-end gap-3">
-          <Button variant="outline" onClick={handleClose} className="border-gray-600 hover:bg-gray-700">Cancel</Button>
+          <Button variant="outline" onClick={handleClose}>Cancel</Button>
           <Button
             onClick={handleUpload}
             disabled={!file || isUploading || isSuccess}
