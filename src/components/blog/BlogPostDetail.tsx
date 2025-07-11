@@ -1,8 +1,10 @@
-// src/components/blog/BlogPostDetail.tsx
+
 'use client'
 
 import { BlogPost } from "@/types";
 import Image from "next/image";
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 export function BlogPostDetail({ post }: { post: BlogPost }) {
 
@@ -17,7 +19,7 @@ export function BlogPostDetail({ post }: { post: BlogPost }) {
         },
         datePublished: new Date(post.date).toISOString(),
         description: post.excerpt,
-        articleBody: post.content.replace(/<[^>]*>?/gm, ''), // Simple strip of HTML for body
+        articleBody: post.content, // Now using raw markdown
     };
 
     return (
@@ -51,9 +53,12 @@ export function BlogPostDetail({ post }: { post: BlogPost }) {
               </div>
 
               <div
-                className="prose prose-lg lg:prose-xl max-w-none mx-auto prose-headings:text-gray-800 prose-a:text-green-600 hover:prose-a:text-green-700 prose-strong:text-gray-800 prose-blockquote:border-l-green-600 prose-blockquote:text-gray-600"
-                dangerouslySetInnerHTML={{ __html: post.content }}
-              />
+                className="prose prose-lg lg:prose-xl max-w-none mx-auto prose-headings:text-gray-800 prose-a:text-green-600 hover:prose-a:text-green-700 prose-strong:text-gray-800 prose-blockquote:border-l-green-600 prose-blockquote:text-gray-600 prose-table:border prose-th:bg-gray-50 prose-th:p-2 prose-td:p-2 prose-td:border"
+              >
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                  {post.content}
+                </ReactMarkdown>
+              </div>
             </article>
         </main>
     );
