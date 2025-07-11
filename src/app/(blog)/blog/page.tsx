@@ -9,6 +9,9 @@ import Link from 'next/link';
 export const metadata: Metadata = {
   title: 'Feed Industry Insights & Resources',
   description: 'Explore expert knowledge on animal nutrition, feed additives, formulation strategies, and the latest research from the FeedSport team.',
+  alternates: {
+    canonical: '/blog',
+  },
 };
 
 

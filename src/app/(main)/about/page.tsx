@@ -7,6 +7,15 @@ import type { Metadata } from 'next';
 export const metadata: Metadata = {
   title: 'About Us',
   description: 'Learn about FeedSport\'s mission to redefine animal nutrition through science, sustainability, and innovation. Discover our values and commitment to farmer success.',
+  alternates: {
+    canonical: '/about',
+  },
+  openGraph: {
+    title: 'About Us | FeedSport',
+    description: 'Learn about FeedSport\'s mission to redefine animal nutrition through science, sustainability, and innovation.',
+    url: 'https://feedsport.co.zw/about',
+    type: 'article',
+  },
 };
 
 

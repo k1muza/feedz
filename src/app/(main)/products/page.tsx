@@ -7,6 +7,9 @@ import { Metadata } from 'next';
 export const metadata: Metadata = {
   title: 'All Feed Ingredients & Additives',
   description: 'Browse our complete catalog of premium-quality raw materials, including protein feeds, energy sources, minerals, and specialized additives for animal nutrition formulations.',
+  alternates: {
+    canonical: '/products',
+  },
 };
 
 export default function ProductsPage() {
