@@ -10,9 +10,7 @@ export default function Home() {
     <>
       <HeroSection />
       <FeedFormulationsStrip />
-      <FeaturesSection />
       <AboutSection />
-      <FeaturesSection />
       <ProductsSection />
     </>
   );
