@@ -1,8 +1,8 @@
 import { MetadataRoute } from 'next';
 import { getProducts } from '@/data/products';
-import { allBlogPosts } from '@/data/blog';
+import { getAllBlogPosts } from '@/app/actions';
 
-export default function sitemap(): MetadataRoute.Sitemap {
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = 'https://feedsport.co.zw';
 
   // Static pages
@@ -41,7 +41,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
 
 
   // Dynamic blog post pages
-  const blogPosts = allBlogPosts;
+  const blogPosts = await getAllBlogPosts();
   const blogRoutes = blogPosts.map((post) => ({
     url: `${baseUrl}/blog/${post.slug}`,
     lastModified: new Date(post.date),

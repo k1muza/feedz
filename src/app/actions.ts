@@ -53,19 +53,6 @@ export async function getPostBySlug(slug: string): Promise<BlogPost | null> {
   return { id: doc.id, ...(doc.data() as Omit<BlogPost, 'id'>) };
 }
 
-// Fetch a single post by ID
-export async function getPostById(id: string): Promise<BlogPost | null> {
-    const docRef = doc(db, 'blogPosts', id);
-    const docSnap = await getDoc(docRef);
-
-    if (docSnap.exists()) {
-        return { id: docSnap.id, ...docSnap.data() } as BlogPost;
-    } else {
-        return null;
-    }
-}
-
-
 // Create or Update a blog post
 export async function saveBlogPost(
   data: z.infer<typeof BlogFormSchema>,
