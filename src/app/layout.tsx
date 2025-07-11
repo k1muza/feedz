@@ -1,3 +1,4 @@
+import "@/app/globals.css";
 import { GoogleAnalytics } from "@next/third-parties/google";
 import { Metadata } from "next";
 import { Inter as FontSans } from "next/font/google"
