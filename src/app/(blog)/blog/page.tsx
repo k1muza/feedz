@@ -75,71 +75,49 @@ export default async function BlogPage() {
               </Link>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              {recentPosts.map(post => (
-                <article key={post.id} className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow overflow-hidden border border-gray-100">
-                  <div className="h-48 relative">
-                    <Image
-                      src={post.image}
-                      alt={post.title}
-                      fill
-                      className="object-cover"
-                    />
-                  </div>
-                  <div className="p-6">
-                    <div className="flex items-center mb-3">
-                      <span className="text-xs font-medium text-green-600">{post.category}</span>
-                      <span className="mx-2 text-gray-300">•</span>
-                      <span className="text-xs text-gray-500">{post.readingTime}</span>
+            {allPosts.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                {recentPosts.map(post => (
+                    <article key={post.id} className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow overflow-hidden border border-gray-100">
+                    <div className="h-48 relative">
+                        <Image
+                        src={post.image}
+                        alt={post.title}
+                        fill
+                        className="object-cover"
+                        />
                     </div>
-                    <h3 className="text-xl font-bold text-gray-900 mb-2">
-                      <Link href={`/blog/${post.slug}`} className="hover:text-green-700 transition-colors duration-200">
-                        {post.title}
-                      </Link>
-                    </h3>
-                    <p className="text-gray-600 mb-4">{post.excerpt}</p>
-                    <Link
-                      href={`/blog/${post.slug}`}
-                      className="inline-flex items-center text-green-600 hover:text-green-700 text-sm font-medium"
-                    >
-                      Read more
-                      <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                      </svg>
-                    </Link>
-                  </div>
-                </article>
-              ))}
-            </div>
-
-            {/* Pagination */}
-            <div className="flex justify-center mt-16">
-              <nav className="flex items-center gap-2" aria-label="Blog post pagination">
-                <button className="px-4 py-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                  </svg>
-                </button>
-                <button className="px-4 py-2 rounded-lg bg-green-600 text-white font-medium" aria-current="page">
-                  1
-                </button>
-                <button className="px-4 py-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors">
-                  2
-                </button>
-                <button className="px-4 py-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors">
-                  3
-                </button>
-                <span className="px-2 text-gray-500">...</span>
-                <button className="px-4 py-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors">
-                  8
-                </button>
-                <button className="px-4 py-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
-                </button>
-              </nav>
-            </div>
+                    <div className="p-6">
+                        <div className="flex items-center mb-3">
+                        <span className="text-xs font-medium text-green-600">{post.category}</span>
+                        <span className="mx-2 text-gray-300">•</span>
+                        <span className="text-xs text-gray-500">{post.readingTime}</span>
+                        </div>
+                        <h3 className="text-xl font-bold text-gray-900 mb-2">
+                        <Link href={`/blog/${post.slug}`} className="hover:text-green-700 transition-colors duration-200">
+                            {post.title}
+                        </Link>
+                        </h3>
+                        <p className="text-gray-600 mb-4">{post.excerpt}</p>
+                        <Link
+                        href={`/blog/${post.slug}`}
+                        className="inline-flex items-center text-green-600 hover:text-green-700 text-sm font-medium"
+                        >
+                        Read more
+                        <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                        </Link>
+                    </div>
+                    </article>
+                ))}
+                </div>
+            ) : (
+                <div className="text-center py-16 bg-gray-50 rounded-lg">
+                    <h3 className="text-xl font-semibold text-gray-700">No articles found.</h3>
+                    <p className="text-gray-500 mt-2">Check back later for more updates!</p>
+                </div>
+            )}
           </div>
 
           {/* Sidebar */}
