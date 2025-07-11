@@ -12,6 +12,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.633.0",
+    "@aws-sdk/s3-request-presigner": "^3.633.0",
     "@genkit-ai/googleai": "^1.13.0",
     "@genkit-ai/next": "^1.13.0",
     "@hookform/resolvers": "^4.1.3",
