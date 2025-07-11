@@ -29,7 +29,7 @@ const categoryData = [
 
 export function IngredientsClient() {
   return (
-    <div className="bg-gray-50 text-gray-800">
+    <main className="bg-gray-50 text-gray-800">
       {/* Hero Section */}
       <motion.section
         className="relative min-h-screen flex items-center justify-center text-center text-white bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 overflow-hidden"
@@ -40,9 +40,10 @@ export function IngredientsClient() {
         <div className="absolute inset-0 z-0">
             <Image
                 src="https://placehold.co/1920x1080.png"
-                alt="Background of various feed ingredients"
+                alt="Background of various feed ingredients like corn, soy, and wheat"
                 data-ai-hint="grains macro"
                 fill
+                priority
                 className="object-cover opacity-20"
             />
         </div>
@@ -76,9 +77,9 @@ export function IngredientsClient() {
       </motion.section>
 
       {/* Categories Section */}
-      <section className="py-16">
+      <section className="py-16" aria-labelledby="ingredient-categories-heading">
         <div className="container mx-auto px-4">
-          <h2 className="text-3xl font-bold text-center mb-10">Our Core Ingredient Categories</h2>
+          <h2 id="ingredient-categories-heading" className="text-3xl font-bold text-center mb-10">Our Core Ingredient Categories</h2>
           <div className="grid md:grid-cols-3 gap-8">
             {categoryData.map((category, index) => (
               <motion.div
@@ -102,7 +103,8 @@ export function IngredientsClient() {
       </section>
 
       {/* Benefits Section */}
-      <section className="bg-white py-16">
+      <section className="bg-white py-16" aria-labelledby="benefits-heading">
+         <h2 id="benefits-heading" className="sr-only">Benefits of Our Ingredients</h2>
         <div className="container mx-auto px-4 grid md:grid-cols-3 gap-12 text-center">
             <div className="flex flex-col items-center">
                 <div className="text-5xl text-green-500 mb-4"><FaLeaf /></div>
@@ -134,6 +136,6 @@ export function IngredientsClient() {
           </Link>
         </div>
       </section>
-    </div>
+    </main>
   );
 }

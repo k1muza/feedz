@@ -7,11 +7,11 @@ import ProductsSection from "@/components/home/ProductsSection";
 
 export default function Home() {
   return (
-    <>
+    <main>
       <HeroSection />
       <FeedFormulationsStrip />
       <AboutSection />
       <ProductsSection />
-    </>
+    </main>
   );
 }

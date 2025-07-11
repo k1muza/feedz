@@ -1,0 +1,9 @@
+# Allow all user agents to crawl the site
+User-agent: *
+Allow: /
+
+# Disallow crawling of the admin section
+Disallow: /admin/
+
+# Point to the sitemap
+Sitemap: https://feedsport.co.zw/sitemap.xml

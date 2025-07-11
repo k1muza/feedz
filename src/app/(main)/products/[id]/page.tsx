@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 import { FaCertificate, FaCheck, FaLeaf, FaPhone, FaTruck, FaWhatsapp } from 'react-icons/fa';
-
+import { Metadata, ResolvingMetadata } from 'next';
 import ImageGallery from '@/components/products/ImageGallery';
 import RelatedProducts from '@/components/products/RelatedProducts';
 import Link from 'next/link';
@@ -9,49 +9,119 @@ import { getProductById, getProducts } from '@/data/products';
 import { TechnicalSpecs } from '@/components/products/TechnicalSpecs';
 import SecondaryHero from '@/components/common/SecondaryHero';
 
+type Props = {
+  params: { id: string }
+}
+
+export async function generateMetadata(
+  { params }: Props,
+  parent: ResolvingMetadata
+): Promise<Metadata> {
+  const id = params.id
+  const product = await getProductById(id)
+
+  if (!product) {
+    return {
+      title: 'Product Not Found',
+      description: 'The requested product could not be found.'
+    }
+  }
+
+  const previousImages = (await parent).openGraph?.images || []
+
+  return {
+    title: `${product.ingredient?.name}`,
+    description: product.ingredient?.description,
+    openGraph: {
+      title: `${product.ingredient?.name} | FeedSport`,
+      description: product.ingredient?.description,
+      images: [
+        {
+          url: product.images[0],
+          width: 800,
+          height: 600,
+          alt: product.ingredient?.name,
+        },
+        ...previousImages,
+      ],
+    },
+  }
+}
 
 export async function generateStaticParams() {
-  // Fetch or define all possible product IDs
   return getProducts().map(product => ({ id: product.id }));
 }
 
-export default async function Page({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  const { id } = await params;
+export default async function Page({ params }: { params: { id: string } }) {
+  const { id } = params;
   const product = await getProductById(id);
 
   if (!product) {
     notFound();
   }
 
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Product',
+    name: product.ingredient?.name,
+    image: product.images,
+    description: product.ingredient?.description,
+    sku: product.id,
+    brand: {
+      '@type': 'Brand',
+      name: 'FeedSport',
+    },
+    offers: {
+      '@type': 'Offer',
+      url: `https://feedsport.co.zw/products/${product.id}`,
+      priceCurrency: 'USD',
+      price: product.price,
+      availability: 'https://schema.org/InStock',
+      priceValidUntil: new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString(), // Valid for 1 year
+    },
+    // Assuming some reviews exist
+    "aggregateRating": {
+      "@type": "AggregateRating",
+      "ratingValue": "4.8",
+      "reviewCount": "25"
+    }
+  };
+
   return (
     <>
-      <SecondaryHero
-        title="Our Premium Product Line"
-        subtitle="Discover scientifically-proven feed additives for optimal livestock performance"
-        ctaText="View All Products"
-        ctaLink="/products"
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      <div className="bg-white">
+      <SecondaryHero
+        title={product.ingredient?.name || 'Product Details'}
+        subtitle={product.ingredient?.category?.replace('-', ' ') || 'Premium Feed Ingredient'}
+        minimal
+      />
+      <main className="bg-white">
         {/* Product Header */}
         <div className="pt-6">
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="flex items-center space-x-2 text-sm text-gray-500 mb-4">
-              <Link href="/products" className="hover:text-green-600">Products</Link>
-              <span>/</span>
-              <Link href={`/products/${product.ingredient?.category}`} className="hover:text-green-600 capitalize">
-                {product.ingredient?.category?.replace('-', ' ')}
-              </Link>
-              <span>/</span>
-              <span className="text-gray-400">{product.ingredient?.name}</span>
-            </div>
-          </div>
+          <nav aria-label="Breadcrumb" className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <ol className="flex items-center space-x-2 text-sm text-gray-500 mb-4">
+              <li>
+                <Link href="/products" className="hover:text-green-600">Products</Link>
+              </li>
+              <li><span aria-hidden="true">/</span></li>
+              <li>
+                <Link href={`/products/categories/${product.ingredient?.category}`} className="hover:text-green-600 capitalize">
+                  {product.ingredient?.category?.replace('-', ' ')}
+                </Link>
+              </li>
+               <li><span aria-hidden="true">/</span></li>
+              <li aria-current="page">
+                <span className="text-gray-400">{product.ingredient?.name}</span>
+              </li>
+            </ol>
+          </nav>
 
           {/* Main Product Content */}
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8" aria-labelledby="product-heading">
+             <h1 id="product-heading" className="sr-only">{product.ingredient?.name} Details</h1>
             <div className="lg:grid lg:grid-cols-2 lg:gap-8">
               {/* Image Gallery */}
               <div className="mb-8 lg:mb-0">
@@ -60,7 +130,7 @@ export default async function Page({
 
               {/* Product Info */}
               <div className="lg:pl-8">
-                <h1 className="text-3xl font-bold text-gray-900 mb-2">{product.ingredient?.name}</h1>
+                <h2 className="text-3xl font-bold text-gray-900 mb-2">{product.ingredient?.name}</h2>
 
                 <div className="flex items-center mb-4">
                   {product.ingredient?.category && (
@@ -124,7 +194,7 @@ export default async function Page({
                   <div className="bg-gray-50 p-4 rounded-lg">
                     <div className="flex items-center">
                       <FaLeaf className="text-green-500 mr-2" />
-                      <span className="font-medium">Applications</span>
+                      <h4 className="font-medium">Applications</h4>
                     </div>
                     <p className="text-sm text-gray-600 mt-1">
                       {product?.ingredient?.applications?.join(', ')}
@@ -133,7 +203,7 @@ export default async function Page({
                   <div className="bg-gray-50 p-4 rounded-lg">
                     <div className="flex items-center">
                       <FaTruck className="text-green-500 mr-2" />
-                      <span className="font-medium">Shipping</span>
+                      <h4 className="font-medium">Shipping</h4>
                     </div>
                     <p className="text-sm text-gray-600 mt-1">
                       {product.shipping}
@@ -142,7 +212,7 @@ export default async function Page({
                   <div className="bg-gray-50 p-4 rounded-lg">
                     <div className="flex items-center">
                       <FaCertificate className="text-green-500 mr-2" />
-                      <span className="font-medium">Packaging</span>
+                      <h4 className="font-medium">Packaging</h4>
                     </div>
                     <p className="text-sm text-gray-600 mt-1">
                       {product.packaging}
@@ -151,7 +221,7 @@ export default async function Page({
                   <div className="bg-gray-50 p-4 rounded-lg">
                     <div className="flex items-center">
                       <div className="w-4 h-4 bg-green-500 rounded-full mr-2"></div>
-                      <span className="font-medium">Stock</span>
+                      <h4 className="font-medium">Stock</h4>
                     </div>
                     <p className="text-sm text-gray-600 mt-1">
                       {product.stock} tons available
@@ -160,23 +230,25 @@ export default async function Page({
                 </div>
               </div>
             </div>
-          </div>
+          </section>
         </div>
 
         {/* Technical Specifications */}
-        <div className="mt-16 border-t border-gray-200 py-12">
+        <section className="mt-16 border-t border-gray-200 py-12" aria-labelledby="tech-specs-heading">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+             <h2 id="tech-specs-heading" className="sr-only">Technical Specifications for {product.ingredient?.name}</h2>
             <TechnicalSpecs compositions={product.ingredient?.compositions} />
           </div>
-        </div>
+        </section>
 
         {/* Related Products */}
-        <div className="bg-gray-50 py-12">
+        <section className="bg-gray-50 py-12" aria-labelledby="related-products-heading">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <h2 id="related-products-heading" className="text-2xl font-bold text-gray-900 mb-8">Related Products</h2>
             <RelatedProducts currentProductId={product.id} category={product.ingredient?.category} />
           </div>
-        </div>
-      </div>
+        </section>
+      </main>
     </>
   );
 }

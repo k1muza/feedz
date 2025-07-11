@@ -2,6 +2,13 @@ import SecondaryHero from '@/components/common/SecondaryHero';
 import Image from 'next/image';
 import Link from 'next/link';
 import { FaAward, FaCheck, FaLeaf } from 'react-icons/fa';
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'About Us',
+  description: 'Learn about FeedSport\'s mission to redefine animal nutrition through science, sustainability, and innovation. Discover our values and commitment to farmer success.',
+};
+
 
 export default function AboutPage() {
   return (
@@ -15,7 +22,7 @@ export default function AboutPage() {
 
       <div className="bg-gray-50 py-16">
         {/* Mission & Values Section */}
-        <div className="flex flex-col lg:flex-row gap-10 mb-16 max-w-7xl mx-auto">
+        <section className="flex flex-col lg:flex-row gap-10 mb-16 max-w-7xl mx-auto" aria-labelledby="mission-heading">
 
           <div className="lg:w-1/2">
             <div className="bg-white p-8 rounded-xl shadow-lg h-full flex flex-col">
@@ -23,14 +30,14 @@ export default function AboutPage() {
                 <div className="bg-green-100 p-3 rounded-full mr-4">
                   <FaLeaf className="text-green-600 text-xl" />
                 </div>
-                <h4 className="text-green-600 font-bold text-lg uppercase">
+                <h2 id="mission-heading" className="text-green-600 font-bold text-lg uppercase">
                   OUR MISSION
-                </h4>
+                </h2>
               </div>
 
-              <h2 className="text-3xl font-bold mb-4 text-gray-900">
+              <h3 className="text-3xl font-bold mb-4 text-gray-900">
                 Redefining Animal Nutrition
-              </h2>
+              </h3>
 
               <p className="mb-4 text-gray-700 text-lg leading-relaxed">
                 We empower livestock producers with customized, research-driven feed that
@@ -100,7 +107,7 @@ export default function AboutPage() {
                     width={500}
                     height={500}
                     src="/images/egg-dish.jpg"
-                    alt="Healthy poultry with our feed"
+                    alt="Healthy poultry enjoying our specialized feed"
                     className="w-full h-full object-cover transition duration-500 hover:scale-105"
                   />
                 </div>
@@ -109,7 +116,7 @@ export default function AboutPage() {
                     width={500}
                     height={500}
                     src="/images/hero-4.png"
-                    alt="Cattle feeding with our products"
+                    alt="Cattle feeding sustainably with our innovative products"
                     className="w-full h-full object-cover transition duration-500 hover:scale-105"
                   />
                 </div>
@@ -118,7 +125,7 @@ export default function AboutPage() {
                 <div className="bg-green-100 p-3 rounded-full mr-4">
                   <FaAward className="text-green-600 text-xl" />
                 </div>
-                <h4 className="text-green-600 font-bold text-lg">OUR VALUES</h4>
+                <h2 className="text-green-600 font-bold text-lg">OUR VALUES</h2>
               </div>
               <div className="space-y-6">
                 <div>
@@ -136,11 +143,11 @@ export default function AboutPage() {
               </div>
             </div>
           </div>
-        </div>
+        </section>
 
         {/* Stats Section */}
-        <div className="bg-green-600 rounded-xl p-8 md:p-12 text-white mb-16 max-w-7xl mx-auto">
-          <h2 className="text-3xl font-bold mb-8 text-center">Our Impact in Numbers</h2>
+        <section className="bg-green-600 rounded-xl p-8 md:p-12 text-white mb-16 max-w-7xl mx-auto" aria-labelledby="stats-heading">
+          <h2 id="stats-heading" className="text-3xl font-bold mb-8 text-center">Our Impact in Numbers</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
             <div>
               <div className="text-4xl font-bold mb-2">10+</div>
@@ -155,10 +162,10 @@ export default function AboutPage() {
               <p className="text-green-100">Dedicated Support</p>
             </div>
           </div>
-        </div>
+        </section>
 
         {/* Team CTA */}
-        <div className="bg-white rounded-xl shadow-lg overflow-hidden max-w-7xl mx-auto">
+        <section className="bg-white rounded-xl shadow-lg overflow-hidden max-w-7xl mx-auto">
           <div className="flex flex-col md:flex-row">
             <div className="md:w-1/2 p-8 md:p-12 bg-white rounded-lg shadow-lg">
               <h2 className="text-3xl font-extrabold mb-4 text-gray-900">
@@ -190,12 +197,12 @@ export default function AboutPage() {
                 width={800}
                 height={600}
                 src="/images/team-4.png"
-                alt="FeedSport team members"
+                alt="The FeedSport team of nutritionists and scientists collaborating"
                 className="w-full h-full object-cover"
               />
             </div>
           </div>
-        </div>
+        </section>
       </div>
     </>
   );

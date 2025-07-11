@@ -4,15 +4,14 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { FiSend, FiUser, FiMail, FiMessageSquare } from 'react-icons/fi';
 import SecondaryHero from '@/components/common/SecondaryHero';
+import { Metadata } from 'next';
 
-interface ContactFormData {
-  name: string;
-  email: string;
-  message: string;
-}
+// This is a client component, so we can't export metadata directly.
+// We would typically set this in the layout or a parent server component.
+// For now, we'll keep the static metadata in the root layout.
 
 export default function ContactPage() {
-  const [formData, setFormData] = useState<ContactFormData>({
+  const [formData, setFormData] = useState({
     name: '',
     email: '',
     message: ''
@@ -37,7 +36,7 @@ export default function ContactPage() {
         title="Let's Connect"
         subtitle="Our team is ready to help with your livestock nutrition needs. Reach out and we'll respond within 24 hours."
       />
-      <div className="bg-gradient-to-b from-green-50 to-white py-16 px-4">
+      <main className="bg-gradient-to-b from-green-50 to-white py-16 px-4">
         <div className="container mx-auto max-w-6xl">
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
@@ -57,6 +56,7 @@ export default function ContactPage() {
                   <input
                     type="text"
                     id="name"
+                    autoComplete="name"
                     value={formData.name}
                     onChange={handleChange}
                     className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
@@ -73,6 +73,7 @@ export default function ContactPage() {
                   <input
                     type="email"
                     id="email"
+                    autoComplete="email"
                     value={formData.email}
                     onChange={handleChange}
                     className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
@@ -115,7 +116,7 @@ export default function ContactPage() {
               className="space-y-8"
             >
               <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg p-8 border border-gray-100">
-                <h3 className="text-xl font-bold text-gray-800 mb-4">Other Ways to Reach Us</h3>
+                <h2 className="text-xl font-bold text-gray-800 mb-4">Other Ways to Reach Us</h2>
 
                 <div className="space-y-4">
                   <div className="flex items-start">
@@ -123,7 +124,7 @@ export default function ContactPage() {
                       <FiMail className="text-green-600 text-xl" />
                     </div>
                     <div>
-                      <h4 className="font-medium text-gray-700">Email</h4>
+                      <h3 className="font-medium text-gray-700">Email</h3>
                       <a href="mailto:support@feedsport.co.zw" className="text-green-600 hover:underline">
                         support@feedsport.co.zw
                       </a>
@@ -137,7 +138,7 @@ export default function ContactPage() {
                       </svg>
                     </div>
                     <div>
-                      <h4 className="font-medium text-gray-700">Phone</h4>
+                      <h3 className="font-medium text-gray-700">Phone</h3>
                       <a href="tel:+263774684534" className="text-green-600 hover:underline">
                         +263 77 468 4534
                       </a>
@@ -151,15 +152,15 @@ export default function ContactPage() {
                       </svg>
                     </div>
                     <div>
-                      <h4 className="font-medium text-gray-700">Location</h4>
-                      <p className="text-gray-600">2 Off William Pollet Drive, Borrowdale, Harare, Zimbabwe</p>
+                      <h3 className="font-medium text-gray-700">Location</h3>
+                      <address className="not-italic text-gray-600">2 Off William Pollet Drive, Borrowdale, Harare, Zimbabwe</address>
                     </div>
                   </div>
                 </div>
               </div>
 
               <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg p-8 border border-gray-100">
-                <h3 className="text-xl font-bold text-gray-800 mb-4">Business Hours</h3>
+                <h2 className="text-xl font-bold text-gray-800 mb-4">Business Hours</h2>
                 <ul className="space-y-2">
                   <li className="flex justify-between">
                     <span className="text-gray-600">Monday - Friday</span>
@@ -178,7 +179,7 @@ export default function ContactPage() {
             </motion.div>
           </div>
         </div>
-      </div>
+      </main>
     </>
   );
 }

@@ -2,8 +2,14 @@ import BlogCategories from '@/components/blog/BlogCategories';
 import NewsletterSignup from '@/components/blog/NewsletterSignup';
 import SecondaryHero from '@/components/common/SecondaryHero';
 import { allBlogPosts } from '@/data/blog';
+import { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
+
+export const metadata: Metadata = {
+  title: 'Feed Industry Insights & Resources',
+  description: 'Explore expert knowledge on animal nutrition, feed additives, formulation strategies, and the latest research from the FeedSport team.',
+};
 
 
 export default function BlogPage() {
@@ -14,14 +20,15 @@ export default function BlogPage() {
     <>
       <SecondaryHero
         badge='Industry Knowledge'
-        title=" Feed Industry Insights"
+        title="Feed Industry Insights"
         subtitle="Expert knowledge on animal nutrition, feed additives, and formulation strategies"
       />
-      <div className="container mx-auto px-4 py-12 max-w-7xl">
+      <main className="container mx-auto px-4 py-12 max-w-7xl">
 
         {/* Featured Post */}
         {featuredPost && (
-          <section className="mb-24 relative">
+          <section className="mb-24 relative" aria-labelledby="featured-post-heading">
+            <h2 id="featured-post-heading" className="sr-only">Featured Post</h2>
             <div className="overflow-hidden rounded-2xl shadow-xl group">
               <div className="relative h-80 md:h-96">
                 <Image
@@ -29,6 +36,7 @@ export default function BlogPage() {
                   alt={featuredPost.title}
                   fill
                   className="object-cover transform group-hover:scale-105 transition-transform duration-500"
+                  priority
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
               </div>
@@ -36,9 +44,9 @@ export default function BlogPage() {
                 <span className="uppercase text-sm bg-green-600/80 px-3 py-1 rounded-full">
                   {featuredPost.category}
                 </span>
-                <h2 className="mt-4 text-3xl font-bold leading-snug">
+                <h3 className="mt-4 text-3xl font-bold leading-snug">
                   {featuredPost.title}
-                </h2>
+                </h3>
                 <Link
                   href={`/blog/${featuredPost.slug}`}
                   className="mt-4 inline-block bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-full transition"
@@ -54,7 +62,7 @@ export default function BlogPage() {
         <div className="flex flex-col lg:flex-row gap-12">
           {/* Articles Grid */}
           <div className="lg:w-2/3">
-            <div className="flex items-center justify-between mb-8">
+             <div className="flex items-center justify-between mb-8">
               <h2 className="text-2xl font-bold text-gray-900">
                 Latest Articles
               </h2>
@@ -62,10 +70,10 @@ export default function BlogPage() {
                 View all categories →
               </Link>
             </div>
-
+            
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               {recentPosts.map(post => (
-                <div key={post.id} className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow overflow-hidden border border-gray-100">
+                <article key={post.id} className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow overflow-hidden border border-gray-100">
                   <div className="h-48 relative">
                     <Image
                       src={post.image}
@@ -80,7 +88,11 @@ export default function BlogPage() {
                       <span className="mx-2 text-gray-300">•</span>
                       <span className="text-xs text-gray-500">{post.readingTime}</span>
                     </div>
-                    <h3 className="text-xl font-bold text-gray-900 mb-2">{post.title}</h3>
+                    <h3 className="text-xl font-bold text-gray-900 mb-2">
+                      <Link href={`/blog/${post.slug}`} className="hover:text-green-700 transition-colors duration-200">
+                        {post.title}
+                      </Link>
+                    </h3>
                     <p className="text-gray-600 mb-4">{post.excerpt}</p>
                     <Link
                       href={`/blog/${post.slug}`}
@@ -92,19 +104,19 @@ export default function BlogPage() {
                       </svg>
                     </Link>
                   </div>
-                </div>
+                </article>
               ))}
             </div>
 
             {/* Pagination */}
             <div className="flex justify-center mt-16">
-              <nav className="flex items-center gap-2">
+              <nav className="flex items-center gap-2" aria-label="Blog post pagination">
                 <button className="px-4 py-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors">
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                   </svg>
                 </button>
-                <button className="px-4 py-2 rounded-lg bg-green-600 text-white font-medium">
+                <button className="px-4 py-2 rounded-lg bg-green-600 text-white font-medium" aria-current="page">
                   1
                 </button>
                 <button className="px-4 py-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors">
@@ -127,7 +139,7 @@ export default function BlogPage() {
           </div>
 
           {/* Sidebar */}
-          <div className="lg:w-1/3 space-y-8">
+          <aside className="lg:w-1/3 space-y-8">
             <BlogCategories />
 
             <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
@@ -161,9 +173,9 @@ export default function BlogPage() {
                 Contact Our Team
               </button>
             </div>
-          </div>
+          </aside>
         </div>
-      </div>
+      </main>
     </>
   );
 }
