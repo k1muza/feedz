@@ -1,3 +1,4 @@
+
 import BlogCategories from '@/components/blog/BlogCategories';
 import NewsletterSignup from '@/components/blog/NewsletterSignup';
 import SecondaryHero from '@/components/common/SecondaryHero';
@@ -19,6 +20,21 @@ export default async function BlogPage() {
   const allPosts = await getAllBlogPosts();
   const featuredPost = allPosts.find(post => post.featured);
   const recentPosts = allPosts.filter(post => !post.featured);
+
+  // Aggregate and count all tags
+  const tagCounts = allPosts
+    .flatMap(post => post.tags)
+    .reduce((acc, tag) => {
+      acc[tag] = (acc[tag] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+  // Get the most popular tags
+  const popularTags = Object.entries(tagCounts)
+    .sort(([, countA], [, countB]) => countB - countA)
+    .slice(0, 6)
+    .map(([tag]) => tag);
+
 
   return (
     <>
@@ -132,10 +148,10 @@ export default async function BlogPage() {
                 Popular Tags
               </h3>
               <div className="flex flex-wrap gap-2">
-                {['Amino Acids', 'Mycotoxins', 'Gut Health', 'Sustainability', 'Formulation', 'Regulations'].map(tag => (
+                {popularTags.map(tag => (
                   <Link
                     key={tag}
-                    href={`/blog/tags/${tag.toLowerCase().replace(' ', '-')}`}
+                    href={`/blog/tags/${tag.toLowerCase().replace(/\s+/g, '-')}`}
                     className="bg-gray-100 hover:bg-gray-200 text-gray-800 px-3 py-1 rounded-full text-sm transition-colors"
                   >
                     #{tag}
