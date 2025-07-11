@@ -15,6 +15,80 @@ import { revalidatePath } from 'next/cache';
 import { db } from '@/lib/firebase';
 import { BlogPost, BlogPostSchema } from '@/types';
 import { z } from 'zod';
+import { S3Client, PutObjectCommand, ListObjectsV2Command } from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+
+const s3Client = new S3Client({
+  region: process.env.AWS_BUCKET_REGION!,
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
+  },
+});
+
+export type S3Asset = {
+  key: string;
+  url: string;
+  size: number;
+  lastModified: Date;
+};
+
+// --- S3 ASSET ACTIONS ---
+
+export async function getSignedS3Url(filename: string, contentType: string, size: number) {
+  if (size > 10 * 1024 * 1024) { // 10 MB limit
+    return { success: false, error: 'File size must be less than 10MB.' };
+  }
+
+  const putObjectCommand = new PutObjectCommand({
+    Bucket: process.env.AWS_BUCKET_NAME!,
+    Key: filename,
+    ContentType: contentType,
+    ContentLength: size,
+  });
+
+  try {
+    const signedUrl = await getSignedUrl(s3Client, putObjectCommand, {
+      expiresIn: 60, // URL expires in 60 seconds
+    });
+    return { success: true, url: signedUrl };
+  } catch (error) {
+    console.error("Error generating signed URL:", error);
+    return { success: false, error: 'Could not get a signed URL for upload.' };
+  }
+}
+
+export async function listS3Assets(): Promise<S3Asset[]> {
+    const command = new ListObjectsV2Command({
+        Bucket: process.env.AWS_BUCKET_NAME!,
+        MaxKeys: 50, // Limit results for now
+    });
+
+    try {
+        const { Contents } = await s3Client.send(command);
+        if (!Contents) {
+            return [];
+        }
+
+        const assets: S3Asset[] = Contents
+            .filter(item => item.Key && item.Size && item.Size > 0) // Filter out empty objects/folders
+            .map(item => ({
+                key: item.Key!,
+                url: `https://${process.env.AWS_BUCKET_NAME}.s3.${process.env.AWS_BUCKET_REGION}.amazonaws.com/${item.Key}`,
+                size: item.Size || 0,
+                lastModified: item.LastModified || new Date(),
+            }))
+            .sort((a, b) => b.lastModified.getTime() - a.lastModified.getTime()); // Sort by most recent
+
+        return assets;
+    } catch (error) {
+        console.error("Error listing S3 assets:", error);
+        return [];
+    }
+}
+
+
+// --- BLOG ACTIONS ---
 
 const postsCollection = collection(db, 'blogPosts');
 
@@ -26,8 +100,6 @@ const BlogFormSchema = z.object({
   content: z.string().min(1, 'Content is required'),
   image: z.string().url('Must be a valid URL'),
 });
-
-// --- BLOG ACTIONS ---
 
 // Fetch all posts
 export async function getAllBlogPosts(): Promise<BlogPost[]> {
@@ -73,7 +145,6 @@ export async function saveBlogPost(
   const postData = {
     ...validation.data,
     slug,
-    // These would be dynamic in a real app with users
     author: {
         name: 'Admin User',
         role: 'Site Administrator',
@@ -82,23 +153,21 @@ export async function saveBlogPost(
     date: new Date().toISOString(),
     readingTime: `${Math.ceil(validation.data.content.split(' ').length / 200)} min read`,
     tags: [validation.data.category, 'New'],
-    featured: false, // Default value
+    featured: false,
   };
 
   try {
     if (postId) {
-      // Update existing post
       const postRef = doc(db, 'blogPosts', postId);
       await updateDoc(postRef, postData);
     } else {
-      // Create new post
       await addDoc(postsCollection, postData);
     }
 
-    // Revalidate paths to show updated content
     revalidatePath('/blog');
     revalidatePath(`/blog/${slug}`);
     revalidatePath('/admin/blog');
+    revalidatePath('/sitemap.xml');
 
     return { success: true };
   } catch (error) {
