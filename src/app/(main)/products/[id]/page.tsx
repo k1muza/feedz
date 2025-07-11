@@ -5,14 +5,14 @@ import ImageGallery from '@/components/products/ImageGallery';
 import RelatedProducts from '@/components/products/RelatedProducts';
 import Link from 'next/link';
 
-import { ALL_PRODUCTS, getProductById } from '@/data/products';
+import { getProductById, getProducts } from '@/data/products';
 import { TechnicalSpecs } from '@/components/products/TechnicalSpecs';
 import SecondaryHero from '@/components/common/SecondaryHero';
 
 
 export async function generateStaticParams() {
   // Fetch or define all possible product IDs
-  return ALL_PRODUCTS.map(product => ({ id: product.id }));
+  return getProducts().map(product => ({ id: product.id }));
 }
 
 export default async function Page({
