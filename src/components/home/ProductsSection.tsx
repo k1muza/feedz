@@ -3,13 +3,24 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { FaInfoCircle } from 'react-icons/fa';
+import { useState } from 'react';
 
 import { getFeaturedProducts } from '@/data/products';
-import { Composition } from '@/types';
+import { Composition, Product } from '@/types';
 
 export default function ProductsSection() {
-  const products = getFeaturedProducts();
-  
+  const allFeaturedProducts = getFeaturedProducts();
+  const [activeCategory, setActiveCategory] = useState<string>('all');
+
+  const categories = [
+    'all', 
+    ...Array.from(new Set(allFeaturedProducts.map(p => p.ingredient?.category).filter(Boolean)))
+  ] as string[];
+
+  const filteredProducts = activeCategory === 'all'
+    ? allFeaturedProducts
+    : allFeaturedProducts.filter(p => p.ingredient?.category === activeCategory);
+
   return (
     <section className="py-16 bg-white" id="products">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
@@ -25,8 +36,25 @@ export default function ProductsSection() {
           </p>
         </div>
 
+        {/* Category Filter */}
+        <div className="flex flex-wrap justify-center gap-2 md:gap-4 mb-12">
+          {categories.map((category) => (
+            <button
+              key={category}
+              onClick={() => setActiveCategory(category)}
+              className={`px-4 py-2 text-sm md:text-base md:px-6 rounded-full transition-colors duration-200 capitalize font-medium ${
+                activeCategory === category
+                  ? 'bg-green-600 text-white shadow-md'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              {category.replace('-', ' ')}
+            </button>
+          ))}
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {products.map((product) => (
+          {filteredProducts.map((product) => (
             <div
               key={product.id}
               className="bg-white rounded-xl shadow-md overflow-hidden border border-gray-100 hover:shadow-lg transition-all duration-300"
@@ -57,7 +85,7 @@ export default function ProductsSection() {
               <div className="p-6">
                 <div className="flex justify-between items-start mb-2">
                   <h3 className="text-xl font-bold text-gray-900">{product.ingredient?.name}</h3>
-                  <span className="bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded">
+                  <span className="bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded capitalize">
                     {product.ingredient?.category?.split('-').join(' ')}
                   </span>
                 </div>
