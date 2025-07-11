@@ -1,7 +1,8 @@
+
 'use client';
 
 import { useState } from "react";
-import { Plus, Download, MoreHorizontal, Search, Trash2, UploadCloud } from "lucide-react";
+import { Plus, Download, MoreHorizontal, Search, Trash2, UploadCloud, Link as LinkIcon, Copy } from "lucide-react";
 import Image from "next/image";
 import { allAssets, addAsset, deleteAsset } from "@/data/assets";
 import { Asset } from "@/types/assets";
@@ -10,22 +11,30 @@ export const AssetManagement = () => {
   const [assets, setAssets] = useState<Asset[]>(allAssets);
 
   const handleUpload = () => {
-    // This is a mock upload. In a real app, this would open a file dialog
-    // and upload to a service like S3.
+    // In a real S3 integration, this would trigger a file input dialog.
+    // The selected file would then be uploaded to a presigned S3 URL
+    // fetched from a backend API route.
     const newAsset = {
       id: `asset-${Date.now()}`,
-      src: `https://placehold.co/600x400.png?text=New+Image`,
-      alt: 'A new uploaded image',
+      src: `https://placehold.co/600x400.png?text=S3+Upload`,
+      alt: 'A new uploaded image from S3',
       type: 'image',
-      tags: ['new-upload'],
+      tags: ['s3-upload'],
     };
     addAsset(newAsset);
     setAssets([...allAssets]); // Re-fetch all assets to update the view
   };
 
   const handleDelete = (id: string) => {
+    // In a real S3 integration, this would call a backend API
+    // to delete the object from the S3 bucket.
     deleteAsset(id);
     setAssets([...allAssets]); // Re-fetch to update
+  };
+  
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    // You could add a toast notification here to confirm the copy.
   };
 
   return (
@@ -33,7 +42,7 @@ export const AssetManagement = () => {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <h2 className="text-2xl font-bold text-white">
-          Asset Library
+          Asset Library (S3)
         </h2>
         <div className="flex space-x-3">
           <button 
@@ -41,7 +50,7 @@ export const AssetManagement = () => {
             className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg flex items-center space-x-2 transition-colors"
           >
             <UploadCloud className="w-4 h-4" />
-            <span>Upload Asset</span>
+            <span>Upload to S3</span>
           </button>
         </div>
       </div>
@@ -68,19 +77,30 @@ export const AssetManagement = () => {
               fill 
               className="object-cover transition-transform duration-300 group-hover:scale-105"
             />
-            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+            <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center p-2 gap-2">
+              <button 
+                onClick={() => copyToClipboard(asset.src)}
+                className="p-2 w-10 h-10 bg-indigo-600 text-white rounded-full hover:bg-indigo-500 transition-colors flex items-center justify-center"
+                title="Copy S3 URL"
+              >
+                <Copy className="w-4 h-4" />
+              </button>
               <button 
                 onClick={() => handleDelete(asset.id)}
-                className="p-2 bg-red-600 text-white rounded-full hover:bg-red-500 transition-colors"
+                className="p-2 w-10 h-10 bg-red-600 text-white rounded-full hover:bg-red-500 transition-colors flex items-center justify-center"
+                title="Delete from S3"
               >
-                <Trash2 className="w-5 h-5" />
+                <Trash2 className="w-4 h-4" />
               </button>
             </div>
-            <div className="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/60 to-transparent">
+            <div className="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/80 to-transparent">
                <p className="text-xs text-white truncate">{asset.alt}</p>
             </div>
           </div>
         ))}
+      </div>
+       <div className="bg-gray-800/50 border border-yellow-500/30 text-yellow-300 rounded-lg p-4 text-sm mt-6">
+        <p><strong className="font-medium text-yellow-200">Developer Note:</strong> This is a UI demonstration. A full AWS S3 integration requires backend API routes for secure credential management and pre-signed URL generation. The upload/delete buttons are currently wired to the mock asset service.</p>
       </div>
     </div>
   );
