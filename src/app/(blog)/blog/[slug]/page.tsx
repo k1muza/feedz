@@ -2,8 +2,8 @@ import React from 'react';
 import { allBlogPosts } from '@/data/blog';
 import { notFound } from 'next/navigation';
 import { Metadata, ResolvingMetadata } from 'next';
-import Image from 'next/image';
 import { BlogPostDetail } from '@/components/blog/BlogPostDetail';
+import SecondaryHero from '@/components/common/SecondaryHero';
 
 type Props = {
   params: { slug: string }
@@ -69,7 +69,16 @@ const BlogDetailPage = ({ params }: Props) => {
       notFound();
     }
     
-    return <BlogPostDetail post={post} />;
+    return (
+        <>
+            <SecondaryHero
+                badge={post.category}
+                title={post.title}
+                minimal
+            />
+            <BlogPostDetail post={post} />
+        </>
+    );
 };
 
 export default BlogDetailPage;
