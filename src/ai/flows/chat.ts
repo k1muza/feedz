@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview AI Chatbot flow for sales and nutrition advice.
@@ -78,7 +79,7 @@ const chatFlow = ai.defineFlow(
     const { text } = await ai.generate({
         model: 'googleai/gemini-2.0-flash',
         system: systemPrompt,
-        history: validHistory,
+        history: input.history.filter(m => m && m.content),
         tools: [getProductInfoTool],
     });
     return text;
