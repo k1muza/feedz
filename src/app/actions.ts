@@ -230,10 +230,23 @@ export async function getAllBlogPosts(): Promise<BlogPost[]> {
     if (snapshot.empty) {
       return [];
     }
-    return snapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...(doc.data() as Omit<BlogPost, 'id'>),
-    }));
+    const posts: BlogPost[] = [];
+    for (const postDoc of snapshot.docs) {
+        const postData = postDoc.data() as Omit<BlogPost, 'id' | 'author'> & { authorRef?: any };
+        let authorData: Author = { name: 'Deleted User', role: 'N/A', image: '/images/default-avatar.png' };
+
+        // The author field could be a reference or an object
+        if (postData.author && typeof postData.author === 'object' && !postData.author.path) {
+            authorData = postData.author;
+        }
+
+        posts.push({
+            id: postDoc.id,
+            ...postData,
+            author: authorData,
+        } as BlogPost);
+    }
+    return posts;
   } catch (error) {
     console.error("Error fetching blog posts:", error);
     return [];
@@ -250,7 +263,20 @@ export async function getPostBySlug(slug: string): Promise<BlogPost | null> {
       return null;
     }
     const docData = snapshot.docs[0];
-    return { id: docData.id, ...(docData.data() as Omit<BlogPost, 'id'>) };
+    const postData = docData.data() as Omit<BlogPost, 'id' | 'author'>;
+
+    let authorData: Author = { name: 'Deleted User', role: 'N/A', image: '/images/default-avatar.png' };
+
+    // The author field could be a reference or an object
+    if (postData.author && typeof postData.author === 'object' && !postData.author.path) {
+        authorData = postData.author;
+    }
+
+    return { 
+        id: docData.id, 
+        ...postData,
+        author: authorData
+    } as BlogPost;
   } catch (error) {
     console.error(`Error fetching post by slug ${slug}:`, error);
     return null;
@@ -437,7 +463,7 @@ const IngredientFormSchema = z.object({
 });
 
 const ProductFormSchema = z.object({
-  ingredientId: z.string().min(1, 'An ingredient must be linked.'),
+  ingredientId: z.string().optional(),
   packaging: z.string().min(1, 'Packaging information is required.'),
   price: z.number().positive('Price must be a positive number.'),
   moq: z.number().positive('MOQ must be a positive number.'),
@@ -621,8 +647,7 @@ export async function getProductById(id: string): Promise<Product | null> {
 export async function saveProduct(
   productData: z.infer<typeof ProductFormSchema>,
   ingredientData: z.infer<typeof IngredientFormSchema>,
-  productId?: string,
-  ingredientId?: string,
+  productId?: string
 ) {
   const productValidation = ProductFormSchema.safeParse(productData);
   const ingredientValidation = IngredientFormSchema.safeParse(ingredientData);
@@ -640,7 +665,7 @@ export async function saveProduct(
   const batch = writeBatch(db);
 
   try {
-    let currentIngredientId = ingredientId || productData.ingredientId;
+    let currentIngredientId = productData.ingredientId;
 
     // Create or Update Ingredient
     if (currentIngredientId) {
@@ -648,7 +673,6 @@ export async function saveProduct(
       const ingredientRef = doc(db, 'ingredients', currentIngredientId);
       batch.update(ingredientRef, {
         ...ingredientValidation.data,
-        // Ensure optional fields are handled
         key_benefits: ingredientData.key_benefits || [],
         applications: ingredientData.applications || [],
         compositions: ingredientData.compositions || [],
