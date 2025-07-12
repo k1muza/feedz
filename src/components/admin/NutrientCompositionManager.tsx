@@ -9,11 +9,10 @@ import { Composition, Nutrient } from '@/types';
 import { getNutrients } from '@/data/nutrients';
 import { updateIngredientCompositions } from '@/app/actions';
 import { useToast } from '../ui/use-toast';
-import { Trash2, Plus, Loader2, Save, ChevronsUpDown } from 'lucide-react';
+import { Trash2, Plus, Loader2, Save, ChevronsUpDown, Edit, Check } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
-import { cn } from '@/lib/utils';
 
 interface NutrientCompositionManagerProps {
   ingredientId: string;
@@ -37,6 +36,7 @@ export const NutrientCompositionManager = ({
   const [allNutrients, setAllNutrients] = useState<Nutrient[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [popoverOpen, setPopoverOpen] = useState(false);
+  const [editingRow, setEditingRow] = useState<{ id: string, value: number } | null>(null);
   const { toast } = useToast();
 
   const form = useForm<FormValues>({
@@ -63,7 +63,6 @@ export const NutrientCompositionManager = ({
       nutrient: allNutrients.find(n => n.id === data.nutrientId)
     };
     
-    // Avoid adding duplicate nutrients
     if (compositions.some(c => c.nutrientId === newComposition.nutrientId)) {
         toast({ title: "Duplicate Nutrient", description: "This nutrient is already in the list.", variant: "destructive" });
         return;
@@ -78,6 +77,23 @@ export const NutrientCompositionManager = ({
     const updatedCompositions = compositions.filter(c => c.nutrientId !== nutrientId);
     await handleSave(updatedCompositions);
   };
+
+  const handleEditValueChange = (value: string) => {
+    if (editingRow) {
+      setEditingRow({ ...editingRow, value: parseFloat(value) || 0 });
+    }
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingRow) return;
+
+    const updatedCompositions = compositions.map(c => 
+      c.nutrientId === editingRow.id ? { ...c, value: editingRow.value } : c
+    );
+    
+    await handleSave(updatedCompositions);
+    setEditingRow(null);
+  }
   
   const handleSave = async (updatedCompositions: Composition[]) => {
       setIsSubmitting(true);
@@ -97,7 +113,6 @@ export const NutrientCompositionManager = ({
     <div className="bg-gray-800/50 border border-gray-700 rounded-xl p-6">
       <h3 className="text-lg font-semibold text-white mb-4">Manage Nutrient Composition</h3>
       
-      {/* Table of existing compositions */}
       <div className="max-h-96 overflow-y-auto mb-6 border border-gray-700 rounded-lg">
         <table className="min-w-full divide-y divide-gray-700">
             <thead className="bg-gray-800 sticky top-0">
@@ -111,8 +126,30 @@ export const NutrientCompositionManager = ({
                 {compositions.map((comp) => (
                     <tr key={comp.nutrientId} className="hover:bg-gray-700/50">
                         <td className="px-4 py-2 text-sm text-white">{comp.nutrient?.name || 'Unknown Nutrient'}</td>
-                        <td className="px-4 py-2 text-sm text-gray-400">{comp.value}{comp.nutrient?.unit}</td>
+                        <td className="px-4 py-2 text-sm text-gray-400">
+                          {editingRow?.id === comp.nutrientId ? (
+                             <input 
+                                type="number"
+                                step="any"
+                                value={editingRow.value}
+                                onChange={(e) => handleEditValueChange(e.target.value)}
+                                className="w-24 bg-gray-600 border-gray-500 rounded-md p-1"
+                                autoFocus
+                              />
+                          ) : (
+                            `${comp.value}${comp.nutrient?.unit}`
+                          )}
+                        </td>
                         <td className="px-4 py-2 text-right">
+                            {editingRow?.id === comp.nutrientId ? (
+                                <button onClick={handleSaveEdit} className="text-green-400 hover:text-green-300 p-1 rounded-md mr-2">
+                                    <Check className="w-4 h-4" />
+                                </button>
+                            ) : (
+                                <button onClick={() => setEditingRow({id: comp.nutrientId, value: comp.value})} className="text-indigo-400 hover:text-indigo-300 p-1 rounded-md mr-2">
+                                    <Edit className="w-4 h-4" />
+                                </button>
+                            )}
                             <button onClick={() => handleDeleteComposition(comp.nutrientId)} className="text-red-500 hover:text-red-400 p-1 rounded-md">
                                 <Trash2 className="w-4 h-4" />
                             </button>
@@ -128,7 +165,6 @@ export const NutrientCompositionManager = ({
         </table>
       </div>
       
-      {/* Form to add a new composition */}
       <form onSubmit={form.handleSubmit(handleAddComposition)} className="flex flex-col md:flex-row gap-4 items-start">
         <div className="flex-1 w-full">
            <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
