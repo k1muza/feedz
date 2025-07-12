@@ -9,8 +9,8 @@
  */
 
 import { ai } from '@/ai/genkit';
-import { z } from 'genkit';
-import { getAllProducts } from '@/app/actions';
+import { z } from 'zod';
+import { getAllProducts, getBusinessDetails } from '@/app/actions';
 
 const ChatInputSchema = z.object({
   history: z.array(z.object({
@@ -40,7 +40,6 @@ const ProductSchema = z.object({
   moq: z.number().describe('The Minimum Order Quantity (MOQ) in tons.'),
   key_benefits: z.array(z.string()).optional().describe('A list of key benefits.'),
   applications: z.array(z.string()).optional().describe('A list of typical applications (e.g., Poultry, Swine).'),
-  // === NEW FIELD ===
   inStock: z.boolean().describe('Whether the product is currently in stock and available for sale.'),
 });
 
@@ -64,11 +63,21 @@ const getProductInfoTool = ai.defineTool(
       key_benefits: p.ingredient?.key_benefits,
       applications: p.ingredient?.applications,
       
-      // === POPULATE NEW FIELD ===
       // A product is in stock if its stock is greater than its MOQ.
       inStock: p.stock > p.moq,
     }));
   }
+);
+
+const getBusinessLocationTool = ai.defineTool(
+    {
+        name: 'getBusinessLocation',
+        description: "Gets the company's physical address and location details.",
+        outputSchema: z.string(),
+    },
+    async () => {
+        return await getBusinessDetails();
+    }
 );
 
 
@@ -79,13 +88,15 @@ You are "Feedy", the friendly and expert AI assistant for FeedSport Internationa
 Your persona is warm, knowledgeable, and genuinely helpful, like a trusted partner for farmers and nutritionists. You are empathetic and conversational.
 
 ## Core Workflow & Critical Rules
-You MUST follow this workflow for every product-related query. This is not optional.
+You MUST follow this workflow for every query. This is not optional.
 
 1.  **Acknowledge and Clarify**: Start with a warm greeting and ask clarifying questions to understand the user's specific needs (e.g., livestock type, goals).
 
-2.  **Use Tool to Check Stock**: Before answering any question about products, availability, or pricing, your absolute FIRST step is to use the \`getProductInfo\` tool. This tool provides the real-time list of all products and, most importantly, their stock status (\`inStock: true\` or \`inStock: false\`).
+2.  **Use Tools When Necessary**:
+    - For any question about **products, availability, or pricing**, your absolute FIRST step is to use the \`getProductInfo\` tool.
+    - For any question about the **company's location or address**, you MUST use the \`getBusinessLocationTool\`.
 
-3.  **Filter by Stock Status**: This is your most important rule. After getting the product list from the tool, you MUST mentally filter it. **Only consider, discuss, and recommend products where \`inStock\` is \`true\`.**
+3.  **Filter by Stock Status**: This is your most important rule for products. After getting the product list from the tool, you MUST mentally filter it. **Only consider, discuss, and recommend products where \`inStock\` is \`true\`.**
 
 4.  **NEVER Mention or Sell Out-of-Stock Items**: Do not describe, recommend, or provide details for any product that is out of stock (\`inStock: false\`). Pretend out-of-stock items do not exist unless the user asks for one by name.
 
@@ -116,7 +127,7 @@ const chatFlow = ai.defineFlow(
         role: msg.role,
         content: [{ text: msg.content }],
       })),
-      tools: [getProductInfoTool],
+      tools: [getProductInfoTool, getBusinessLocationTool],
     }
 
     const { text } = await ai.generate(args);

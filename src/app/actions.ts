@@ -3,6 +3,7 @@
 
 
 
+
 'use server';
 
 import { config } from 'dotenv';
@@ -160,7 +161,7 @@ export async function getNewsletterSubscriptions(): Promise<NewsletterSubscripti
       return {
         id: doc.id,
         ...data,
-        subscribedAt: data.subscribedAt.toJSON(),
+        subscribedAt: data.submittedAt.toJSON(),
       } as NewsletterSubscription;
     });
   } catch (error) {
@@ -218,7 +219,7 @@ export async function addMessage(conversationId: string, content: string): Promi
 
   // 3. Get AI response
   const aiInput: ChatInput = {
-    history: conversationData.messages.map(msg => ({ role: msg.role, content: msg.content })),
+    history: conversationData.messages.map(msg => ({ role: msg.role, content: msg.content })).filter(Boolean),
   };
   const aiResponseContent = await chatWithSalesAgent(aiInput);
   
@@ -1080,4 +1081,9 @@ export async function createUserProfile(uid: string, data: { email: string | nul
     };
     await setDoc(userRef, profile);
     revalidatePath('/admin/users');
+}
+
+export async function getBusinessDetails(): Promise<string> {
+    // In a real app, this would fetch from Firestore, e.g., from doc(db, 'app', 'details')
+    return "2 Off William Pollet Drive, Borrowdale, Harare, Zimbabwe";
 }
