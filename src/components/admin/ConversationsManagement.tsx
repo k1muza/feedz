@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Conversation, Message } from '@/types/chat';
-import { format, formatDistanceToNow } from 'date-fns';
+import { format, formatDistanceToNow, fromUnixTime } from 'date-fns';
 import { Bot, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import ReactMarkdown from 'react-markdown';
@@ -11,11 +11,15 @@ export const ConversationsManagement = ({ initialConversations }: { initialConve
   const [conversations] = useState<Conversation[]>(initialConversations);
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(conversations[0] || null);
 
-  const getTimestamp = (timestamp: any) => {
-    if (timestamp && typeof timestamp.toDate === 'function') {
-      return timestamp.toDate();
+  const getTimestamp = (timestamp: any): Date => {
+    if (timestamp && typeof timestamp.seconds === 'number') {
+      return fromUnixTime(timestamp.seconds);
     }
-    return new Date(); // Fallback
+    // Fallback for potentially already converted strings
+    if (typeof timestamp === 'string') {
+        return new Date(timestamp);
+    }
+    return new Date(); // Final fallback
   };
 
   return (

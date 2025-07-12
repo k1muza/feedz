@@ -71,18 +71,25 @@ export async function startOrGetConversation(conversationId?: string): Promise<C
     const docRef = doc(db, 'conversations', conversationId);
     const docSnap = await getDoc(docRef);
     if (docSnap.exists()) {
-      return { id: docSnap.id, ...docSnap.data() } as Conversation;
+      const data = docSnap.data();
+      const messages = (data.messages || []).map((msg: any) => ({
+          ...msg,
+          timestamp: msg.timestamp.toJSON() // Convert Timestamp to plain object
+      }));
+      return { id: docSnap.id, startTime: data.startTime.toJSON(), messages } as Conversation;
     }
   }
 
   // Create a new conversation
-  const newConversation: Omit<Conversation, 'id'> = {
+  const newConversation: Omit<Conversation, 'id' | 'startTime'> & { startTime: Timestamp } = {
     startTime: Timestamp.now(),
     messages: [],
   };
   const docRef = await addDoc(conversationsCollection, newConversation);
-  return { id: docRef.id, ...newConversation };
+  
+  return { id: docRef.id, startTime: newConversation.startTime.toJSON(), messages: [] };
 }
+
 
 export async function addMessage(conversationId: string, content: string): Promise<Conversation> {
   const conversationRef = doc(db, 'conversations', conversationId);
@@ -122,7 +129,13 @@ export async function addMessage(conversationId: string, content: string): Promi
   // 5. Return the final state of the conversation
   const finalSnap = await getDoc(conversationRef);
   revalidatePath('/admin/conversations');
-  return { id: finalSnap.id, ...finalSnap.data() } as Conversation;
+  const finalData = finalSnap.data()!;
+  const messages = (finalData.messages || []).map((msg: any) => ({
+      ...msg,
+      timestamp: msg.timestamp.toJSON() // Convert Timestamp
+  }));
+
+  return { id: finalSnap.id, startTime: finalData.startTime.toJSON(), messages } as Conversation;
 }
 
 
@@ -133,10 +146,20 @@ export async function getConversations(): Promise<Conversation[]> {
     if (snapshot.empty) {
       return [];
     }
-    return snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...(doc.data() as Omit<Conversation, 'id'>),
-    }));
+    return snapshot.docs.map(doc => {
+      const data = doc.data();
+      // Manually convert Timestamps to serializable objects (e.g., JSON representation)
+      const messages = (data.messages || []).map((msg: any) => ({
+        ...msg,
+        timestamp: msg.timestamp.toJSON(), // Convert Timestamp to a serializable object
+      }));
+
+      return {
+        id: doc.id,
+        startTime: data.startTime.toJSON(), // Convert Timestamp
+        messages: messages,
+      } as Conversation;
+    });
   } catch (error) {
     console.error("Error fetching conversations:", error);
     return [];
@@ -870,3 +893,4 @@ export async function updateIngredientCompositions(
         return { success: false, error: 'Failed to update compositions.' };
     }
 }
+
