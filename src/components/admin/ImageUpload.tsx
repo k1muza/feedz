@@ -50,12 +50,12 @@ export const ImageUpload = ({ onUploadSuccess }: ImageUploadProps) => {
     try {
       const signedUrlResult = await getSignedS3Url(file.name, file.type, file.size);
 
-      if (!signedUrlResult.success || !signedUrlResult.url) {
+      if (!signedUrlResult.success || !signedUrlResult.signedUrl || !signedUrlResult.assetUrl) {
         throw new Error(signedUrlResult.error || 'Could not get a signed URL.');
       }
 
       const xhr = new XMLHttpRequest();
-      xhr.open('PUT', signedUrlResult.url);
+      xhr.open('PUT', signedUrlResult.signedUrl);
       xhr.setRequestHeader('Content-Type', file.type);
       
       xhr.upload.onprogress = (event) => {
@@ -68,8 +68,7 @@ export const ImageUpload = ({ onUploadSuccess }: ImageUploadProps) => {
       xhr.onload = () => {
         if (xhr.status === 200) {
           setIsSuccess(true);
-          const uploadedUrl = signedUrlResult.url.split('?')[0];
-          onUploadSuccess(uploadedUrl);
+          onUploadSuccess(signedUrlResult.assetUrl);
         } else {
           throw new Error(`Upload failed: ${xhr.statusText}`);
         }

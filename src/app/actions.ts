@@ -54,7 +54,11 @@ export async function getSignedS3Url(filename: string, contentType: string, size
     const signedUrl = await getSignedUrl(s3Client, putObjectCommand, {
       expiresIn: 60, // URL expires in 60 seconds
     });
-    return { success: true, url: signedUrl };
+    
+    // Construct the CloudFront URL
+    const cloudfrontUrl = `${process.env.NEXT_PUBLIC_CLOUDFRONT_DOMAIN}/${filename}`;
+
+    return { success: true, signedUrl: signedUrl, assetUrl: cloudfrontUrl };
   } catch (error) {
     console.error("Error generating signed URL:", error);
     return { success: false, error: 'Could not get a signed URL for upload.' };
@@ -73,14 +77,16 @@ export async function listS3Assets(): Promise<S3Asset[]> {
             return [];
         }
 
-        const bucketName = process.env.AWS_S3_BUCKET_NAME;
-        const bucketRegion = process.env.AWS_BUCKET_REGION;
+        const cloudfrontDomain = process.env.NEXT_PUBLIC_CLOUDFRONT_DOMAIN;
+        if (!cloudfrontDomain) {
+            throw new Error("CloudFront domain is not configured in environment variables.");
+        }
 
         const assets: S3Asset[] = Contents
             .filter(item => item.Key && item.Size && item.Size > 0) // Filter out empty objects/folders
             .map(item => ({
                 key: item.Key!,
-                url: `https://${bucketName}.s3.${bucketRegion}.amazonaws.com/${item.Key}`,
+                url: `${cloudfrontDomain}/${item.Key}`,
                 size: item.Size || 0,
                 lastModified: item.LastModified || new Date(),
             }))
