@@ -2,6 +2,7 @@
 
 
 
+
 'use server';
 
 import { config } from 'dotenv';
@@ -950,6 +951,19 @@ export async function saveProduct(
     console.error('Error saving product:', error);
     return { success: false, errors: { _server: ['Failed to save product to the database.'] } };
   }
+}
+
+export async function deleteProduct(productId: string) {
+    try {
+        await deleteDoc(doc(db, "products", productId));
+        revalidatePath('/admin/products');
+        revalidatePath('/products');
+        revalidatePath('/');
+        return { success: true };
+    } catch (error) {
+        console.error('Error deleting product:', error);
+        return { success: false, error: 'Failed to delete product.' };
+    }
 }
 
 export async function updateProductStock(productId: string, newStock: number) {
