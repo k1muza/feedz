@@ -6,7 +6,7 @@ import { Plus, Download, MoreHorizontal, Search, Trash2, Copy } from "lucide-rea
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { S3Asset } from "@/app/actions";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@/components/ui/use-toast";
 import { ImageUploadModal } from "./ImageUploadModal";
 
 
@@ -29,7 +29,7 @@ export const AssetManagement = ({ initialAssets }: { initialAssets: S3Asset[] })
     navigator.clipboard.writeText(text);
     toast({
       title: "URL Copied!",
-      description: "The S3 URL has been copied to your clipboard.",
+      description: "The CloudFront URL has been copied to your clipboard.",
     });
   };
 
@@ -89,7 +89,7 @@ export const AssetManagement = ({ initialAssets }: { initialAssets: S3Asset[] })
                 <button
                   onClick={() => copyToClipboard(asset.url)}
                   className="p-2 w-10 h-10 bg-indigo-600 text-white rounded-full hover:bg-indigo-500 transition-colors flex items-center justify-center"
-                  title="Copy S3 URL"
+                  title="Copy CloudFront URL"
                 >
                   <Copy className="w-4 h-4" />
                 </button>
