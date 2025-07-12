@@ -1,7 +1,5 @@
 
 // components/layout/Footer.tsx
-'use client';
-
 import Link from 'next/link';
 import {
     FaEnvelope,
@@ -15,8 +13,9 @@ import {
     FaWhatsapp
 } from 'react-icons/fa';
 import { FaShieldHalved, FaWheatAwn } from 'react-icons/fa6';
+import { ProductCategory } from '@/types';
 
-export default function Footer() {
+export default function Footer({ productCategories }: { productCategories: ProductCategory[] }) {
   const currentYear = new Date().getFullYear();
 
   return (
@@ -92,19 +91,13 @@ export default function Footer() {
           <div>
             <h4 className="text-lg font-bold mb-6 text-white">Product Categories</h4>
             <ul className="space-y-3">
-              {[
-                { name: "Protein Feeds", href: "/products/categories/protein-feeds" },
-                { name: "Energy Feeds", href: "/products/categories/energy-feeds" },
-                { name: "Minerals", href: "/products/categories/minerals" },
-                { name: "Amino Acids", href: "/products/categories/amino-acids" },
-                { name: "Forage Products", href: "/products/categories/forage-products" }
-              ].map((product) => (
-                <li key={product.name}>
+              {productCategories.slice(0, 5).map((category) => (
+                <li key={category.id}>
                   <Link
-                    href={product.href}
-                    className="text-gray-400 hover:text-green-500 transition-colors duration-300"
+                    href={`/products/categories/${category.slug}`}
+                    className="text-gray-400 hover:text-green-500 transition-colors duration-300 capitalize"
                   >
-                    {product.name}
+                    {category.name}
                   </Link>
                 </li>
               ))}

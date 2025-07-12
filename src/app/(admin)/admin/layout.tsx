@@ -21,6 +21,8 @@ import {
   ShoppingBag,
   FlaskConical,
   MessageSquare,
+  Mail,
+  Newspaper,
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -43,6 +45,8 @@ export default function DashboardLayout({
     { path: '/admin/assets', label: 'Assets', icon: ImageIcon },
     { path: '/admin/blog', label: 'Blog', icon: FileText },
     { path: '/admin/conversations', label: 'Conversations', icon: MessageSquare },
+    { path: '/admin/subscribers', label: 'Subscribers', icon: Newspaper },
+    { path: '/admin/inquiries', label: 'Inquiries', icon: Mail },
     { path: '/admin/users', label: 'Users', icon: Users },
     { path: '/admin/settings', label: 'Settings', icon: SettingsIcon },
   ];

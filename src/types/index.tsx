@@ -1,6 +1,5 @@
 
 
-
 import { z } from "zod";
 
 export type TechnicalSpecs = {
@@ -126,6 +125,22 @@ export type Product = {
   shipping?: string;
   featured?: boolean;
 };
+
+export type ContactInquiry = {
+  id: string;
+  name: string;
+  email: string;
+  message: string;
+  submittedAt: { seconds: number; nanoseconds: number };
+  read: boolean;
+}
+
+export type NewsletterSubscription = {
+  id: string;
+  email: string;
+  subscribedAt: { seconds: number; nanoseconds: number };
+}
+
 
 // Types
 export interface RatioIngredient extends Ingredient {

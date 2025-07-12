@@ -23,7 +23,7 @@ import {
 } from 'firebase/firestore';
 import { revalidatePath } from 'next/cache';
 import { db } from '@/lib/firebase';
-import { BlogPost, BlogCategory, User, Product, Ingredient, ProductCategory, Composition } from '@/types';
+import { BlogPost, BlogCategory, User, Product, Ingredient, ProductCategory, Composition, ContactInquiry, NewsletterSubscription } from '@/types';
 import { z } from 'zod';
 import { S3Client, PutObjectCommand, ListObjectsV2Command, DeleteObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
@@ -81,7 +81,9 @@ export async function saveContactInquiry(formData: { name: string; email: string
     await addDoc(collection(db, 'inquiries'), {
       ...validation.data,
       submittedAt: Timestamp.now(),
+      read: false,
     });
+    revalidatePath('/admin/inquiries');
     return { success: true };
   } catch (error) {
     console.error("Error saving contact inquiry:", error);
@@ -110,11 +112,55 @@ export async function saveNewsletterSubscription(email: string) {
       email: validation.data,
       subscribedAt: Timestamp.now(),
     });
-
+    
+    revalidatePath('/admin/subscribers');
     return { success: true };
   } catch (error) {
     console.error("Error saving newsletter subscription:", error);
     return { success: false, error: 'Failed to subscribe.' };
+  }
+}
+
+
+export async function getContactInquiries(): Promise<ContactInquiry[]> {
+  try {
+    const q = query(collection(db, 'inquiries'), orderBy('submittedAt', 'desc'));
+    const snapshot = await getDocs(q);
+    if (snapshot.empty) {
+      return [];
+    }
+    return snapshot.docs.map(doc => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        ...data,
+        submittedAt: data.submittedAt.toJSON(),
+      } as ContactInquiry;
+    });
+  } catch (error) {
+    console.error("Error fetching inquiries:", error);
+    return [];
+  }
+}
+
+export async function getNewsletterSubscriptions(): Promise<NewsletterSubscription[]> {
+   try {
+    const q = query(collection(db, 'newsletterSubscriptions'), orderBy('subscribedAt', 'desc'));
+    const snapshot = await getDocs(q);
+    if (snapshot.empty) {
+      return [];
+    }
+    return snapshot.docs.map(doc => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        ...data,
+        subscribedAt: data.subscribedAt.toJSON(),
+      } as NewsletterSubscription;
+    });
+  } catch (error) {
+    console.error("Error fetching newsletter subscriptions:", error);
+    return [];
   }
 }
 
@@ -646,6 +692,7 @@ export async function addProductCategory(name: string) {
     revalidatePath('/admin/products/create');
     revalidatePath('/admin/ingredients');
     revalidatePath('/admin/ingredients/create');
+    revalidatePath('/'); // For footer
     return { success: true };
   } catch (error) {
     console.error('Error adding product category:', error);
@@ -664,6 +711,7 @@ export async function updateProductCategory(id: string, name: string) {
     revalidatePath('/admin/products/create');
     revalidatePath('/admin/ingredients');
     revalidatePath('/admin/ingredients/create');
+    revalidatePath('/'); // For footer
     return { success: true };
   } catch (error) {
     console.error('Error updating product category:', error);
@@ -679,6 +727,7 @@ export async function deleteProductCategory(id: string) {
     revalidatePath('/admin/products/create');
     revalidatePath('/admin/ingredients');
     revalidatePath('/admin/ingredients/create');
+    revalidatePath('/'); // For footer
     return { success: true };
   } catch (error) {
     console.error('Error deleting product category:', error);
@@ -948,4 +997,40 @@ export async function updateIngredientCompositions(
         console.error('Error updating ingredient compositions:', error);
         return { success: false, error: 'Failed to update compositions.' };
     }
+}
+
+// --- SEARCH ---
+
+export async function search(query: string) {
+    const [products, ingredients, blogPosts] = await Promise.all([
+        getAllProducts(),
+        getAllIngredients(),
+        getAllBlogPosts(),
+    ]);
+
+    const lowerCaseQuery = query.toLowerCase();
+
+    const productResults = products.filter(p => 
+        p.ingredient?.name.toLowerCase().includes(lowerCaseQuery) ||
+        p.ingredient?.description.toLowerCase().includes(lowerCaseQuery) ||
+        p.ingredient?.category?.toLowerCase().includes(lowerCaseQuery)
+    ).map(p => ({ type: 'Product', ...p }));
+
+    const ingredientResults = ingredients.filter(i => 
+        i.name.toLowerCase().includes(lowerCaseQuery) ||
+        i.description.toLowerCase().includes(lowerCaseQuery)
+    ).map(i => ({ type: 'Ingredient', ...i }));
+
+    const blogPostResults = blogPosts.filter(b => 
+        b.title.toLowerCase().includes(lowerCaseQuery) ||
+        b.content.toLowerCase().includes(lowerCaseQuery) ||
+        b.tags.some(tag => tag.toLowerCase().includes(lowerCaseQuery))
+    ).map(b => ({ type: 'Blog Post', ...b }));
+
+
+    return {
+        products: productResults,
+        ingredients: ingredientResults,
+        blogPosts: blogPostResults,
+    };
 }
