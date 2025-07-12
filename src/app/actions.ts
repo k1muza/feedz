@@ -430,6 +430,10 @@ const IngredientFormSchema = z.object({
   description: z.string().min(1, 'Description is required.'),
   key_benefits: z.array(z.string()).optional(),
   applications: z.array(z.string()).optional(),
+  compositions: z.array(z.object({
+    nutrientId: z.string(),
+    value: z.number(),
+  })).optional(),
 });
 
 const ProductFormSchema = z.object({
@@ -548,7 +552,7 @@ export async function getAllProducts(): Promise<Product[]> {
       const productData = doc.data() as Omit<Product, 'id'>;
       const ingredient = ingredientsMap.get(productData.ingredientId);
       
-      if (ingredient) {
+      if (ingredient && ingredient.compositions) {
           ingredient.compositions = ingredient.compositions.map(comp => ({
               ...comp,
               nutrient: nutrientsMap.get(comp.nutrientId)
@@ -647,6 +651,7 @@ export async function saveProduct(
         // Ensure optional fields are handled
         key_benefits: ingredientData.key_benefits || [],
         applications: ingredientData.applications || [],
+        compositions: ingredientData.compositions || [],
       });
     } else {
       // Create new ingredient
@@ -655,7 +660,7 @@ export async function saveProduct(
         ...ingredientValidation.data,
         key_benefits: ingredientData.key_benefits || [],
         applications: ingredientData.applications || [],
-        compositions: [], // Initialize with empty compositions
+        compositions: ingredientData.compositions || [],
       });
       currentIngredientId = newIngredientRef.id;
     }

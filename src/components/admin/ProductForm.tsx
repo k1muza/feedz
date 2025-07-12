@@ -1,7 +1,7 @@
 
 'use client';
 
-import { Product, ProductCategory } from '@/types';
+import { Product, ProductCategory, Composition, Nutrient } from '@/types';
 import { Save, ImageIcon, AlertCircle, Sparkles, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
@@ -13,6 +13,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { saveProduct, getProductSuggestions, getProductCategories } from '@/app/actions';
 import { useToast } from '../ui/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
+import { getNutrients } from '@/data/nutrients';
 
 interface ProductFormProps {
   product?: Product;
@@ -47,13 +48,19 @@ export const ProductForm = ({ product }: ProductFormProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [categories, setCategories] = useState<ProductCategory[]>([]);
+  const [allNutrients, setAllNutrients] = useState<Nutrient[]>([]);
+  const [aiCompositions, setAiCompositions] = useState<Omit<Composition, 'nutrient'>[]>([]);
 
   useEffect(() => {
-    async function fetchCategories() {
-      const fetchedCategories = await getProductCategories();
+    async function fetchData() {
+      const [fetchedCategories, fetchedNutrients] = await Promise.all([
+        getProductCategories(),
+        getNutrients()
+      ]);
       setCategories(fetchedCategories);
+      setAllNutrients(fetchedNutrients);
     }
-    fetchCategories();
+    fetchData();
   }, []);
 
   const combinedSchema = ProductFormSchema.merge(IngredientFormSchema);
@@ -100,6 +107,20 @@ export const ProductForm = ({ product }: ProductFormProps) => {
       setValue('key_benefits', result.keyBenefits.join(', '), { shouldValidate: true });
       setValue('applications', result.applications.join(', '), { shouldValidate: true });
       setValue('packaging', result.suggestedPackaging, { shouldValidate: true });
+
+      const nutrientMap = new Map(allNutrients.map(n => [n.name.toLowerCase(), n.id]));
+      const compositionsToStore = result.compositions
+        .map(comp => {
+            const nutrientId = nutrientMap.get(comp.nutrientName.toLowerCase());
+            if (nutrientId) {
+                return { nutrientId, value: comp.value };
+            }
+            return null;
+        })
+        .filter((c): c is Omit<Composition, 'nutrient'> => c !== null);
+
+      setAiCompositions(compositionsToStore);
+
       toast({
         title: "AI Suggestions Applied",
         description: "The generated product details have been filled into the form.",
@@ -123,6 +144,7 @@ export const ProductForm = ({ product }: ProductFormProps) => {
         description,
         key_benefits: key_benefits?.split(',').map(s => s.trim()).filter(Boolean) || [],
         applications: applications?.split(',').map(s => s.trim()).filter(Boolean) || [],
+        compositions: product?.ingredient?.compositions || aiCompositions,
       };
 
       const result = await saveProduct(
