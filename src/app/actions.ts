@@ -77,7 +77,7 @@ export async function getSignedS3Url(filename: string, contentType: string, size
     });
     
     // Construct the CloudFront URL
-    const cloudfrontUrl = `https://${process.env.NEXT_PUBLIC_CLOUDFRONT_DOMAIN}/${filename}`;
+    const cloudfrontUrl = `${process.env.NEXT_PUBLIC_CLOUDFRONT_DOMAIN}/${filename}`;
 
     return { success: true, signedUrl: signedUrl, assetUrl: cloudfrontUrl };
   } catch (error) {
@@ -107,7 +107,7 @@ export async function listS3Assets(): Promise<S3Asset[]> {
             .filter(item => item.Key && item.Size && item.Size > 0) // Filter out empty objects/folders
             .map(item => ({
                 key: item.Key!,
-                url: `https://${cloudfrontDomain}/${item.Key}`,
+                url: `${cloudfrontDomain}/${item.Key}`,
                 size: item.Size || 0,
                 lastModified: item.LastModified || new Date(),
             }))
@@ -230,23 +230,16 @@ export async function getAllBlogPosts(): Promise<BlogPost[]> {
     if (snapshot.empty) {
       return [];
     }
-    const posts: BlogPost[] = [];
-    for (const postDoc of snapshot.docs) {
-        const postData = postDoc.data() as Omit<BlogPost, 'id' | 'author'> & { authorRef?: any };
-        let authorData: Author = { name: 'Deleted User', role: 'N/A', image: '/images/default-avatar.png' };
-
-        // The author field could be a reference or an object
-        if (postData.author && typeof postData.author === 'object' && !postData.author.path) {
-            authorData = postData.author;
-        }
-
-        posts.push({
-            id: postDoc.id,
-            ...postData,
-            author: authorData,
-        } as BlogPost);
-    }
-    return posts;
+    return snapshot.docs.map(doc => {
+        const data = doc.data() as Omit<BlogPost, 'id'>;
+        return {
+            id: doc.id,
+            ...data,
+            author: data.author && typeof data.author === 'object' && !('path' in data.author)
+                ? data.author
+                : { name: 'Deleted User', role: 'N/A', image: '/images/default-avatar.png' }
+        };
+    }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   } catch (error) {
     console.error("Error fetching blog posts:", error);
     return [];
@@ -263,20 +256,7 @@ export async function getPostBySlug(slug: string): Promise<BlogPost | null> {
       return null;
     }
     const docData = snapshot.docs[0];
-    const postData = docData.data() as Omit<BlogPost, 'id' | 'author'>;
-
-    let authorData: Author = { name: 'Deleted User', role: 'N/A', image: '/images/default-avatar.png' };
-
-    // The author field could be a reference or an object
-    if (postData.author && typeof postData.author === 'object' && !postData.author.path) {
-        authorData = postData.author;
-    }
-
-    return { 
-        id: docData.id, 
-        ...postData,
-        author: authorData
-    } as BlogPost;
+    return { id: docData.id, ...docData.data() } as BlogPost;
   } catch (error) {
     console.error(`Error fetching post by slug ${slug}:`, error);
     return null;
