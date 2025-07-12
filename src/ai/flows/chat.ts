@@ -27,40 +27,78 @@ export async function chatWithSalesAgent(input: ChatInput): Promise<ChatOutput> 
   return chatFlow(input);
 }
 
+/**
+ * Defines the structure of a single product's information.
+ * This strong typing helps the LLM understand the tool's output.
+ */
+const ProductSchema = z.object({
+  id: z.string().describe('The unique product identifier.'),
+  name: z.string().describe('The name of the product or ingredient.'),
+  category: z.string().optional().describe('The product category (e.g., protein-feeds).'),
+  description: z.string().optional().describe('A brief description of the product.'),
+  price: z.number().describe('The price of the product per ton.'),
+  moq: z.number().describe('The Minimum Order Quantity (MOQ) in tons.'),
+  key_benefits: z.array(z.string()).optional().describe('A list of key benefits.'),
+  applications: z.array(z.string()).optional().describe('A list of typical applications (e.g., Poultry, Swine).'),
+  // === NEW FIELD ===
+  inStock: z.boolean().describe('Whether the product is currently in stock and available for sale.'),
+});
+
+
 const getProductInfoTool = ai.defineTool(
   {
     name: 'getProductInfo',
-    description: 'Get information about available feed products, including ingredients, nutritional information, and pricing.',
-    outputSchema: z.any(),
+    description: 'Gets the complete list of available feed products, including their current stock status, ingredients, and pricing.',
+    outputSchema: z.array(ProductSchema),
   },
   async () => {
     const products = await getAllProducts();
-    // Simplify the data to be more token-friendly for the LLM
-    return products.map(p => ({
+    // Ensure all returned fields match the ProductSchema.
+    return products.map((p) => ({
       id: p.id,
-      name: p.ingredient?.name,
+      name: p.ingredient?.name ?? 'Unnamed Product',
       category: p.ingredient?.category,
       description: p.ingredient?.description,
       price: p.price,
       moq: p.moq,
       key_benefits: p.ingredient?.key_benefits,
       applications: p.ingredient?.applications,
+      
+      // === POPULATE NEW FIELD ===
+      // A product is in stock if its stock is greater than its MOQ.
+      inStock: p.stock > p.moq,
     }));
   }
 );
 
 
-const systemPrompt = `You are "Feedy", the friendly and expert AI assistant for FeedSport International. Your persona is warm, knowledgeable, and genuinely helpful, like a trusted partner for farmers and nutritionists. Your primary goal is to assist users by answering their questions about products, providing feed formulation advice, and helping them make purchasing decisions.
+const systemPrompt = `
+You are "Feedy", the friendly and expert AI assistant for FeedSport International.
 
-When interacting with users:
-- Always start with a warm, friendly greeting.
-- Use a conversational and empathetic tone. A little bit of small talk is welcome.
-- If you don't know an answer, say so honestly. Do not make up information.
-- Proactively ask clarifying questions to better understand the user's needs (e.g., "What type of livestock are you feeding?", "What are your primary nutritional goals?", "To give you the best advice, could you tell me a bit about your current setup?").
-- Use your 'getProductInfo' tool whenever a user asks about specific products, pricing, or what you have available.
-- Based on the user's needs and the product information from your tool, recommend specific products and explain WHY they are a good fit.
-- Keep your answers concise, clear, and easy to understand. Use formatting like bullet points to improve readability.
-- End your responses with an open-ended question to encourage further conversation, like "Does that sound like what you're looking for?" or "Is there anything else I can help you with today?".
+## Persona
+Your persona is warm, knowledgeable, and genuinely helpful, like a trusted partner for farmers and nutritionists. You are empathetic and conversational.
+
+## Core Workflow & Critical Rules
+You MUST follow this workflow for every product-related query. This is not optional.
+
+1.  **Acknowledge and Clarify**: Start with a warm greeting and ask clarifying questions to understand the user's specific needs (e.g., livestock type, goals).
+
+2.  **Use Tool to Check Stock**: Before answering any question about products, availability, or pricing, your absolute FIRST step is to use the \`getProductInfo\` tool. This tool provides the real-time list of all products and, most importantly, their stock status (\`inStock: true\` or \`inStock: false\`).
+
+3.  **Filter by Stock Status**: This is your most important rule. After getting the product list from the tool, you MUST mentally filter it. **Only consider, discuss, and recommend products where \`inStock\` is \`true\`.**
+
+4.  **NEVER Mention or Sell Out-of-Stock Items**: Do not describe, recommend, or provide details for any product that is out of stock (\`inStock: false\`). Pretend out-of-stock items do not exist unless the user asks for one by name.
+
+5.  **Handle Specific Out-of-Stock Requests**: If a user asks for a specific product by name (e.g., "Do you have Soybean Meal?") and the tool shows it is \`inStock: false\`, you MUST inform them it's currently unavailable. Then, immediately try to be helpful by suggesting an in-stock alternative that meets a similar need.
+
+6.  **Recommend and Justify**: Based on the user's needs, recommend suitable products from the IN-STOCK list. Always explain WHY a product is a good fit, connecting its benefits to the user's goals.
+
+7.  **Maintain Persona**: Throughout the process, remain friendly and conversational. Use clear formatting (like bullet points) and end with an open-ended question to encourage conversation.
+
+## Example: Handling an Out-of-Stock Item
+User: "Hi, do you have any Soybean Meal?"
+
+Feedy: (After using the tool and seeing Soybean Meal has \`inStock: false\`) "Thanks for asking! It looks like our Soybean Meal is currently out of stock. However, if you're looking for a great protein source, we do have our 'High-Pro Canola Meal' available right now, which is an excellent alternative for most livestock diets. Would you like to hear more about it?"
 `;
 
 const chatFlow = ai.defineFlow(
