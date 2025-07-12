@@ -48,7 +48,7 @@ export const AssetSelectionModal = ({ isOpen, onClose, onSelect, multiple = true
   const handleToggleSelection = (url: string) => {
       setSelectedAssets(prev => {
         if (!multiple) {
-            return [url];
+            return prev.includes(url) ? [] : [url];
         }
         if (prev.includes(url)) {
             return prev.filter(item => item !== url);

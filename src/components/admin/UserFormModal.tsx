@@ -90,8 +90,10 @@ export const UserFormModal = ({ isOpen, onClose, onSave, user }: UserFormModalPr
     }
   };
   
-  const handleImageSelect = (src: string) => {
-    setValue('image', src, { shouldValidate: true, shouldDirty: true });
+  const handleImageSelect = (srcs: string[]) => {
+    if (srcs.length > 0) {
+      setValue('image', srcs[0], { shouldValidate: true, shouldDirty: true });
+    }
     setIsAssetModalOpen(false);
   }
 
@@ -123,7 +125,7 @@ export const UserFormModal = ({ isOpen, onClose, onSave, user }: UserFormModalPr
                <div className="mt-2 flex items-center gap-4">
                   <div className="relative h-16 w-16 rounded-full overflow-hidden bg-gray-700">
                     {avatarImage ? (
-                        <Image src={avatarImage} alt="Avatar" layout="fill" className="object-cover" />
+                        <Image src={avatarImage} alt="Avatar" fill className="object-cover" />
                     ) : (
                         <ImageIcon className="h-8 w-8 text-gray-500 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
                     )}
@@ -190,6 +192,7 @@ export const UserFormModal = ({ isOpen, onClose, onSave, user }: UserFormModalPr
       isOpen={isAssetModalOpen}
       onClose={() => setIsAssetModalOpen(false)}
       onSelect={handleImageSelect}
+      multiple={false}
     />
     </>
   );
