@@ -29,7 +29,7 @@ const categoryData = [
     { name: 'Minerals & Additives', description: 'Essential nutrients for health and vitality.', icon: <FaLeaf/>, href: '/products/categories/minerals' },
 ];
 
-export default async function IngredientsPage() {
+export default async function HomePage() {
   const allProducts = await getAllProducts();
   const featuredProducts = allProducts.filter(p => p.featured);
 
