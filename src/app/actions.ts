@@ -17,6 +17,9 @@ import {
   where,
   limit,
   writeBatch,
+  Timestamp,
+  orderBy,
+  arrayUnion,
 } from 'firebase/firestore';
 import { revalidatePath } from 'next/cache';
 import { db } from '@/lib/firebase';
@@ -27,6 +30,9 @@ import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { RecommendIngredientCombinationsInput, RecommendIngredientCombinationsOutput, recommendIngredientCombinations } from '@/ai/flows/recommend-ingredient-combinations';
 import { generateProductDetails, GenerateProductDetailsInput, GenerateProductDetailsOutput } from '@/ai/flows/generate-product-details';
 import { getNutrients } from '@/data/nutrients';
+import type { Conversation, Message } from '@/types/chat';
+import { chatWithSalesAgent, ChatInput } from '@/ai/flows/chat';
+
 
 const s3Client = new S3Client({
   region: process.env.AWS_BUCKET_REGION!,
@@ -55,6 +61,86 @@ export async function getProductSuggestions(
   input: GenerateProductDetailsInput
 ): Promise<GenerateProductDetailsOutput> {
   return await generateProductDetails(input);
+}
+
+// --- CHAT ACTIONS ---
+const conversationsCollection = collection(db, 'conversations');
+
+export async function startOrGetConversation(conversationId?: string): Promise<Conversation> {
+  if (conversationId) {
+    const docRef = doc(db, 'conversations', conversationId);
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+      return { id: docSnap.id, ...docSnap.data() } as Conversation;
+    }
+  }
+
+  // Create a new conversation
+  const newConversation: Omit<Conversation, 'id'> = {
+    startTime: Timestamp.now(),
+    messages: [],
+  };
+  const docRef = await addDoc(conversationsCollection, newConversation);
+  return { id: docRef.id, ...newConversation };
+}
+
+export async function addMessage(conversationId: string, content: string): Promise<Conversation> {
+  const conversationRef = doc(db, 'conversations', conversationId);
+
+  // 1. Add user message
+  const userMessage: Message = {
+    role: 'user',
+    content: content,
+    timestamp: Timestamp.now(),
+  };
+
+  await updateDoc(conversationRef, {
+    messages: arrayUnion(userMessage),
+  });
+
+  // 2. Get current conversation history to pass to AI
+  const updatedSnap = await getDoc(conversationRef);
+  const conversationData = updatedSnap.data() as Omit<Conversation, 'id'>;
+
+  // 3. Get AI response
+  const aiInput: ChatInput = {
+    history: conversationData.messages.map(msg => ({ role: msg.role, content: msg.content })),
+  };
+  const aiResponseContent = await chatWithSalesAgent(aiInput);
+  
+  // 4. Add AI message
+  const aiMessage: Message = {
+    role: 'model',
+    content: aiResponseContent,
+    timestamp: Timestamp.now(),
+  };
+
+  await updateDoc(conversationRef, {
+    messages: arrayUnion(aiMessage),
+  });
+  
+  // 5. Return the final state of the conversation
+  const finalSnap = await getDoc(conversationRef);
+  revalidatePath('/admin/conversations');
+  return { id: finalSnap.id, ...finalSnap.data() } as Conversation;
+}
+
+
+export async function getConversations(): Promise<Conversation[]> {
+  try {
+    const q = query(conversationsCollection, orderBy('startTime', 'desc'));
+    const snapshot = await getDocs(q);
+    if (snapshot.empty) {
+      return [];
+    }
+    return snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...(doc.data() as Omit<Conversation, 'id'>),
+    }));
+  } catch (error) {
+    console.error("Error fetching conversations:", error);
+    return [];
+  }
 }
 
 // --- S3 ASSET ACTIONS ---
