@@ -106,12 +106,17 @@ export default function ProductViewPage({ params }: { params: { id: string } }) 
                     <div className="border border-gray-700 rounded-lg overflow-hidden">
                         <table className="min-w-full divide-y divide-gray-700">
                             <tbody className="divide-y divide-gray-700">
-                                {product.ingredient?.compositions?.slice(0, 5).map(comp => (
-                                    <tr key={comp.nutrient?.id} className="hover:bg-gray-700/50">
+                                {product.ingredient?.compositions?.map(comp => (
+                                    <tr key={comp.nutrientId} className="hover:bg-gray-700/50">
                                         <td className="px-4 py-2 text-sm font-medium text-gray-300">{comp.nutrient?.name}</td>
                                         <td className="px-4 py-2 text-sm text-gray-400">{comp.value}{comp.nutrient?.unit}</td>
                                     </tr>
                                 ))}
+                                {(!product.ingredient?.compositions || product.ingredient.compositions.length === 0) && (
+                                    <tr>
+                                        <td colSpan={2} className="px-4 py-4 text-center text-sm text-gray-500">No technical specifications available.</td>
+                                    </tr>
+                                )}
                             </tbody>
                         </table>
                     </div>
