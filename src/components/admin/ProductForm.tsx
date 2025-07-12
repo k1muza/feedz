@@ -1,7 +1,7 @@
 
 'use client';
 
-import { Product, ProductCategory, Composition, Nutrient } from '@/types';
+import { Product, ProductCategory, Composition, Nutrient, Ingredient } from '@/types';
 import { Save, ImageIcon, AlertCircle, Sparkles, Loader2, Star, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
@@ -10,7 +10,7 @@ import { AssetSelectionModal } from './AssetSelectionModal';
 import Image from 'next/image';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { saveProduct, getProductSuggestions, getProductCategories } from '@/app/actions';
+import { saveProduct, getProductSuggestions, getProductCategories, getAllIngredients } from '@/app/actions';
 import { useToast } from '../ui/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { getNutrients } from '@/data/nutrients';
@@ -28,6 +28,7 @@ const IngredientFormSchema = z.object({
 });
 
 const ProductFormSchema = z.object({
+  ingredientId: z.string().optional(),
   packaging: z.string().min(1, 'Packaging information is required.'),
   price: z.coerce.number().positive('Price must be a positive number.'),
   moq: z.coerce.number().positive('MOQ must be a positive number.'),
@@ -50,22 +51,27 @@ export const ProductForm = ({ product }: ProductFormProps) => {
   const [categories, setCategories] = useState<ProductCategory[]>([]);
   const [allNutrients, setAllNutrients] = useState<Nutrient[]>([]);
   const [aiCompositions, setAiCompositions] = useState<Omit<Composition, 'nutrient'>[]>([]);
+  const [allIngredients, setAllIngredients] = useState<Ingredient[]>([]);
+  const [selectedIngredientId, setSelectedIngredientId] = useState<string | undefined>(product?.ingredientId);
+
 
   useEffect(() => {
     async function fetchData() {
-      const [fetchedCategories, fetchedNutrients] = await Promise.all([
+      const [fetchedCategories, fetchedNutrients, fetchedIngredients] = await Promise.all([
         getProductCategories(),
-        getNutrients()
+        getNutrients(),
+        getAllIngredients(),
       ]);
       setCategories(fetchedCategories);
       setAllNutrients(fetchedNutrients);
+      setAllIngredients(fetchedIngredients);
     }
     fetchData();
   }, []);
 
   const combinedSchema = ProductFormSchema.merge(IngredientFormSchema);
 
-  const { register, handleSubmit, formState: { errors }, setValue, watch, getValues } = useForm<FormValues>({
+  const { register, handleSubmit, formState: { errors }, setValue, watch, getValues, reset } = useForm<FormValues>({
       resolver: zodResolver(combinedSchema),
       defaultValues: {
           name: product?.ingredient?.name || '',
@@ -81,10 +87,41 @@ export const ProductForm = ({ product }: ProductFormProps) => {
           certifications: product?.certifications?.join(', ') || '',
           shipping: product?.shipping || '',
           featured: product?.featured || false,
+          ingredientId: product?.ingredientId || undefined,
       }
   });
 
   const images = watch('images') || [];
+  const ingredientId = watch('ingredientId');
+  const isIngredientSelected = !!ingredientId;
+
+  const handleIngredientChange = (id: string) => {
+    setSelectedIngredientId(id);
+    const selectedIng = allIngredients.find(ing => ing.id === id);
+    if (selectedIng) {
+        reset({
+            ...getValues(), // keep other product values
+            ingredientId: selectedIng.id,
+            name: selectedIng.name,
+            description: selectedIng.description,
+            category: selectedIng.category,
+            key_benefits: selectedIng.key_benefits?.join(', '),
+            applications: selectedIng.applications?.join(', '),
+        });
+    } else {
+        // Clear fields if "None" is selected
+        reset({
+            ...getValues(),
+            ingredientId: undefined,
+            name: '',
+            description: '',
+            category: '',
+            key_benefits: '',
+            applications: '',
+        });
+    }
+  };
+
 
   const handleAiGeneration = async () => {
     const productName = getValues('name');
@@ -142,13 +179,12 @@ export const ProductForm = ({ product }: ProductFormProps) => {
         name, 
         category, 
         description,
-        key_benefits: key_benefits?.split(',').map(s => s.trim()).filter(Boolean) || [],
-        applications: applications?.split(',').map(s => s.trim()).filter(Boolean) || [],
-        compositions: product?.ingredient?.compositions || aiCompositions,
+        key_benefits: key_benefits,
+        applications: applications,
       };
 
       const result = await saveProduct(
-          { ...productData, certifications: data.certifications?.split(',').map(s => s.trim()).filter(Boolean) || [] }, 
+          productData, 
           ingredientData, 
           product?.id, 
           product?.ingredientId
@@ -230,14 +266,30 @@ export const ProductForm = ({ product }: ProductFormProps) => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2 space-y-6 bg-gray-800/50 border border-gray-700 rounded-xl p-6">
             <div>
-              <label htmlFor="name" className="block text-sm font-medium text-gray-300">Product Name</label>
+              <label htmlFor="ingredientId" className="block text-sm font-medium text-gray-300">Select Ingredient (Optional)</label>
+              <select 
+                id="ingredientId"
+                {...register('ingredientId')}
+                onChange={(e) => handleIngredientChange(e.target.value)}
+                className="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md p-2"
+              >
+                  <option value="">-- Create New Ingredient --</option>
+                  {allIngredients.map(ing => (
+                      <option key={ing.id} value={ing.id}>{ing.name}</option>
+                  ))}
+              </select>
+              <p className="text-xs text-gray-400 mt-1">Select an existing ingredient to link to, or leave blank to create a new one.</p>
+            </div>
+            <hr className="border-gray-600"/>
+            <div>
+              <label htmlFor="name" className="block text-sm font-medium text-gray-300">Ingredient Name</label>
               <div className="flex items-center gap-2 mt-1">
-                <input id="name" {...register('name')} className="block w-full bg-gray-700 border-gray-600 rounded-md p-2"/>
+                <input id="name" {...register('name')} readOnly={isIngredientSelected} className={`block w-full bg-gray-700 border-gray-600 rounded-md p-2 ${isIngredientSelected ? 'bg-gray-800' : ''}`}/>
                 <button 
                   type="button" 
                   onClick={handleAiGeneration}
-                  disabled={isGenerating}
-                  className="px-3 py-2 bg-teal-600 hover:bg-teal-500 text-white rounded-lg flex items-center space-x-2 transition-colors disabled:bg-gray-500"
+                  disabled={isGenerating || isIngredientSelected}
+                  className="px-3 py-2 bg-teal-600 hover:bg-teal-500 text-white rounded-lg flex items-center space-x-2 transition-colors disabled:bg-gray-500 disabled:cursor-not-allowed"
                 >
                   {isGenerating ? <Loader2 className="w-4 h-4 animate-spin"/> : <Sparkles className="w-4 h-4" />}
                   <span>Generate</span>
@@ -248,13 +300,13 @@ export const ProductForm = ({ product }: ProductFormProps) => {
 
             <div>
               <label htmlFor="description" className="block text-sm font-medium text-gray-300">Description</label>
-              <textarea id="description" rows={4} {...register('description')} className="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md p-2"/>
+              <textarea id="description" rows={4} {...register('description')} readOnly={isIngredientSelected} className={`mt-1 block w-full bg-gray-700 border-gray-600 rounded-md p-2 ${isIngredientSelected ? 'bg-gray-800' : ''}`}/>
               {errors.description && <p className="text-red-500 text-xs mt-1">{errors.description.message}</p>}
             </div>
             
              <div>
               <label htmlFor="key_benefits" className="block text-sm font-medium text-gray-300">Key Benefits</label>
-              <input id="key_benefits" {...register('key_benefits')} placeholder="Benefit 1, Benefit 2,..." className="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md p-2"/>
+              <input id="key_benefits" {...register('key_benefits')} readOnly={isIngredientSelected} placeholder="Benefit 1, Benefit 2,..." className={`mt-1 block w-full bg-gray-700 border-gray-600 rounded-md p-2 ${isIngredientSelected ? 'bg-gray-800' : ''}`}/>
               <p className="text-xs text-gray-400 mt-1">Comma-separated values.</p>
             </div>
             
@@ -292,7 +344,7 @@ export const ProductForm = ({ product }: ProductFormProps) => {
               <div className="bg-gray-800/50 border border-gray-700 rounded-xl p-6">
                   <div>
                       <label htmlFor="category" className="block text-sm font-medium text-gray-300">Category</label>
-                      <select id="category" {...register('category')} className="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md p-2">
+                      <select id="category" {...register('category')} disabled={isIngredientSelected} className={`mt-1 block w-full bg-gray-700 border-gray-600 rounded-md p-2 ${isIngredientSelected ? 'bg-gray-800 disabled:cursor-not-allowed' : ''}`}>
                           <option value="">Select a category</option>
                           {categories.map((cat) => (
                             <option key={cat.id} value={cat.slug}>{cat.name}</option>
@@ -302,7 +354,7 @@ export const ProductForm = ({ product }: ProductFormProps) => {
                   </div>
                    <div className="mt-4">
                         <label htmlFor="applications" className="block text-sm font-medium text-gray-300">Applications</label>
-                        <input id="applications" {...register('applications')} placeholder="Poultry, Swine,..." className="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md p-2"/>
+                        <input id="applications" {...register('applications')} readOnly={isIngredientSelected} placeholder="Poultry, Swine,..." className={`mt-1 block w-full bg-gray-700 border-gray-600 rounded-md p-2 ${isIngredientSelected ? 'bg-gray-800' : ''}`}/>
                         <p className="text-xs text-gray-400 mt-1">Comma-separated values.</p>
                    </div>
                    <div className="mt-4">

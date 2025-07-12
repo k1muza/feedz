@@ -434,21 +434,17 @@ const IngredientFormSchema = z.object({
   name: z.string().min(1, 'Ingredient name is required.'),
   category: z.string().min(1, 'Category is required.'),
   description: z.string().min(1, 'Description is required.'),
-  key_benefits: z.array(z.string()).optional(),
-  applications: z.array(z.string()).optional(),
-  compositions: z.array(z.object({
-    nutrientId: z.string(),
-    value: z.number(),
-  })).optional(),
+  key_benefits: z.string().optional(),
+  applications: z.string().optional(),
 });
 
 const ProductFormSchema = z.object({
   ingredientId: z.string().optional(),
   packaging: z.string().min(1, 'Packaging information is required.'),
-  price: z.number().positive('Price must be a positive number.'),
-  moq: z.number().positive('MOQ must be a positive number.'),
-  stock: z.number().min(0, 'Stock cannot be negative.'),
-  certifications: z.array(z.string()).optional(),
+  price: z.coerce.number().positive('Price must be a positive number.'),
+  moq: z.coerce.number().positive('MOQ must be a positive number.'),
+  stock: z.coerce.number().min(0, 'Stock cannot be negative.'),
+  certifications: z.string().optional(),
   images: z.array(z.string().url()).min(1, 'At least one image is required.'),
   shipping: z.string().optional(),
   featured: z.boolean().optional(),
@@ -625,50 +621,60 @@ export async function getProductById(id: string): Promise<Product | null> {
 
 // Save (Create/Update) a product
 export async function saveProduct(
-productData: z.infer<typeof ProductFormSchema>, ingredientData: z.infer<typeof IngredientFormSchema>, productId?: string, ingredientId?: string | undefined) {
+  productData: z.infer<typeof ProductFormSchema>,
+  ingredientData: z.infer<typeof IngredientFormSchema>,
+  productId?: string,
+  ingredientId?: string
+) {
   const productValidation = ProductFormSchema.safeParse(productData);
   const ingredientValidation = IngredientFormSchema.safeParse(ingredientData);
 
-  if (!productValidation.success || !ingredientValidation.success) {
-    return {
-      success: false,
-      errors: {
-        product: productValidation.success ? null : productValidation.error.flatten().fieldErrors,
-        ingredient: ingredientValidation.success ? null : ingredientValidation.error.flatten().fieldErrors,
-      }
-    };
+  if (!productValidation.success) {
+      return { success: false, errors: { _server: ["Product data is invalid."] }};
+  }
+  
+  if (!productData.ingredientId && !ingredientValidation.success) {
+      return { success: false, errors: { _server: ["Ingredient data is invalid."] }};
   }
 
   const batch = writeBatch(db);
 
   try {
-    let currentIngredientId = productData.ingredientId;
+    let currentIngredientId = productData.ingredientId || ingredientId;
 
-    // Create or Update Ingredient
-    if (currentIngredientId) {
-      // Update existing ingredient
-      const ingredientRef = doc(db, 'ingredients', currentIngredientId);
-      batch.update(ingredientRef, {
-        ...ingredientValidation.data,
-        key_benefits: ingredientData.key_benefits || [],
-        applications: ingredientData.applications || [],
-        compositions: ingredientData.compositions || [],
-      });
-    } else {
-      // Create new ingredient
-      const newIngredientRef = doc(collection(db, 'ingredients'));
-      batch.set(newIngredientRef, {
-        ...ingredientValidation.data,
-        key_benefits: ingredientData.key_benefits || [],
-        applications: ingredientData.applications || [],
-        compositions: ingredientData.compositions || [],
-      });
-      currentIngredientId = newIngredientRef.id;
+    // Create or Update Ingredient only if no ingredient was selected from dropdown
+    if (!productData.ingredientId) {
+        const validatedIngredientData = ingredientValidation.data;
+        const compositions = product?.ingredient?.compositions || aiCompositions;
+        const ingredientPayload = {
+            name: validatedIngredientData.name,
+            category: validatedIngredientData.category,
+            description: validatedIngredientData.description,
+            key_benefits: validatedIngredientData.key_benefits?.split(',').map(s => s.trim()).filter(Boolean) || [],
+            applications: validatedIngredientData.applications?.split(',').map(s => s.trim()).filter(Boolean) || [],
+            compositions: compositions,
+        };
+        
+        if (currentIngredientId) {
+            // Update existing ingredient if editing a product that already had one
+            const ingredientRef = doc(db, 'ingredients', currentIngredientId);
+            batch.update(ingredientRef, ingredientPayload);
+        } else {
+            // Create new ingredient
+            const newIngredientRef = doc(collection(db, 'ingredients'));
+            batch.set(newIngredientRef, ingredientPayload);
+            currentIngredientId = newIngredientRef.id;
+        }
+    }
+    
+    if (!currentIngredientId) {
+        return { success: false, errors: { _server: ["Ingredient could not be determined."]}};
     }
 
     const finalProductData = {
       ...productValidation.data,
       ingredientId: currentIngredientId,
+      certifications: productValidation.data.certifications?.split(',').map(s => s.trim()).filter(Boolean) || [],
     };
 
     // Create or Update Product
