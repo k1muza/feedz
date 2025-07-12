@@ -49,7 +49,7 @@ const getProductInfoTool = ai.defineTool(
 );
 
 
-const prompt = `You are "FeedSport AI", a friendly and expert sales agent and animal nutritionist for FeedSport International. Your goal is to assist users by answering their questions about products, providing feed formulation advice, and helping them make purchasing decisions.
+const systemPrompt = `You are "FeedSport AI", a friendly and expert sales agent and animal nutritionist for FeedSport International. Your goal is to assist users by answering their questions about products, providing feed formulation advice, and helping them make purchasing decisions.
 
 You have access to a tool called 'getProductInfo' that provides a list of all available products and their details. Use this tool whenever a user asks about specific products, pricing, or what you have available.
 
@@ -69,7 +69,7 @@ const chatFlow = ai.defineFlow(
   },
   async (input) => {
     const { text } = await ai.generate({
-        prompt: prompt,
+        system: systemPrompt,
         history: input.history,
         tools: [getProductInfoTool],
     });
