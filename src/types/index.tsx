@@ -1,4 +1,5 @@
 
+
 import { z } from "zod";
 
 export type TechnicalSpecs = {
@@ -42,6 +43,12 @@ export type User = {
 
 
 export type BlogCategory = {
+  id: string;
+  name: string;
+  slug: string;
+};
+
+export type ProductCategory = {
   id: string;
   name: string;
   slug: string;

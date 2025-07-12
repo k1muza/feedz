@@ -19,7 +19,7 @@ import {
 } from 'firebase/firestore';
 import { revalidatePath } from 'next/cache';
 import { db } from '@/lib/firebase';
-import { BlogPost, BlogCategory, User, Product, Ingredient } from '@/types';
+import { BlogPost, BlogCategory, User, Product, Ingredient, ProductCategory } from '@/types';
 import { z } from 'zod';
 import { S3Client, PutObjectCommand, ListObjectsV2Command, DeleteObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
@@ -138,14 +138,14 @@ export async function deleteS3Asset(key: string) {
 // --- BLOG ACTIONS ---
 
 const postsCollection = collection(db, 'blogPosts');
-const categoriesCollection = collection(db, 'blogCategories');
+const blogCategoriesCollection = collection(db, 'blogCategories');
 
 
-// -- Category Actions --
+// -- Blog Category Actions --
 
 export async function getBlogCategories(): Promise<BlogCategory[]> {
   try {
-    const snapshot = await getDocs(query(categoriesCollection));
+    const snapshot = await getDocs(query(blogCategoriesCollection));
     if (snapshot.empty) {
       return [];
     }
@@ -166,8 +166,9 @@ export async function addBlogCategory(name: string) {
   const slug = name.toLowerCase().replace(/[^a-z0-9\s-]/g, '').trim().replace(/\s+/g, '-');
   
   try {
-    await addDoc(categoriesCollection, { name, slug });
+    await addDoc(blogCategoriesCollection, { name, slug });
     revalidatePath('/admin/blog');
+    revalidatePath('/admin/blog/create');
     return { success: true };
   } catch (error) {
     console.error('Error adding category:', error);
@@ -183,6 +184,7 @@ export async function updateBlogCategory(id: string, name: string) {
     const categoryRef = doc(db, 'blogCategories', id);
     await updateDoc(categoryRef, { name });
     revalidatePath('/admin/blog');
+     revalidatePath('/admin/blog/create');
     return { success: true };
   } catch (error) {
     console.error('Error updating category:', error);
@@ -197,6 +199,7 @@ export async function deleteBlogCategory(id: string) {
     const categoryRef = doc(db, 'blogCategories', id);
     await deleteDoc(categoryRef);
     revalidatePath('/admin/blog');
+     revalidatePath('/admin/blog/create');
     return { success: true };
   } catch (error) {
     console.error('Error deleting category:', error);
@@ -416,6 +419,7 @@ export async function deleteUser(userId: string) {
 
 const productsCollection = collection(db, 'products');
 const ingredientsCollection = collection(db, 'ingredients');
+const productCategoriesCollection = collection(db, 'productCategories');
 
 // Schemas for validation
 const IngredientFormSchema = z.object({
@@ -437,6 +441,71 @@ const ProductFormSchema = z.object({
   shipping: z.string().optional(),
   featured: z.boolean().optional(),
 });
+
+
+// -- Product Category Actions --
+
+export async function getProductCategories(): Promise<ProductCategory[]> {
+  try {
+    const snapshot = await getDocs(query(productCategoriesCollection));
+    if (snapshot.empty) {
+      return [];
+    }
+    return snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...(doc.data() as Omit<ProductCategory, 'id'>)
+    })).sort((a, b) => a.name.localeCompare(b.name));
+  } catch (error) {
+    console.error("Error fetching product categories:", error);
+    return [];
+  }
+}
+
+export async function addProductCategory(name: string) {
+  if (!name || name.trim().length === 0) {
+    return { success: false, error: 'Category name cannot be empty.' };
+  }
+  const slug = name.toLowerCase().replace(/[^a-z0-9\s-]/g, '').trim().replace(/\s+/g, '-');
+  
+  try {
+    await addDoc(productCategoriesCollection, { name, slug });
+    revalidatePath('/admin/products');
+    revalidatePath('/admin/products/create');
+    return { success: true };
+  } catch (error) {
+    console.error('Error adding product category:', error);
+    return { success: false, error: 'Failed to add category.' };
+  }
+}
+
+export async function updateProductCategory(id: string, name: string) {
+   if (!name || name.trim().length === 0) {
+    return { success: false, error: 'Category name cannot be empty.' };
+  }
+  try {
+    const categoryRef = doc(db, 'productCategories', id);
+    await updateDoc(categoryRef, { name });
+    revalidatePath('/admin/products');
+    revalidatePath('/admin/products/create');
+    return { success: true };
+  } catch (error) {
+    console.error('Error updating product category:', error);
+    return { success: false, error: 'Failed to update category.' };
+  }
+}
+
+export async function deleteProductCategory(id: string) {
+  try {
+    const categoryRef = doc(db, 'productCategories', id);
+    await deleteDoc(categoryRef);
+    revalidatePath('/admin/products');
+    revalidatePath('/admin/products/create');
+    return { success: true };
+  } catch (error) {
+    console.error('Error deleting product category:', error);
+    return { success: false, error: 'Failed to delete category.' };
+  }
+}
 
 
 // Fetch all ingredients

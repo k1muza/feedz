@@ -1,15 +1,16 @@
+
 'use client';
 
-import { Product } from '@/types';
+import { Product, ProductCategory } from '@/types';
 import { Save, ImageIcon, AlertCircle, Sparkles, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm, SubmitHandler } from 'react-hook-form';
 import { AssetSelectionModal } from './AssetSelectionModal';
 import Image from 'next/image';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { saveProduct, getProductSuggestions } from '@/app/actions';
+import { saveProduct, getProductSuggestions, getProductCategories } from '@/app/actions';
 import { useToast } from '../ui/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 
@@ -45,6 +46,15 @@ export const ProductForm = ({ product }: ProductFormProps) => {
   const [serverError, setServerError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [categories, setCategories] = useState<ProductCategory[]>([]);
+
+  useEffect(() => {
+    async function fetchCategories() {
+      const fetchedCategories = await getProductCategories();
+      setCategories(fetchedCategories);
+    }
+    fetchCategories();
+  }, []);
 
   const combinedSchema = ProductFormSchema.merge(IngredientFormSchema);
 
@@ -243,12 +253,9 @@ export const ProductForm = ({ product }: ProductFormProps) => {
                       <label htmlFor="category" className="block text-sm font-medium text-gray-300">Category</label>
                       <select id="category" {...register('category')} className="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md p-2">
                           <option value="">Select a category</option>
-                          <option value="protein-feeds">Protein Feeds</option>
-                          <option value="energy-feeds">Energy Feeds</option>
-                          <option value="minerals">Minerals</option>
-                          <option value="amino-acids">Amino Acids</option>
-                          <option value="forage-products">Forage Products</option>
-                          <option value="fiber-products">Fiber Products</option>
+                          {categories.map((cat) => (
+                            <option key={cat.id} value={cat.slug}>{cat.name}</option>
+                          ))}
                       </select>
                       {errors.category && <p className="text-red-500 text-xs mt-1">{errors.category.message}</p>}
                   </div>

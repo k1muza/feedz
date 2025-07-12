@@ -1,6 +1,7 @@
+
 'use client';
 
-import { Plus, Download, MoreHorizontal, Search, Filter, Edit, Trash2, Eye, Loader2 } from "lucide-react";
+import { Plus, Download, MoreHorizontal, Search, Filter, Edit, Trash2, Eye, Loader2, FolderOpen } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -24,12 +25,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import { ProductCategoryManagementModal } from "./ProductCategoryManagementModal";
 
 export const ProductsManagement = ({ initialProducts }: { initialProducts: Product[] }) => {
   const [products, setProducts] = useState<Product[]>(initialProducts);
   const [loading, setLoading] = useState(true);
   const [productToDelete, setProductToDelete] = useState<Product | null>(null);
   const [isAlertOpen, setIsAlertOpen] = useState(false);
+  const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
 
@@ -78,6 +81,12 @@ export const ProductsManagement = ({ initialProducts }: { initialProducts: Produ
           Products
         </h2>
         <div className="flex space-x-3">
+           <button 
+              onClick={() => setIsCategoryModalOpen(true)}
+              className="px-4 py-2 border border-gray-600 hover:bg-gray-700 rounded-lg flex items-center space-x-2 transition-colors">
+              <FolderOpen className="w-4 h-4" />
+              <span>Manage Categories</span>
+            </button>
           <Link href="/admin/products/create">
             <button className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg flex items-center space-x-2 transition-colors">
               <Plus className="w-4 h-4" />
@@ -195,6 +204,10 @@ export const ProductsManagement = ({ initialProducts }: { initialProducts: Produ
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      <ProductCategoryManagementModal
+        isOpen={isCategoryModalOpen}
+        onClose={() => setIsCategoryModalOpen(false)}
+      />
     </>
   );
 };
