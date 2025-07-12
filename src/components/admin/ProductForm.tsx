@@ -10,25 +10,16 @@ import { AssetSelectionModal } from './AssetSelectionModal';
 import Image from 'next/image';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { saveProduct, getProductSuggestions, getProductCategories, getAllIngredients } from '@/app/actions';
+import { saveProduct, getAllIngredients } from '@/app/actions';
 import { useToast } from '../ui/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
-import { getNutrients } from '@/data/nutrients';
 
 interface ProductFormProps {
   product?: Product;
 }
 
-const IngredientFormSchema = z.object({
-  name: z.string().min(1, 'Ingredient name is required.'),
-  category: z.string().min(1, 'Category is required.'),
-  description: z.string().min(1, 'Description is required.'),
-  key_benefits: z.string().optional(),
-  applications: z.string().optional(),
-});
-
 const ProductFormSchema = z.object({
-  ingredientId: z.string().optional(),
+  ingredientId: z.string().min(1, 'An ingredient must be selected.'),
   packaging: z.string().min(1, 'Packaging information is required.'),
   price: z.coerce.number().positive('Price must be a positive number.'),
   moq: z.coerce.number().positive('MOQ must be a positive number.'),
@@ -39,7 +30,7 @@ const ProductFormSchema = z.object({
   featured: z.boolean().optional(),
 });
 
-type FormValues = z.infer<typeof ProductFormSchema> & z.infer<typeof IngredientFormSchema>;
+type FormValues = z.infer<typeof ProductFormSchema>;
 
 export const ProductForm = ({ product }: ProductFormProps) => {
   const router = useRouter();
@@ -47,38 +38,20 @@ export const ProductForm = ({ product }: ProductFormProps) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [categories, setCategories] = useState<ProductCategory[]>([]);
-  const [allNutrients, setAllNutrients] = useState<Nutrient[]>([]);
-  const [aiCompositions, setAiCompositions] = useState<Omit<Composition, 'nutrient'>[]>([]);
   const [allIngredients, setAllIngredients] = useState<Ingredient[]>([]);
-  const [selectedIngredientId, setSelectedIngredientId] = useState<string | undefined>(product?.ingredientId);
 
 
   useEffect(() => {
     async function fetchData() {
-      const [fetchedCategories, fetchedNutrients, fetchedIngredients] = await Promise.all([
-        getProductCategories(),
-        getNutrients(),
-        getAllIngredients(),
-      ]);
-      setCategories(fetchedCategories);
-      setAllNutrients(fetchedNutrients);
+      const fetchedIngredients = await getAllIngredients();
       setAllIngredients(fetchedIngredients);
     }
     fetchData();
   }, []);
 
-  const combinedSchema = ProductFormSchema.merge(IngredientFormSchema);
-
-  const { register, handleSubmit, formState: { errors }, setValue, watch, getValues, reset } = useForm<FormValues>({
-      resolver: zodResolver(combinedSchema),
+  const { register, handleSubmit, formState: { errors }, setValue, watch } = useForm<FormValues>({
+      resolver: zodResolver(ProductFormSchema),
       defaultValues: {
-          name: product?.ingredient?.name || '',
-          category: product?.ingredient?.category || '',
-          description: product?.ingredient?.description || '',
-          key_benefits: product?.ingredient?.key_benefits?.join(', ') || '',
-          applications: product?.ingredient?.applications?.join(', ') || '',
           price: product?.price || 0,
           stock: product?.stock || 0,
           moq: product?.moq || 0,
@@ -92,102 +65,14 @@ export const ProductForm = ({ product }: ProductFormProps) => {
   });
 
   const images = watch('images') || [];
-  const ingredientId = watch('ingredientId');
-  const isIngredientSelected = !!ingredientId;
-
-  const handleIngredientChange = (id: string) => {
-    setSelectedIngredientId(id);
-    const selectedIng = allIngredients.find(ing => ing.id === id);
-    if (selectedIng) {
-        reset({
-            ...getValues(), // keep other product values
-            ingredientId: selectedIng.id,
-            name: selectedIng.name,
-            description: selectedIng.description,
-            category: selectedIng.category,
-            key_benefits: selectedIng.key_benefits?.join(', '),
-            applications: selectedIng.applications?.join(', '),
-        });
-    } else {
-        // Clear fields if "None" is selected
-        reset({
-            ...getValues(),
-            ingredientId: undefined,
-            name: '',
-            description: '',
-            category: '',
-            key_benefits: '',
-            applications: '',
-        });
-    }
-  };
-
-
-  const handleAiGeneration = async () => {
-    const productName = getValues('name');
-    if (!productName) {
-      toast({
-        title: "Product Name Required",
-        description: "Please enter a product name before generating details.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setIsGenerating(true);
-    setServerError(null);
-
-    try {
-      const result = await getProductSuggestions({ productName });
-      setValue('description', result.description, { shouldValidate: true });
-      setValue('category', result.category, { shouldValidate: true });
-      setValue('key_benefits', result.keyBenefits.join(', '), { shouldValidate: true });
-      setValue('applications', result.applications.join(', '), { shouldValidate: true });
-      setValue('packaging', result.suggestedPackaging, { shouldValidate: true });
-
-      const nutrientMap = new Map(allNutrients.map(n => [n.name.toLowerCase(), n.id]));
-      const compositionsToStore = result.compositions
-        .map(comp => {
-            const nutrientId = nutrientMap.get(comp.nutrientName.toLowerCase());
-            if (nutrientId) {
-                return { nutrientId, value: comp.value };
-            }
-            return null;
-        })
-        .filter((c): c is Omit<Composition, 'nutrient'> => c !== null);
-
-      setAiCompositions(compositionsToStore);
-
-      toast({
-        title: "AI Suggestions Applied",
-        description: "The generated product details have been filled into the form.",
-      });
-    } catch (error) {
-      console.error("AI Generation failed", error);
-      setServerError("Failed to generate AI suggestions. Please try again.");
-    } finally {
-      setIsGenerating(false);
-    }
-  };
-
+  
   const onSubmit: SubmitHandler<FormValues> = async (data) => {
       setIsSubmitting(true);
       setServerError(null);
 
-      const { name, category, description, key_benefits, applications, ...productData } = data;
-      const ingredientData = { 
-        name, 
-        category, 
-        description,
-        key_benefits: key_benefits,
-        applications: applications,
-      };
-
       const result = await saveProduct(
-          productData, 
-          ingredientData, 
-          product?.id, 
-          product?.ingredientId
+          data, 
+          product?.id,
       );
 
       setIsSubmitting(false);
@@ -206,7 +91,7 @@ export const ProductForm = ({ product }: ProductFormProps) => {
   };
 
   const handleImageSelect = (selectedImages: string[]) => {
-    const currentImages = getValues('images') || [];
+    const currentImages = watch('images') || [];
     const newImages = [...currentImages, ...selectedImages];
     const uniqueImages = Array.from(new Set(newImages)); // Ensure no duplicates
     setValue('images', uniqueImages, { shouldValidate: true, shouldDirty: true });
@@ -214,7 +99,7 @@ export const ProductForm = ({ product }: ProductFormProps) => {
   };
   
   const setAsFeatured = (index: number) => {
-    const currentImages = getValues('images');
+    const currentImages = watch('images');
     if (index > 0 && index < currentImages.length) {
         const itemToMove = currentImages[index];
         const remainingItems = currentImages.filter((_, i) => i !== index);
@@ -223,7 +108,7 @@ export const ProductForm = ({ product }: ProductFormProps) => {
   };
 
   const removeImage = (index: number) => {
-    const currentImages = getValues('images');
+    const currentImages = watch('images');
     const newImages = currentImages.filter((_, i) => i !== index);
     setValue('images', newImages, { shouldValidate: true, shouldDirty: true });
   };
@@ -266,49 +151,20 @@ export const ProductForm = ({ product }: ProductFormProps) => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2 space-y-6 bg-gray-800/50 border border-gray-700 rounded-xl p-6">
             <div>
-              <label htmlFor="ingredientId" className="block text-sm font-medium text-gray-300">Select Ingredient (Optional)</label>
+              <label htmlFor="ingredientId" className="block text-sm font-medium text-gray-300">Select Ingredient</label>
               <select 
                 id="ingredientId"
                 {...register('ingredientId')}
-                onChange={(e) => handleIngredientChange(e.target.value)}
                 className="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md p-2"
               >
-                  <option value="">-- Create New Ingredient --</option>
+                  <option value="">-- Select an Ingredient --</option>
                   {allIngredients.map(ing => (
                       <option key={ing.id} value={ing.id}>{ing.name}</option>
                   ))}
               </select>
-              <p className="text-xs text-gray-400 mt-1">Select an existing ingredient to link to, or leave blank to create a new one.</p>
+               {errors.ingredientId && <p className="text-red-500 text-xs mt-1">{errors.ingredientId.message}</p>}
             </div>
             <hr className="border-gray-600"/>
-            <div>
-              <label htmlFor="name" className="block text-sm font-medium text-gray-300">Ingredient Name</label>
-              <div className="flex items-center gap-2 mt-1">
-                <input id="name" {...register('name')} readOnly={isIngredientSelected} className={`block w-full bg-gray-700 border-gray-600 rounded-md p-2 ${isIngredientSelected ? 'bg-gray-800' : ''}`}/>
-                <button 
-                  type="button" 
-                  onClick={handleAiGeneration}
-                  disabled={isGenerating || isIngredientSelected}
-                  className="px-3 py-2 bg-teal-600 hover:bg-teal-500 text-white rounded-lg flex items-center space-x-2 transition-colors disabled:bg-gray-500 disabled:cursor-not-allowed"
-                >
-                  {isGenerating ? <Loader2 className="w-4 h-4 animate-spin"/> : <Sparkles className="w-4 h-4" />}
-                  <span>Generate</span>
-                </button>
-              </div>
-              {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name.message}</p>}
-            </div>
-
-            <div>
-              <label htmlFor="description" className="block text-sm font-medium text-gray-300">Description</label>
-              <textarea id="description" rows={4} {...register('description')} readOnly={isIngredientSelected} className={`mt-1 block w-full bg-gray-700 border-gray-600 rounded-md p-2 ${isIngredientSelected ? 'bg-gray-800' : ''}`}/>
-              {errors.description && <p className="text-red-500 text-xs mt-1">{errors.description.message}</p>}
-            </div>
-            
-             <div>
-              <label htmlFor="key_benefits" className="block text-sm font-medium text-gray-300">Key Benefits</label>
-              <input id="key_benefits" {...register('key_benefits')} readOnly={isIngredientSelected} placeholder="Benefit 1, Benefit 2,..." className={`mt-1 block w-full bg-gray-700 border-gray-600 rounded-md p-2 ${isIngredientSelected ? 'bg-gray-800' : ''}`}/>
-              <p className="text-xs text-gray-400 mt-1">Comma-separated values.</p>
-            </div>
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div>
@@ -342,21 +198,6 @@ export const ProductForm = ({ product }: ProductFormProps) => {
 
           <div className="lg:col-span-1 space-y-6">
               <div className="bg-gray-800/50 border border-gray-700 rounded-xl p-6">
-                  <div>
-                      <label htmlFor="category" className="block text-sm font-medium text-gray-300">Category</label>
-                      <select id="category" {...register('category')} disabled={isIngredientSelected} className={`mt-1 block w-full bg-gray-700 border-gray-600 rounded-md p-2 ${isIngredientSelected ? 'bg-gray-800 disabled:cursor-not-allowed' : ''}`}>
-                          <option value="">Select a category</option>
-                          {categories.map((cat) => (
-                            <option key={cat.id} value={cat.slug}>{cat.name}</option>
-                          ))}
-                      </select>
-                      {errors.category && <p className="text-red-500 text-xs mt-1">{errors.category.message}</p>}
-                  </div>
-                   <div className="mt-4">
-                        <label htmlFor="applications" className="block text-sm font-medium text-gray-300">Applications</label>
-                        <input id="applications" {...register('applications')} readOnly={isIngredientSelected} placeholder="Poultry, Swine,..." className={`mt-1 block w-full bg-gray-700 border-gray-600 rounded-md p-2 ${isIngredientSelected ? 'bg-gray-800' : ''}`}/>
-                        <p className="text-xs text-gray-400 mt-1">Comma-separated values.</p>
-                   </div>
                    <div className="mt-4">
                       <label htmlFor="certifications" className="block text-sm font-medium text-gray-300">Certifications</label>
                       <input id="certifications" {...register('certifications')} placeholder="ISO 9001, Non-GMO" className="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md p-2"/>

@@ -439,7 +439,7 @@ const IngredientFormSchema = z.object({
 });
 
 const ProductFormSchema = z.object({
-  ingredientId: z.string().optional(),
+  ingredientId: z.string().min(1, 'An ingredient must be selected.'),
   packaging: z.string().min(1, 'Packaging information is required.'),
   price: z.coerce.number().positive('Price must be a positive number.'),
   moq: z.coerce.number().positive('MOQ must be a positive number.'),
@@ -479,6 +479,8 @@ export async function addProductCategory(name: string) {
     await addDoc(productCategoriesCollection, { name, slug });
     revalidatePath('/admin/products');
     revalidatePath('/admin/products/create');
+    revalidatePath('/admin/ingredients');
+    revalidatePath('/admin/ingredients/create');
     return { success: true };
   } catch (error) {
     console.error('Error adding product category:', error);
@@ -495,6 +497,8 @@ export async function updateProductCategory(id: string, name: string) {
     await updateDoc(categoryRef, { name });
     revalidatePath('/admin/products');
     revalidatePath('/admin/products/create');
+    revalidatePath('/admin/ingredients');
+    revalidatePath('/admin/ingredients/create');
     return { success: true };
   } catch (error) {
     console.error('Error updating product category:', error);
@@ -508,6 +512,8 @@ export async function deleteProductCategory(id: string) {
     await deleteDoc(categoryRef);
     revalidatePath('/admin/products');
     revalidatePath('/admin/products/create');
+    revalidatePath('/admin/ingredients');
+    revalidatePath('/admin/ingredients/create');
     return { success: true };
   } catch (error) {
     console.error('Error deleting product category:', error);
@@ -521,7 +527,6 @@ export async function getAllIngredients(): Promise<Ingredient[]> {
   try {
     const snapshot = await getDocs(ingredientsCollection);
     if (snapshot.empty) {
-      console.log("No ingredients found in Firestore.");
       return [];
     }
     return snapshot.docs.map(doc => ({
@@ -534,16 +539,97 @@ export async function getAllIngredients(): Promise<Ingredient[]> {
   }
 }
 
+// Fetch a single ingredient by ID
+export async function getIngredientById(id: string): Promise<Ingredient | null> {
+    try {
+        const ingredientDocRef = doc(db, 'ingredients', id);
+        const ingredientSnap = await getDoc(ingredientDocRef);
+
+        if (!ingredientSnap.exists()) {
+            console.warn(`Ingredient with ID ${id} not found.`);
+            return null;
+        }
+
+        const ingredientData = ingredientSnap.data() as Omit<Ingredient, 'id'>;
+        const allNutrients = getNutrients();
+        const nutrientsMap = new Map(allNutrients.map(n => [n.id, n]));
+        
+        if (ingredientData.compositions) {
+            ingredientData.compositions = ingredientData.compositions.map(comp => ({
+                ...comp,
+                nutrient: nutrientsMap.get(comp.nutrientId)
+            }));
+        }
+
+        return {
+            id: ingredientSnap.id,
+            ...ingredientData,
+        };
+
+    } catch (error) {
+        console.error("Error fetching ingredient by ID:", error);
+        return null;
+    }
+}
+
+
+// Save (Create/Update) an ingredient
+export async function saveIngredient(
+  ingredientData: z.infer<typeof IngredientFormSchema>,
+  ingredientId?: string
+) {
+  const validation = IngredientFormSchema.safeParse(ingredientData);
+
+  if (!validation.success) {
+      return { success: false, errors: validation.error.flatten().fieldErrors };
+  }
+
+  try {
+    const { key_benefits, applications, ...rest } = validation.data;
+    const ingredientPayload = {
+      ...rest,
+      key_benefits: key_benefits?.split(',').map(s => s.trim()).filter(Boolean) || [],
+      applications: applications?.split(',').map(s => s.trim()).filter(Boolean) || [],
+    };
+    
+    if (ingredientId) {
+      const ingredientRef = doc(db, 'ingredients', ingredientId);
+      await updateDoc(ingredientRef, ingredientPayload);
+    } else {
+      await addDoc(ingredientsCollection, { ...ingredientPayload, compositions: [] });
+    }
+
+    revalidatePath('/admin/ingredients');
+    revalidatePath(`/admin/ingredients/${ingredientId || ''}`);
+
+    return { success: true };
+  } catch (error) {
+    console.error('Error saving ingredient:', error);
+    return { success: false, errors: { _server: ['Failed to save ingredient to the database.'] } };
+  }
+}
+
+export async function deleteIngredient(ingredientId: string) {
+    // Optional: Check if any products are using this ingredient before deleting
+    try {
+        await deleteDoc(doc(db, "ingredients", ingredientId));
+        revalidatePath('/admin/ingredients');
+        return { success: true };
+    } catch (error) {
+        console.error('Error deleting ingredient:', error);
+        return { success: false, error: 'Failed to delete ingredient.' };
+    }
+}
+
+
 // Fetch all products and populate their ingredient data
 export async function getAllProducts(): Promise<Product[]> {
   try {
     const productsSnapshot = await getDocs(productsCollection);
     if (productsSnapshot.empty) {
-      console.log("No products found in Firestore.");
       return [];
     }
     
-    // Fetch all ingredients first to avoid multiple reads in a loop
     const ingredients = await getAllIngredients();
     const ingredientsMap = new Map(ingredients.map(i => [i.id, i]));
 
@@ -622,74 +708,30 @@ export async function getProductById(id: string): Promise<Product | null> {
 // Save (Create/Update) a product
 export async function saveProduct(
   productData: z.infer<typeof ProductFormSchema>,
-  ingredientData: z.infer<typeof IngredientFormSchema>,
   productId?: string,
-  ingredientId?: string
 ) {
-  const productValidation = ProductFormSchema.safeParse(productData);
-  const ingredientValidation = IngredientFormSchema.safeParse(ingredientData);
+  const validation = ProductFormSchema.safeParse(productData);
 
-  if (!productValidation.success) {
-      return { success: false, errors: { _server: ["Product data is invalid."] }};
+  if (!validation.success) {
+      return { success: false, errors: validation.error.flatten().fieldErrors };
   }
   
-  if (!productData.ingredientId && !ingredientValidation.success) {
-      return { success: false, errors: { _server: ["Ingredient data is invalid."] }};
-  }
-
-  const batch = writeBatch(db);
-
   try {
-    let currentIngredientId = productData.ingredientId || ingredientId;
-
-    // Create or Update Ingredient only if no ingredient was selected from dropdown
-    if (!productData.ingredientId) {
-        const validatedIngredientData = ingredientValidation.data;
-        const compositions = product?.ingredient?.compositions || aiCompositions;
-        const ingredientPayload = {
-            name: validatedIngredientData.name,
-            category: validatedIngredientData.category,
-            description: validatedIngredientData.description,
-            key_benefits: validatedIngredientData.key_benefits?.split(',').map(s => s.trim()).filter(Boolean) || [],
-            applications: validatedIngredientData.applications?.split(',').map(s => s.trim()).filter(Boolean) || [],
-            compositions: compositions,
-        };
-        
-        if (currentIngredientId) {
-            // Update existing ingredient if editing a product that already had one
-            const ingredientRef = doc(db, 'ingredients', currentIngredientId);
-            batch.update(ingredientRef, ingredientPayload);
-        } else {
-            // Create new ingredient
-            const newIngredientRef = doc(collection(db, 'ingredients'));
-            batch.set(newIngredientRef, ingredientPayload);
-            currentIngredientId = newIngredientRef.id;
-        }
-    }
-    
-    if (!currentIngredientId) {
-        return { success: false, errors: { _server: ["Ingredient could not be determined."]}};
-    }
-
+    const { certifications, ...rest } = validation.data;
     const finalProductData = {
-      ...productValidation.data,
-      ingredientId: currentIngredientId,
-      certifications: productValidation.data.certifications?.split(',').map(s => s.trim()).filter(Boolean) || [],
+      ...rest,
+      certifications: certifications?.split(',').map(s => s.trim()).filter(Boolean) || [],
     };
 
-    // Create or Update Product
     if (productId) {
       const productRef = doc(db, 'products', productId);
-      batch.update(productRef, finalProductData);
+      await updateDoc(productRef, finalProductData);
     } else {
-      const newProductRef = doc(collection(db, 'products'));
-      batch.set(newProductRef, {
+      await addDoc(productsCollection, {
         ...finalProductData,
         featured: finalProductData.featured || false,
       });
     }
-
-    await batch.commit();
 
     revalidatePath('/admin/products');
     revalidatePath(`/admin/products/${productId || ''}`);
@@ -732,13 +774,10 @@ export async function updateIngredientCompositions(
 ) {
     try {
         const ingredientRef = doc(db, 'ingredients', ingredientId);
-        // We only need to store the nutrientId and value, not the full nutrient object
         const compositionsToStore = compositions.map(({ nutrient, ...rest }) => rest);
         await updateDoc(ingredientRef, { compositions: compositionsToStore });
+        revalidatePath(`/admin/ingredients/${ingredientId}/edit`);
         revalidatePath(`/admin/products`);
-        // We need to revalidate the specific product page, but we don't have the product ID here.
-        // A broader revalidation might be necessary, or we pass the product ID down.
-        // For now, revalidating the list is a good start.
         return { success: true };
     } catch (error) {
         console.error('Error updating ingredient compositions:', error);

@@ -19,6 +19,7 @@ import {
   X,
   ShoppingCart,
   ShoppingBag,
+  FlaskConical,
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -37,6 +38,7 @@ export default function DashboardLayout({
     { path: '/admin', label: 'Dashboard', icon: Home },
     { path: '/admin/stock', label: 'Stock Management', icon: Package },
     { path: '/admin/products', label: 'Products', icon: Package },
+    { path: '/admin/ingredients', label: 'Ingredients', icon: FlaskConical },
     { path: '/admin/assets', label: 'Assets', icon: ImageIcon },
     { path: '/admin/blog', label: 'Blog', icon: FileText },
     { path: '/admin/users', label: 'Users', icon: Users },

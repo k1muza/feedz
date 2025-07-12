@@ -5,7 +5,6 @@ import { getProductById } from '@/app/actions';
 import { notFound } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Product } from '@/types';
-import { NutrientCompositionManager } from '@/components/admin/NutrientCompositionManager';
 
 export default function EditProductPage({ params }: { params: { id: string } }) {
   const [product, setProduct] = useState<Product | null>(null);
