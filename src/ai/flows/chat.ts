@@ -28,25 +28,25 @@ export async function chatWithSalesAgent(input: ChatInput): Promise<ChatOutput> 
 }
 
 const getProductInfoTool = ai.defineTool(
-    {
-      name: 'getProductInfo',
-      description: 'Get information about available feed products, including ingredients, nutritional information, and pricing.',
-      outputSchema: z.any(),
-    },
-    async () => {
-      const products = await getAllProducts();
-      // Simplify the data to be more token-friendly for the LLM
-      return products.map(p => ({
-          id: p.id,
-          name: p.ingredient?.name,
-          category: p.ingredient?.category,
-          description: p.ingredient?.description,
-          price: p.price,
-          moq: p.moq,
-          key_benefits: p.ingredient?.key_benefits,
-          applications: p.ingredient?.applications,
-      }));
-    }
+  {
+    name: 'getProductInfo',
+    description: 'Get information about available feed products, including ingredients, nutritional information, and pricing.',
+    outputSchema: z.any(),
+  },
+  async () => {
+    const products = await getAllProducts();
+    // Simplify the data to be more token-friendly for the LLM
+    return products.map(p => ({
+      id: p.id,
+      name: p.ingredient?.name,
+      category: p.ingredient?.category,
+      description: p.ingredient?.description,
+      price: p.price,
+      moq: p.moq,
+      key_benefits: p.ingredient?.key_benefits,
+      applications: p.ingredient?.applications,
+    }));
+  }
 );
 
 
@@ -70,18 +70,20 @@ const chatFlow = ai.defineFlow(
     outputSchema: ChatOutputSchema,
   },
   async (input) => {
-    const validHistory = (input.history || [])
-      .filter((m): m is { role: 'user' | 'model'; content: string } =>
-        m !== undefined && typeof m.content === 'string'
-      )
-      .map(m => ({ role: m.role, content: m.content }));
+    console.log('Chat input:', input);
 
-    const { text } = await ai.generate({
-        model: 'googleai/gemini-2.0-flash',
-        system: systemPrompt,
-        history: validHistory,
-        tools: [getProductInfoTool],
-    });
+    const args = {
+      model: 'googleai/gemini-2.0-flash',
+      system: systemPrompt,
+      messages: input.history.map(msg => ({
+        role: msg.role,
+        content: [{ text: msg.content }],
+      })),
+      tools: [getProductInfoTool],
+    }
+    console.log('AI args:', args);
+
+    const { text } = await ai.generate(args);
     return text;
   }
 );
