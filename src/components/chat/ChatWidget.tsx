@@ -2,12 +2,13 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Bot, MessageSquare, Send, X, Loader2, User } from 'lucide-react';
+import { MessageSquare, Send, X, Bot, User } from 'lucide-react';
 import { Conversation, Message } from '@/types/chat';
 import { startOrGetConversation, addMessage } from '@/app/actions';
 import { Timestamp } from 'firebase/firestore';
 import ReactMarkdown from 'react-markdown';
 import { cn } from '@/lib/utils';
+import Image from 'next/image';
 
 export function ChatWidget() {
   const [isOpen, setIsOpen] = useState(false);
@@ -19,7 +20,18 @@ export function ChatWidget() {
   useEffect(() => {
     const initChat = async () => {
       const storedId = localStorage.getItem('conversationId');
-      const convo = await startOrGetConversation(storedId || undefined);
+      let convo = await startOrGetConversation(storedId || undefined);
+
+      // Seed conversation with a welcome message if it's new
+      if (!storedId && convo.messages.length === 0) {
+        const welcomeMessage: Message = {
+          role: 'model',
+          content: "Hi there! I'm Feedy, your friendly AI assistant. How can I help you with your animal nutrition needs today?",
+          timestamp: Timestamp.now(),
+        };
+        convo.messages.push(welcomeMessage);
+      }
+
       setConversation(convo);
       if (!storedId) {
         localStorage.setItem('conversationId', convo.id);
@@ -61,7 +73,7 @@ export function ChatWidget() {
       <div className="fixed bottom-5 right-5 z-50">
         <motion.button
           onClick={() => setIsOpen(!isOpen)}
-          className="bg-green-600 text-white p-4 rounded-full shadow-lg hover:bg-green-700 transition-colors"
+          className="bg-[#A3B18A] text-white p-4 rounded-full shadow-lg hover:bg-[#8F9A78] transition-colors"
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.9 }}
         >
@@ -75,16 +87,19 @@ export function ChatWidget() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 20 }}
-            className="fixed bottom-20 right-5 w-full max-w-sm h-[70vh] bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 flex flex-col z-50 overflow-hidden"
+            className="fixed bottom-20 right-5 w-full max-w-sm h-[70vh] bg-[#F5F5DC] rounded-xl shadow-2xl border border-gray-200 flex flex-col z-50 overflow-hidden"
           >
             {/* Header */}
-            <header className="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center space-x-3 bg-gray-50 dark:bg-gray-800">
-              <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-full">
-                <Bot className="w-6 h-6 text-green-600 dark:text-green-400" />
+            <header className="p-4 border-b border-gray-200/50 flex items-center space-x-3 bg-white/50 backdrop-blur-sm">
+              <div className="relative w-10 h-10">
+                <Image src="/images/ai-avatar.png" alt="Feedy Avatar" fill className="rounded-full" />
               </div>
               <div>
-                <h3 className="font-bold text-gray-900 dark:text-white">FeedSport AI Assistant</h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400">Your nutrition & sales expert</p>
+                <h3 className="font-bold text-gray-900">Feedy</h3>
+                <p className="text-sm text-gray-500 flex items-center">
+                    <span className="w-2 h-2 rounded-full bg-green-500 mr-1.5"></span>
+                    Online
+                </p>
               </div>
             </header>
 
@@ -93,51 +108,55 @@ export function ChatWidget() {
               {conversation?.messages.map((message, index) => (
                 <div key={index} className={cn("flex items-start gap-3", message.role === 'user' ? 'justify-end' : 'justify-start')}>
                   {message.role === 'model' && (
-                    <div className="w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center flex-shrink-0">
-                      <Bot className="w-5 h-5 text-green-600 dark:text-green-400" />
+                    <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center flex-shrink-0">
+                      <Image src="/images/ai-avatar.png" alt="Feedy Avatar" width={32} height={32} className="rounded-full" />
                     </div>
                   )}
                   <div className={cn(
-                    "p-3 rounded-lg max-w-xs prose prose-sm dark:prose-invert",
-                    message.role === 'user' ? 'bg-blue-500 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200'
+                    "p-3 rounded-lg max-w-xs prose prose-sm",
+                    message.role === 'user' ? 'bg-[#A3B18A] text-white' : 'bg-white text-gray-800'
                   )}>
                     <ReactMarkdown>{message.content}</ReactMarkdown>
                   </div>
                   {message.role === 'user' && (
-                    <div className="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center flex-shrink-0">
-                      <User className="w-5 h-5 text-gray-500 dark:text-gray-300" />
+                    <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0">
+                      <User className="w-5 h-5 text-gray-500" />
                     </div>
                   )}
                 </div>
               ))}
               {isLoading && (
-                 <div className="flex items-start gap-3 justify-start">
-                    <div className="w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center flex-shrink-0">
-                      <Bot className="w-5 h-5 text-green-600 dark:text-green-400" />
+                 <motion.div 
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="flex items-start gap-3 justify-start"
+                 >
+                    <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center flex-shrink-0">
+                      <Image src="/images/ai-avatar.png" alt="Feedy Avatar" width={32} height={32} className="rounded-full" />
                     </div>
-                    <div className="p-3 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200">
-                        <Loader2 className="w-5 h-5 animate-spin"/>
+                    <div className="p-3 rounded-lg bg-white text-gray-500 text-sm italic">
+                        Feedy is typing...
                     </div>
-                </div>
+                </motion.div>
               )}
               <div ref={messagesEndRef} />
             </div>
 
             {/* Input */}
-            <form onSubmit={handleSubmit} className="p-4 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+            <form onSubmit={handleSubmit} className="p-4 border-t border-gray-200/50 bg-white">
               <div className="relative">
                 <input
                   type="text"
                   value={newMessage}
                   onChange={(e) => setNewMessage(e.target.value)}
                   placeholder="Ask about products or advice..."
-                  className="w-full pr-12 p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500 focus:outline-none"
+                  className="w-full pr-12 p-3 border border-gray-300 rounded-lg bg-gray-50 text-gray-900 focus:ring-2 focus:ring-[#A3B18A] focus:outline-none"
                   disabled={isLoading}
                 />
                 <button
                   type="submit"
                   disabled={isLoading || !newMessage.trim()}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-green-600 text-white hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-[#D18935] text-white hover:bg-[#B8742D] disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
                 >
                   <Send size={18} />
                 </button>
