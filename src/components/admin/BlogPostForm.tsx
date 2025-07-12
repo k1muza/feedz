@@ -1,7 +1,7 @@
 'use client';
 
 import { BlogPost } from '@/types';
-import { Save, Image as ImageIcon } from 'lucide-react';
+import { Save, Image as ImageIcon, AlertCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { useForm, SubmitHandler } from 'react-hook-form';
@@ -10,9 +10,8 @@ import Image from 'next/image';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { saveBlogPost } from '@/app/actions';
-import { useToast } from '@/hooks/use-toast';
+import { useToast } from '../ui/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
-import { AlertCircle } from 'lucide-react';
 
 interface BlogPostFormProps {
   post?: BlogPost;
@@ -23,7 +22,7 @@ const BlogFormSchema = z.object({
   category: z.string().min(1, 'Category is required'),
   excerpt: z.string().min(1, 'Excerpt is required'),
   content: z.string().min(1, 'Content is required'),
-  image: z.string().url('Must be a valid URL'),
+  image: z.string().url('A valid featured image URL is required'),
 });
 
 type FormValues = z.infer<typeof BlogFormSchema>;
@@ -68,9 +67,15 @@ export const BlogPostForm = ({ post }: BlogPostFormProps) => {
         description: `Post has been ${post ? 'updated' : 'published'}.`,
       });
       router.push('/admin/blog');
-      router.refresh(); // Refresh to show new data
+      router.refresh();
     } else {
-      setServerError(result.errors?._server?.[0] || 'An unknown error occurred.');
+      // Handle server-side validation errors if any
+      if (result.errors) {
+        // You can enhance this part to set individual field errors with setError
+        setServerError(Object.values(result.errors).flat().join(', '));
+      } else {
+         setServerError('An unknown error occurred.');
+      }
     }
   };
 
@@ -81,27 +86,38 @@ export const BlogPostForm = ({ post }: BlogPostFormProps) => {
 
   return (
     <>
-      <div className="flex mb-4 justify-between">
-        <h1 className="text-2xl font-bold text-white mb-6">Create New Blog Post</h1>
-        <div className="flex justify-end space-x-3">
-          <button
-            type="button"
-            onClick={() => router.back()}
-            className="px-4 py-2 border border-gray-600 hover:bg-gray-700 rounded-lg transition-colors"
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg flex items-center space-x-2 transition-colors disabled:bg-gray-500"
-          >
-            <Save className="w-4 h-4" />
-            <span>{isSubmitting ? 'Saving...' : (post ? 'Save Changes' : 'Publish Post')}</span>
-          </button>
-        </div>
-      </div>
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
+        <div className="flex mb-4 justify-between items-center">
+            <h1 className="text-2xl font-bold text-white">
+                {post ? 'Edit Blog Post' : 'Create New Blog Post'}
+            </h1>
+            <div className="flex justify-end space-x-3">
+            <button
+                type="button"
+                onClick={() => router.back()}
+                className="px-4 py-2 border border-gray-600 hover:bg-gray-700 rounded-lg transition-colors"
+            >
+                Cancel
+            </button>
+            <button
+                type="submit"
+                disabled={isSubmitting}
+                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg flex items-center space-x-2 transition-colors disabled:bg-gray-500 disabled:cursor-not-allowed"
+            >
+                <Save className="w-4 h-4" />
+                <span>{isSubmitting ? 'Saving...' : (post ? 'Save Changes' : 'Publish Post')}</span>
+            </button>
+            </div>
+        </div>
+
+        {serverError && (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Server Error</AlertTitle>
+            <AlertDescription>{serverError}</AlertDescription>
+          </Alert>
+        )}
+        
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Left Column: Main Content */}
           <div className="lg:col-span-2 space-y-6">
@@ -205,14 +221,6 @@ export const BlogPostForm = ({ post }: BlogPostFormProps) => {
             </div>
           </div>
         </div>
-        
-        {serverError && (
-          <Alert variant="destructive">
-            <AlertCircle className="h-4 w-4" />
-            <AlertTitle>Server Error</AlertTitle>
-            <AlertDescription>{serverError}</AlertDescription>
-          </Alert>
-        )}
       </form>
 
       <AssetSelectionModal

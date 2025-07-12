@@ -19,6 +19,7 @@ export const BlogManagement = () => {
 
   useEffect(() => {
     const fetchPosts = async () => {
+      setLoading(true);
       const allPosts = await getAllBlogPosts();
       setPosts(allPosts);
       setLoading(false);
@@ -27,7 +28,11 @@ export const BlogManagement = () => {
   }, []);
 
   if (loading) {
-    return <div>Loading posts...</div>
+    return (
+        <div className="text-center text-gray-400">
+            Loading posts...
+        </div>
+    )
   }
 
   return (

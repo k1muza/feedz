@@ -16,7 +16,7 @@ import {
 } from 'firebase/firestore';
 import { revalidatePath } from 'next/cache';
 import { db } from '@/lib/firebase';
-import { BlogPost, BlogPostSchema } from '@/types';
+import { BlogPost } from '@/types';
 import { z } from 'zod';
 import { S3Client, PutObjectCommand, ListObjectsV2Command, DeleteObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
@@ -100,7 +100,6 @@ export async function listS3Assets(): Promise<S3Asset[]> {
 }
 
 export async function deleteS3Asset(key: string) {
-  console.log(key)
   const command = new DeleteObjectCommand({
     Bucket: process.env.AWS_S3_BUCKET_NAME!,
     Key: key,
@@ -132,26 +131,36 @@ const BlogFormSchema = z.object({
 
 // Fetch all posts
 export async function getAllBlogPosts(): Promise<BlogPost[]> {
-  const snapshot = await getDocs(postsCollection);
-  if (snapshot.empty) {
+  try {
+    const snapshot = await getDocs(postsCollection);
+    if (snapshot.empty) {
+      return [];
+    }
+    return snapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...(doc.data() as Omit<BlogPost, 'id'>),
+    }));
+  } catch (error) {
+    console.error("Error fetching blog posts:", error);
     return [];
   }
-  return snapshot.docs.map((doc) => ({
-    id: doc.id,
-    ...(doc.data() as Omit<BlogPost, 'id'>),
-  }));
 }
 
 // Fetch a single post by slug
 export async function getPostBySlug(slug: string): Promise<BlogPost | null> {
-  const q = query(postsCollection, where('slug', '==', slug), limit(1));
-  const snapshot = await getDocs(q);
+  try {
+    const q = query(postsCollection, where('slug', '==', slug), limit(1));
+    const snapshot = await getDocs(q);
 
-  if (snapshot.empty) {
+    if (snapshot.empty) {
+      return null;
+    }
+    const doc = snapshot.docs[0];
+    return { id: doc.id, ...(doc.data() as Omit<BlogPost, 'id'>) };
+  } catch (error) {
+    console.error(`Error fetching post by slug ${slug}:`, error);
     return null;
   }
-  const doc = snapshot.docs[0];
-  return { id: doc.id, ...(doc.data() as Omit<BlogPost, 'id'>) };
 }
 
 // Create or Update a blog post
@@ -177,7 +186,7 @@ export async function saveBlogPost(
     author: {
         name: 'Admin User',
         role: 'Site Administrator',
-        image: '/images/authors/doctor.png'
+        image: 'https://placehold.co/100x100.png'
     },
     date: new Date().toISOString(),
     readingTime: `${Math.ceil(validation.data.content.split(' ').length / 200)} min read`,
