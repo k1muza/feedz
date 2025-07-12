@@ -2,7 +2,7 @@
 'use client';
 
 import { Product, ProductCategory, Composition, Nutrient } from '@/types';
-import { Save, ImageIcon, AlertCircle, Sparkles, Loader2 } from 'lucide-react';
+import { Save, ImageIcon, AlertCircle, Sparkles, Loader2, Star, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { useForm, SubmitHandler } from 'react-hook-form';
@@ -84,7 +84,7 @@ export const ProductForm = ({ product }: ProductFormProps) => {
       }
   });
 
-  const featuredImage = watch('images')?.[0];
+  const images = watch('images') || [];
 
   const handleAiGeneration = async () => {
     const productName = getValues('name');
@@ -169,10 +169,29 @@ export const ProductForm = ({ product }: ProductFormProps) => {
       }
   };
 
-  const handleImageSelect = (imageSrc: string) => {
-    setValue('images', [imageSrc], { shouldValidate: true, shouldDirty: true });
+  const handleImageSelect = (selectedImages: string[]) => {
+    const currentImages = getValues('images') || [];
+    const newImages = [...currentImages, ...selectedImages];
+    const uniqueImages = Array.from(new Set(newImages)); // Ensure no duplicates
+    setValue('images', uniqueImages, { shouldValidate: true, shouldDirty: true });
     setIsModalOpen(false);
   };
+  
+  const setAsFeatured = (index: number) => {
+    const currentImages = getValues('images');
+    if (index > 0 && index < currentImages.length) {
+        const itemToMove = currentImages[index];
+        const remainingItems = currentImages.filter((_, i) => i !== index);
+        setValue('images', [itemToMove, ...remainingItems], { shouldValidate: true, shouldDirty: true });
+    }
+  };
+
+  const removeImage = (index: number) => {
+    const currentImages = getValues('images');
+    const newImages = currentImages.filter((_, i) => i !== index);
+    setValue('images', newImages, { shouldValidate: true, shouldDirty: true });
+  };
+
 
   return (
     <>
@@ -299,12 +318,32 @@ export const ProductForm = ({ product }: ProductFormProps) => {
                     </div>
               </div>
               <div className="bg-gray-800/50 border border-gray-700 rounded-xl p-6">
-                  <label className="block text-sm font-medium text-gray-300">Product Image</label>
-                  <div className="mt-2">
-                      {featuredImage ? (
-                          <div className="relative aspect-square w-full rounded-md overflow-hidden border-2 border-dashed border-gray-600">
-                              <Image src={featuredImage} alt="Product Image" fill className="object-cover" />
+                  <label className="block text-sm font-medium text-gray-300">Product Images</label>
+                  <div className="mt-2 space-y-4">
+                      {images.length > 0 ? (
+                        <>
+                          <div className="relative aspect-square w-full rounded-md overflow-hidden border-2 border-indigo-500">
+                            <Image src={images[0]} alt="Featured Product Image" fill className="object-cover" />
+                            <div className="absolute top-1 right-1 bg-indigo-600 text-white text-xs px-2 py-1 rounded-full flex items-center gap-1">
+                                <Star className="w-3 h-3"/> Featured
+                            </div>
                           </div>
+                          <div className="grid grid-cols-4 gap-2">
+                             {images.slice(1).map((image, index) => (
+                                <div key={image} className="relative group aspect-square">
+                                    <Image src={image} alt={`Product image ${index + 2}`} fill className="object-cover rounded-md"/>
+                                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1">
+                                        <button type="button" onClick={() => setAsFeatured(index + 1)} className="p-1.5 bg-yellow-500 text-white rounded-full hover:bg-yellow-400" title="Set as featured">
+                                            <Star className="w-3 h-3"/>
+                                        </button>
+                                        <button type="button" onClick={() => removeImage(index + 1)} className="p-1.5 bg-red-600 text-white rounded-full hover:bg-red-500" title="Remove image">
+                                            <Trash2 className="w-3 h-3"/>
+                                        </button>
+                                    </div>
+                                </div>
+                             ))}
+                          </div>
+                        </>
                       ) : (
                           <div className="flex justify-center items-center aspect-square w-full border-2 border-gray-600 border-dashed rounded-md">
                               <ImageIcon className="h-12 w-12 text-gray-500" />
@@ -316,7 +355,7 @@ export const ProductForm = ({ product }: ProductFormProps) => {
                           className="mt-2 w-full px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg flex items-center justify-center space-x-2 transition-colors"
                       >
                           <ImageIcon className="w-4 h-4" />
-                          <span>{featuredImage ? 'Change Image' : 'Select Image'}</span>
+                          <span>{images.length > 0 ? 'Add More' : 'Select'} Images</span>
                       </button>
                       {errors.images && <p className="text-red-500 text-xs mt-1">{errors.images.message}</p>}
                   </div>
@@ -328,6 +367,7 @@ export const ProductForm = ({ product }: ProductFormProps) => {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onSelect={handleImageSelect}
+        multiple={true}
       />
     </>
   );

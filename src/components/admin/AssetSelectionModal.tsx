@@ -7,18 +7,20 @@ import Image from "next/image";
 import { S3Asset, listS3Assets } from "@/app/actions";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ImageUpload } from "./ImageUpload";
+import { Button } from "../ui/button";
 
 
 interface AssetSelectionModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSelect: (src: string) => void;
+  onSelect: (srcs: string[]) => void;
+  multiple?: boolean;
 }
 
-export const AssetSelectionModal = ({ isOpen, onClose, onSelect }: AssetSelectionModalProps) => {
+export const AssetSelectionModal = ({ isOpen, onClose, onSelect, multiple = true }: AssetSelectionModalProps) => {
   const [assets, setAssets] = useState<S3Asset[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedAsset, setSelectedAsset] = useState<string | null>(null);
+  const [selectedAssets, setSelectedAssets] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState("choose");
 
   useEffect(() => {
@@ -30,36 +32,48 @@ export const AssetSelectionModal = ({ isOpen, onClose, onSelect }: AssetSelectio
         setLoading(false);
       };
       fetchAssets();
+      setSelectedAssets([]); // Reset selection when modal opens
     }
   }, [isOpen]);
 
   if (!isOpen) return null;
 
   const handleSelect = () => {
-    if (selectedAsset) {
-      onSelect(selectedAsset);
-      onClose(); // Close after selection
+    if (selectedAssets.length > 0) {
+      onSelect(selectedAssets);
+      onClose();
     }
+  };
+  
+  const handleToggleSelection = (url: string) => {
+      setSelectedAssets(prev => {
+        if (!multiple) {
+            return [url];
+        }
+        if (prev.includes(url)) {
+            return prev.filter(item => item !== url);
+        } else {
+            return [...prev, url];
+        }
+      });
   };
 
   const handleUploadSuccess = (newAssetUrl: string) => {
-    // Add the new asset to the list and switch to the choose tab
     const newAsset: S3Asset = {
       key: newAssetUrl.split('/').pop() || 'new-asset',
       url: newAssetUrl,
-      size: 0, // Size is unknown from URL alone
+      size: 0,
       lastModified: new Date(),
     };
     setAssets(prev => [newAsset, ...prev]);
     setActiveTab("choose");
-    setSelectedAsset(newAssetUrl);
+    handleToggleSelection(newAssetUrl);
   }
 
   return (
     <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
       <div className="bg-gray-800 border border-gray-700 rounded-xl w-full max-w-4xl h-[80vh] flex flex-col">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col h-full">
-            {/* Header */}
             <div className="p-4 border-b border-gray-700 flex justify-between items-center flex-shrink-0">
                 <div>
                     <h3 className="text-lg font-medium text-white">Select an Asset</h3>
@@ -73,7 +87,6 @@ export const AssetSelectionModal = ({ isOpen, onClose, onSelect }: AssetSelectio
                 </button>
             </div>
 
-            {/* Content */}
             <div className="flex-grow overflow-y-auto">
                 <TabsContent value="choose" className="p-4 h-full">
                     <div className="relative mb-4">
@@ -95,11 +108,11 @@ export const AssetSelectionModal = ({ isOpen, onClose, onSelect }: AssetSelectio
                             {assets.map((asset) => (
                                 <button 
                                     key={asset.key} 
-                                    onClick={() => setSelectedAsset(asset.url)}
-                                    className={`relative group bg-gray-900 rounded-lg overflow-hidden aspect-square border-2 ${selectedAsset === asset.url ? 'border-indigo-500' : 'border-transparent'}`}
+                                    onClick={() => handleToggleSelection(asset.url)}
+                                    className={`relative group bg-gray-900 rounded-lg overflow-hidden aspect-square border-2 ${selectedAssets.includes(asset.url) ? 'border-indigo-500' : 'border-transparent'}`}
                                 >
                                     <Image src={asset.url} alt={asset.key} fill className="object-cover" sizes="(max-width: 768px) 33vw, 15vw"/>
-                                    {selectedAsset === asset.url && (
+                                    {selectedAssets.includes(asset.url) && (
                                         <div className="absolute inset-0 bg-black/70 flex items-center justify-center">
                                             <CheckCircle className="w-8 h-8 text-indigo-400" />
                                         </div>
@@ -114,18 +127,21 @@ export const AssetSelectionModal = ({ isOpen, onClose, onSelect }: AssetSelectio
                 </TabsContent>
             </div>
 
-            {/* Footer */}
-            <div className="p-4 border-t border-gray-700 flex justify-end space-x-3 flex-shrink-0">
-            <button onClick={onClose} className="px-4 py-2 border border-gray-600 rounded-lg hover:bg-gray-700">
-                Cancel
-            </button>
-            <button
-                onClick={handleSelect}
-                disabled={!selectedAsset || activeTab !== 'choose'}
-                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg disabled:bg-gray-600 disabled:cursor-not-allowed"
-            >
-                Select Image
-            </button>
+            <div className="p-4 border-t border-gray-700 flex justify-between items-center flex-shrink-0">
+                <span className="text-sm text-gray-400">
+                    {selectedAssets.length} image{selectedAssets.length !== 1 ? 's' : ''} selected
+                </span>
+                <div className="flex space-x-3">
+                    <Button onClick={onClose} variant="outline">
+                        Cancel
+                    </Button>
+                    <Button
+                        onClick={handleSelect}
+                        disabled={selectedAssets.length === 0}
+                    >
+                        {`Select ${selectedAssets.length} Image${selectedAssets.length !== 1 ? 's' : ''}`}
+                    </Button>
+                </div>
             </div>
         </Tabs>
       </div>

@@ -2,7 +2,7 @@
 'use client';
 
 import { BlogCategory, BlogPost, User } from '@/types';
-import { Save, Image as ImageIcon, AlertCircle } from 'lucide-react';
+import { Save, ImageIcon, AlertCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { useForm, SubmitHandler } from 'react-hook-form';
@@ -98,8 +98,10 @@ export const BlogPostForm = ({ post }: BlogPostFormProps) => {
     }
   };
 
-  const handleImageSelect = (imageSrc: string) => {
-    setValue('image', imageSrc, { shouldDirty: true, shouldValidate: true });
+  const handleImageSelect = (imageSrc: string[]) => {
+    if (imageSrc.length > 0) {
+        setValue('image', imageSrc[0], { shouldDirty: true, shouldValidate: true });
+    }
     setIsModalOpen(false);
   };
 
@@ -278,6 +280,7 @@ export const BlogPostForm = ({ post }: BlogPostFormProps) => {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onSelect={handleImageSelect}
+        multiple={false}
       />
     </>
   );
