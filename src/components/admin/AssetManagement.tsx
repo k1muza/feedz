@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Plus, Download, MoreHorizontal, Search, Trash2, Copy } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -15,6 +15,10 @@ export const AssetManagement = ({ initialAssets }: { initialAssets: S3Asset[] })
   const [isModalOpen, setIsModalOpen] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
+
+  useEffect(() => {
+    setAssets(initialAssets);
+  }, [initialAssets]);
 
   const handleUploadSuccess = () => {
     setIsModalOpen(false);
