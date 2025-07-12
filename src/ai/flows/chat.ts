@@ -68,10 +68,16 @@ const chatFlow = ai.defineFlow(
     outputSchema: ChatOutputSchema,
   },
   async (input) => {
+    const validHistory = (input.history || [])
+      .filter((m): m is { role: 'user' | 'model'; content: string } =>
+        m !== undefined && typeof m.content === 'string'
+      )
+      .map(m => ({ role: m.role, content: m.content }));
+
     const { text } = await ai.generate({
         model: 'googleai/gemini-2.0-flash',
         system: systemPrompt,
-        history: input.history,
+        history: validHistory,
         tools: [getProductInfoTool],
     });
     return text;
