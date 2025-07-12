@@ -77,7 +77,7 @@ export async function getSignedS3Url(filename: string, contentType: string, size
     });
     
     // Construct the CloudFront URL
-    const cloudfrontUrl = `${process.env.NEXT_PUBLIC_CLOUDFRONT_DOMAIN}/${filename}`;
+    const cloudfrontUrl = `https://${process.env.NEXT_PUBLIC_CLOUDFRONT_DOMAIN}/${filename}`;
 
     return { success: true, signedUrl: signedUrl, assetUrl: cloudfrontUrl };
   } catch (error) {
@@ -107,7 +107,7 @@ export async function listS3Assets(): Promise<S3Asset[]> {
             .filter(item => item.Key && item.Size && item.Size > 0) // Filter out empty objects/folders
             .map(item => ({
                 key: item.Key!,
-                url: `${cloudfrontDomain}/${item.Key}`,
+                url: `https://${cloudfrontDomain}/${item.Key}`,
                 size: item.Size || 0,
                 lastModified: item.LastModified || new Date(),
             }))
