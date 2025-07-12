@@ -1,17 +1,30 @@
 'use client';
 
-import { getProductById } from '@/data/products';
+import { getProductById } from '@/app/actions';
 import { notFound } from 'next/navigation';
 import Image from 'next/image';
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
 import { ArrowLeft, Edit } from 'lucide-react';
+import { Product } from '@/types';
+import { useEffect, useState } from 'react';
 
 export default function ProductViewPage({ params }: { params: { id: string } }) {
-  const product = getProductById(params.id);
+  const [product, setProduct] = useState<Product | null>(null);
+
+  useEffect(() => {
+    async function fetchProduct() {
+      const data = await getProductById(params.id);
+      if (!data) {
+        notFound();
+      }
+      setProduct(data);
+    }
+    fetchProduct();
+  }, [params.id]);
 
   if (!product) {
-    notFound();
+    return <div>Loading...</div>;
   }
 
   return (
@@ -79,7 +92,7 @@ export default function ProductViewPage({ params }: { params: { id: string } }) 
                 <div>
                     <h3 className="text-md font-semibold text-white mb-2">Certifications</h3>
                      <div className="flex flex-wrap gap-2">
-                        {product.certifications.map(cert => (
+                        {product.certifications?.map(cert => (
                             <Badge key={cert} variant="secondary" className="bg-gray-700 text-gray-300 border-gray-600">{cert}</Badge>
                         ))}
                     </div>
@@ -90,7 +103,7 @@ export default function ProductViewPage({ params }: { params: { id: string } }) 
                     <div className="border border-gray-700 rounded-lg overflow-hidden">
                         <table className="min-w-full divide-y divide-gray-700">
                             <tbody className="divide-y divide-gray-700">
-                                {product.ingredient?.compositions.slice(0, 5).map(comp => (
+                                {product.ingredient?.compositions?.slice(0, 5).map(comp => (
                                     <tr key={comp.nutrient?.id} className="hover:bg-gray-700/50">
                                         <td className="px-4 py-2 text-sm font-medium text-gray-300">{comp.nutrient?.name}</td>
                                         <td className="px-4 py-2 text-sm text-gray-400">{comp.value}{comp.nutrient?.unit}</td>

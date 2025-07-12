@@ -1,7 +1,7 @@
 import SecondaryHero from '@/components/common/SecondaryHero';
 import CategoryFilter from '@/components/products/CategoryFilter';
 import IngredientCard from '@/components/products/IngredientCard';
-import { getProducts } from '@/data/products';
+import { getAllProducts } from '@/app/actions';
 import { Metadata } from 'next';
 
 export const metadata: Metadata = {
@@ -12,8 +12,8 @@ export const metadata: Metadata = {
   },
 };
 
-export default function ProductsPage() {
-  const products = getProducts();
+export default async function ProductsPage() {
+  const products = await getAllProducts();
   return (
     <>
       <SecondaryHero
@@ -27,8 +27,8 @@ export default function ProductsPage() {
         {/* Products Grid */}
         <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mt-12 max-w-7xl mx-auto" aria-labelledby="products-heading">
           <h2 id="products-heading" className="sr-only">Product List</h2>
-          {products.map((ingredient) => (
-            <IngredientCard key={ingredient.id} product={ingredient} />
+          {products.map((product) => (
+            <IngredientCard key={product.id} product={product} />
           ))}
         </section>
       </main>

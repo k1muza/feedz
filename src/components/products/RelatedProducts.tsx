@@ -1,10 +1,9 @@
-import { getProducts } from '../../data/products';
+import { getAllProducts } from '@/app/actions';
 import ProductCard from './ProductCard';
 
 async function getRelatedProducts(category: string, excludeId: string) {
-  // In a real app, fetch from API
-
-  return getProducts().filter(
+  const products = await getAllProducts();
+  return products.filter(
     product => product.ingredient?.category === category && product.id !== excludeId
   ).slice(0, 4);
 }

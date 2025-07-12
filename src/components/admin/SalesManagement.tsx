@@ -1,5 +1,5 @@
 import { ShoppingCart, Plus, Download, Search, Filter, X } from "lucide-react";
-import { Product, getProducts, updateStock } from "@/data/products";
+import { Product } from "@/types";
 
 interface Sale {
   id: string;
@@ -14,7 +14,6 @@ export const SalesManagement = () => {
     const sales: Sale[] = [
         { id: 'INV-2023-0123', customer: 'Green Valley Farms', date: '2023-05-18', total: 7200, status: 'Paid', items: [{productId: 'soy-48', quantity: 5, productName: 'Soybean Meal'}] },
     ];
-    const products = getProducts();
 
   return (
     <div className="space-y-6">

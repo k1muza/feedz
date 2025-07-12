@@ -1,24 +1,31 @@
 'use client';
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Package, Plus, Download, Edit2, History, ChevronDown, ChevronUp, X, Check, Minus } from "lucide-react";
-import { Product, getProducts, updateStock } from "@/data/products";
+import { Product } from "@/types";
+import { updateProductStock } from "@/app/actions";
+import { useRouter } from "next/navigation";
 
-export const StockManagement = () => {
-  const [inventory, setInventory] = useState<Product[]>(getProducts());
+export const StockManagement = ({ initialProducts }: { initialProducts: Product[] }) => {
+  const [inventory, setInventory] = useState<Product[]>(initialProducts);
   const [sortConfig, setSortConfig] = useState<{key: keyof Product; direction: 'asc' | 'desc'} | null>(null);
   const [showStockForm, setShowStockForm] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [adjustment, setAdjustment] = useState<{type: 'add' | 'remove', amount: number}>({ type: 'add', amount: 0 });
+  const router = useRouter();
 
-  const handleStockUpdate = () => {
+  useEffect(() => {
+    setInventory(initialProducts);
+  }, [initialProducts]);
+
+  const handleStockUpdate = async () => {
     if (selectedProduct && adjustment.amount > 0) {
       const newStock = adjustment.type === 'add' 
         ? selectedProduct.stock + adjustment.amount 
         : selectedProduct.stock - adjustment.amount;
       
-      updateStock(selectedProduct.id, newStock);
-      setInventory(getProducts());
+      await updateProductStock(selectedProduct.id, newStock);
+      router.refresh();
       setShowStockForm(false);
       setSelectedProduct(null);
       setAdjustment({ type: 'add', amount: 0 });

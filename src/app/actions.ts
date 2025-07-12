@@ -15,10 +15,11 @@ import {
   query,
   where,
   limit,
+  writeBatch,
 } from 'firebase/firestore';
 import { revalidatePath } from 'next/cache';
 import { db } from '@/lib/firebase';
-import { BlogPost, BlogCategory, User } from '@/types';
+import { BlogPost, BlogCategory, User, Product, Ingredient } from '@/types';
 import { z } from 'zod';
 import { S3Client, PutObjectCommand, ListObjectsV2Command, DeleteObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
@@ -392,4 +393,196 @@ export async function deleteUser(userId: string) {
     console.error('Error deleting user:', error);
     return { success: false, error: 'Failed to delete user.' };
   }
+}
+
+
+// --- PRODUCT & INGREDIENT ACTIONS ---
+
+const productsCollection = collection(db, 'products');
+const ingredientsCollection = collection(db, 'ingredients');
+
+// Schemas for validation
+const IngredientFormSchema = z.object({
+  name: z.string().min(1, 'Ingredient name is required.'),
+  category: z.string().min(1, 'Category is required.'),
+  description: z.string().min(1, 'Description is required.'),
+  // compositions, key_benefits, applications can be added here if needed
+});
+
+const ProductFormSchema = z.object({
+  ingredientId: z.string().min(1, 'An ingredient must be linked.'),
+  packaging: z.string().min(1, 'Packaging information is required.'),
+  price: z.number().positive('Price must be a positive number.'),
+  moq: z.number().positive('MOQ must be a positive number.'),
+  stock: z.number().min(0, 'Stock cannot be negative.'),
+  certifications: z.array(z.string()).optional(),
+  images: z.array(z.string().url()).min(1, 'At least one image is required.'),
+  shipping: z.string().optional(),
+  featured: z.boolean().optional(),
+});
+
+
+// Fetch all ingredients
+export async function getAllIngredients(): Promise<Ingredient[]> {
+  try {
+    const snapshot = await getDocs(ingredientsCollection);
+    if (snapshot.empty) {
+      console.log("No ingredients found in Firestore.");
+      return [];
+    }
+    return snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...(doc.data() as Omit<Ingredient, 'id'>)
+    }));
+  } catch (error) {
+    console.error("Error fetching ingredients:", error);
+    return [];
+  }
+}
+
+// Fetch all products and populate their ingredient data
+export async function getAllProducts(): Promise<Product[]> {
+  try {
+    const productsSnapshot = await getDocs(productsCollection);
+    if (productsSnapshot.empty) {
+      console.log("No products found in Firestore.");
+      return [];
+    }
+    
+    // Fetch all ingredients first to avoid multiple reads in a loop
+    const ingredients = await getAllIngredients();
+    const ingredientsMap = new Map(ingredients.map(i => [i.id, i]));
+
+    return productsSnapshot.docs.map(doc => {
+      const productData = doc.data() as Omit<Product, 'id'>;
+      return {
+        id: doc.id,
+        ...productData,
+        ingredient: ingredientsMap.get(productData.ingredientId)
+      };
+    });
+  } catch (error) {
+    console.error("Error fetching products:", error);
+    return [];
+  }
+}
+
+// Fetch a single product by ID
+export async function getProductById(id: string): Promise<Product | null> {
+    try {
+        const productDocRef = doc(db, 'products', id);
+        const productSnap = await getDoc(productDocRef);
+
+        if (!productSnap.exists()) {
+            console.warn(`Product with ID ${id} not found.`);
+            return null;
+        }
+
+        const productData = productSnap.data() as Omit<Product, 'id'>;
+
+        const ingredientDocRef = doc(db, 'ingredients', productData.ingredientId);
+        const ingredientSnap = await getDoc(ingredientDocRef);
+        
+        const ingredientData = ingredientSnap.exists() 
+            ? { id: ingredientSnap.id, ...ingredientSnap.data() } as Ingredient
+            : undefined;
+
+        return {
+            id: productSnap.id,
+            ...productData,
+            ingredient: ingredientData
+        };
+
+    } catch (error) {
+        console.error("Error fetching product by ID:", error);
+        return null;
+    }
+}
+
+// Save (Create/Update) a product
+export async function saveProduct(
+  productData: z.infer<typeof ProductFormSchema>,
+  ingredientData: z.infer<typeof IngredientFormSchema>,
+  productId?: string,
+  ingredientId?: string,
+) {
+  const productValidation = ProductFormSchema.safeParse(productData);
+  const ingredientValidation = IngredientFormSchema.safeParse(ingredientData);
+
+  if (!productValidation.success || !ingredientValidation.success) {
+    return {
+      success: false,
+      errors: {
+        product: productValidation.success ? null : productValidation.error.flatten().fieldErrors,
+        ingredient: ingredientValidation.success ? null : ingredientValidation.error.flatten().fieldErrors,
+      }
+    };
+  }
+
+  const batch = writeBatch(db);
+
+  try {
+    let currentIngredientId = ingredientId || productData.ingredientId;
+
+    // Create or Update Ingredient
+    if (currentIngredientId) {
+      // Update existing ingredient
+      const ingredientRef = doc(db, 'ingredients', currentIngredientId);
+      batch.update(ingredientRef, ingredientValidation.data);
+    } else {
+      // Create new ingredient
+      const newIngredientRef = doc(collection(db, 'ingredients'));
+      batch.set(newIngredientRef, ingredientValidation.data);
+      currentIngredientId = newIngredientRef.id;
+    }
+
+    const finalProductData = {
+      ...productValidation.data,
+      ingredientId: currentIngredientId,
+    };
+
+    // Create or Update Product
+    if (productId) {
+      const productRef = doc(db, 'products', productId);
+      batch.update(productRef, finalProductData);
+    } else {
+      const newProductRef = doc(collection(db, 'products'));
+      batch.set(newProductRef, finalProductData);
+    }
+
+    await batch.commit();
+
+    revalidatePath('/admin/products');
+    revalidatePath(`/admin/products/${productId || ''}`);
+    revalidatePath('/products');
+
+    return { success: true };
+  } catch (error) {
+    console.error('Error saving product:', error);
+    return { success: false, errors: { _server: ['Failed to save product to the database.'] } };
+  }
+}
+
+export async function deleteProduct(productId: string) {
+    try {
+        await deleteDoc(doc(db, "products", productId));
+        revalidatePath('/admin/products');
+        return { success: true };
+    } catch (error) {
+        console.error('Error deleting product:', error);
+        return { success: false, error: 'Failed to delete product.' };
+    }
+}
+
+export async function updateProductStock(productId: string, newStock: number) {
+    try {
+        const productRef = doc(db, "products", productId);
+        await updateDoc(productRef, { stock: newStock });
+        revalidatePath('/admin/stock');
+        revalidatePath('/admin/products');
+        return { success: true };
+    } catch (error) {
+        console.error('Error updating stock:', error);
+        return { success: false, error: 'Failed to update stock.' };
+    }
 }

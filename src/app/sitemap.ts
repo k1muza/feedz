@@ -1,5 +1,5 @@
 import { MetadataRoute } from 'next';
-import { getProducts } from '@/data/products';
+import { getAllProducts } from '@/app/actions';
 import { getAllBlogPosts } from '@/app/actions';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
@@ -22,7 +22,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   }));
 
   // Dynamic product pages
-  const products = getProducts();
+  const products = await getAllProducts();
   const productRoutes = products.map((product) => ({
     url: `${baseUrl}/products/${product.id}`,
     lastModified: new Date(), // In a real app, this would be the product's last updated date

@@ -1,5 +1,5 @@
 import { ShoppingBag, Plus, Download, Search, Filter, X } from "lucide-react";
-import { Product, getProducts, updateStock } from "@/data/products";
+import { Product } from "@/types";
 
 interface PurchaseOrder {
   id: string;
@@ -14,7 +14,6 @@ export const PurchasesManagement = () => {
   const purchases: PurchaseOrder[] = [
     { id: 'PO-2023-001', supplier: 'AgriCorp', date: '2023-05-20', total: 12500, status: 'Completed', items: [{productId: 'en-cg', quantity: 10, productName: 'Corn, grain, yellow'}] },
   ];
-  const products = getProducts();
 
   return (
     <div className="space-y-6">

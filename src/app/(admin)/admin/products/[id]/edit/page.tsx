@@ -1,20 +1,35 @@
 'use client';
 
 import { ProductForm } from '@/components/admin/ProductForm';
-import { getProductById } from '@/data/products';
+import { getProductById } from '@/app/actions';
 import { notFound } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import { Product } from '@/types';
 
 export default function EditProductPage({ params }: { params: { id: string } }) {
-  const product = getProductById(params.id);
+  const [product, setProduct] = useState<Product | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  if (!product) {
-    notFound();
+  useEffect(() => {
+    async function fetchProduct() {
+      const fetchedProduct = await getProductById(params.id);
+      if (!fetchedProduct) {
+        notFound();
+      }
+      setProduct(fetchedProduct);
+      setLoading(false);
+    }
+    fetchProduct();
+  }, [params.id]);
+
+  if (loading) {
+    return <div>Loading product...</div>;
   }
 
   return (
     <div>
       <h1 className="text-2xl font-bold text-white mb-6">Edit Product</h1>
-      <ProductForm product={product} />
+      {product && <ProductForm product={product} />}
     </div>
   );
 }

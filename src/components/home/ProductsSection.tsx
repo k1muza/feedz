@@ -3,13 +3,25 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { FaInfoCircle } from 'react-icons/fa';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
-import { getFeaturedProducts } from '@/data/products';
+import { getAllProducts } from '@/app/actions';
 import { Composition, Product } from '@/types';
 
 export default function ProductsSection() {
-  const allFeaturedProducts = getFeaturedProducts();
+  const [allFeaturedProducts, setAllFeaturedProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchProducts() {
+      const products = await getAllProducts();
+      const featured = products.filter(p => p.featured);
+      setAllFeaturedProducts(featured);
+      setLoading(false);
+    }
+    fetchProducts();
+  }, []);
+
   const [activeCategory, setActiveCategory] = useState<string>('all');
 
   const categories = [
@@ -20,6 +32,10 @@ export default function ProductsSection() {
   const filteredProducts = activeCategory === 'all'
     ? allFeaturedProducts
     : allFeaturedProducts.filter(p => p.ingredient?.category === activeCategory);
+
+  if (loading) {
+    return <div>Loading products...</div>
+  }
 
   return (
     <section className="py-16 bg-white" id="products">
@@ -67,7 +83,7 @@ export default function ProductsSection() {
                   className="object-contain p-4"
                   sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
                 />
-                {product.certifications.length > 0 && (
+                {product.certifications?.length > 0 && (
                   <div className="absolute top-2 right-2 flex gap-1">
                     {product.certifications.map((cert) => (
                       <span
@@ -99,7 +115,7 @@ export default function ProductsSection() {
                     <span>Key Specs</span>
                   </h4>
                   <ul className="space-y-1 text-sm">
-                    {product.ingredient?.compositions.slice(0, 4).map((composition: Composition, index: number) => (
+                    {product.ingredient?.compositions?.slice(0, 4).map((composition: Composition, index: number) => (
                       <li key={index} className="flex justify-between">
                         <span className="text-gray-500 capitalize">{composition.nutrient?.name}:</span>
                         <span className="font-medium">{composition.value}{composition.nutrient?.unit}</span>

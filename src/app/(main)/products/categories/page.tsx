@@ -1,6 +1,6 @@
 
 import SecondaryHero from '@/components/common/SecondaryHero';
-import { getProducts } from '@/data/products';
+import { getAllProducts } from '@/app/actions';
 import Link from 'next/link';
 import { FaSeedling, FaBolt, FaGem, FaVial, FaPagelines, FaLeaf } from 'react-icons/fa';
 
@@ -38,8 +38,8 @@ const categoryDetails: { [key: string]: { icon: React.ReactNode; description: st
 };
 
 
-export default function CategoriesPage() {
-    const products = getProducts();
+export default async function CategoriesPage() {
+    const products = await getAllProducts();
     const categories = Array.from(new Set(products.map(p => p.ingredient?.category).filter(Boolean))) as string[];
 
     return (

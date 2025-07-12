@@ -1,4 +1,6 @@
-import { Plus, Download, MoreHorizontal, Search, Filter, Edit, Trash2, Eye } from "lucide-react";
+'use client';
+
+import { Plus, Download, MoreHorizontal, Search, Filter, Edit, Trash2, Eye, Loader2 } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -7,12 +9,68 @@ import {
 } from "@/components/ui/dropdown-menu";
 import Link from "next/link";
 import Image from "next/image";
-import { getProducts } from "@/data/products";
+import { Product } from "@/types";
+import { useState, useEffect } from "react";
+import { deleteProduct } from "@/app/actions";
+import { useRouter } from "next/navigation";
+import { useToast } from "../ui/use-toast";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 
-export const ProductsManagement = () => {
-  const products = getProducts();
+export const ProductsManagement = ({ initialProducts }: { initialProducts: Product[] }) => {
+  const [products, setProducts] = useState<Product[]>(initialProducts);
+  const [loading, setLoading] = useState(true);
+  const [productToDelete, setProductToDelete] = useState<Product | null>(null);
+  const [isAlertOpen, setIsAlertOpen] = useState(false);
+  const router = useRouter();
+  const { toast } = useToast();
+
+  useEffect(() => {
+    setProducts(initialProducts);
+    setLoading(false);
+  }, [initialProducts]);
+
+  const confirmDelete = (product: Product) => {
+    setProductToDelete(product);
+    setIsAlertOpen(true);
+  };
+
+  const handleDelete = async () => {
+    if (!productToDelete) return;
+
+    const result = await deleteProduct(productToDelete.id);
+
+    if (result.success) {
+      toast({
+        title: "Product Deleted",
+        description: `Successfully deleted ${productToDelete.ingredient?.name}.`,
+      });
+      router.refresh();
+    } else {
+      toast({
+        title: "Deletion Failed",
+        description: result.error,
+        variant: 'destructive',
+      });
+    }
+    setIsAlertOpen(false);
+    setProductToDelete(null);
+  };
+
+  if (loading) {
+    return <div className="text-center p-8"><Loader2 className="w-6 h-6 animate-spin inline-block"/> Loading products...</div>
+  }
 
   return (
+    <>
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -107,7 +165,7 @@ export const ProductsManagement = () => {
                             <Edit className="w-4 h-4" /> Edit
                           </Link>
                         </DropdownMenuItem>
-                        <DropdownMenuItem className="flex items-center gap-2 text-red-400 cursor-pointer focus:bg-red-900/50 focus:text-red-300">
+                        <DropdownMenuItem onClick={() => confirmDelete(product)} className="flex items-center gap-2 text-red-400 cursor-pointer focus:bg-red-900/50 focus:text-red-300">
                           <Trash2 className="w-4 h-4" /> Delete
                         </DropdownMenuItem>
                       </DropdownMenuContent>
@@ -120,5 +178,23 @@ export const ProductsManagement = () => {
         </div>
       </div>
     </div>
+    <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the product
+              <code className="font-mono bg-gray-700 rounded-sm px-1 mx-1">{productToDelete?.ingredient?.name}</code>.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-500">
+              Yes, delete product
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 };

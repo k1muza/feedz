@@ -1,19 +1,20 @@
 
 import SecondaryHero from '@/components/common/SecondaryHero';
 import ProductCard from '@/components/products/ProductCard';
-import { getProducts } from '@/data/products';
+import { getAllProducts } from '@/app/actions';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 
 export async function generateStaticParams() {
-    const products = getProducts();
+    const products = await getAllProducts();
     const categories = Array.from(new Set(products.map(p => p.ingredient?.category).filter(Boolean)));
     return categories.map(slug => ({ slug }));
 }
 
-export default function CategoryPage({ params }: { params: { slug: string } }) {
+export default async function CategoryPage({ params }: { params: { slug: string } }) {
     const { slug } = params;
-    const products = getProducts().filter(p => p.ingredient?.category === slug);
+    const allProducts = await getAllProducts();
+    const products = allProducts.filter(p => p.ingredient?.category === slug);
 
     if (products.length === 0) {
         notFound();
@@ -46,4 +47,3 @@ export default function CategoryPage({ params }: { params: { slug: string } }) {
         </>
     );
 }
-

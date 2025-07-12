@@ -5,7 +5,7 @@ import ImageGallery from '@/components/products/ImageGallery';
 import RelatedProducts from '@/components/products/RelatedProducts';
 import Link from 'next/link';
 
-import { getProductById, getProducts } from '@/data/products';
+import { getProductById, getAllProducts } from '@/app/actions';
 import { TechnicalSpecs } from '@/components/products/TechnicalSpecs';
 import SecondaryHero from '@/components/common/SecondaryHero';
 
@@ -52,7 +52,8 @@ export async function generateMetadata(
 }
 
 export async function generateStaticParams() {
-  return getProducts().map(product => ({ id: product.id }));
+  const products = await getAllProducts();
+  return products.map(product => ({ id: product.id }));
 }
 
 export default async function Page({ params }: { params: { id: string } }) {
@@ -138,10 +139,10 @@ export default async function Page({ params }: { params: { id: string } }) {
                 <div className="flex items-center mb-4">
                   {product.ingredient?.category && (
                     <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded mr-2">
-                      {product.ingredient?.category.replace('-', ' ')}
+                      {product.ingredient.category.replace('-', ' ')}
                     </span>
                   )}
-                  {product.certifications.map(cert => (
+                  {product.certifications?.map(cert => (
                     <span key={cert} className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded mr-2">
                       {cert}
                     </span>
