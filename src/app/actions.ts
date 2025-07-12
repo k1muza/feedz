@@ -44,7 +44,7 @@ export async function getSignedS3Url(filename: string, contentType: string, size
   }
 
   const putObjectCommand = new PutObjectCommand({
-    Bucket: process.env.AWS_BUCKET_NAME!,
+    Bucket: process.env.AWS_S3_BUCKET_NAME!,
     Key: filename,
     ContentType: contentType,
     ContentLength: size,
@@ -63,7 +63,7 @@ export async function getSignedS3Url(filename: string, contentType: string, size
 
 export async function listS3Assets(): Promise<S3Asset[]> {
     const command = new ListObjectsV2Command({
-        Bucket: process.env.AWS_BUCKET_NAME!,
+        Bucket: process.env.AWS_S3_BUCKET_NAME!,
         MaxKeys: 50, // Limit results for now
     });
 
@@ -73,11 +73,14 @@ export async function listS3Assets(): Promise<S3Asset[]> {
             return [];
         }
 
+        const bucketName = process.env.AWS_S3_BUCKET_NAME;
+        const bucketRegion = process.env.AWS_BUCKET_REGION;
+
         const assets: S3Asset[] = Contents
             .filter(item => item.Key && item.Size && item.Size > 0) // Filter out empty objects/folders
             .map(item => ({
                 key: item.Key!,
-                url: `https://${process.env.AWS_BUCKET_NAME}.s3.${process.env.AWS_BUCKET_REGION}.amazonaws.com/${item.Key}`,
+                url: `https://${bucketName}.s3.${bucketRegion}.amazonaws.com/${item.Key}`,
                 size: item.Size || 0,
                 lastModified: item.LastModified || new Date(),
             }))
