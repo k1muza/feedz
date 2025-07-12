@@ -30,6 +30,17 @@ export type Author = {
   bio?: string;
 };
 
+export type User = {
+    id: string;
+    name: string;
+    email: string;
+    role: 'Administrator' | 'Editor' | 'Viewer';
+    image: string;
+    bio: string;
+    lastActive: string;
+};
+
+
 export type BlogCategory = {
   id: string;
   name: string;
