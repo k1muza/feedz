@@ -1,3 +1,4 @@
+
 'use client';
 
 import { getProductById } from '@/app/actions';
@@ -8,18 +9,20 @@ import Link from 'next/link';
 import { ArrowLeft, Edit } from 'lucide-react';
 import { Product } from '@/types';
 import { useEffect, useState } from 'react';
+import { NutrientCompositionManager } from '@/components/admin/NutrientCompositionManager';
 
 export default function ProductViewPage({ params }: { params: { id: string } }) {
   const [product, setProduct] = useState<Product | null>(null);
 
-  useEffect(() => {
-    async function fetchProduct() {
-      const data = await getProductById(params.id);
-      if (!data) {
-        notFound();
-      }
-      setProduct(data);
+  const fetchProduct = async () => {
+    const data = await getProductById(params.id);
+    if (!data) {
+      notFound();
     }
+    setProduct(data);
+  };
+
+  useEffect(() => {
     fetchProduct();
   }, [params.id]);
 
@@ -116,6 +119,14 @@ export default function ProductViewPage({ params }: { params: { id: string } }) 
             </div>
         </div>
       </div>
+      
+      {product.ingredientId && product.ingredient && (
+          <NutrientCompositionManager 
+            ingredientId={product.ingredientId}
+            initialCompositions={product.ingredient.compositions}
+            onCompositionChange={fetchProduct} // Re-fetch product data on change
+          />
+      )}
     </div>
   );
 }

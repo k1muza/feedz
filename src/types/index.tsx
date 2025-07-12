@@ -1,5 +1,6 @@
 
 
+
 import { z } from "zod";
 
 export type TechnicalSpecs = {
@@ -96,7 +97,7 @@ export interface TargetNutrient extends Nutrient {
 
 export type Composition = {
     value: number;
-    nutrientId: number | string;
+    nutrientId: string;
     basis?: string;
     table?: string;
     nutrient?: Nutrient;

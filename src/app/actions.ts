@@ -1,4 +1,5 @@
 
+
 'use server';
 
 import { config } from 'dotenv';
@@ -19,12 +20,13 @@ import {
 } from 'firebase/firestore';
 import { revalidatePath } from 'next/cache';
 import { db } from '@/lib/firebase';
-import { BlogPost, BlogCategory, User, Product, Ingredient, ProductCategory } from '@/types';
+import { BlogPost, BlogCategory, User, Product, Ingredient, ProductCategory, Composition } from '@/types';
 import { z } from 'zod';
 import { S3Client, PutObjectCommand, ListObjectsV2Command, DeleteObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { RecommendIngredientCombinationsInput, RecommendIngredientCombinationsOutput, recommendIngredientCombinations } from '@/ai/flows/recommend-ingredient-combinations';
 import { generateProductDetails, GenerateProductDetailsInput, GenerateProductDetailsOutput } from '@/ai/flows/generate-product-details';
+import { getNutrients } from '@/data/nutrients';
 
 const s3Client = new S3Client({
   region: process.env.AWS_BUCKET_REGION!,
@@ -539,12 +541,24 @@ export async function getAllProducts(): Promise<Product[]> {
     const ingredients = await getAllIngredients();
     const ingredientsMap = new Map(ingredients.map(i => [i.id, i]));
 
+    const allNutrients = getNutrients();
+    const nutrientsMap = new Map(allNutrients.map(n => [n.id, n]));
+
     return productsSnapshot.docs.map(doc => {
       const productData = doc.data() as Omit<Product, 'id'>;
+      const ingredient = ingredientsMap.get(productData.ingredientId);
+      
+      if (ingredient) {
+          ingredient.compositions = ingredient.compositions.map(comp => ({
+              ...comp,
+              nutrient: nutrientsMap.get(comp.nutrientId)
+          }));
+      }
+      
       return {
         id: doc.id,
         ...productData,
-        ingredient: ingredientsMap.get(productData.ingredientId)
+        ingredient: ingredient
       };
     });
   } catch (error) {
@@ -565,13 +579,26 @@ export async function getProductById(id: string): Promise<Product | null> {
         }
 
         const productData = productSnap.data() as Omit<Product, 'id'>;
+        let ingredientData: Ingredient | undefined = undefined;
 
-        const ingredientDocRef = doc(db, 'ingredients', productData.ingredientId);
-        const ingredientSnap = await getDoc(ingredientDocRef);
-        
-        const ingredientData = ingredientSnap.exists() 
-            ? { id: ingredientSnap.id, ...ingredientSnap.data() } as Ingredient
-            : undefined;
+        if (productData.ingredientId) {
+            const ingredientDocRef = doc(db, 'ingredients', productData.ingredientId);
+            const ingredientSnap = await getDoc(ingredientDocRef);
+            
+            if (ingredientSnap.exists()) {
+                ingredientData = { id: ingredientSnap.id, ...ingredientSnap.data() } as Ingredient;
+                
+                const allNutrients = getNutrients();
+                const nutrientsMap = new Map(allNutrients.map(n => [n.id, n]));
+                
+                if (ingredientData.compositions) {
+                    ingredientData.compositions = ingredientData.compositions.map(comp => ({
+                        ...comp,
+                        nutrient: nutrientsMap.get(comp.nutrientId)
+                    }));
+                }
+            }
+        }
 
         return {
             id: productSnap.id,
@@ -584,6 +611,7 @@ export async function getProductById(id: string): Promise<Product | null> {
         return null;
     }
 }
+
 
 // Save (Create/Update) a product
 export async function saveProduct(
@@ -683,5 +711,25 @@ export async function updateProductStock(productId: string, newStock: number) {
     } catch (error) {
         console.error('Error updating stock:', error);
         return { success: false, error: 'Failed to update stock.' };
+    }
+}
+
+export async function updateIngredientCompositions(
+    ingredientId: string,
+    compositions: Composition[]
+) {
+    try {
+        const ingredientRef = doc(db, 'ingredients', ingredientId);
+        // We only need to store the nutrientId and value, not the full nutrient object
+        const compositionsToStore = compositions.map(({ nutrient, ...rest }) => rest);
+        await updateDoc(ingredientRef, { compositions: compositionsToStore });
+        revalidatePath(`/admin/products`);
+        // We need to revalidate the specific product page, but we don't have the product ID here.
+        // A broader revalidation might be necessary, or we pass the product ID down.
+        // For now, revalidating the list is a good start.
+        return { success: true };
+    } catch (error) {
+        console.error('Error updating ingredient compositions:', error);
+        return { success: false, error: 'Failed to update compositions.' };
     }
 }
