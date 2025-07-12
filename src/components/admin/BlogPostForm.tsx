@@ -75,7 +75,7 @@ export const BlogPostForm = ({ post }: BlogPostFormProps) => {
   };
 
   const handleImageSelect = (imageSrc: string) => {
-    setValue('image', imageSrc, { shouldDirty: true });
+    setValue('image', imageSrc, { shouldDirty: true, shouldValidate: true });
     setIsModalOpen(false);
   };
 
