@@ -8,8 +8,21 @@ import Player from '@/components/common/Player';
 import { Button } from '@/components/ui/button';
 import Footer from '@/components/common/Footer';
 import NavBar from '@/components/common/NavBar';
+import { useEffect, useState } from 'react';
+import { getProductCategories } from './actions';
+import { ProductCategory } from '@/types';
 
 export default function NotFound() {
+  const [categories, setCategories] = useState<ProductCategory[]>([]);
+
+  useEffect(() => {
+    async function fetchCategories() {
+      const productCategories = await getProductCategories();
+      setCategories(productCategories);
+    }
+    fetchCategories();
+  }, []);
+
   return (
     <>
       <NavBar />
@@ -65,7 +78,7 @@ export default function NotFound() {
           </motion.div>
         </div>
       </main>
-      <Footer />
+      <Footer productCategories={categories}/>
     </>
   );
 }
