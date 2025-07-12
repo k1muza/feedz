@@ -70,7 +70,6 @@ const chatFlow = ai.defineFlow(
     outputSchema: ChatOutputSchema,
   },
   async (input) => {
-    console.log('Chat input:', input);
 
     const args = {
       model: 'googleai/gemini-2.0-flash',
@@ -81,7 +80,6 @@ const chatFlow = ai.defineFlow(
       })),
       tools: [getProductInfoTool],
     }
-    console.log('AI args:', args);
 
     const { text } = await ai.generate(args);
     return text;
