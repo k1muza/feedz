@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
@@ -73,7 +74,7 @@ export function ChatWidget() {
       <div className="fixed bottom-5 right-5 z-50">
         <motion.button
           onClick={() => setIsOpen(!isOpen)}
-          className="bg-[#A3B18A] text-white p-4 rounded-full shadow-lg hover:bg-[#8F9A78] transition-colors"
+          className="bg-green-600 text-white p-4 rounded-full shadow-lg hover:bg-green-700 transition-colors"
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.9 }}
         >
@@ -87,16 +88,16 @@ export function ChatWidget() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 20 }}
-            className="fixed bottom-20 right-5 w-full max-w-sm h-[70vh] bg-[#F5F5DC] rounded-xl shadow-2xl border border-gray-200 flex flex-col z-50 overflow-hidden"
+            className="fixed bottom-20 right-5 w-full max-w-sm h-[70vh] bg-gray-800/50 rounded-xl shadow-2xl border border-gray-700 flex flex-col z-50 overflow-hidden backdrop-blur-lg"
           >
             {/* Header */}
-            <header className="p-4 border-b border-gray-200/50 flex items-center space-x-3 bg-white/50 backdrop-blur-sm">
+            <header className="p-4 border-b border-gray-700/50 flex items-center space-x-3 bg-gray-800/70">
               <div className="relative w-10 h-10">
                 <Image src="/images/ai-avatar.png" alt="Feedy Avatar" fill className="rounded-full" />
               </div>
               <div>
-                <h3 className="font-bold text-gray-900">Feedy</h3>
-                <p className="text-sm text-gray-500 flex items-center">
+                <h3 className="font-bold text-white">Feedy</h3>
+                <p className="text-sm text-gray-400 flex items-center">
                     <span className="w-2 h-2 rounded-full bg-green-500 mr-1.5"></span>
                     Online
                 </p>
@@ -108,19 +109,19 @@ export function ChatWidget() {
               {conversation?.messages.map((message, index) => (
                 <div key={index} className={cn("flex items-start gap-3", message.role === 'user' ? 'justify-end' : 'justify-start')}>
                   {message.role === 'model' && (
-                    <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center flex-shrink-0">
+                    <div className="w-8 h-8 rounded-full bg-indigo-500/20 flex items-center justify-center flex-shrink-0">
                       <Image src="/images/ai-avatar.png" alt="Feedy Avatar" width={32} height={32} className="rounded-full" />
                     </div>
                   )}
                   <div className={cn(
-                    "p-3 rounded-lg max-w-xs prose prose-sm",
-                    message.role === 'user' ? 'bg-[#A3B18A] text-white' : 'bg-white text-gray-800'
+                    "p-3 rounded-lg max-w-lg prose prose-invert prose-sm",
+                    message.role === 'user' ? 'bg-gray-700' : 'bg-gray-900/80'
                   )}>
                     <ReactMarkdown>{message.content}</ReactMarkdown>
                   </div>
                   {message.role === 'user' && (
-                    <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0">
-                      <User className="w-5 h-5 text-gray-500" />
+                    <div className="w-8 h-8 rounded-full bg-gray-600/50 flex items-center justify-center flex-shrink-0">
+                      <User className="w-5 h-5 text-gray-300" />
                     </div>
                   )}
                 </div>
@@ -131,10 +132,10 @@ export function ChatWidget() {
                     animate={{ opacity: 1, y: 0 }}
                     className="flex items-start gap-3 justify-start"
                  >
-                    <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center flex-shrink-0">
+                    <div className="w-8 h-8 rounded-full bg-indigo-500/20 flex items-center justify-center flex-shrink-0">
                       <Image src="/images/ai-avatar.png" alt="Feedy Avatar" width={32} height={32} className="rounded-full" />
                     </div>
-                    <div className="p-3 rounded-lg bg-white text-gray-500 text-sm italic">
+                    <div className="p-3 rounded-lg bg-gray-900/80 text-gray-400 text-sm italic">
                         Feedy is typing...
                     </div>
                 </motion.div>
@@ -143,20 +144,20 @@ export function ChatWidget() {
             </div>
 
             {/* Input */}
-            <form onSubmit={handleSubmit} className="p-4 border-t border-gray-200/50 bg-white">
+            <form onSubmit={handleSubmit} className="p-4 border-t border-gray-700/50 bg-gray-800">
               <div className="relative">
                 <input
                   type="text"
                   value={newMessage}
                   onChange={(e) => setNewMessage(e.target.value)}
                   placeholder="Ask about products or advice..."
-                  className="w-full pr-12 p-3 border border-gray-300 rounded-lg bg-gray-50 text-gray-900 focus:ring-2 focus:ring-[#A3B18A] focus:outline-none"
+                  className="w-full pr-12 p-3 border border-gray-600 rounded-lg bg-gray-700 text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
                   disabled={isLoading}
                 />
                 <button
                   type="submit"
                   disabled={isLoading || !newMessage.trim()}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-[#D18935] text-white hover:bg-[#B8742D] disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-indigo-600 text-white hover:bg-indigo-500 disabled:bg-gray-500 disabled:cursor-not-allowed transition-colors"
                 >
                   <Send size={18} />
                 </button>
@@ -168,3 +169,4 @@ export function ChatWidget() {
     </>
   );
 }
+
