@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useEffect } from "react";
-import { Plus, Download, MoreHorizontal, Search, Trash2, Copy } from "lucide-react";
+import { Plus, Search, Trash2, Copy } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { S3Asset, deleteS3Asset } from "@/app/actions";
@@ -54,7 +54,9 @@ export const AssetManagement = ({ initialAssets }: { initialAssets: S3Asset[] })
   };
 
   const handleDelete = async () => {
+    console.log('handleDelete')
     if (!assetToDelete) return;
+    console.log(assetToDelete)
 
     const result = await deleteS3Asset(assetToDelete.key);
 

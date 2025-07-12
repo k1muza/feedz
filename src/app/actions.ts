@@ -100,6 +100,7 @@ export async function listS3Assets(): Promise<S3Asset[]> {
 }
 
 export async function deleteS3Asset(key: string) {
+  console.log(key)
   const command = new DeleteObjectCommand({
     Bucket: process.env.AWS_S3_BUCKET_NAME!,
     Key: key,
