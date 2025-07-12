@@ -76,7 +76,7 @@ const chatFlow = ai.defineFlow(
       .map(m => ({ role: m.role, content: m.content }));
 
     const { text } = await ai.generate({
-        model: 'googleai/gemini-2.0-flash',
+        model: 'googleai/gemini-1.5-flash',
         system: systemPrompt,
         history: validHistory,
         tools: [getProductInfoTool],
