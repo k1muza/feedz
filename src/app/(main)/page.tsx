@@ -1,10 +1,11 @@
-'use client';
 
 import { motion } from 'framer-motion';
-import { FaFlask, FaLeaf, FaShieldAlt, FaArrowRight } from 'react-icons/fa';
+import { FaArrowRight } from 'react-icons/fa';
+import { FaFlask, FaLeaf, FaShieldHalved } from 'react-icons/fa6';
 import Link from 'next/link';
 import Image from 'next/image';
 import ProductsSection from '@/components/home/ProductsSection';
+import { getAllProducts } from '@/app/actions';
 
 const cardVariants = {
   offscreen: {
@@ -28,7 +29,10 @@ const categoryData = [
     { name: 'Minerals & Additives', description: 'Essential nutrients for health and vitality.', icon: <FaLeaf/>, href: '/products/categories/minerals' },
 ];
 
-export default function IngredientsPage() {
+export default async function IngredientsPage() {
+  const allProducts = await getAllProducts();
+  const featuredProducts = allProducts.filter(p => p.featured);
+
   return (
     <main className="bg-gray-50 text-gray-800">
       {/* Hero Section */}
@@ -118,14 +122,14 @@ export default function IngredientsPage() {
                 <p>Our ingredients are backed by research to ensure optimal nutrient bioavailability and efficacy.</p>
             </div>
             <div className="flex flex-col items-center">
-                <div className="text-5xl text-green-500 mb-4"><FaShieldAlt /></div>
+                <div className="text-5xl text-green-500 mb-4"><FaShieldHalved /></div>
                 <h3 className="text-xl font-bold mb-2">Sustainable & Safe</h3>
                 <p>Sourced responsibly to ensure a safe, secure, and sustainable supply chain for your peace of mind.</p>
             </div>
         </div>
       </section>
 
-      <ProductsSection />
+      <ProductsSection products={featuredProducts} />
 
       {/* Final CTA Section */}
       <section className="bg-gray-800 text-white py-20">

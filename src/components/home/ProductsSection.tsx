@@ -5,23 +5,14 @@ import Link from 'next/link';
 import { FaInfoCircle } from 'react-icons/fa';
 import { useState, useEffect } from 'react';
 
-import { getAllProducts } from '@/app/actions';
 import { Composition, Product } from '@/types';
 
-export default function ProductsSection() {
-  const [allFeaturedProducts, setAllFeaturedProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
+interface ProductsSectionProps {
+    products: Product[];
+}
 
-  useEffect(() => {
-    async function fetchProducts() {
-      const products = await getAllProducts();
-      const featured = products.filter(p => p.featured);
-      setAllFeaturedProducts(featured);
-      setLoading(false);
-    }
-    fetchProducts();
-  }, []);
-
+export default function ProductsSection({ products: allFeaturedProducts }: ProductsSectionProps) {
+  const [loading, setLoading] = useState(false);
   const [activeCategory, setActiveCategory] = useState<string>('all');
 
   const categories = [
