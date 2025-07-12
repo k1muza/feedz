@@ -81,6 +81,26 @@ export const BlogPostForm = ({ post }: BlogPostFormProps) => {
 
   return (
     <>
+      <div className="flex mb-4 justify-between">
+        <h1 className="text-2xl font-bold text-white mb-6">Create New Blog Post</h1>
+        <div className="flex justify-end space-x-3">
+          <button
+            type="button"
+            onClick={() => router.back()}
+            className="px-4 py-2 border border-gray-600 hover:bg-gray-700 rounded-lg transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg flex items-center space-x-2 transition-colors disabled:bg-gray-500"
+          >
+            <Save className="w-4 h-4" />
+            <span>{isSubmitting ? 'Saving...' : (post ? 'Save Changes' : 'Publish Post')}</span>
+          </button>
+        </div>
+      </div>
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Left Column: Main Content */}
@@ -193,24 +213,6 @@ export const BlogPostForm = ({ post }: BlogPostFormProps) => {
             <AlertDescription>{serverError}</AlertDescription>
           </Alert>
         )}
-
-        <div className="flex justify-end space-x-3">
-          <button
-            type="button"
-            onClick={() => router.back()}
-            className="px-4 py-2 border border-gray-600 hover:bg-gray-700 rounded-lg transition-colors"
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg flex items-center space-x-2 transition-colors disabled:bg-gray-500"
-          >
-            <Save className="w-4 h-4" />
-            <span>{isSubmitting ? 'Saving...' : (post ? 'Save Changes' : 'Publish Post')}</span>
-          </button>
-        </div>
       </form>
 
       <AssetSelectionModal

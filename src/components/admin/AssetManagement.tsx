@@ -63,6 +63,7 @@ export const AssetManagement = ({ initialAssets }: { initialAssets: S3Asset[] })
         title: "Asset Deleted",
         description: `Successfully deleted ${assetToDelete.key} from S3.`,
       });
+      // Refresh the page to get the updated list of assets
       router.refresh();
     } else {
       toast({
@@ -71,6 +72,7 @@ export const AssetManagement = ({ initialAssets }: { initialAssets: S3Asset[] })
         variant: 'destructive',
       });
     }
+    // Close the dialog
     setAssetToDelete(null);
     setIsAlertOpen(false);
   };
