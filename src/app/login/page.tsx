@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
   getAuth,
@@ -17,7 +17,7 @@ import { getAppSettings, createUserProfile } from '@/app/actions';
 import { AppSettings } from '@/types';
 import { Loader2 } from 'lucide-react';
 
-export default function LoginPage() {
+function LoginComponent() {
   const { user, loading } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -179,4 +179,12 @@ export default function LoginPage() {
       </div>
     </div>
   );
+}
+
+export default function LoginPage() {
+    return (
+        <Suspense fallback={<div className="flex items-center justify-center min-h-screen bg-gray-900"><Loader2 className="w-8 h-8 text-white animate-spin" /></div>}>
+            <LoginComponent />
+        </Suspense>
+    )
 }
