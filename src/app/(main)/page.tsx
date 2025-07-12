@@ -40,7 +40,7 @@ export default function IngredientsPage() {
       >
         <div className="absolute inset-0 z-0">
             <Image
-                src="https://placehold.co/1920x1080.png"
+                src="/images/cattle-1.jpg"
                 alt="Background of various feed ingredients like corn, soy, and wheat"
                 data-ai-hint="grains macro"
                 fill
