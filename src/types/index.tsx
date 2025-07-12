@@ -1,3 +1,4 @@
+
 import { z } from "zod";
 
 export type TechnicalSpecs = {
@@ -27,6 +28,12 @@ export type Author = {
   role: string;
   image: string;
   bio?: string;
+};
+
+export type BlogCategory = {
+  id: string;
+  name: string;
+  slug: string;
 };
 
 export const BlogPostSchema = z.object({

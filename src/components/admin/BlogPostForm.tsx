@@ -1,16 +1,16 @@
 
 'use client';
 
-import { BlogPost } from '@/types';
+import { BlogCategory, BlogPost } from '@/types';
 import { Save, Image as ImageIcon, AlertCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm, SubmitHandler } from 'react-hook-form';
 import { AssetSelectionModal } from './AssetSelectionModal';
 import Image from 'next/image';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { saveBlogPost } from '@/app/actions';
+import { saveBlogPost, getBlogCategories } from '@/app/actions';
 import { useToast } from '../ui/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 
@@ -35,6 +35,15 @@ export const BlogPostForm = ({ post }: BlogPostFormProps) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [categories, setCategories] = useState<BlogCategory[]>([]);
+
+  useEffect(() => {
+    async function fetchCategories() {
+      const fetchedCategories = await getBlogCategories();
+      setCategories(fetchedCategories);
+    }
+    fetchCategories();
+  }, []);
 
   const {
     register,
@@ -174,11 +183,9 @@ export const BlogPostForm = ({ post }: BlogPostFormProps) => {
                   className="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm p-2"
                 >
                   <option value="">Select a category</option>
-                  <option value="Nutrition">Nutrition</option>
-                  <option value="Economics">Economics</option>
-                  <option value="Safety">Safety</option>
-                  <option value="Innovation">Innovation</option>
-                  <option value="Research">Research</option>
+                  {categories.map((cat) => (
+                    <option key={cat.id} value={cat.name}>{cat.name}</option>
+                  ))}
                 </select>
                 {errors.category && (
                   <p className="text-red-500 text-xs mt-1">{errors.category.message}</p>

@@ -11,13 +11,14 @@ import {
   doc,
   getDoc,
   updateDoc,
+  deleteDoc,
   query,
   where,
   limit,
 } from 'firebase/firestore';
 import { revalidatePath } from 'next/cache';
 import { db } from '@/lib/firebase';
-import { BlogPost } from '@/types';
+import { BlogPost, BlogCategory } from '@/types';
 import { z } from 'zod';
 import { S3Client, PutObjectCommand, ListObjectsV2Command, DeleteObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
@@ -120,6 +121,74 @@ export async function deleteS3Asset(key: string) {
 // --- BLOG ACTIONS ---
 
 const postsCollection = collection(db, 'blogPosts');
+const categoriesCollection = collection(db, 'blogCategories');
+
+
+// -- Category Actions --
+
+export async function getBlogCategories(): Promise<BlogCategory[]> {
+  try {
+    const snapshot = await getDocs(query(categoriesCollection));
+    if (snapshot.empty) {
+      return [];
+    }
+    return snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...(doc.data() as Omit<BlogCategory, 'id'>)
+    })).sort((a, b) => a.name.localeCompare(b.name));
+  } catch (error) {
+    console.error("Error fetching blog categories:", error);
+    return [];
+  }
+}
+
+export async function addBlogCategory(name: string) {
+  if (!name || name.trim().length === 0) {
+    return { success: false, error: 'Category name cannot be empty.' };
+  }
+  const slug = name.toLowerCase().replace(/[^a-z0-9\s-]/g, '').trim().replace(/\s+/g, '-');
+  
+  try {
+    await addDoc(categoriesCollection, { name, slug });
+    revalidatePath('/admin/blog');
+    return { success: true };
+  } catch (error) {
+    console.error('Error adding category:', error);
+    return { success: false, error: 'Failed to add category.' };
+  }
+}
+
+export async function updateBlogCategory(id: string, name: string) {
+   if (!name || name.trim().length === 0) {
+    return { success: false, error: 'Category name cannot be empty.' };
+  }
+  try {
+    const categoryRef = doc(db, 'blogCategories', id);
+    await updateDoc(categoryRef, { name });
+    revalidatePath('/admin/blog');
+    return { success: true };
+  } catch (error) {
+    console.error('Error updating category:', error);
+    return { success: false, error: 'Failed to update category.' };
+  }
+}
+
+export async function deleteBlogCategory(id: string) {
+  try {
+    // Optional: Check if any posts are using this category before deleting.
+    // For simplicity, we'll just delete it.
+    const categoryRef = doc(db, 'blogCategories', id);
+    await deleteDoc(categoryRef);
+    revalidatePath('/admin/blog');
+    return { success: true };
+  } catch (error) {
+    console.error('Error deleting category:', error);
+    return { success: false, error: 'Failed to delete category.' };
+  }
+}
+
+
+// -- Post Actions --
 
 // Schema for form data validation
 const BlogFormSchema = z.object({
@@ -195,16 +264,14 @@ export async function saveBlogPost(
     },
     date: new Date().toISOString(),
     readingTime: `${Math.ceil(validation.data.content.split(' ').length / 200)} min read`,
-    featured: false, // Default to not featured on create
   };
 
   try {
     if (postId) {
       const postRef = doc(db, 'blogPosts', postId);
-      const { featured, ...updateData } = postData; // Keep existing featured status on edit
-      await updateDoc(postRef, updateData);
+      await updateDoc(postRef, postData);
     } else {
-      await addDoc(postsCollection, postData);
+      await addDoc(postsCollection, { ...postData, featured: false });
     }
 
     revalidatePath('/blog');
