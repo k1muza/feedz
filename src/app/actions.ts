@@ -18,7 +18,7 @@ import {
 } from 'firebase/firestore';
 import { revalidatePath } from 'next/cache';
 import { db } from '@/lib/firebase';
-import { BlogPost, BlogCategory } from '@/types';
+import { BlogPost, BlogCategory, User } from '@/types';
 import { z } from 'zod';
 import { S3Client, PutObjectCommand, ListObjectsV2Command, DeleteObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
@@ -298,5 +298,87 @@ export async function updatePostFeaturedStatus(postId: string, isFeatured: boole
   } catch (error) {
     console.error('Error updating featured status:', error);
     return { success: false, error: 'Failed to update post.' };
+  }
+}
+
+
+// --- USER ACTIONS ---
+
+const usersCollection = collection(db, 'users');
+
+const UserFormSchema = z.object({
+  name: z.string().min(1, 'Name is required'),
+  email: z.string().email('Invalid email address'),
+  role: z.enum(['Administrator', 'Editor', 'Viewer']),
+  image: z.string().url('A valid image URL is required'),
+  bio: z.string().optional(),
+});
+
+
+export async function getAllUsers(): Promise<User[]> {
+  try {
+    const snapshot = await getDocs(query(usersCollection));
+    if (snapshot.empty) {
+      // Create a default admin user if no users exist
+      const defaultAdmin: Omit<User, 'id'> = {
+        name: 'Admin User',
+        email: 'admin@feedsport.com',
+        role: 'Administrator',
+        image: `https://placehold.co/100x100/6366f1/ffffff?text=A`,
+        bio: 'Default site administrator.',
+        lastActive: new Date().toISOString(),
+      };
+      const docRef = await addDoc(usersCollection, defaultAdmin);
+      return [{ id: docRef.id, ...defaultAdmin }];
+    }
+    return snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...(doc.data() as Omit<User, 'id'>)
+    }));
+  } catch (error) {
+    console.error("Error fetching users:", error);
+    return [];
+  }
+}
+
+export async function saveUser(
+  data: z.infer<typeof UserFormSchema>,
+  userId?: string
+) {
+  const validation = UserFormSchema.safeParse(data);
+  if (!validation.success) {
+    return { success: false, errors: validation.error.flatten().fieldErrors };
+  }
+
+  const userData = {
+    ...validation.data,
+    lastActive: new Date().toISOString(),
+  };
+
+  try {
+    if (userId) {
+      const userRef = doc(db, 'users', userId);
+      await updateDoc(userRef, userData);
+    } else {
+      await addDoc(usersCollection, userData);
+    }
+    revalidatePath('/admin/users');
+    return { success: true };
+  } catch (error) {
+    console.error('Error saving user:', error);
+    return { success: false, errors: { _server: ['Failed to save user.'] } };
+  }
+}
+
+
+export async function deleteUser(userId: string) {
+  try {
+    const userRef = doc(db, 'users', userId);
+    await deleteDoc(userRef);
+    revalidatePath('/admin/users');
+    return { success: true };
+  } catch (error) {
+    console.error('Error deleting user:', error);
+    return { success: false, error: 'Failed to delete user.' };
   }
 }
