@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -35,8 +36,6 @@ export default function DashboardLayout({
   const navItems = [
     { path: '/admin', label: 'Dashboard', icon: Home },
     { path: '/admin/stock', label: 'Stock Management', icon: Package },
-    { path: '/admin/sales', label: 'Sales', icon: ShoppingCart },
-    { path: '/admin/purchases', label: 'Purchases', icon: ShoppingBag },
     { path: '/admin/products', label: 'Products', icon: Package },
     { path: '/admin/assets', label: 'Assets', icon: ImageIcon },
     { path: '/admin/blog', label: 'Blog', icon: FileText },
