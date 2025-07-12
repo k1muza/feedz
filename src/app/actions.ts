@@ -23,6 +23,8 @@ import { BlogPost, BlogCategory, User, Product, Ingredient } from '@/types';
 import { z } from 'zod';
 import { S3Client, PutObjectCommand, ListObjectsV2Command, DeleteObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { RecommendIngredientCombinationsInput, RecommendIngredientCombinationsOutput, recommendIngredientCombinations } from '@/ai/flows/recommend-ingredient-combinations';
+import { generateProductDetails, GenerateProductDetailsInput, GenerateProductDetailsOutput } from '@/ai/flows/generate-product-details';
 
 const s3Client = new S3Client({
   region: process.env.AWS_BUCKET_REGION!,
@@ -38,6 +40,20 @@ export type S3Asset = {
   size: number;
   lastModified: Date;
 };
+
+// --- AI ACTIONS ---
+
+export async function getRecommendations(
+  input: RecommendIngredientCombinationsInput
+): Promise<RecommendIngredientCombinationsOutput> {
+  return await recommendIngredientCombinations(input);
+}
+
+export async function getProductSuggestions(
+  input: GenerateProductDetailsInput
+): Promise<GenerateProductDetailsOutput> {
+  return await generateProductDetails(input);
+}
 
 // --- S3 ASSET ACTIONS ---
 
@@ -406,7 +422,8 @@ const IngredientFormSchema = z.object({
   name: z.string().min(1, 'Ingredient name is required.'),
   category: z.string().min(1, 'Category is required.'),
   description: z.string().min(1, 'Description is required.'),
-  // compositions, key_benefits, applications can be added here if needed
+  key_benefits: z.array(z.string()).optional(),
+  applications: z.array(z.string()).optional(),
 });
 
 const ProductFormSchema = z.object({
@@ -528,11 +545,21 @@ export async function saveProduct(
     if (currentIngredientId) {
       // Update existing ingredient
       const ingredientRef = doc(db, 'ingredients', currentIngredientId);
-      batch.update(ingredientRef, ingredientValidation.data);
+      batch.update(ingredientRef, {
+        ...ingredientValidation.data,
+        // Ensure optional fields are handled
+        key_benefits: ingredientData.key_benefits || [],
+        applications: ingredientData.applications || [],
+      });
     } else {
       // Create new ingredient
       const newIngredientRef = doc(collection(db, 'ingredients'));
-      batch.set(newIngredientRef, ingredientValidation.data);
+      batch.set(newIngredientRef, {
+        ...ingredientValidation.data,
+        key_benefits: ingredientData.key_benefits || [],
+        applications: ingredientData.applications || [],
+        compositions: [], // Initialize with empty compositions
+      });
       currentIngredientId = newIngredientRef.id;
     }
 
@@ -547,7 +574,10 @@ export async function saveProduct(
       batch.update(productRef, finalProductData);
     } else {
       const newProductRef = doc(collection(db, 'products'));
-      batch.set(newProductRef, finalProductData);
+      batch.set(newProductRef, {
+        ...finalProductData,
+        featured: finalProductData.featured || false,
+      });
     }
 
     await batch.commit();

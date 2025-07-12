@@ -1,7 +1,7 @@
 'use client';
 
 import { Product } from '@/types';
-import { Save, ImageIcon, AlertCircle } from 'lucide-react';
+import { Save, ImageIcon, AlertCircle, Sparkles, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { useForm, SubmitHandler } from 'react-hook-form';
@@ -9,7 +9,7 @@ import { AssetSelectionModal } from './AssetSelectionModal';
 import Image from 'next/image';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { saveProduct } from '@/app/actions';
+import { saveProduct, getProductSuggestions } from '@/app/actions';
 import { useToast } from '../ui/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 
@@ -21,6 +21,8 @@ const IngredientFormSchema = z.object({
   name: z.string().min(1, 'Ingredient name is required.'),
   category: z.string().min(1, 'Category is required.'),
   description: z.string().min(1, 'Description is required.'),
+  key_benefits: z.string().optional(),
+  applications: z.string().optional(),
 });
 
 const ProductFormSchema = z.object({
@@ -42,15 +44,18 @@ export const ProductForm = ({ product }: ProductFormProps) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
 
   const combinedSchema = ProductFormSchema.merge(IngredientFormSchema);
 
-  const { register, handleSubmit, formState: { errors }, setValue, watch } = useForm<FormValues>({
+  const { register, handleSubmit, formState: { errors }, setValue, watch, getValues } = useForm<FormValues>({
       resolver: zodResolver(combinedSchema),
       defaultValues: {
           name: product?.ingredient?.name || '',
           category: product?.ingredient?.category || '',
           description: product?.ingredient?.description || '',
+          key_benefits: product?.ingredient?.key_benefits?.join(', ') || '',
+          applications: product?.ingredient?.applications?.join(', ') || '',
           price: product?.price || 0,
           stock: product?.stock || 0,
           moq: product?.moq || 0,
@@ -64,12 +69,51 @@ export const ProductForm = ({ product }: ProductFormProps) => {
 
   const featuredImage = watch('images')?.[0];
 
+  const handleAiGeneration = async () => {
+    const productName = getValues('name');
+    if (!productName) {
+      toast({
+        title: "Product Name Required",
+        description: "Please enter a product name before generating details.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsGenerating(true);
+    setServerError(null);
+
+    try {
+      const result = await getProductSuggestions({ productName });
+      setValue('description', result.description, { shouldValidate: true });
+      setValue('category', result.category, { shouldValidate: true });
+      setValue('key_benefits', result.keyBenefits.join(', '), { shouldValidate: true });
+      setValue('applications', result.applications.join(', '), { shouldValidate: true });
+      setValue('packaging', result.suggestedPackaging, { shouldValidate: true });
+      toast({
+        title: "AI Suggestions Applied",
+        description: "The generated product details have been filled into the form.",
+      });
+    } catch (error) {
+      console.error("AI Generation failed", error);
+      setServerError("Failed to generate AI suggestions. Please try again.");
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
   const onSubmit: SubmitHandler<FormValues> = async (data) => {
       setIsSubmitting(true);
       setServerError(null);
 
-      const { name, category, description, ...productData } = data;
-      const ingredientData = { name, category, description };
+      const { name, category, description, key_benefits, applications, ...productData } = data;
+      const ingredientData = { 
+        name, 
+        category, 
+        description,
+        key_benefits: key_benefits?.split(',').map(s => s.trim()).filter(Boolean) || [],
+        applications: applications?.split(',').map(s => s.trim()).filter(Boolean) || [],
+      };
 
       const result = await saveProduct(
           { ...productData, certifications: data.certifications?.split(',').map(s => s.trim()).filter(Boolean) || [] }, 
@@ -136,7 +180,18 @@ export const ProductForm = ({ product }: ProductFormProps) => {
           <div className="lg:col-span-2 space-y-6 bg-gray-800/50 border border-gray-700 rounded-xl p-6">
             <div>
               <label htmlFor="name" className="block text-sm font-medium text-gray-300">Product Name</label>
-              <input id="name" {...register('name')} className="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md p-2"/>
+              <div className="flex items-center gap-2 mt-1">
+                <input id="name" {...register('name')} className="block w-full bg-gray-700 border-gray-600 rounded-md p-2"/>
+                <button 
+                  type="button" 
+                  onClick={handleAiGeneration}
+                  disabled={isGenerating}
+                  className="px-3 py-2 bg-teal-600 hover:bg-teal-500 text-white rounded-lg flex items-center space-x-2 transition-colors disabled:bg-gray-500"
+                >
+                  {isGenerating ? <Loader2 className="w-4 h-4 animate-spin"/> : <Sparkles className="w-4 h-4" />}
+                  <span>Generate</span>
+                </button>
+              </div>
               {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name.message}</p>}
             </div>
 
@@ -144,6 +199,12 @@ export const ProductForm = ({ product }: ProductFormProps) => {
               <label htmlFor="description" className="block text-sm font-medium text-gray-300">Description</label>
               <textarea id="description" rows={4} {...register('description')} className="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md p-2"/>
               {errors.description && <p className="text-red-500 text-xs mt-1">{errors.description.message}</p>}
+            </div>
+            
+             <div>
+              <label htmlFor="key_benefits" className="block text-sm font-medium text-gray-300">Key Benefits</label>
+              <input id="key_benefits" {...register('key_benefits')} placeholder="Benefit 1, Benefit 2,..." className="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md p-2"/>
+              <p className="text-xs text-gray-400 mt-1">Comma-separated values.</p>
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -191,6 +252,11 @@ export const ProductForm = ({ product }: ProductFormProps) => {
                       </select>
                       {errors.category && <p className="text-red-500 text-xs mt-1">{errors.category.message}</p>}
                   </div>
+                   <div className="mt-4">
+                        <label htmlFor="applications" className="block text-sm font-medium text-gray-300">Applications</label>
+                        <input id="applications" {...register('applications')} placeholder="Poultry, Swine,..." className="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md p-2"/>
+                        <p className="text-xs text-gray-400 mt-1">Comma-separated values.</p>
+                   </div>
                    <div className="mt-4">
                       <label htmlFor="certifications" className="block text-sm font-medium text-gray-300">Certifications</label>
                       <input id="certifications" {...register('certifications')} placeholder="ISO 9001, Non-GMO" className="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md p-2"/>
