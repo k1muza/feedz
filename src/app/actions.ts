@@ -1,5 +1,6 @@
 
 
+
 'use server';
 
 import { config } from 'dotenv';
@@ -23,7 +24,7 @@ import {
 } from 'firebase/firestore';
 import { revalidatePath } from 'next/cache';
 import { db } from '@/lib/firebase';
-import { BlogPost, BlogCategory, User, Product, Ingredient, ProductCategory, Composition, ContactInquiry, NewsletterSubscription } from '@/types';
+import { BlogPost, BlogCategory, User, Product, Ingredient, ProductCategory, Composition, ContactInquiry, NewsletterSubscription, AppSettings } from '@/types';
 import { z } from 'zod';
 import { S3Client, PutObjectCommand, ListObjectsV2Command, DeleteObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
@@ -69,9 +70,10 @@ const ContactInquirySchema = z.object({
   name: z.string().min(1, 'Name is required'),
   email: z.string().email('Invalid email'),
   message: z.string().min(1, 'Message is required'),
+  phone: z.string().optional(),
 });
 
-export async function saveContactInquiry(formData: { name: string; email: string; message: string }) {
+export async function saveContactInquiry(formData: z.infer<typeof ContactInquirySchema>) {
   const validation = ContactInquirySchema.safeParse(formData);
   if (!validation.success) {
     return { success: false, error: 'Invalid data provided.' };
@@ -1033,4 +1035,40 @@ export async function search(query: string) {
         ingredients: ingredientResults,
         blogPosts: blogPostResults,
     };
+}
+
+
+// --- SETTINGS ---
+const settingsDocRef = doc(db, 'app', 'settings');
+
+export async function getAppSettings(): Promise<AppSettings> {
+    const defaultSettings: AppSettings = {
+        registrationsOpen: true,
+    };
+
+    try {
+        const docSnap = await getDoc(settingsDocRef);
+        if (docSnap.exists()) {
+            return { ...defaultSettings, ...(docSnap.data() as Partial<AppSettings>) };
+        } else {
+            // No settings doc yet, create it with defaults
+            await updateDoc(settingsDocRef, defaultSettings, { merge: true });
+            return defaultSettings;
+        }
+    } catch (error) {
+        console.error("Error getting app settings:", error);
+        return defaultSettings;
+    }
+}
+
+export async function updateAppSettings(settings: Partial<AppSettings>) {
+    try {
+        await updateDoc(settingsDocRef, settings, { merge: true });
+        revalidatePath('/admin/settings');
+        revalidatePath('/login');
+        return { success: true };
+    } catch (error) {
+        console.error("Error updating app settings:", error);
+        return { success: false, error: 'Failed to update settings.' };
+    }
 }

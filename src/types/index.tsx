@@ -1,5 +1,6 @@
 
 
+
 import { z } from "zod";
 
 export type TechnicalSpecs = {
@@ -131,6 +132,7 @@ export type ContactInquiry = {
   name: string;
   email: string;
   message: string;
+  phone?: string;
   submittedAt: { seconds: number; nanoseconds: number };
   read: boolean;
 }
@@ -140,6 +142,10 @@ export type NewsletterSubscription = {
   email: string;
   subscribedAt: { seconds: number; nanoseconds: number };
 }
+
+export type AppSettings = {
+    registrationsOpen: boolean;
+};
 
 
 // Types

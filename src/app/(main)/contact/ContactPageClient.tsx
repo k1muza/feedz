@@ -3,7 +3,7 @@
 
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { FiSend, FiUser, FiMail, FiMessageSquare, FiCheckCircle, FiAlertCircle } from 'react-icons/fi';
+import { FiSend, FiUser, FiMail, FiMessageSquare, FiCheckCircle, FiAlertCircle, FiPhone } from 'react-icons/fi';
 import SecondaryHero from '@/components/common/SecondaryHero';
 import { saveContactInquiry } from '@/app/actions';
 
@@ -12,7 +12,8 @@ export default function ContactPageClient() {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
-    message: ''
+    message: '',
+    phone: '',
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submissionStatus, setSubmissionStatus] = useState<'success' | 'error' | null>(null);
@@ -35,7 +36,7 @@ export default function ContactPageClient() {
 
     if (result.success) {
       setSubmissionStatus('success');
-      setFormData({ name: '', email: '', message: '' });
+      setFormData({ name: '', email: '', message: '', phone: '' });
     } else {
       setSubmissionStatus('error');
     }
@@ -90,6 +91,21 @@ export default function ContactPageClient() {
                     className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
                     placeholder="john@farm.co.zw"
                     required
+                  />
+                </div>
+                 <div className="space-y-1">
+                  <label htmlFor="phone" className="text-sm font-medium text-gray-700 flex items-center">
+                    <FiPhone className="mr-2 text-green-600" />
+                    Phone Number (Optional)
+                  </label>
+                  <input
+                    type="tel"
+                    id="phone"
+                    autoComplete="tel"
+                    value={formData.phone}
+                    onChange={handleChange}
+                    className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
+                    placeholder="+263 77 123 4567"
                   />
                 </div>
 
