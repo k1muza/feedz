@@ -58,7 +58,7 @@ export async function getSignedS3Url(filename: string, contentType: string, size
     });
     
     // Construct the CloudFront URL
-    const cloudfrontUrl = `${process.env.NEXT_PUBLIC_CLOUDFRONT_DOMAIN}/${filename}`;
+    const cloudfrontUrl = `https://${process.env.NEXT_PUBLIC_CLOUDFRONT_DOMAIN}/${filename}`;
 
     return { success: true, signedUrl: signedUrl, assetUrl: cloudfrontUrl };
   } catch (error) {
@@ -88,7 +88,7 @@ export async function listS3Assets(): Promise<S3Asset[]> {
             .filter(item => item.Key && item.Size && item.Size > 0) // Filter out empty objects/folders
             .map(item => ({
                 key: item.Key!,
-                url: `${cloudfrontDomain}/${item.Key}`,
+                url: `https://${cloudfrontDomain}/${item.Key}`,
                 size: item.Size || 0,
                 lastModified: item.LastModified || new Date(),
             }))
@@ -198,6 +198,7 @@ const BlogFormSchema = z.object({
   content: z.string().min(1, 'Content is required'),
   image: z.string().url('Must be a valid URL'),
   tags: z.string().optional(),
+  authorId: z.string().min(1, 'Author is required'),
 });
 
 // Fetch all posts
@@ -226,8 +227,8 @@ export async function getPostBySlug(slug: string): Promise<BlogPost | null> {
     if (snapshot.empty) {
       return null;
     }
-    const doc = snapshot.docs[0];
-    return { id: doc.id, ...(doc.data() as Omit<BlogPost, 'id'>) };
+    const docData = snapshot.docs[0];
+    return { id: docData.id, ...(docData.data() as Omit<BlogPost, 'id'>) };
   } catch (error) {
     console.error(`Error fetching post by slug ${slug}:`, error);
     return null;
@@ -244,7 +245,17 @@ export async function saveBlogPost(
     return { success: false, errors: validation.error.flatten().fieldErrors };
   }
 
-  const { title, tags } = validation.data;
+  const { title, tags, authorId, ...restData } = validation.data;
+  
+  const authorDocRef = doc(db, 'users', authorId);
+  const authorSnap = await getDoc(authorDocRef);
+
+  if (!authorSnap.exists()) {
+    return { success: false, errors: { _server: ['Selected author not found.'] } };
+  }
+
+  const authorData = authorSnap.data() as User;
+
   const slug = title
     .toLowerCase()
     .replace(/[^a-z0-9\s-]/g, '')
@@ -254,13 +265,13 @@ export async function saveBlogPost(
   const tagsArray = tags ? tags.split(',').map(tag => tag.trim()).filter(Boolean) : [];
 
   const postData = {
-    ...validation.data,
+    ...restData,
     slug,
     tags: tagsArray,
     author: {
-        name: 'Admin User',
-        role: 'Site Administrator',
-        image: 'https://placehold.co/100x100.png'
+        name: authorData.name,
+        role: authorData.role,
+        image: authorData.image
     },
     date: new Date().toISOString(),
     readingTime: `${Math.ceil(validation.data.content.split(' ').length / 200)} min read`,

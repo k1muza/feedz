@@ -1,7 +1,7 @@
 
 'use client';
 
-import { BlogCategory, BlogPost } from '@/types';
+import { BlogCategory, BlogPost, User } from '@/types';
 import { Save, Image as ImageIcon, AlertCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
@@ -10,7 +10,7 @@ import { AssetSelectionModal } from './AssetSelectionModal';
 import Image from 'next/image';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { saveBlogPost, getBlogCategories } from '@/app/actions';
+import { saveBlogPost, getBlogCategories, getAllUsers } from '@/app/actions';
 import { useToast } from '../ui/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 
@@ -25,6 +25,7 @@ const BlogFormSchema = z.object({
   content: z.string().min(1, 'Content is required'),
   image: z.string().url('A valid featured image URL is required'),
   tags: z.string().optional(),
+  authorId: z.string().min(1, 'Author is required'),
 });
 
 type FormValues = z.infer<typeof BlogFormSchema>;
@@ -36,13 +37,18 @@ export const BlogPostForm = ({ post }: BlogPostFormProps) => {
   const [serverError, setServerError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [categories, setCategories] = useState<BlogCategory[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
 
   useEffect(() => {
-    async function fetchCategories() {
-      const fetchedCategories = await getBlogCategories();
+    async function fetchData() {
+      const [fetchedCategories, fetchedUsers] = await Promise.all([
+        getBlogCategories(),
+        getAllUsers(),
+      ]);
       setCategories(fetchedCategories);
+      setUsers(fetchedUsers);
     }
-    fetchCategories();
+    fetchData();
   }, []);
 
   const {
@@ -60,6 +66,7 @@ export const BlogPostForm = ({ post }: BlogPostFormProps) => {
       content: post?.content || '',
       image: post?.image || '',
       tags: post?.tags?.join(', ') || '',
+      authorId: users.find(u => u.name === post?.author.name)?.id || '',
     },
   });
 
@@ -174,6 +181,24 @@ export const BlogPostForm = ({ post }: BlogPostFormProps) => {
           <div className="lg:col-span-1 space-y-6">
             <div className="bg-gray-800/50 border border-gray-700 rounded-xl p-6">
               <div>
+                <label htmlFor="authorId" className="block text-sm font-medium text-gray-300">
+                  Author
+                </label>
+                <select
+                  id="authorId"
+                  {...register('authorId')}
+                  className="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm p-2"
+                >
+                  <option value="">Select an author</option>
+                  {users.map((user) => (
+                    <option key={user.id} value={user.id}>{user.name}</option>
+                  ))}
+                </select>
+                {errors.authorId && (
+                  <p className="text-red-500 text-xs mt-1">{errors.authorId.message}</p>
+                )}
+              </div>
+              <div className="mt-6">
                 <label htmlFor="category" className="block text-sm font-medium text-gray-300">
                   Category
                 </label>
