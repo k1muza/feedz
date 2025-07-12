@@ -1,3 +1,4 @@
+
 // components/layout/Footer.tsx
 'use client';
 
@@ -44,10 +45,10 @@ export default function Footer() {
 
             <div className="flex space-x-4">
               {[
-                { icon: FaFacebookF, url: "https://facebook.com/feedsport" },
-                { icon: FaTwitter, url: "https://twitter.com/feedsport" },
-                { icon: FaInstagram, url: "https://instagram.com/feedsport" },
-                { icon: FaLinkedinIn, url: "https://linkedin.com/company/feedsport" }
+                { icon: FaFacebookF, url: "#" },
+                { icon: FaTwitter, url: "#" },
+                { icon: FaInstagram, url: "#" },
+                { icon: FaLinkedinIn, url: "#" }
               ].map((social, index) => (
                 <Link
                   key={index}
@@ -71,7 +72,8 @@ export default function Footer() {
                 { name: "Home", href: "/" },
                 { name: "About Us", href: "/about" },
                 { name: "Products", href: "/products" },
-                { name: "Research", href: "/research" },
+                { name: "Formulations", href: "/formulations" },
+                { name: "Blog", href: "/blog" },
                 { name: "Contact", href: "/contact" }
               ].map((link) => (
                 <li key={link.name}>
@@ -88,14 +90,14 @@ export default function Footer() {
 
           {/* Products */}
           <div>
-            <h4 className="text-lg font-bold mb-6 text-white">Products</h4>
+            <h4 className="text-lg font-bold mb-6 text-white">Product Categories</h4>
             <ul className="space-y-3">
               {[
-                { name: "Protein Sources", href: "/products/protein" },
-                { name: "Energy Sources", href: "/products/energy" },
-                { name: "Minerals", href: "/products/minerals" },
-                { name: "Additives", href: "/products/additives" },
-                { name: "Custom Blends", href: "/products/custom" }
+                { name: "Protein Feeds", href: "/products/categories/protein-feeds" },
+                { name: "Energy Feeds", href: "/products/categories/energy-feeds" },
+                { name: "Minerals", href: "/products/categories/minerals" },
+                { name: "Amino Acids", href: "/products/categories/amino-acids" },
+                { name: "Forage Products", href: "/products/categories/forage-products" }
               ].map((product) => (
                 <li key={product.name}>
                   <Link
@@ -127,7 +129,7 @@ export default function Footer() {
                     +263 77 468 4534
                   </a>
                   <a 
-                    href="https://wa.me/263774484534" 
+                    href="https://wa.me/263774684534" 
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-xs text-green-500 flex items-center mt-1"
@@ -163,28 +165,22 @@ export default function Footer() {
             </p>
             <div className="flex flex-wrap justify-center gap-4 md:gap-6">
               <Link
-                href="/privacy"
+                href="/privacy-policy"
                 className="text-gray-500 hover:text-green-500 text-sm transition-colors duration-300"
               >
                 Privacy Policy
               </Link>
               <Link
-                href="/terms"
+                href="/terms-of-service"
                 className="text-gray-500 hover:text-green-500 text-sm transition-colors duration-300"
               >
                 Terms of Service
               </Link>
               <Link
-                href="/sitemap"
+                href="/sitemap.xml"
                 className="text-gray-500 hover:text-green-500 text-sm transition-colors duration-300"
               >
                 Sitemap
-              </Link>
-              <Link
-                href="/careers"
-                className="text-gray-500 hover:text-green-500 text-sm transition-colors duration-300"
-              >
-                Careers
               </Link>
             </div>
           </div>

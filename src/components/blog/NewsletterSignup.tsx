@@ -1,27 +1,34 @@
-// components/NewsletterSignup.tsx
+
 'use client';
 
 import { useState } from 'react';
 import { FiMail } from 'react-icons/fi';
+import { saveNewsletterSubscription } from '@/app/actions';
 
 export default function NewsletterSignup() {
   const [email, setEmail] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    setIsSuccess(false);
+    setError(null);
+
+    const result = await saveNewsletterSubscription(email);
     
     setIsSubmitting(false);
-    setIsSuccess(true);
-    setEmail('');
-    
-    // Reset success message after 5 seconds
-    setTimeout(() => setIsSuccess(false), 5000);
+
+    if (result.success) {
+      setIsSuccess(true);
+      setEmail('');
+      setTimeout(() => setIsSuccess(false), 5000);
+    } else {
+      setError(result.error || 'An unexpected error occurred.');
+      setTimeout(() => setError(null), 5000);
+    }
   };
 
   return (
@@ -39,10 +46,10 @@ export default function NewsletterSignup() {
       
       <form onSubmit={handleSubmit} className="space-y-3">
         <div>
-          <label htmlFor="email" className="sr-only">Email address</label>
+          <label htmlFor="newsletter-email" className="sr-only">Email address</label>
           <input
             type="email"
-            id="email"
+            id="newsletter-email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
@@ -54,7 +61,7 @@ export default function NewsletterSignup() {
         <button
           type="submit"
           disabled={isSubmitting}
-          className={`w-full py-2 px-4 rounded-lg font-medium ${
+          className={`w-full py-2 px-4 rounded-lg font-medium transition-colors ${
             isSubmitting
               ? 'bg-green-300 cursor-not-allowed'
               : 'bg-green-600 hover:bg-green-700 text-white'
@@ -65,7 +72,13 @@ export default function NewsletterSignup() {
         
         {isSuccess && (
           <div className="p-3 bg-green-100 text-green-700 rounded-lg text-sm">
-            Thank you for subscribing! Check your email for confirmation.
+            Thank you for subscribing!
+          </div>
+        )}
+
+        {error && (
+          <div className="p-3 bg-red-100 text-red-700 rounded-lg text-sm">
+            {error}
           </div>
         )}
       </form>

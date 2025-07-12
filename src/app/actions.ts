@@ -63,6 +63,62 @@ export async function getProductSuggestions(
   return await generateProductDetails(input);
 }
 
+// --- CONTACT & NEWSLETTER ACTIONS ---
+
+const ContactInquirySchema = z.object({
+  name: z.string().min(1, 'Name is required'),
+  email: z.string().email('Invalid email'),
+  message: z.string().min(1, 'Message is required'),
+});
+
+export async function saveContactInquiry(formData: { name: string; email: string; message: string }) {
+  const validation = ContactInquirySchema.safeParse(formData);
+  if (!validation.success) {
+    return { success: false, error: 'Invalid data provided.' };
+  }
+
+  try {
+    await addDoc(collection(db, 'inquiries'), {
+      ...validation.data,
+      submittedAt: Timestamp.now(),
+    });
+    return { success: true };
+  } catch (error) {
+    console.error("Error saving contact inquiry:", error);
+    return { success: false, error: 'Failed to submit inquiry.' };
+  }
+}
+
+const NewsletterSubscriptionSchema = z.string().email('Invalid email address.');
+
+export async function saveNewsletterSubscription(email: string) {
+  const validation = NewsletterSubscriptionSchema.safeParse(email);
+  if (!validation.success) {
+    return { success: false, error: 'Please provide a valid email address.' };
+  }
+  
+  try {
+    const subscriptionsRef = collection(db, 'newsletterSubscriptions');
+    const q = query(subscriptionsRef, where('email', '==', email), limit(1));
+    const existing = await getDocs(q);
+
+    if (!existing.empty) {
+      return { success: false, error: 'This email is already subscribed.' };
+    }
+
+    await addDoc(subscriptionsRef, {
+      email: validation.data,
+      subscribedAt: Timestamp.now(),
+    });
+
+    return { success: true };
+  } catch (error) {
+    console.error("Error saving newsletter subscription:", error);
+    return { success: false, error: 'Failed to subscribe.' };
+  }
+}
+
+
 // --- CHAT ACTIONS ---
 const conversationsCollection = collection(db, 'conversations');
 
@@ -734,7 +790,7 @@ export async function deleteIngredient(ingredientId: string) {
 // Fetch all products and populate their ingredient data
 export async function getAllProducts(): Promise<Product[]> {
   try {
-    const productsSnapshot = await getDocs(productsCollection);
+    const productsSnapshot = await getDocs(query(productsCollection, orderBy('id', 'desc')));
     if (productsSnapshot.empty) {
       return [];
     }
@@ -893,4 +949,3 @@ export async function updateIngredientCompositions(
         return { success: false, error: 'Failed to update compositions.' };
     }
 }
-

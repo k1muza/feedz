@@ -1,9 +1,11 @@
+
 'use client';
 
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { FiSend, FiUser, FiMail, FiMessageSquare } from 'react-icons/fi';
+import { FiSend, FiUser, FiMail, FiMessageSquare, FiCheckCircle, FiAlertCircle } from 'react-icons/fi';
 import SecondaryHero from '@/components/common/SecondaryHero';
+import { saveContactInquiry } from '@/app/actions';
 
 
 export default function ContactPageClient() {
@@ -12,6 +14,8 @@ export default function ContactPageClient() {
     email: '',
     message: ''
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submissionStatus, setSubmissionStatus] = useState<'success' | 'error' | null>(null);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -20,10 +24,21 @@ export default function ContactPageClient() {
     setFormData(prev => ({ ...prev, [id]: value }));
   };
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>): void => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    // Handle form submission
-    console.log('Form submitted:', formData);
+    setIsSubmitting(true);
+    setSubmissionStatus(null);
+    
+    const result = await saveContactInquiry(formData);
+
+    setIsSubmitting(false);
+
+    if (result.success) {
+      setSubmissionStatus('success');
+      setFormData({ name: '', email: '', message: '' });
+    } else {
+      setSubmissionStatus('error');
+    }
   };
 
   return (
@@ -93,14 +108,28 @@ export default function ContactPageClient() {
                   />
                 </div>
 
+                {submissionStatus === 'success' && (
+                  <div className="flex items-center gap-3 p-3 bg-green-50 text-green-700 border border-green-200 rounded-lg">
+                    <FiCheckCircle className="w-5 h-5" />
+                    <p>Thank you for your message! We'll be in touch soon.</p>
+                  </div>
+                )}
+                 {submissionStatus === 'error' && (
+                  <div className="flex items-center gap-3 p-3 bg-red-50 text-red-700 border border-red-200 rounded-lg">
+                    <FiAlertCircle className="w-5 h-5" />
+                    <p>Something went wrong. Please try again later.</p>
+                  </div>
+                )}
+
                 <motion.button
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   type="submit"
-                  className="w-full bg-gradient-to-r from-green-600 to-green-700 text-white font-medium py-3 px-6 rounded-lg flex items-center justify-center space-x-2"
+                  disabled={isSubmitting}
+                  className="w-full bg-gradient-to-r from-green-600 to-green-700 text-white font-medium py-3 px-6 rounded-lg flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <FiSend />
-                  <span>Send Message</span>
+                  <span>{isSubmitting ? 'Sending...' : 'Send Message'}</span>
                 </motion.button>
               </div>
             </motion.form>
