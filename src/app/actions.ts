@@ -1,3 +1,4 @@
+
 'use server';
 
 import { config } from 'dotenv';
@@ -127,6 +128,7 @@ const BlogFormSchema = z.object({
   excerpt: z.string().min(1, 'Excerpt is required'),
   content: z.string().min(1, 'Content is required'),
   image: z.string().url('Must be a valid URL'),
+  tags: z.string().optional(),
 });
 
 // Fetch all posts
@@ -173,16 +175,19 @@ export async function saveBlogPost(
     return { success: false, errors: validation.error.flatten().fieldErrors };
   }
 
-  const { title } = validation.data;
+  const { title, tags } = validation.data;
   const slug = title
     .toLowerCase()
     .replace(/[^a-z0-9\s-]/g, '')
     .trim()
     .replace(/\s+/g, '-');
+  
+  const tagsArray = tags ? tags.split(',').map(tag => tag.trim()).filter(Boolean) : [];
 
   const postData = {
     ...validation.data,
     slug,
+    tags: tagsArray,
     author: {
         name: 'Admin User',
         role: 'Site Administrator',
@@ -190,14 +195,14 @@ export async function saveBlogPost(
     },
     date: new Date().toISOString(),
     readingTime: `${Math.ceil(validation.data.content.split(' ').length / 200)} min read`,
-    tags: [validation.data.category, 'New'],
-    featured: false,
+    featured: false, // Default to not featured on create
   };
 
   try {
     if (postId) {
       const postRef = doc(db, 'blogPosts', postId);
-      await updateDoc(postRef, postData);
+      const { featured, ...updateData } = postData; // Keep existing featured status on edit
+      await updateDoc(postRef, updateData);
     } else {
       await addDoc(postsCollection, postData);
     }
@@ -211,5 +216,20 @@ export async function saveBlogPost(
   } catch (error) {
     console.error('Error saving blog post:', error);
     return { success: false, errors: { _server: ['Failed to save post.'] } };
+  }
+}
+
+export async function updatePostFeaturedStatus(postId: string, isFeatured: boolean) {
+  try {
+    const postRef = doc(db, 'blogPosts', postId);
+    await updateDoc(postRef, { featured: isFeatured });
+
+    revalidatePath('/admin/blog');
+    revalidatePath('/blog');
+
+    return { success: true };
+  } catch (error) {
+    console.error('Error updating featured status:', error);
+    return { success: false, error: 'Failed to update post.' };
   }
 }

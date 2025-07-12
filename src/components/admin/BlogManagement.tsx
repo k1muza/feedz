@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Plus, Download, MoreHorizontal, Search, Filter, Edit, Trash2, Eye } from "lucide-react";
@@ -11,21 +12,42 @@ import Link from "next/link";
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import { BlogPost } from "@/types";
-import { getAllBlogPosts } from "@/app/actions";
+import { getAllBlogPosts, updatePostFeaturedStatus } from "@/app/actions";
+import { Switch } from "../ui/switch";
+import { useToast } from "../ui/use-toast";
 
 export const BlogManagement = () => {
   const [posts, setPosts] = useState<BlogPost[]>([]);
   const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
 
   useEffect(() => {
-    const fetchPosts = async () => {
-      setLoading(true);
-      const allPosts = await getAllBlogPosts();
-      setPosts(allPosts);
-      setLoading(false);
-    }
     fetchPosts();
   }, []);
+
+  const fetchPosts = async () => {
+    setLoading(true);
+    const allPosts = await getAllBlogPosts();
+    setPosts(allPosts);
+    setLoading(false);
+  }
+
+  const handleFeatureToggle = async (postId: string, isFeatured: boolean) => {
+    const result = await updatePostFeaturedStatus(postId, isFeatured);
+    if (result.success) {
+      toast({
+        title: "Success!",
+        description: `Post has been ${isFeatured ? 'featured' : 'unfeatured'}.`
+      });
+      fetchPosts(); // Re-fetch to show updated state
+    } else {
+      toast({
+        title: "Error",
+        description: result.error,
+        variant: "destructive"
+      });
+    }
+  };
 
   if (loading) {
     return (
@@ -82,6 +104,7 @@ export const BlogManagement = () => {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Author</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Category</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Date</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Featured</th>
                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
@@ -114,6 +137,13 @@ export const BlogManagement = () => {
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">{new Date(post.date).toLocaleDateString()}</td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <Switch
+                        checked={post.featured}
+                        onCheckedChange={(checked) => handleFeatureToggle(post.id, checked)}
+                        aria-label="Toggle featured post"
+                    />
+                  </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { BlogPost } from '@/types';
@@ -23,6 +24,7 @@ const BlogFormSchema = z.object({
   excerpt: z.string().min(1, 'Excerpt is required'),
   content: z.string().min(1, 'Content is required'),
   image: z.string().url('A valid featured image URL is required'),
+  tags: z.string().optional(),
 });
 
 type FormValues = z.infer<typeof BlogFormSchema>;
@@ -48,6 +50,7 @@ export const BlogPostForm = ({ post }: BlogPostFormProps) => {
       excerpt: post?.excerpt || '',
       content: post?.content || '',
       image: post?.image || '',
+      tags: post?.tags?.join(', ') || '',
     },
   });
 
@@ -194,6 +197,22 @@ export const BlogPostForm = ({ post }: BlogPostFormProps) => {
                 {errors.excerpt && (
                   <p className="text-red-500 text-xs mt-1">{errors.excerpt.message}</p>
                 )}
+              </div>
+              <div className="mt-6">
+                  <label htmlFor="tags" className="block text-sm font-medium text-gray-300">
+                      Tags
+                  </label>
+                  <input
+                      id="tags"
+                      type="text"
+                      {...register('tags')}
+                      className="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm p-2"
+                      placeholder="e.g. poultry, lysine, cost-saving"
+                  />
+                  <p className="text-xs text-gray-400 mt-1">
+                      Separate tags with a comma.
+                  </p>
+                  {errors.tags && <p className="text-red-500 text-xs mt-1">{errors.tags.message}</p>}
               </div>
             </div>
             <div className="bg-gray-800/50 border border-gray-700 rounded-xl p-6">
