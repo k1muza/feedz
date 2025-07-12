@@ -625,10 +625,7 @@ export async function getProductById(id: string): Promise<Product | null> {
 
 // Save (Create/Update) a product
 export async function saveProduct(
-  productData: z.infer<typeof ProductFormSchema>,
-  ingredientData: z.infer<typeof IngredientFormSchema>,
-  productId?: string
-) {
+productData: z.infer<typeof ProductFormSchema>, ingredientData: z.infer<typeof IngredientFormSchema>, productId?: string, ingredientId?: string | undefined) {
   const productValidation = ProductFormSchema.safeParse(productData);
   const ingredientValidation = IngredientFormSchema.safeParse(ingredientData);
 
