@@ -5,14 +5,25 @@ import { useState, useEffect } from "react";
 import { Plus, Download, MoreHorizontal, Search, Trash2, Copy } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { S3Asset } from "@/app/actions";
+import { S3Asset, deleteS3Asset } from "@/app/actions";
 import { useToast } from "@/components/ui/use-toast";
 import { ImageUploadModal } from "./ImageUploadModal";
-
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 
 export const AssetManagement = ({ initialAssets }: { initialAssets: S3Asset[] }) => {
   const [assets, setAssets] = useState<S3Asset[]>(initialAssets);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isAlertOpen, setIsAlertOpen] = useState(false);
+  const [assetToDelete, setAssetToDelete] = useState<S3Asset | null>(null);
   const router = useRouter();
   const { toast } = useToast();
 
@@ -26,7 +37,7 @@ export const AssetManagement = ({ initialAssets }: { initialAssets: S3Asset[] })
       title: "Upload successful!",
       description: "Your new image is now available in the library.",
     });
-    router.refresh(); // This will re-fetch server data and re-render the component
+    router.refresh();
   };
 
   const copyToClipboard = (text: string) => {
@@ -37,14 +48,31 @@ export const AssetManagement = ({ initialAssets }: { initialAssets: S3Asset[] })
     });
   };
 
-  const handleDelete = (key: string) => {
-    // In a real app, this would be a server action to delete from S3
-    console.log("Delete requested for:", key);
-    toast({
-      title: "Deletion not implemented",
-      description: "This is a UI demonstration. A backend action is required to delete S3 objects.",
-      variant: 'destructive',
-    });
+  const confirmDelete = (asset: S3Asset) => {
+    setAssetToDelete(asset);
+    setIsAlertOpen(true);
+  };
+
+  const handleDelete = async () => {
+    if (!assetToDelete) return;
+
+    const result = await deleteS3Asset(assetToDelete.key);
+
+    if (result.success) {
+      toast({
+        title: "Asset Deleted",
+        description: `Successfully deleted ${assetToDelete.key} from S3.`,
+      });
+      router.refresh();
+    } else {
+      toast({
+        title: "Deletion Failed",
+        description: result.error,
+        variant: 'destructive',
+      });
+    }
+    setAssetToDelete(null);
+    setIsAlertOpen(false);
   };
 
   return (
@@ -98,7 +126,7 @@ export const AssetManagement = ({ initialAssets }: { initialAssets: S3Asset[] })
                   <Copy className="w-4 h-4" />
                 </button>
                 <button
-                  onClick={() => handleDelete(asset.key)}
+                  onClick={() => confirmDelete(asset)}
                   className="p-2 w-10 h-10 bg-red-600 text-white rounded-full hover:bg-red-500 transition-colors flex items-center justify-center"
                   title="Delete from S3"
                 >
@@ -111,15 +139,29 @@ export const AssetManagement = ({ initialAssets }: { initialAssets: S3Asset[] })
             </div>
           ))}
         </div>
-        <div className="bg-gray-800/50 border border-yellow-500/30 text-yellow-300 rounded-lg p-4 text-sm mt-6">
-          <p><strong className="font-medium text-yellow-200">Developer Note:</strong> The asset list is now fetched from your S3 bucket. Deletion functionality requires a corresponding server action.</p>
-        </div>
       </div>
       <ImageUploadModal 
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onUploadSuccess={handleUploadSuccess}
       />
+      <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the asset
+              <code className="font-mono bg-gray-700 rounded-sm px-1 mx-1">{assetToDelete?.key}</code> from your S3 bucket.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-500">
+              Yes, delete asset
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 };

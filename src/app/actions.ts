@@ -18,7 +18,7 @@ import { revalidatePath } from 'next/cache';
 import { db } from '@/lib/firebase';
 import { BlogPost, BlogPostSchema } from '@/types';
 import { z } from 'zod';
-import { S3Client, PutObjectCommand, ListObjectsV2Command } from "@aws-sdk/client-s3";
+import { S3Client, PutObjectCommand, ListObjectsV2Command, DeleteObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 const s3Client = new S3Client({
@@ -97,6 +97,22 @@ export async function listS3Assets(): Promise<S3Asset[]> {
         console.error("Error listing S3 assets:", error);
         return [];
     }
+}
+
+export async function deleteS3Asset(key: string) {
+  const command = new DeleteObjectCommand({
+    Bucket: process.env.AWS_S3_BUCKET_NAME!,
+    Key: key,
+  });
+
+  try {
+    await s3Client.send(command);
+    revalidatePath('/admin/assets'); // Revalidate the page cache
+    return { success: true };
+  } catch (error) {
+    console.error("Error deleting S3 asset:", error);
+    return { success: false, error: 'Failed to delete asset from S3.' };
+  }
 }
 
 
