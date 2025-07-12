@@ -12,7 +12,7 @@ import { useToast } from '../ui/use-toast';
 import { Trash2, Plus, Loader2, Save, ChevronsUpDown } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '../ui/command';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { cn } from '@/lib/utils';
 
 interface NutrientCompositionManagerProps {
@@ -187,4 +187,3 @@ export const NutrientCompositionManager = ({
     </div>
   );
 };
-
