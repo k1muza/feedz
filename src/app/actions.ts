@@ -1,6 +1,7 @@
 
 
 
+
 'use server';
 
 import { config } from 'dotenv';
@@ -21,6 +22,7 @@ import {
   Timestamp,
   orderBy,
   arrayUnion,
+  setDoc,
 } from 'firebase/firestore';
 import { revalidatePath } from 'next/cache';
 import { db } from '@/lib/firebase';
@@ -571,17 +573,7 @@ export async function getAllUsers(): Promise<User[]> {
   try {
     const snapshot = await getDocs(query(usersCollection));
     if (snapshot.empty) {
-      // Create a default admin user if no users exist
-      const defaultAdmin: Omit<User, 'id'> = {
-        name: 'Admin User',
-        email: 'admin@feedsport.com',
-        role: 'Administrator',
-        image: `https://placehold.co/100x100/6366f1/ffffff?text=A`,
-        bio: 'Default site administrator.',
-        lastActive: new Date().toISOString(),
-      };
-      const docRef = await addDoc(usersCollection, defaultAdmin);
-      return [{ id: docRef.id, ...defaultAdmin }];
+      return [];
     }
     return snapshot.docs.map(doc => ({
       id: doc.id,
@@ -841,7 +833,7 @@ export async function deleteIngredient(ingredientId: string) {
 // Fetch all products and populate their ingredient data
 export async function getAllProducts(): Promise<Product[]> {
   try {
-    const productsSnapshot = await getDocs(query(productsCollection, orderBy('id', 'desc')));
+    const productsSnapshot = await getDocs(query(productsCollection));
     if (productsSnapshot.empty) {
       return [];
     }
@@ -960,17 +952,6 @@ export async function saveProduct(
   }
 }
 
-export async function deleteProduct(productId: string) {
-    try {
-        await deleteDoc(doc(db, "products", productId));
-        revalidatePath('/admin/products');
-        return { success: true };
-    } catch (error) {
-        console.error('Error deleting product:', error);
-        return { success: false, error: 'Failed to delete product.' };
-    }
-}
-
 export async function updateProductStock(productId: string, newStock: number) {
     try {
         const productRef = doc(db, "products", productId);
@@ -1052,7 +1033,7 @@ export async function getAppSettings(): Promise<AppSettings> {
             return { ...defaultSettings, ...(docSnap.data() as Partial<AppSettings>) };
         } else {
             // No settings doc yet, create it with defaults
-            await updateDoc(settingsDocRef, defaultSettings, { merge: true });
+            await setDoc(settingsDocRef, defaultSettings);
             return defaultSettings;
         }
     } catch (error) {
@@ -1071,4 +1052,18 @@ export async function updateAppSettings(settings: Partial<AppSettings>) {
         console.error("Error updating app settings:", error);
         return { success: false, error: 'Failed to update settings.' };
     }
+}
+
+export async function createUserProfile(uid: string, data: { email: string | null; name: string | null; image: string | null }) {
+    const userRef = doc(db, 'users', uid);
+    const profile: Omit<User, 'id'> = {
+        name: data.name || 'New User',
+        email: data.email || '',
+        role: 'Viewer', // Default role
+        image: data.image || `https://placehold.co/100x100/6366f1/ffffff?text=${data.name?.[0] || 'U'}`,
+        bio: '',
+        lastActive: new Date().toISOString()
+    };
+    await setDoc(userRef, profile);
+    revalidatePath('/admin/users');
 }

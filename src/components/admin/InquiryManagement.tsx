@@ -1,10 +1,11 @@
 
+
 'use client';
 
 import { useState } from 'react';
 import { ContactInquiry } from '@/types';
 import { format, formatDistanceToNow } from 'date-fns';
-import { Mail, Calendar, User } from 'lucide-react';
+import { Mail, Calendar, User, Phone } from 'lucide-react';
 
 export const InquiryManagement = ({ initialInquiries }: { initialInquiries: ContactInquiry[] }) => {
   const [inquiries] = useState<ContactInquiry[]>(initialInquiries);
@@ -50,15 +51,18 @@ export const InquiryManagement = ({ initialInquiries }: { initialInquiries: Cont
           <div className="p-6 space-y-4">
             <div className="flex justify-between items-start">
                 <div>
-                    <h3 className="text-2xl font-bold text-white">{selectedInquiry.name}</h3>
-                    <p className="text-indigo-400">{selectedInquiry.email}</p>
+                    <h3 className="text-2xl font-bold text-white flex items-center gap-2"><User /> {selectedInquiry.name}</h3>
+                    <a href={`mailto:${selectedInquiry.email}`} className="text-indigo-400 flex items-center gap-2 mt-1"><Mail className="w-4 h-4" /> {selectedInquiry.email}</a>
+                    {selectedInquiry.phone && (
+                        <a href={`tel:${selectedInquiry.phone}`} className="text-indigo-400 flex items-center gap-2 mt-1"><Phone className="w-4 h-4"/>{selectedInquiry.phone}</a>
+                    )}
                 </div>
                 <div className="text-sm text-gray-400 flex items-center gap-2">
                     <Calendar className="w-4 h-4" />
                     {format(getTimestamp(selectedInquiry.submittedAt), "PPP p")}
                 </div>
             </div>
-            <div className="prose prose-invert prose-sm max-w-none bg-gray-900/50 p-4 rounded-lg">
+            <div className="prose prose-invert prose-sm max-w-none bg-gray-900/50 p-4 rounded-lg border border-gray-700">
                 <p>{selectedInquiry.message}</p>
             </div>
           </div>

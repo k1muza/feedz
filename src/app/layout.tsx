@@ -4,6 +4,7 @@ import { Metadata } from "next";
 import { Inter as FontSans } from "next/font/google"
 import { cn } from "@/lib/utils"
 import { Toaster } from "@/components/ui/toaster";
+import { AuthProvider } from "@/context/AuthContext";
 
 const fontSans = FontSans({
   subsets: ["latin"],
@@ -57,17 +58,18 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({
-  children, // Will be either main or invoice layout + pages
+  children,
 }: {
   children: React.ReactNode
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={cn("min-h-screen bg-background font-sans antialiased", fontSans.variable)}>
-        {children}
+        <AuthProvider>
+            {children}
+        </AuthProvider>
         <Toaster />
       </body>
-
       <GoogleAnalytics gaId="G-EPHLVQPHS9" />
     </html>
   )
