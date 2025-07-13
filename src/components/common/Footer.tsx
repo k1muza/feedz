@@ -134,10 +134,10 @@ export default function Footer({ productCategories }: { productCategories: Produ
               <li className="flex items-center">
                 <FaEnvelope className="text-green-500 mr-3 flex-shrink-0" />
                 <a 
-                  href="mailto:sales@feedsport.com" 
+                  href="mailto:sales@feedsport.co.zw" 
                   className="text-gray-400 hover:text-green-500 transition-colors duration-300"
                 >
-                  sales@feedsport.com
+                  sales@feedsport.co.zw
                 </a>
               </li>
               <li className="flex items-center">
