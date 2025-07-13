@@ -23,7 +23,7 @@ import {
 } from 'firebase/firestore';
 import { revalidatePath } from 'next/cache';
 import { db } from '@/lib/firebase';
-import { BlogPost, BlogCategory, User, Product, Ingredient, ProductCategory, Composition, ContactInquiry, NewsletterSubscription, AppSettings, Policy } from '@/types';
+import { BlogPost, BlogCategory, User, Product, Ingredient, ProductCategory, Composition, ContactInquiry, NewsletterSubscription, AppSettings, Policy, Invoice, InvoiceItem } from '@/types';
 import { z } from 'zod';
 import { S3Client, PutObjectCommand, ListObjectsV2Command, DeleteObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
@@ -31,7 +31,7 @@ import { RecommendIngredientCombinationsInput, RecommendIngredientCombinationsOu
 import { generateProductDetails, GenerateProductDetailsInput, GenerateProductDetailsOutput } from '@/ai/flows/generate-product-details';
 import { getNutrients } from '@/data/nutrients';
 import type { Conversation, Message } from '@/types/chat';
-import { routeInquiry, RouterInput } from '@/ai/flows/router';
+import { routeInquiry } from '@/ai/flows/router';
 
 
 const s3Client = new S3Client({
@@ -227,7 +227,7 @@ export async function addMessage(conversationId: string, content: string): Promi
   const conversationData = updatedSnap.data() as Omit<Conversation, 'id'>;
 
   // 4. Get AI response using the new router flow
-  const aiInput: RouterInput = {
+  const aiInput = {
     history: (conversationData.messages || []).filter(Boolean).map(msg => ({ role: msg.role, content: msg.content })),
   };
   const aiResponseContent = await routeInquiry(aiInput);
@@ -1087,6 +1087,87 @@ export async function deletePolicy(policyId: string) {
         return { success: false, error: 'Failed to delete policy.' };
     }
 }
+
+// --- INVOICE ACTIONS ---
+
+const invoicesCollection = collection(db, 'invoices');
+
+export async function createInvoice(invoiceData: Omit<Invoice, 'id' | 'invoiceNumber'>): Promise<{ success: boolean; id?: string; error?: string }> {
+  try {
+    const docRef = await addDoc(invoicesCollection, {
+      ...invoiceData,
+      invoiceNumber: `INV-${Date.now()}`, // Simple invoice number for now
+    });
+    revalidatePath('/admin/invoices');
+    return { success: true, id: docRef.id };
+  } catch (error) {
+    console.error('Error creating invoice:', error);
+    return { success: false, error: 'Failed to create invoice.' };
+  }
+}
+
+export async function getAllInvoices(): Promise<Invoice[]> {
+  try {
+    const snapshot = await getDocs(query(invoicesCollection, orderBy('issueDate', 'desc')));
+    if (snapshot.empty) return [];
+    
+    return snapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+            id: doc.id,
+            ...data,
+            issueDate: data.issueDate.toJSON(),
+            dueDate: data.dueDate.toJSON(),
+        } as Invoice;
+    });
+  } catch (error) {
+    console.error("Error fetching invoices:", error);
+    return [];
+  }
+}
+
+export async function getInvoiceById(id: string): Promise<Invoice | null> {
+    try {
+        const docRef = doc(db, 'invoices', id);
+        const docSnap = await getDoc(docRef);
+        if (!docSnap.exists()) return null;
+        
+        const data = docSnap.data();
+        return {
+            id: docSnap.id,
+            ...data,
+            issueDate: data.issueDate.toJSON(),
+            dueDate: data.dueDate.toJSON(),
+        } as Invoice;
+    } catch (error) {
+        console.error("Error fetching invoice by ID:", error);
+        return null;
+    }
+}
+
+export async function updateInvoice(id: string, invoiceData: Partial<Omit<Invoice, 'id' | 'invoiceNumber'>>) {
+    try {
+        await updateDoc(doc(db, 'invoices', id), invoiceData);
+        revalidatePath('/admin/invoices');
+        revalidatePath(`/admin/invoices/${id}`);
+        return { success: true };
+    } catch (error) {
+        console.error("Error updating invoice:", error);
+        return { success: false, error: "Failed to update invoice." };
+    }
+}
+
+export async function deleteInvoice(id: string) {
+    try {
+        await deleteDoc(doc(db, 'invoices', id));
+        revalidatePath('/admin/invoices');
+        return { success: true };
+    } catch (error) {
+        console.error("Error deleting invoice:", error);
+        return { success: false, error: "Failed to delete invoice." };
+    }
+}
+
 
 
 // --- SEARCH ---

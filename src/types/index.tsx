@@ -156,6 +156,27 @@ export type Policy = {
     lastUpdated: string;
 }
 
+export type InvoiceItem = {
+    productId: string;
+    productName: string;
+    quantity: number;
+    unitPrice: number;
+    totalPrice: number;
+};
+
+export type Invoice = {
+    id: string;
+    invoiceNumber: string;
+    customerId: string; // Or a more complex customer object
+    customerName: string;
+    customerEmail: string;
+    issueDate: { seconds: number, nanoseconds: number };
+    dueDate: { seconds: number, nanoseconds: number };
+    items: InvoiceItem[];
+    totalAmount: number;
+    status: 'draft' | 'sent' | 'paid' | 'void';
+};
+
 
 // Types
 export interface RatioIngredient extends Ingredient {

@@ -26,6 +26,7 @@ import {
   Newspaper,
   LogOut,
   Shield,
+  Receipt,
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -48,6 +49,7 @@ function DashboardLayout({
     { path: '/admin/stock', label: 'Stock Management', icon: Package },
     { path: '/admin/products', label: 'Products', icon: Package },
     { path: '/admin/ingredients', label: 'Ingredients', icon: FlaskConical },
+    { path: '/admin/invoices', label: 'Invoices', icon: Receipt },
     { path: '/admin/assets', label: 'Assets', icon: ImageIcon },
     { path: '/admin/blog', label: 'Blog', icon: FileText },
     { path: '/admin/policies', label: 'Policies', icon: Shield },
