@@ -15,6 +15,7 @@ import {
 } from 'recharts';
 import type { Product, BlogPost, User } from '@/types';
 import Image from 'next/image';
+import { AnalyticsDashboard } from './AnalyticsDashboard';
 
 interface DashboardClientProps {
     products: Product[];
@@ -72,7 +73,7 @@ export function DashboardClient({ products, blogPosts, users }: DashboardClientP
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white">Content Dashboard</h1>
+          <h1 className="text-2xl font-bold text-white">Dashboard</h1>
           <p className="text-gray-400">Your content and analytics at a glance</p>
         </div>
         <div className="flex items-center space-x-2 bg-indigo-900/30 px-4 py-2 rounded-lg">
@@ -172,6 +173,10 @@ export function DashboardClient({ products, blogPosts, users }: DashboardClientP
             </ul>
         </div>
       </div>
+      
+      {/* Analytics Section */}
+      <AnalyticsDashboard />
+
     </div>
   );
 }
