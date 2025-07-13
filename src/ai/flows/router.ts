@@ -48,7 +48,7 @@ const routerFlow = ai.defineFlow(
     - "quick_product_inquiry": Direct questions about specific products, pricing, availability, or stock (e.g., "how much is corn?", "do you have soybean meal?", "is maize in stock?").
     - "order_inquiry": The user indicates they are ready to buy or want to place an order (e.g., "I need 5 tons delivered", "I'd like to order", "Can I get 100 bags of broiler starter?").
     - "formulation_advice": The user needs help creating a feed mix or wants a recommendation for what to feed their animals (e.g., "what should I feed my dairy cows?", "help me make a broiler starter feed").
-    - "sales_inquiry": All other inquiries, including greetings, questions about the company, its location, policies, or general conversation.
+    - "sales_inquiry": All other inquiries, including greetings, questions about the company, its location, policies, delivery & logistics, or general conversation (e.g., "hi there", "where are you located?", "can you deliver tomorrow?").
     `;
 
     const { text: category } = await ai.generate({
