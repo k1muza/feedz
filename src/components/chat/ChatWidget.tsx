@@ -88,12 +88,12 @@ export function ChatWidget() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 20 }}
-            className="fixed bottom-20 right-5 w-full max-w-sm h-[70vh] bg-gray-800/50 rounded-xl shadow-2xl border border-gray-700 flex flex-col z-50 overflow-hidden backdrop-blur-lg"
+            className="fixed inset-0 sm:bottom-20 sm:right-5 sm:inset-auto w-full sm:max-w-sm h-full sm:h-[70vh] bg-gray-800/50 sm:rounded-xl shadow-2xl border-gray-700 sm:border flex flex-col z-50 overflow-hidden backdrop-blur-lg"
           >
             {/* Header */}
             <header className="p-4 border-b border-gray-700/50 flex items-center space-x-3 bg-gray-800/70">
               <div className="relative w-10 h-10">
-                <Image src="https://placehold.co/40x40/7c3aed/ffffff.png" data-ai-hint="robot mascot" alt="Feedy Avatar" fill className="rounded-full" />
+                <Image src="https://placehold.co/40x40/22c55e/ffffff.png" data-ai-hint="robot mascot" alt="Feedy Avatar" fill className="rounded-full" />
               </div>
               <div>
                 <h3 className="font-bold text-white">Feedy</h3>
@@ -110,7 +110,7 @@ export function ChatWidget() {
                 <div key={index} className={cn("flex items-start gap-3", message.role === 'user' ? 'justify-end' : 'justify-start')}>
                   {message.role === 'model' && (
                     <div className="w-8 h-8 rounded-full bg-indigo-500/20 flex items-center justify-center flex-shrink-0">
-                      <Image src="https://placehold.co/32x32/7c3aed/ffffff.png" data-ai-hint="robot mascot" alt="Feedy Avatar" width={32} height={32} className="rounded-full" />
+                      <Image src="https://placehold.co/32x32/22c55e/ffffff.png" data-ai-hint="robot mascot" alt="Feedy Avatar" width={32} height={32} className="rounded-full" />
                     </div>
                   )}
                   <div className={cn(
@@ -133,7 +133,7 @@ export function ChatWidget() {
                     className="flex items-start gap-3 justify-start"
                  >
                     <div className="w-8 h-8 rounded-full bg-indigo-500/20 flex items-center justify-center flex-shrink-0">
-                      <Image src="https://placehold.co/32x32/7c3aed/ffffff.png" data-ai-hint="robot mascot" alt="Feedy Avatar" width={32} height={32} className="rounded-full" />
+                      <Image src="https://placehold.co/32x32/22c55e/ffffff.png" data-ai-hint="robot mascot" alt="Feedy Avatar" width={32} height={32} className="rounded-full" />
                     </div>
                     <div className="p-3 rounded-lg bg-gray-900/80 text-gray-400 text-sm italic">
                         Feedy is typing...
