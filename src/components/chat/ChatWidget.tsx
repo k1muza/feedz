@@ -74,11 +74,14 @@ export function ChatWidget() {
       <div className="fixed bottom-5 right-5 z-50">
         <motion.button
           onClick={() => setIsOpen(!isOpen)}
-          className="bg-green-600 text-white p-4 rounded-full shadow-lg hover:bg-green-700 transition-colors"
+          className={cn(
+            "bg-green-600 text-white p-4 rounded-full shadow-lg hover:bg-green-700 transition-colors",
+            isOpen && 'sm:hidden' // Hide on mobile when open to prevent overlap
+            )}
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.9 }}
         >
-          {isOpen ? <X size={24} /> : <MessageSquare size={24} />}
+          <X size={24} />
         </motion.button>
       </div>
 
@@ -91,17 +94,25 @@ export function ChatWidget() {
             className="fixed inset-0 sm:bottom-20 sm:right-5 sm:inset-auto w-full sm:max-w-sm h-full sm:h-[70vh] bg-gray-800/50 sm:rounded-xl shadow-2xl border-gray-700 sm:border flex flex-col z-50 overflow-hidden backdrop-blur-lg"
           >
             {/* Header */}
-            <header className="p-4 border-b border-gray-700/50 flex items-center space-x-3 bg-gray-800/70">
-              <div className="relative w-10 h-10">
-                <Image src="https://placehold.co/40x40/22c55e/ffffff.png" data-ai-hint="robot mascot" alt="Feedy Avatar" fill className="rounded-full" />
-              </div>
-              <div>
-                <h3 className="font-bold text-white">Feedy</h3>
-                <p className="text-sm text-gray-400 flex items-center">
-                    <span className="w-2 h-2 rounded-full bg-green-500 mr-1.5"></span>
-                    Online
-                </p>
-              </div>
+            <header className="p-4 border-b border-gray-700/50 flex items-center justify-between bg-gray-800/70">
+                <div className="flex items-center space-x-3">
+                    <div className="relative w-10 h-10">
+                        <Image src="https://placehold.co/40x40/22c55e/ffffff.png" data-ai-hint="robot mascot" alt="Feedy Avatar" fill className="rounded-full" />
+                    </div>
+                    <div>
+                        <h3 className="font-bold text-white">Feedy</h3>
+                        <p className="text-sm text-gray-400 flex items-center">
+                            <span className="w-2 h-2 rounded-full bg-green-500 mr-1.5"></span>
+                            Online
+                        </p>
+                    </div>
+                </div>
+                <button
+                    onClick={() => setIsOpen(false)}
+                    className="p-2 text-gray-400 hover:text-white sm:hidden" // Only show on mobile
+                >
+                    <X size={24} />
+                </button>
             </header>
 
             {/* Messages */}
