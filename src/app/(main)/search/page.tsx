@@ -44,7 +44,7 @@ function SearchPageComponent() {
     <>
       <SecondaryHero
         title={query ? `Search Results for "${query}"` : 'Search'}
-        subtitle={results ? `Found ${results.products.length} products and ${results.blogPosts.length} blog posts.` : 'Enter a query to search the site.'}
+        subtitle={!loading && results ? `Found ${results.products.length} products and ${results.blogPosts.length} blog posts.` : 'Enter a query to search the site.'}
         minimal
       />
       <main className="container mx-auto px-4 py-12 max-w-7xl">

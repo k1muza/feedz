@@ -1,11 +1,16 @@
+
 'use client'
 
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { FaBars, FaCommentDots, FaPhoneAlt, FaSearch, FaTimes } from 'react-icons/fa'
 import { FaWheatAwn } from 'react-icons/fa6'
 import { motion, AnimatePresence } from 'framer-motion'
+import { search } from '@/app/actions'
+import { Product, BlogPost } from '@/types'
+import { Loader2, Package, FileText } from 'lucide-react'
+import Image from 'next/image'
 
 const links = [
   { href: '/', label: 'Home' },
@@ -16,6 +21,26 @@ const links = [
   { href: '/contact', label: 'Contact' },
 ]
 
+type SearchResults = {
+  products: Product[];
+  blogPosts: BlogPost[];
+}
+
+// Debounce hook
+function useDebounce(value: string, delay: number) {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [value, delay]);
+  return debouncedValue;
+}
+
+
 export default function NavBar() {
   const pathname = usePathname()
   const router = useRouter()
@@ -23,9 +48,15 @@ export default function NavBar() {
   const [mobileOpen, setMobileOpen] = useState(false)
   const [query, setQuery] = useState('')
   const [scrolled, setScrolled] = useState(false)
+  const [suggestions, setSuggestions] = useState<SearchResults | null>(null);
+  const [loadingSuggestions, setLoadingSuggestions] = useState(false);
+
   const searchRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const navRef = useRef<HTMLElement>(null)
+  
+  const debouncedQuery = useDebounce(query, 300);
+
 
   // Close search on outside click
   useEffect(() => {
@@ -37,6 +68,25 @@ export default function NavBar() {
     document.addEventListener('mousedown', handleClick)
     return () => document.removeEventListener('mousedown', handleClick)
   }, [])
+  
+  // Fetch suggestions when debounced query changes
+  useEffect(() => {
+    if (debouncedQuery.length > 1) {
+      const fetchSuggestions = async () => {
+        setLoadingSuggestions(true);
+        const results = await search(debouncedQuery);
+        setSuggestions({
+            products: results.products.slice(0, 5),
+            blogPosts: results.blogPosts.slice(0, 5),
+        });
+        setLoadingSuggestions(false);
+      };
+      fetchSuggestions();
+    } else {
+      setSuggestions(null);
+    }
+  }, [debouncedQuery]);
+
 
   // Focus on search open
   useEffect(() => {
@@ -58,8 +108,14 @@ export default function NavBar() {
     if (query.trim()) {
       router.push(`/search?q=${encodeURIComponent(query)}`);
       setSearchOpen(false);
+      setQuery('');
     }
   };
+  
+  const handleSuggestionClick = () => {
+      setSearchOpen(false);
+      setQuery('');
+  }
 
   const isActive = (href: string) => {
     if (href === '/') return pathname === '/'
@@ -140,11 +196,11 @@ export default function NavBar() {
             <AnimatePresence>
               {searchOpen && (
                 <motion.div
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  transition={{ type: 'spring', stiffness: 300 }}
-                  className="absolute right-0 mt-2 w-72 bg-gray-800 rounded-lg shadow-xl overflow-hidden border border-gray-700"
+                  initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                  transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+                  className="absolute right-0 mt-2 w-80 md:w-96 bg-gray-800 rounded-lg shadow-xl border border-gray-700"
                 >
                   <form onSubmit={handleSearchSubmit}>
                     <div className="relative">
@@ -154,16 +210,50 @@ export default function NavBar() {
                         value={query}
                         onChange={e => setQuery(e.target.value)}
                         placeholder="Search products, resources..."
-                        className="w-full px-4 py-3 pr-10 text-gray-200 bg-gray-700 focus:outline-none placeholder-gray-400"
+                        className="w-full px-4 py-3 pr-10 text-gray-200 bg-gray-700 focus:outline-none placeholder-gray-400 rounded-t-lg"
                       />
-                      <button
+                       <button
                         type="submit"
                         className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-green-400"
                       >
-                        <FaSearch />
+                         {loadingSuggestions ? <Loader2 className="animate-spin w-4 h-4"/> : <FaSearch />}
                       </button>
                     </div>
                   </form>
+                  {suggestions && (
+                    <div className="p-2 max-h-96 overflow-y-auto">
+                        {suggestions.products.length > 0 && (
+                            <div className="mb-2">
+                                <h4 className="px-2 py-1 text-xs font-semibold text-gray-400 uppercase">Products</h4>
+                                {suggestions.products.map(p => (
+                                    <Link key={p.id} href={`/products/${p.id}`} onClick={handleSuggestionClick} className="flex items-center gap-3 p-2 rounded-md hover:bg-gray-700">
+                                        <Image src={p.images[0]} alt={p.ingredient?.name || ''} width={32} height={32} className="rounded object-cover bg-gray-600"/>
+                                        <span className="text-sm text-gray-200">{p.ingredient?.name}</span>
+                                    </Link>
+                                ))}
+                            </div>
+                        )}
+                        {suggestions.blogPosts.length > 0 && (
+                             <div>
+                                <h4 className="px-2 py-1 text-xs font-semibold text-gray-400 uppercase">Blog</h4>
+                                {suggestions.blogPosts.map(b => (
+                                    <Link key={b.id} href={`/blog/${b.slug}`} onClick={handleSuggestionClick} className="flex items-center gap-3 p-2 rounded-md hover:bg-gray-700">
+                                        <FileText className="w-6 h-6 text-gray-500 flex-shrink-0"/>
+                                        <span className="text-sm text-gray-200">{b.title}</span>
+                                    </Link>
+                                ))}
+                            </div>
+                        )}
+                        {(suggestions.products.length > 0 || suggestions.blogPosts.length > 0) && (
+                            <Link href={`/search?q=${encodeURIComponent(query)}`} onClick={handleSuggestionClick} className="block text-center p-2 mt-2 text-sm text-green-400 hover:bg-gray-700 rounded-md">
+                                View all results for "{query}"
+                            </Link>
+                        )}
+                        {(suggestions.products.length === 0 && suggestions.blogPosts.length === 0) && (
+                             <p className="p-4 text-center text-sm text-gray-400">No suggestions found.</p>
+                        )}
+                    </div>
+                  )}
                 </motion.div>
               )}
             </AnimatePresence>
