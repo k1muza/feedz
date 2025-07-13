@@ -27,6 +27,7 @@ import {
   LogOut,
   Shield,
   Receipt,
+  ChevronDown,
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -34,6 +35,53 @@ import { ReactNode, useState } from 'react';
 import { Toaster } from 'react-hot-toast';
 import { useAuth } from '@/context/AuthContext';
 import withAuth from '@/components/auth/withAuth';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { cn } from '@/lib/utils';
+
+const navSections = [
+    {
+      title: 'Catalog',
+      icon: Package,
+      links: [
+        { path: '/admin/products', label: 'Products', icon: Package },
+        { path: '/admin/ingredients', label: 'Ingredients', icon: FlaskConical },
+        { path: '/admin/stock', label: 'Stock Management', icon: Package },
+      ],
+    },
+    {
+      title: 'Sales',
+      icon: ShoppingCart,
+      links: [
+        { path: '/admin/invoices', label: 'Invoices', icon: Receipt },
+      ],
+    },
+    {
+      title: 'Content',
+      icon: FileText,
+      links: [
+        { path: '/admin/blog', label: 'Blog', icon: FileText },
+        { path: '/admin/assets', label: 'Assets', icon: ImageIcon },
+        { path: '/admin/policies', label: 'Policies', icon: Shield },
+      ],
+    },
+    {
+      title: 'Engagement',
+      icon: Users,
+      links: [
+        { path: '/admin/conversations', label: 'Conversations', icon: MessageSquare },
+        { path: '/admin/inquiries', label: 'Inquiries', icon: Mail },
+        { path: '/admin/subscribers', label: 'Subscribers', icon: Newspaper },
+      ],
+    },
+     {
+      title: 'Administration',
+      icon: SettingsIcon,
+      links: [
+        { path: '/admin/users', label: 'Users', icon: Users },
+        { path: '/admin/settings', label: 'Settings', icon: SettingsIcon },
+      ],
+    },
+];
 
 function DashboardLayout({
   children,
@@ -44,21 +92,7 @@ function DashboardLayout({
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const { user, logout } = useAuth();
   
-  const navItems = [
-    { path: '/admin', label: 'Dashboard', icon: Home },
-    { path: '/admin/stock', label: 'Stock Management', icon: Package },
-    { path: '/admin/products', label: 'Products', icon: Package },
-    { path: '/admin/ingredients', label: 'Ingredients', icon: FlaskConical },
-    { path: '/admin/invoices', label: 'Invoices', icon: Receipt },
-    { path: '/admin/assets', label: 'Assets', icon: ImageIcon },
-    { path: '/admin/blog', label: 'Blog', icon: FileText },
-    { path: '/admin/policies', label: 'Policies', icon: Shield },
-    { path: '/admin/conversations', label: 'Conversations', icon: MessageSquare },
-    { path: '/admin/subscribers', label: 'Subscribers', icon: Newspaper },
-    { path: '/admin/inquiries', label: 'Inquiries', icon: Mail },
-    { path: '/admin/users', label: 'Users', icon: Users },
-    { path: '/admin/settings', label: 'Settings', icon: SettingsIcon },
-  ];
+  const isLinkActive = (path: string) => pathname.startsWith(path);
 
   const toggleSidebar = () => {
     setSidebarCollapsed(!sidebarCollapsed);
@@ -66,7 +100,6 @@ function DashboardLayout({
 
   return (
     <div className="flex h-screen bg-gray-950 text-gray-100">
-      {/* Sidebar */}
       <aside className={`${sidebarCollapsed ? 'w-20' : 'w-64'} bg-gray-900/80 backdrop-blur-lg border-r border-gray-800 z-10 transition-all duration-300 ease-in-out`}>
         <div className="flex items-center justify-between px-4 py-5 border-b border-gray-800">
           {!sidebarCollapsed && (
@@ -86,27 +119,49 @@ function DashboardLayout({
         </div>
         
         <nav className="mt-6 flex flex-col space-y-1 px-2">
-          {navItems.map(({ path, label, icon: Icon }) => (
-            <Link
-              key={path}
-              href={path}
+           <Link
+              href="/admin"
               className={`flex items-center w-full px-4 py-3 rounded-lg transition-all group ${
-                pathname.startsWith(path) && (path !== '/admin' || pathname === '/admin')
-                  ? 'bg-indigo-500/10 text-indigo-400 border-l-4 border-indigo-400' 
+                pathname === '/admin'
+                  ? 'bg-indigo-500/10 text-indigo-400' 
                   : 'text-gray-400 hover:bg-gray-800/50 hover:text-gray-200'
               }`}
-              title={sidebarCollapsed ? label : undefined}
+              title={sidebarCollapsed ? "Dashboard" : undefined}
             >
-              <Icon className="w-5 h-5" />
-              {!sidebarCollapsed && (
-                <span className="font-medium ml-3">{label}</span>
-              )}
-              {sidebarCollapsed && (
-                <div className="absolute left-full ml-2 px-2 py-1 bg-gray-800 text-white text-sm rounded-md opacity-0 group-hover:opacity-100 whitespace-nowrap">
-                  {label}
-                </div>
-              )}
+              <Home className="w-5 h-5" />
+              {!sidebarCollapsed && <span className="font-medium ml-3">Dashboard</span>}
             </Link>
+
+          {navSections.map((section) => (
+            <Collapsible key={section.title} defaultOpen={section.links.some(l => isLinkActive(l.path))}>
+               <CollapsibleTrigger className={cn("flex items-center justify-between w-full p-2 rounded-lg text-gray-400 hover:bg-gray-800/50", sidebarCollapsed && "justify-center")}>
+                 {!sidebarCollapsed && <span className="font-semibold text-xs uppercase tracking-wider">{section.title}</span>}
+                 <section.icon className={cn("w-5 h-5", sidebarCollapsed && "mx-auto")} />
+                 {!sidebarCollapsed && <ChevronDown className="w-4 h-4 transition-transform [&[data-state=open]]:rotate-180" />}
+              </CollapsibleTrigger>
+              <CollapsibleContent className="space-y-1 mt-1">
+                {section.links.map(({ path, label, icon: Icon }) => (
+                  <Link
+                    key={path}
+                    href={path}
+                    className={`flex items-center w-full py-2.5 rounded-lg transition-all group ${
+                      isLinkActive(path)
+                        ? 'bg-indigo-500/10 text-indigo-400' 
+                        : 'text-gray-400 hover:bg-gray-800/50 hover:text-gray-200'
+                    } ${sidebarCollapsed ? 'px-4 justify-center' : 'px-8'}`}
+                    title={sidebarCollapsed ? label : undefined}
+                  >
+                    <Icon className="w-5 h-5" />
+                    {!sidebarCollapsed && <span className="font-medium ml-3 text-sm">{label}</span>}
+                     {sidebarCollapsed && (
+                      <div className="absolute left-full ml-2 px-2 py-1 bg-gray-800 text-white text-sm rounded-md opacity-0 group-hover:opacity-100 whitespace-nowrap">
+                        {label}
+                      </div>
+                    )}
+                  </Link>
+                ))}
+              </CollapsibleContent>
+            </Collapsible>
           ))}
         </nav>
         
@@ -136,7 +191,7 @@ function DashboardLayout({
               <Menu className="w-5 h-5" />
             </button>
             <h2 className="text-xl font-semibold text-gray-100">
-              {navItems.find(item => pathname.startsWith(item.path) && (item.path !== '/admin' || pathname === '/admin'))?.label || 'Dashboard'}
+              {navSections.flatMap(s => s.links).find(item => isLinkActive(item.path))?.label || 'Dashboard'}
             </h2>
           </div>
           
