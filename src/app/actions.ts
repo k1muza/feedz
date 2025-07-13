@@ -4,6 +4,7 @@
 
 
 
+
 'use server';
 
 import { config } from 'dotenv';
@@ -161,7 +162,7 @@ export async function getNewsletterSubscriptions(): Promise<NewsletterSubscripti
       return {
         id: doc.id,
         ...data,
-        subscribedAt: data.submittedAt.toJSON(),
+        submittedAt: data.submittedAt.toJSON(),
       } as NewsletterSubscription;
     });
   } catch (error) {
@@ -1000,35 +1001,31 @@ export async function updateIngredientCompositions(
 // --- SEARCH ---
 
 export async function search(query: string) {
-    const [products, ingredients, blogPosts] = await Promise.all([
+    const [products, blogPosts] = await Promise.all([
         getAllProducts(),
-        getAllIngredients(),
         getAllBlogPosts(),
     ]);
 
     const lowerCaseQuery = query.toLowerCase();
 
-    const productResults = products.filter(p => 
-        p.ingredient?.name.toLowerCase().includes(lowerCaseQuery) ||
-        p.ingredient?.description.toLowerCase().includes(lowerCaseQuery) ||
-        p.ingredient?.category?.toLowerCase().includes(lowerCaseQuery)
-    ).map(p => ({ type: 'Product', ...p }));
+    const productResults = products
+        .filter(p => 
+            p.ingredient?.name.toLowerCase().includes(lowerCaseQuery) ||
+            p.ingredient?.description?.toLowerCase().includes(lowerCaseQuery) ||
+            p.ingredient?.category?.toLowerCase().includes(lowerCaseQuery)
+        )
+        .map(p => ({ ...p, type: 'product' as const }));
 
-    const ingredientResults = ingredients.filter(i => 
-        i.name.toLowerCase().includes(lowerCaseQuery) ||
-        i.description.toLowerCase().includes(lowerCaseQuery)
-    ).map(i => ({ type: 'Ingredient', ...i }));
-
-    const blogPostResults = blogPosts.filter(b => 
-        b.title.toLowerCase().includes(lowerCaseQuery) ||
-        b.content.toLowerCase().includes(lowerCaseQuery) ||
-        b.tags.some(tag => tag.toLowerCase().includes(lowerCaseQuery))
-    ).map(b => ({ type: 'Blog Post', ...b }));
-
+    const blogPostResults = blogPosts
+        .filter(b => 
+            b.title.toLowerCase().includes(lowerCaseQuery) ||
+            b.content.toLowerCase().includes(lowerCaseQuery) ||
+            b.tags.some(tag => tag.toLowerCase().includes(lowerCaseQuery))
+        )
+        .map(b => ({ ...b, type: 'blog' as const }));
 
     return {
         products: productResults,
-        ingredients: ingredientResults,
         blogPosts: blogPostResults,
     };
 }
@@ -1059,7 +1056,7 @@ export async function getAppSettings(): Promise<AppSettings> {
 
 export async function updateAppSettings(settings: Partial<AppSettings>) {
     try {
-        await updateDoc(settingsDocRef, settings, { merge: true });
+        await setDoc(settingsDocRef, settings, { merge: true });
         revalidatePath('/admin/settings');
         revalidatePath('/login');
         return { success: true };

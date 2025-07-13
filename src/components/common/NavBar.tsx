@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { FaBars, FaCommentDots, FaPhoneAlt, FaSearch, FaTimes } from 'react-icons/fa'
 import { FaWheatAwn } from 'react-icons/fa6'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -18,6 +18,7 @@ const links = [
 
 export default function NavBar() {
   const pathname = usePathname()
+  const router = useRouter()
   const [searchOpen, setSearchOpen] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
   const [query, setQuery] = useState('')
@@ -51,6 +52,14 @@ export default function NavBar() {
     window.addEventListener('scroll', onScroll, { passive: true })
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
+
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (query.trim()) {
+      router.push(`/search?q=${encodeURIComponent(query)}`);
+      setSearchOpen(false);
+    }
+  };
 
   const isActive = (href: string) => {
     if (href === '/') return pathname === '/'
@@ -137,22 +146,24 @@ export default function NavBar() {
                   transition={{ type: 'spring', stiffness: 300 }}
                   className="absolute right-0 mt-2 w-72 bg-gray-800 rounded-lg shadow-xl overflow-hidden border border-gray-700"
                 >
-                  <div className="relative">
-                    <input
-                      ref={inputRef}
-                      type="text"
-                      value={query}
-                      onChange={e => setQuery(e.target.value)}
-                      placeholder="Search products, resources..."
-                      className="w-full px-4 py-3 pr-10 text-gray-200 bg-gray-700 focus:outline-none placeholder-gray-400"
-                    />
-                    <button
-                      type="submit"
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-green-400"
-                    >
-                      <FaSearch />
-                    </button>
-                  </div>
+                  <form onSubmit={handleSearchSubmit}>
+                    <div className="relative">
+                      <input
+                        ref={inputRef}
+                        type="text"
+                        value={query}
+                        onChange={e => setQuery(e.target.value)}
+                        placeholder="Search products, resources..."
+                        className="w-full px-4 py-3 pr-10 text-gray-200 bg-gray-700 focus:outline-none placeholder-gray-400"
+                      />
+                      <button
+                        type="submit"
+                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-green-400"
+                      >
+                        <FaSearch />
+                      </button>
+                    </div>
+                  </form>
                 </motion.div>
               )}
             </AnimatePresence>
