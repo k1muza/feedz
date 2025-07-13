@@ -31,7 +31,7 @@ import { RecommendIngredientCombinationsInput, RecommendIngredientCombinationsOu
 import { generateProductDetails, GenerateProductDetailsInput, GenerateProductDetailsOutput } from '@/ai/flows/generate-product-details';
 import { getNutrients } from '@/data/nutrients';
 import type { Conversation, Message } from '@/types/chat';
-import { chatWithSalesAgent, ChatInput } from '@/ai/flows/chat';
+import { routeInquiry, RouterInput } from '@/ai/flows/router';
 
 
 const s3Client = new S3Client({
@@ -226,11 +226,11 @@ export async function addMessage(conversationId: string, content: string): Promi
   const updatedSnap = await getDoc(conversationRef);
   const conversationData = updatedSnap.data() as Omit<Conversation, 'id'>;
 
-  // 4. Get AI response
-  const aiInput: ChatInput = {
+  // 4. Get AI response using the new router flow
+  const aiInput: RouterInput = {
     history: (conversationData.messages || []).filter(Boolean).map(msg => ({ role: msg.role, content: msg.content })),
   };
-  const aiResponseContent = await chatWithSalesAgent(aiInput);
+  const aiResponseContent = await routeInquiry(aiInput);
   
   // 5. Add AI message
   const aiMessage: Message = {
@@ -247,7 +247,7 @@ export async function addMessage(conversationId: string, content: string): Promi
   const finalSnap = await getDoc(conversationRef);
   revalidatePath('/admin/conversations');
   const finalData = finalSnap.data()!;
-  const messages = (finalData.messages || []).map((msg: any) => ({
+  const messages = (finalData.messages || []).filter(Boolean).map((msg: any) => ({
       ...msg,
       timestamp: msg.timestamp.toJSON() // Convert Timestamp
   }));
