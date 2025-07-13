@@ -1,7 +1,7 @@
 
 'use client'
 
-import { Bell, Edit2, Lock, Plus, Save, Settings as SettingsIcon, Trash2, User, X, Loader2, Bot } from "lucide-react";
+import { Bell, Edit2, Lock, Plus, Save, Settings as SettingsIcon, Trash2, User, X, Loader2, Bot, MessageSquare } from "lucide-react";
 import { useEffect, useState } from "react";
 import { AppSettings } from "@/types";
 import { getAppSettings, updateAppSettings } from "@/app/actions";
@@ -84,18 +84,33 @@ export const Settings = () => {
                 <Bot className="w-5 h-5 text-indigo-400" />
                 <span>AI & Chatbot Settings</span>
             </h3>
-            <div className="flex items-center justify-between">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                  <div>
+                  <p className="text-white">Enable AI Chat Assistant ("Feedy")</p>
+                  <p className="text-sm text-gray-400">
+                      If disabled, the AI will not respond to new messages.
+                  </p>
+                  </div>
+                  <Switch
+                      checked={settings?.aiChatEnabled}
+                      onCheckedChange={(checked) => handleToggle('aiChatEnabled', checked)}
+                      aria-label="Toggle AI chat assistant"
+                  />
+              </div>
+               <div className="flex items-center justify-between">
                 <div>
-                <p className="text-white">Enable AI Chat Assistant ("Feedy")</p>
-                <p className="text-sm text-gray-400">
-                    If disabled, the AI will not respond to new messages.
-                </p>
+                  <p className="text-white">Show Chat Widget on Website</p>
+                  <p className="text-sm text-gray-400">
+                    Turn the chat bubble on or off for all public visitors.
+                  </p>
                 </div>
                 <Switch
-                    checked={settings?.aiChatEnabled}
-                    onCheckedChange={(checked) => handleToggle('aiChatEnabled', checked)}
-                    aria-label="Toggle AI chat assistant"
+                  checked={settings?.chatWidgetEnabled}
+                  onCheckedChange={(checked) => handleToggle('chatWidgetEnabled', checked)}
+                  aria-label="Toggle chat widget visibility"
                 />
+              </div>
             </div>
         </div>
         

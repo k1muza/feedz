@@ -1046,6 +1046,7 @@ export async function getAppSettings(): Promise<AppSettings> {
     const defaultSettings: AppSettings = {
         registrationsOpen: true,
         aiChatEnabled: true,
+        chatWidgetEnabled: true,
     };
 
     try {
