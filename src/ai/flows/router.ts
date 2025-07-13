@@ -10,6 +10,7 @@ import { z } from 'zod';
 import { productInquiryFlow } from './product-inquiry';
 import { salesFlow } from './sales';
 import { recommendIngredientCombinations } from './recommend-ingredient-combinations';
+import { orderProcessingFlow } from './order-processing';
 
 const RouterInputSchema = z.object({
   history: z.array(z.object({
@@ -45,6 +46,7 @@ const routerFlow = ai.defineFlow(
 
     Categories:
     - "quick_product_inquiry": Direct questions about specific products, pricing, availability, or stock (e.g., "how much is corn?", "do you have soybean meal?", "is maize in stock?").
+    - "order_inquiry": The user indicates they are ready to buy or want to place an order (e.g., "I need 5 tons delivered", "I'd like to order", "Can I get 100 bags of broiler starter?").
     - "formulation_advice": The user needs help creating a feed mix or wants a recommendation for what to feed their animals (e.g., "what should I feed my dairy cows?", "help me make a broiler starter feed").
     - "sales_inquiry": All other inquiries, including greetings, questions about the company, its location, policies, or general conversation.
     `;
@@ -61,6 +63,8 @@ const routerFlow = ai.defineFlow(
     switch (flowType) {
       case 'quick_product_inquiry':
         return productInquiryFlow(input);
+      case 'order_inquiry':
+        return orderProcessingFlow(input);
       case 'formulation_advice':
         // The recommendIngredientCombinations flow needs a different input structure.
         // We'll extract the core request from the user's message for it.
