@@ -2,6 +2,7 @@
 
 
 
+
 import { z } from "zod";
 
 export type TechnicalSpecs = {
@@ -146,6 +147,7 @@ export type NewsletterSubscription = {
 
 export type AppSettings = {
     registrationsOpen: boolean;
+    aiChatEnabled: boolean;
 };
 
 

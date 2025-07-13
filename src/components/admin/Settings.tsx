@@ -1,7 +1,7 @@
 
 'use client'
 
-import { Bell, Edit2, Lock, Plus, Save, Settings as SettingsIcon, Trash2, User, X, Loader2 } from "lucide-react";
+import { Bell, Edit2, Lock, Plus, Save, Settings as SettingsIcon, Trash2, User, X, Loader2, Bot } from "lucide-react";
 import { useEffect, useState } from "react";
 import { AppSettings } from "@/types";
 import { getAppSettings, updateAppSettings } from "@/app/actions";
@@ -56,9 +56,9 @@ export const Settings = () => {
         </h2>
       </div>
 
-      <div className="space-y-8">
+      <div className="space-y-8 divide-y divide-gray-700">
         {/* User Management */}
-        <div className="bg-gray-800/50 border border-gray-700 rounded-xl p-6">
+        <div className="pt-8 first:pt-0">
           <h3 className="text-lg font-medium flex items-center space-x-2 mb-4">
             <User className="w-5 h-5 text-indigo-400" />
             <span>User Settings</span>
@@ -73,12 +73,34 @@ export const Settings = () => {
             <Switch
               checked={settings?.registrationsOpen}
               onCheckedChange={(checked) => handleToggle('registrationsOpen', checked)}
+              aria-label="Toggle user registrations"
             />
           </div>
         </div>
+
+        {/* AI Settings */}
+        <div className="pt-8">
+            <h3 className="text-lg font-medium flex items-center space-x-2 mb-4">
+                <Bot className="w-5 h-5 text-indigo-400" />
+                <span>AI & Chatbot Settings</span>
+            </h3>
+            <div className="flex items-center justify-between">
+                <div>
+                <p className="text-white">Enable AI Chat Assistant ("Feedy")</p>
+                <p className="text-sm text-gray-400">
+                    If disabled, the AI will not respond to new messages.
+                </p>
+                </div>
+                <Switch
+                    checked={settings?.aiChatEnabled}
+                    onCheckedChange={(checked) => handleToggle('aiChatEnabled', checked)}
+                    aria-label="Toggle AI chat assistant"
+                />
+            </div>
+        </div>
         
         {/* Save Settings */}
-        <div className="pt-4 border-t border-gray-700 flex justify-end">
+        <div className="pt-8 flex justify-end">
           <button 
             onClick={handleSaveChanges}
             disabled={isSaving}

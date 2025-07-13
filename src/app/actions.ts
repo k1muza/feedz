@@ -1,10 +1,4 @@
 
-
-
-
-
-
-
 'use server';
 
 import { config } from 'dotenv';
@@ -214,17 +208,31 @@ export async function addMessage(conversationId: string, content: string): Promi
     messages: arrayUnion(userMessage),
   });
 
-  // 2. Get current conversation history to pass to AI
+  // 2. Check if AI chat is enabled before getting a response
+  const settings = await getAppSettings();
+  if (!settings.aiChatEnabled) {
+      // If AI is disabled, just return the conversation with the user's message
+      const updatedSnap = await getDoc(conversationRef);
+      const finalData = updatedSnap.data()!;
+      const messages = (finalData.messages || []).map((msg: any) => ({
+          ...msg,
+          timestamp: msg.timestamp.toJSON()
+      }));
+      revalidatePath('/admin/conversations');
+      return { id: updatedSnap.id, startTime: finalData.startTime.toJSON(), messages } as Conversation;
+  }
+
+  // 3. Get current conversation history to pass to AI
   const updatedSnap = await getDoc(conversationRef);
   const conversationData = updatedSnap.data() as Omit<Conversation, 'id'>;
 
-  // 3. Get AI response
+  // 4. Get AI response
   const aiInput: ChatInput = {
-    history: conversationData.messages.map(msg => ({ role: msg.role, content: msg.content })).filter(Boolean),
+    history: (conversationData.messages || []).filter(Boolean).map(msg => ({ role: msg.role, content: msg.content })),
   };
   const aiResponseContent = await chatWithSalesAgent(aiInput);
   
-  // 4. Add AI message
+  // 5. Add AI message
   const aiMessage: Message = {
     role: 'model',
     content: aiResponseContent,
@@ -235,7 +243,7 @@ export async function addMessage(conversationId: string, content: string): Promi
     messages: arrayUnion(aiMessage),
   });
   
-  // 5. Return the final state of the conversation
+  // 6. Return the final state of the conversation
   const finalSnap = await getDoc(conversationRef);
   revalidatePath('/admin/conversations');
   const finalData = finalSnap.data()!;
@@ -1037,6 +1045,7 @@ const settingsDocRef = doc(db, 'app', 'settings');
 export async function getAppSettings(): Promise<AppSettings> {
     const defaultSettings: AppSettings = {
         registrationsOpen: true,
+        aiChatEnabled: true,
     };
 
     try {
