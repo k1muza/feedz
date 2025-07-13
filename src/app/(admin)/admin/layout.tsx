@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import {
@@ -83,25 +81,25 @@ const navSections = [
     },
 ];
 
-function DashboardLayout({
-  children,
-}: {
-  children: ReactNode
-}) {
+function DashboardLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const { user, logout } = useAuth();
   
   const isLinkActive = (path: string) => pathname.startsWith(path);
 
-  const toggleSidebar = () => {
-    setSidebarCollapsed(!sidebarCollapsed);
-  };
+  const toggleSidebar = () => setSidebarCollapsed(!sidebarCollapsed);
 
   return (
     <div className="flex h-screen bg-gray-950 text-gray-100">
-      <aside className={`${sidebarCollapsed ? 'w-20' : 'w-64'} bg-gray-900/80 backdrop-blur-lg border-r border-gray-800 z-10 transition-all duration-300 ease-in-out`}>
-        <div className="flex items-center justify-between px-4 py-5 border-b border-gray-800">
+      {/* Sidebar */}
+      <aside className={`
+        ${sidebarCollapsed ? 'w-16' : 'w-60'} 
+        bg-gray-900/90 backdrop-blur-lg border-r border-gray-800 
+        flex flex-col z-10 transition-all duration-300 ease-in-out
+      `}>
+        {/* Header */}
+        <div className="flex items-center justify-between p-4 border-b border-gray-800">
           {!sidebarCollapsed && (
             <div className="flex items-center space-x-2">
               <Droplet className="w-6 h-6 text-indigo-400" />
@@ -112,68 +110,115 @@ function DashboardLayout({
           )}
           <button 
             onClick={toggleSidebar}
-            className="p-1 rounded-md hover:bg-gray-800 text-gray-400 hover:text-gray-200"
+            className="p-1.5 rounded-md hover:bg-gray-800 text-gray-400 hover:text-gray-200 transition-colors"
           >
             {sidebarCollapsed ? <Menu className="w-5 h-5" /> : <X className="w-5 h-5" />}
           </button>
         </div>
         
-        <nav className="mt-6 flex flex-col space-y-1 px-2">
-           <Link
+        {/* Navigation */}
+        <nav className="flex-1 flex flex-col py-3 overflow-y-auto">
+          <div className="space-y-1 px-2">
+            <Link
               href="/admin"
-              className={`flex items-center w-full px-4 py-3 rounded-lg transition-all group ${
-                pathname === '/admin'
-                  ? 'bg-indigo-500/10 text-indigo-400' 
+              className={`
+                flex items-center w-full p-3 rounded-lg transition-all group relative
+                ${pathname === '/admin' 
+                  ? 'bg-indigo-500/15 text-indigo-400' 
                   : 'text-gray-400 hover:bg-gray-800/50 hover:text-gray-200'
-              }`}
+                }
+                ${sidebarCollapsed ? 'justify-center' : ''}
+              `}
               title={sidebarCollapsed ? "Dashboard" : undefined}
             >
               <Home className="w-5 h-5" />
               {!sidebarCollapsed && <span className="font-medium ml-3">Dashboard</span>}
+              {sidebarCollapsed && (
+                <div className="absolute left-full ml-3 px-3 py-2 bg-gray-800 text-white text-sm rounded-md shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
+                  Dashboard
+                </div>
+              )}
             </Link>
 
-          {navSections.map((section) => (
-            <Collapsible key={section.title} defaultOpen={section.links.some(l => isLinkActive(l.path))}>
-               <CollapsibleTrigger className={cn("flex items-center justify-between w-full p-2 rounded-lg text-gray-400 hover:bg-gray-800/50", sidebarCollapsed && "justify-center")}>
-                 {!sidebarCollapsed && <span className="font-semibold text-xs uppercase tracking-wider">{section.title}</span>}
-                 <section.icon className={cn("w-5 h-5", sidebarCollapsed && "mx-auto")} />
-                 {!sidebarCollapsed && <ChevronDown className="w-4 h-4 transition-transform [&[data-state=open]]:rotate-180" />}
-              </CollapsibleTrigger>
-              <CollapsibleContent className="space-y-1 mt-1">
-                {section.links.map(({ path, label, icon: Icon }) => (
-                  <Link
-                    key={path}
-                    href={path}
-                    className={`flex items-center w-full py-2.5 rounded-lg transition-all group ${
-                      isLinkActive(path)
-                        ? 'bg-indigo-500/10 text-indigo-400' 
-                        : 'text-gray-400 hover:bg-gray-800/50 hover:text-gray-200'
-                    } ${sidebarCollapsed ? 'px-4 justify-center' : 'px-8'}`}
-                    title={sidebarCollapsed ? label : undefined}
-                  >
-                    <Icon className="w-5 h-5" />
-                    {!sidebarCollapsed && <span className="font-medium ml-3 text-sm">{label}</span>}
-                     {sidebarCollapsed && (
-                      <div className="absolute left-full ml-2 px-2 py-1 bg-gray-800 text-white text-sm rounded-md opacity-0 group-hover:opacity-100 whitespace-nowrap">
-                        {label}
-                      </div>
+            {navSections.map((section) => (
+              <Collapsible 
+                key={section.title} 
+                defaultOpen={section.links.some(l => isLinkActive(l.path))}
+              >
+                <CollapsibleTrigger 
+                  className={cn(
+                    "flex items-center w-full p-3 rounded-lg text-gray-400 hover:bg-gray-800/50 group/trigger transition-colors",
+                    sidebarCollapsed ? "justify-center" : "justify-between"
+                  )}
+                >
+                  <div className="flex items-center">
+                    <section.icon className="w-5 h-5" />
+                    {!sidebarCollapsed && (
+                      <span className="font-semibold text-xs uppercase tracking-wider ml-3">
+                        {section.title}
+                      </span>
                     )}
-                  </Link>
-                ))}
-              </CollapsibleContent>
-            </Collapsible>
-          ))}
+                  </div>
+                  
+                  {!sidebarCollapsed && (
+                    <ChevronDown className="w-4 h-4 transition-transform [&[data-state=open]]:rotate-180" />
+                  )}
+                  
+                  {sidebarCollapsed && (
+                    <div className="absolute left-full ml-3 px-3 py-2 bg-gray-800 text-white text-sm rounded-md shadow-lg opacity-0 group-hover/trigger:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
+                      {section.title}
+                    </div>
+                  )}
+                </CollapsibleTrigger>
+                
+                <CollapsibleContent className="mt-1 space-y-1">
+                  {section.links.map(({ path, label, icon: Icon }) => (
+                    <Link
+                      key={path}
+                      href={path}
+                      className={`
+                        flex items-center w-full py-2.5 rounded-lg transition-all group relative
+                        ${isLinkActive(path)
+                          ? 'bg-indigo-500/15 text-indigo-400' 
+                          : 'text-gray-400 hover:bg-gray-800/50 hover:text-gray-200'
+                        }
+                        ${sidebarCollapsed ? 'justify-center px-4' : 'px-4 pl-8'}
+                      `}
+                      title={sidebarCollapsed ? label : undefined}
+                    >
+                      <Icon className="w-4 h-4" />
+                      {!sidebarCollapsed && <span className="font-medium ml-3 text-sm">{label}</span>}
+                      {sidebarCollapsed && (
+                        <div className="absolute left-full ml-3 px-3 py-2 bg-gray-800 text-white text-sm rounded-md shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
+                          {label}
+                        </div>
+                      )}
+                    </Link>
+                  ))}
+                </CollapsibleContent>
+              </Collapsible>
+            ))}
+          </div>
         </nav>
         
-        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-800">
-          <div className={`flex items-center ${sidebarCollapsed ? 'justify-center' : 'space-x-3'}`}>
-            <div className="w-8 h-8 rounded-full bg-indigo-500/20 flex items-center justify-center">
+        {/* User Profile */}
+        <div className="p-4 border-t border-gray-800">
+          <div className={`flex items-center group ${sidebarCollapsed ? 'justify-center' : 'space-x-3'}`}>
+            <div className="w-8 h-8 rounded-full bg-indigo-500/20 flex items-center justify-center shrink-0">
               <User className="w-4 h-4 text-indigo-400" />
             </div>
+            
             {!sidebarCollapsed && (
-              <div>
-                <p className="text-sm font-medium">{user?.displayName || 'Admin'}</p>
-                <p className="text-xs text-gray-500">{user?.email}</p>
+              <div className="min-w-0">
+                <p className="text-sm font-medium truncate">{user?.displayName || 'Admin'}</p>
+                <p className="text-xs text-gray-500 truncate">{user?.email}</p>
+              </div>
+            )}
+            
+            {sidebarCollapsed && (
+              <div className="absolute left-full ml-3 px-3 py-2 bg-gray-800 text-white text-sm rounded-md shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none w-48">
+                <p className="font-medium truncate">{user?.displayName || 'Admin'}</p>
+                <p className="text-gray-300 text-xs truncate mt-1">{user?.email}</p>
               </div>
             )}
           </div>
@@ -181,29 +226,27 @@ function DashboardLayout({
       </aside>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col overflow-hidden relative">
+      <div className="flex-1 flex flex-col overflow-hidden">
         <header className="flex items-center justify-between px-6 py-4 bg-gray-900/80 backdrop-blur-lg border-b border-gray-800 z-10">
           <div className="flex items-center">
             <button 
               onClick={toggleSidebar}
-              className="mr-4 p-1 rounded-md hover:bg-gray-800 text-gray-400 hover:text-gray-200 md:hidden"
+              className="mr-4 p-1.5 rounded-md hover:bg-gray-800 text-gray-400 hover:text-gray-200 transition-colors md:hidden"
             >
               <Menu className="w-5 h-5" />
             </button>
-            <h2 className="text-xl font-semibold text-gray-100">
+            <h2 className="text-lg font-semibold text-gray-100">
               {navSections.flatMap(s => s.links).find(item => isLinkActive(item.path))?.label || 'Dashboard'}
             </h2>
           </div>
           
-          <div className="flex items-center space-x-4">
-            <button 
-              onClick={logout}
-              className="flex items-center space-x-2 bg-gray-800 hover:bg-red-900/50 px-3 py-2 rounded-lg transition-colors text-red-400"
-            >
-              <LogOut className="w-4 h-4" />
-              <span className="text-sm">Logout</span>
-            </button>
-          </div>
+          <button 
+            onClick={logout}
+            className="flex items-center space-x-2 bg-gray-800 hover:bg-red-900/50 px-3 py-2 rounded-lg transition-colors text-red-400"
+          >
+            <LogOut className="w-4 h-4" />
+            <span className="text-sm">Logout</span>
+          </button>
         </header>
 
         <main className="flex-1 p-6 overflow-auto relative">
