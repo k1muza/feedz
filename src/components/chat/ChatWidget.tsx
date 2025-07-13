@@ -76,12 +76,12 @@ export function ChatWidget() {
           onClick={() => setIsOpen(!isOpen)}
           className={cn(
             "bg-green-600 text-white p-4 rounded-full shadow-lg hover:bg-green-700 transition-colors",
-            isOpen && 'sm:hidden' // Hide on mobile when open to prevent overlap
+            isOpen && 'hidden sm:flex'
             )}
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.9 }}
         >
-          <X size={24} />
+          <MessageSquare size={24} />
         </motion.button>
       </div>
 
@@ -109,7 +109,7 @@ export function ChatWidget() {
                 </div>
                 <button
                     onClick={() => setIsOpen(false)}
-                    className="p-2 text-gray-400 hover:text-white sm:hidden" // Only show on mobile
+                    className="p-2 text-gray-400 hover:text-white"
                 >
                     <X size={24} />
                 </button>
