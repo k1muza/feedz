@@ -44,9 +44,9 @@ const routerFlow = ai.defineFlow(
     Message: "${userMessage}"
 
     Categories:
-    - "product_inquiry": Direct questions about specific products, pricing, availability, or stock (e.g., "how much is corn?", "do you have soybean meal?", "is maize in stock?").
+    - "quick_product_inquiry": Direct questions about specific products, pricing, availability, or stock (e.g., "how much is corn?", "do you have soybean meal?", "is maize in stock?").
     - "formulation_advice": The user needs help creating a feed mix or wants a recommendation for what to feed their animals (e.g., "what should I feed my dairy cows?", "help me make a broiler starter feed").
-    - "general_sales": All other inquiries, including greetings, questions about the company, its location, policies, or general conversation.
+    - "sales_inquiry": All other inquiries, including greetings, questions about the company, its location, policies, or general conversation.
     `;
 
     const { text: category } = await ai.generate({
@@ -59,7 +59,7 @@ const routerFlow = ai.defineFlow(
 
     // Delegate to the appropriate sub-flow based on the classification
     switch (flowType) {
-      case 'product_inquiry':
+      case 'quick_product_inquiry':
         return productInquiryFlow(input);
       case 'formulation_advice':
         // The recommendIngredientCombinations flow needs a different input structure.
@@ -69,7 +69,7 @@ const routerFlow = ai.defineFlow(
             animalType: 'unknown', // This could be extracted from history
             nutritionalGoals: userMessage,
         }).then(res => res.reasoning); // Just return the reasoning for now
-      case 'general_sales':
+      case 'sales_inquiry':
       default:
         return salesFlow(input);
     }
