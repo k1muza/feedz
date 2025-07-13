@@ -23,7 +23,7 @@ import {
 } from 'firebase/firestore';
 import { revalidatePath } from 'next/cache';
 import { db } from '@/lib/firebase';
-import { BlogPost, BlogCategory, User, Product, Ingredient, ProductCategory, Composition, ContactInquiry, NewsletterSubscription, AppSettings } from '@/types';
+import { BlogPost, BlogCategory, User, Product, Ingredient, ProductCategory, Composition, ContactInquiry, NewsletterSubscription, AppSettings, Policy } from '@/types';
 import { z } from 'zod';
 import { S3Client, PutObjectCommand, ListObjectsV2Command, DeleteObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
@@ -1005,6 +1005,89 @@ export async function updateIngredientCompositions(
         return { success: false, error: 'Failed to update compositions.' };
     }
 }
+
+// --- POLICY ACTIONS ---
+
+const policiesCollection = collection(db, 'policies');
+const PolicyFormSchema = z.object({
+  title: z.string().min(1, 'Title is required'),
+  content: z.string().min(1, 'Content is required'),
+});
+
+export async function getAllPolicies(): Promise<Policy[]> {
+    try {
+        const snapshot = await getDocs(query(policiesCollection, orderBy('title')));
+        if (snapshot.empty) return [];
+        return snapshot.docs.map(doc => {
+            const data = doc.data();
+            return {
+                id: doc.id,
+                ...data,
+                lastUpdated: data.lastUpdated.toJSON(),
+            } as Policy;
+        });
+    } catch (error) {
+        console.error("Error fetching policies:", error);
+        return [];
+    }
+}
+
+export async function getPolicyById(id: string): Promise<Policy | null> {
+    try {
+        const docRef = doc(db, 'policies', id);
+        const docSnap = await getDoc(docRef);
+        if (!docSnap.exists()) return null;
+        
+        const data = docSnap.data();
+        return {
+            id: docSnap.id,
+            ...data,
+            lastUpdated: data.lastUpdated.toJSON(),
+        } as Policy;
+    } catch (error) {
+        console.error("Error fetching policy by ID:", error);
+        return null;
+    }
+}
+
+export async function savePolicy(data: z.infer<typeof PolicyFormSchema>, policyId?: string) {
+    const validation = PolicyFormSchema.safeParse(data);
+    if (!validation.success) {
+        return { success: false, error: "Validation failed" };
+    }
+
+    const payload = {
+        ...validation.data,
+        lastUpdated: Timestamp.now(),
+    };
+
+    try {
+        if (policyId) {
+            await updateDoc(doc(db, 'policies', policyId), payload);
+        } else {
+            await addDoc(policiesCollection, payload);
+        }
+        revalidatePath('/admin/policies');
+        revalidatePath('/policies');
+        return { success: true };
+    } catch (error) {
+        console.error("Error saving policy:", error);
+        return { success: false, error: "Failed to save policy." };
+    }
+}
+
+export async function deletePolicy(policyId: string) {
+    try {
+        await deleteDoc(doc(db, 'policies', policyId));
+        revalidatePath('/admin/policies');
+        revalidatePath('/policies');
+        return { success: true };
+    } catch (error) {
+        console.error("Error deleting policy:", error);
+        return { success: false, error: 'Failed to delete policy.' };
+    }
+}
+
 
 // --- SEARCH ---
 

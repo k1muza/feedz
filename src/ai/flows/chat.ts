@@ -10,7 +10,8 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
-import { getAllProducts, getBusinessDetails } from '@/app/actions';
+import { getAllProducts, getBusinessDetails, getAllPolicies } from '@/app/actions';
+import { Policy } from '@/types';
 
 const ChatInputSchema = z.object({
   history: z.array(z.object({
@@ -43,6 +44,11 @@ const ProductSchema = z.object({
   inStock: z.boolean().describe('Whether the product is currently in stock and available for sale.'),
 });
 
+const PolicySchema = z.object({
+    id: z.string(),
+    title: z.string().describe("The title of the policy."),
+    content: z.string().describe("The full content of the policy in Markdown format."),
+});
 
 const getProductInfoTool = ai.defineTool(
   {
@@ -80,6 +86,17 @@ const getBusinessLocationTool = ai.defineTool(
     }
 );
 
+const getCompanyPoliciesTool = ai.defineTool(
+    {
+        name: 'getCompanyPolicies',
+        description: 'Retrieves all official company policies, such as privacy, shipping, and return policies.',
+        outputSchema: z.array(PolicySchema),
+    },
+    async (): Promise<Policy[]> => {
+        return await getAllPolicies();
+    }
+);
+
 
 const systemPrompt = `
 You are "Feedy", the friendly and expert AI assistant for FeedSport International.
@@ -95,6 +112,7 @@ You MUST follow this workflow for every query. This is not optional.
 2.  **Use Tools When Necessary**:
     - For any question about **products, availability, or pricing**, your absolute FIRST step is to use the \`getProductInfo\` tool.
     - For any question about the **company's location or address**, you MUST use the \`getBusinessLocationTool\`.
+    - For any question about **company policies (e.g., returns, privacy, shipping)**, you MUST use the \`getCompanyPoliciesTool\` to get the official information. Do not invent policy details.
 
 3.  **Filter by Stock Status**: This is your most important rule for products. After getting the product list from the tool, you MUST mentally filter it. **Only consider, discuss, and recommend products where \`inStock\` is \`true\`.**
 
@@ -127,7 +145,7 @@ const chatFlow = ai.defineFlow(
         role: msg.role,
         content: [{ text: msg.content }],
       })),
-      tools: [getProductInfoTool, getBusinessLocationTool],
+      tools: [getProductInfoTool, getBusinessLocationTool, getCompanyPoliciesTool],
     }
 
     const { text } = await ai.generate(args);

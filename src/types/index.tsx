@@ -1,9 +1,5 @@
 
 
-
-
-
-
 import { z } from "zod";
 
 export type TechnicalSpecs = {
@@ -151,6 +147,14 @@ export type AppSettings = {
     aiChatEnabled: boolean;
     chatWidgetEnabled: boolean;
 };
+
+
+export type Policy = {
+    id: string;
+    title: string;
+    content: string;
+    lastUpdated: string;
+}
 
 
 // Types
