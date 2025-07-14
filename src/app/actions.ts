@@ -21,8 +21,9 @@ import {
   arrayUnion,
   setDoc,
 } from 'firebase/firestore';
+import { getDatabase, ref, get, set, push, serverTimestamp, child } from 'firebase/database';
 import { revalidatePath } from 'next/cache';
-import { db } from '@/lib/firebase';
+import { db, rtdb } from '@/lib/firebase';
 import { BlogPost, BlogCategory, User, Product, Ingredient, ProductCategory, Composition, ContactInquiry, NewsletterSubscription, AppSettings, Policy, Invoice, InvoiceItem } from '@/types';
 import { z } from 'zod';
 import { S3Client, PutObjectCommand, ListObjectsV2Command, DeleteObjectCommand } from "@aws-sdk/client-s3";
@@ -166,69 +167,59 @@ export async function getNewsletterSubscriptions(): Promise<NewsletterSubscripti
 }
 
 
-// --- CHAT ACTIONS ---
-const conversationsCollection = collection(db, 'conversations');
+// --- CHAT ACTIONS (RTDB) ---
 
-export async function startOrGetConversation(conversationId?: string): Promise<Conversation> {
-  if (conversationId) {
-    const docRef = doc(db, 'conversations', conversationId);
-    const docSnap = await getDoc(docRef);
-    if (docSnap.exists()) {
-      const data = docSnap.data();
-      const messages = (data.messages || []).map((msg: any) => ({
-          ...msg,
-          timestamp: msg.timestamp.toJSON() // Convert Timestamp to plain object
-      }));
-      return { id: docSnap.id, startTime: data.startTime.toJSON(), messages } as Conversation;
-    }
+export async function startOrGetConversation(uid: string): Promise<Conversation> {
+  const chatRef = ref(rtdb, `chats/${uid}`);
+  const snapshot = await get(chatRef);
+
+  if (snapshot.exists()) {
+    const data = snapshot.val();
+    const messages = data.messages ? Object.values(data.messages) : [];
+    return {
+      id: uid,
+      startTime: data.startTime,
+      messages: messages as Message[],
+    };
+  } else {
+    // Create a new conversation
+    const newConversationData = {
+      startTime: serverTimestamp(),
+      messages: {},
+    };
+    await set(chatRef, newConversationData);
+    return { id: uid, startTime: Date.now(), messages: [] };
   }
-
-  // Create a new conversation
-  const newConversation: Omit<Conversation, 'id' | 'startTime'> & { startTime: Timestamp } = {
-    startTime: Timestamp.now(),
-    messages: [],
-  };
-  const docRef = await addDoc(conversationsCollection, newConversation);
-  
-  return { id: docRef.id, startTime: newConversation.startTime.toJSON(), messages: [] };
 }
 
-
-export async function addMessage(conversationId: string, content: string): Promise<Conversation> {
-  const conversationRef = doc(db, 'conversations', conversationId);
-
+export async function addMessage(uid: string, content: string): Promise<Conversation> {
+  const messagesRef = ref(rtdb, `chats/${uid}/messages`);
+  const chatMetaRef = ref(rtdb, `chats/${uid}`);
+  
   // 1. Add user message
   const userMessage: Message = {
     role: 'user',
-    content: content,
-    timestamp: Timestamp.now(),
+    content,
+    timestamp: Date.now(),
   };
+  await push(messagesRef, userMessage);
+  
+  // Update last message for admin view
+  await set(child(chatMetaRef, 'lastMessage'), userMessage);
 
-  await updateDoc(conversationRef, {
-    messages: arrayUnion(userMessage),
-  });
 
   // 2. Check if AI chat is enabled before getting a response
   const settings = await getAppSettings();
   if (!settings.aiChatEnabled) {
-      // If AI is disabled, just return the conversation with the user's message
-      const updatedSnap = await getDoc(conversationRef);
-      const finalData = updatedSnap.data()!;
-      const messages = (finalData.messages || []).map((msg: any) => ({
-          ...msg,
-          timestamp: msg.timestamp.toJSON()
-      }));
-      revalidatePath('/admin/conversations');
-      return { id: updatedSnap.id, startTime: finalData.startTime.toJSON(), messages } as Conversation;
+      return startOrGetConversation(uid);
   }
 
   // 3. Get current conversation history to pass to AI
-  const updatedSnap = await getDoc(conversationRef);
-  const conversationData = updatedSnap.data() as Omit<Conversation, 'id'>;
+  const currentConversation = await startOrGetConversation(uid);
 
-  // 4. Get AI response using the new router flow
+  // 4. Get AI response using the router flow
   const aiInput = {
-    history: (conversationData.messages || []).filter(Boolean).map(msg => ({ role: msg.role, content: msg.content })),
+    history: currentConversation.messages.map(msg => ({ role: msg.role, content: msg.content })),
   };
   const aiResponseContent = await routeInquiry(aiInput);
   
@@ -236,49 +227,43 @@ export async function addMessage(conversationId: string, content: string): Promi
   const aiMessage: Message = {
     role: 'model',
     content: aiResponseContent,
-    timestamp: Timestamp.now(),
+    timestamp: Date.now(),
   };
-
-  await updateDoc(conversationRef, {
-    messages: arrayUnion(aiMessage),
-  });
+  await push(messagesRef, aiMessage);
+  await set(child(chatMetaRef, 'lastMessage'), aiMessage);
   
   // 6. Return the final state of the conversation
-  const finalSnap = await getDoc(conversationRef);
   revalidatePath('/admin/conversations');
-  const finalData = finalSnap.data()!;
-  const messages = (finalData.messages || []).filter(Boolean).map((msg: any) => ({
-      ...msg,
-      timestamp: msg.timestamp.toJSON() // Convert Timestamp
-  }));
-
-  return { id: finalSnap.id, startTime: finalData.startTime.toJSON(), messages } as Conversation;
+  return startOrGetConversation(uid);
 }
 
 
 export async function getConversations(): Promise<Conversation[]> {
   try {
-    const q = query(conversationsCollection, orderBy('startTime', 'desc'));
-    const snapshot = await getDocs(q);
-    if (snapshot.empty) {
+    const chatsRef = ref(rtdb, 'chats');
+    const snapshot = await get(chatsRef);
+    if (!snapshot.exists()) {
       return [];
     }
-    return snapshot.docs.map(doc => {
-      const data = doc.data();
-      // Manually convert Timestamps to serializable objects (e.g., JSON representation)
-      const messages = (data.messages || []).map((msg: any) => ({
-        ...msg,
-        timestamp: msg.timestamp.toJSON(), // Convert Timestamp to a serializable object
-      }));
-
+    
+    const allChats = snapshot.val();
+    const conversations: Conversation[] = Object.keys(allChats).map(uid => {
+      const chatData = allChats[uid];
+      const messages = chatData.messages ? Object.values(chatData.messages) as Message[] : [];
       return {
-        id: doc.id,
-        startTime: data.startTime.toJSON(), // Convert Timestamp
+        id: uid,
+        startTime: chatData.startTime,
         messages: messages,
-      } as Conversation;
+        lastMessage: chatData.lastMessage,
+      };
     });
+
+    // Sort by last message timestamp, descending
+    conversations.sort((a, b) => (b.lastMessage?.timestamp || 0) - (a.lastMessage?.timestamp || 0));
+
+    return conversations;
   } catch (error) {
-    console.error("Error fetching conversations:", error);
+    console.error("Error fetching conversations from RTDB:", error);
     return [];
   }
 }

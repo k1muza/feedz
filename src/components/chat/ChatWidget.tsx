@@ -4,9 +4,10 @@
 import { useState, useEffect, useRef } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { MessageSquare, Send, X, Bot, User } from 'lucide-react';
-import { Conversation, Message } from '@/types/chat';
+import { Conversation, Message, SerializableMessage } from '@/types/chat';
 import { startOrGetConversation, addMessage } from '@/app/actions';
-import { Timestamp } from 'firebase/firestore';
+import { signInAnonymously } from 'firebase/auth';
+import { auth } from '@/lib/firebase';
 import ReactMarkdown from 'react-markdown';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
@@ -16,29 +17,37 @@ export function ChatWidget() {
   const [conversation, setConversation] = useState<Conversation | null>(null);
   const [newMessage, setNewMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [currentUser, setCurrentUser] = useState<any>(null);
   const messagesEndRef = useRef<null | HTMLDivElement>(null);
 
   useEffect(() => {
-    const initChat = async () => {
-      const storedId = localStorage.getItem('conversationId');
-      let convo = await startOrGetConversation(storedId || undefined);
-
-      // Seed conversation with a welcome message if it's new
-      if (!storedId && convo.messages.length === 0) {
-        const welcomeMessage: Message = {
-          role: 'model',
-          content: "Hi there! I'm Feedy, your friendly AI assistant. How can I help you with your animal nutrition needs today?",
-          timestamp: Timestamp.now(),
-        };
-        convo.messages.push(welcomeMessage);
-      }
-
-      setConversation(convo);
-      if (!storedId) {
-        localStorage.setItem('conversationId', convo.id);
+    const authenticateAndLoadChat = async () => {
+      try {
+        await signInAnonymously(auth);
+        const unsubscribe = auth.onAuthStateChanged(async (user) => {
+          if (user) {
+            setCurrentUser(user);
+            const convo = await startOrGetConversation(user.uid);
+            
+            // Seed conversation if it's new
+            if (convo.messages.length === 0) {
+              const welcomeMessage: SerializableMessage = {
+                role: 'model',
+                content: "Hi there! I'm Feedy, your friendly AI assistant. How can I help you with your animal nutrition needs today?",
+                timestamp: Date.now(),
+              };
+              convo.messages.push(welcomeMessage);
+            }
+            
+            setConversation(convo);
+          }
+        });
+        return () => unsubscribe();
+      } catch (error) {
+        console.error("Anonymous sign-in failed:", error);
       }
     };
-    initChat();
+    authenticateAndLoadChat();
   }, []);
 
   useEffect(() => {
@@ -47,23 +56,25 @@ export function ChatWidget() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newMessage.trim() || !conversation) return;
+    if (!newMessage.trim() || !conversation || !currentUser) return;
 
-    setIsLoading(true);
-    const tempUserMessage: Message = {
-        role: 'user',
-        content: newMessage,
-        timestamp: Timestamp.now()
-    }
-    setConversation(prev => prev ? ({ ...prev, messages: [...prev.messages, tempUserMessage] }) : null);
+    const userMessageContent = newMessage;
     setNewMessage('');
-    
+    setIsLoading(true);
+
+    const tempUserMessage: SerializableMessage = {
+      role: 'user',
+      content: userMessageContent,
+      timestamp: Date.now(),
+    };
+
+    setConversation(prev => prev ? ({ ...prev, messages: [...prev.messages, tempUserMessage] }) : null);
+
     try {
-      const updatedConversation = await addMessage(conversation.id, newMessage);
+      const updatedConversation = await addMessage(currentUser.uid, userMessageContent);
       setConversation(updatedConversation);
     } catch (error) {
       console.error("Failed to send message:", error);
-      // Optionally, add an error message to the chat
     } finally {
       setIsLoading(false);
     }
@@ -77,7 +88,7 @@ export function ChatWidget() {
           className={cn(
             "bg-green-600 text-white p-4 rounded-full shadow-lg hover:bg-green-700 transition-colors",
             isOpen && 'hidden sm:flex'
-            )}
+          )}
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.9 }}
         >

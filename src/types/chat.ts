@@ -1,19 +1,16 @@
-import type { Timestamp } from 'firebase/firestore';
-
-// This type is used on the server and for Firestore interactions
+// This type is used on the server and for RTDB interactions
 export type Message = {
     role: 'user' | 'model';
     content: string;
-    timestamp: Timestamp | { seconds: number; nanoseconds: number };
+    timestamp: number; // Using number for RTDB server timestamps
 };
 
 // This is what the client component receives (serializable)
-export type SerializableMessage = Omit<Message, 'timestamp'> & {
-    timestamp: { seconds: number, nanoseconds: number };
-}
+export type SerializableMessage = Message;
 
 export type Conversation = {
-    id: string;
-    startTime: { seconds: number, nanoseconds: number };
+    id: string; // This will be the user's UID
+    startTime: number;
     messages: SerializableMessage[];
+    lastMessage?: SerializableMessage;
 };

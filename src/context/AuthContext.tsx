@@ -2,7 +2,7 @@
 'use client';
 
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { onAuthStateChanged, User as FirebaseUser, signOut } from 'firebase/auth';
+import { onAuthStateChanged, User as FirebaseUser, signOut, signInAnonymously } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
 
@@ -20,8 +20,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
 
   useEffect(() => {
+    // This listener is for the main app authentication (admin users)
     const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setUser(user);
+      // We only care about non-anonymous users for the main app context
+      if (user && !user.isAnonymous) {
+        setUser(user);
+      } else {
+        setUser(null);
+      }
       setLoading(false);
     });
 
@@ -29,8 +35,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const logout = async () => {
+    const wasAnonymous = auth.currentUser?.isAnonymous;
     await signOut(auth);
-    router.push('/login');
+    // After logging out, if the user was anonymous, we sign them back in
+    // so the chat widget session persists. Otherwise, send to login page.
+    if (!wasAnonymous) {
+        router.push('/login');
+    } else {
+        await signInAnonymously(auth);
+    }
   };
 
   const value = { user, loading, logout };

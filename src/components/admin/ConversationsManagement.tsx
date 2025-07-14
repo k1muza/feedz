@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Conversation, Message } from '@/types/chat';
-import { format, formatDistanceToNow, fromUnixTime } from 'date-fns';
+import { format, formatDistanceToNow } from 'date-fns';
 import { Bot, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import ReactMarkdown from 'react-markdown';
@@ -11,15 +11,8 @@ export const ConversationsManagement = ({ initialConversations }: { initialConve
   const [conversations] = useState<Conversation[]>(initialConversations);
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(conversations[0] || null);
 
-  const getTimestamp = (timestamp: any): Date => {
-    if (timestamp && typeof timestamp.seconds === 'number') {
-      return fromUnixTime(timestamp.seconds);
-    }
-    // Fallback for potentially already converted strings
-    if (typeof timestamp === 'string') {
-        return new Date(timestamp);
-    }
-    return new Date(); // Final fallback
+  const getTimestamp = (timestamp: number): Date => {
+    return new Date(timestamp);
   };
 
   return (
@@ -40,7 +33,7 @@ export const ConversationsManagement = ({ initialConversations }: { initialConve
               )}
             >
               <p className="font-semibold text-white truncate">
-                {convo.messages[0]?.content || 'New Conversation'}
+                {convo.lastMessage?.content || 'New Conversation'}
               </p>
               <p className="text-sm text-gray-400">
                 {formatDistanceToNow(getTimestamp(convo.startTime), { addSuffix: true })}
@@ -59,7 +52,7 @@ export const ConversationsManagement = ({ initialConversations }: { initialConve
               <h3 className="font-semibold text-white">
                 Conversation from {format(getTimestamp(selectedConversation.startTime), "PPP p")}
               </h3>
-              <p className="text-sm text-gray-400">ID: {selectedConversation.id}</p>
+              <p className="text-sm text-gray-400">User ID: {selectedConversation.id}</p>
             </div>
             <div className="flex-grow p-4 space-y-4 overflow-y-auto">
               {selectedConversation.messages.map((message, index) => (
