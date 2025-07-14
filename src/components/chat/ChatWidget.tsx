@@ -78,7 +78,11 @@ export function ChatWidget() {
 
     const userMessageContent = newMessage;
     setNewMessage('');
-    setIsLoading(true);
+    
+    // Only show "typing" indicator if AI is not suspended
+    if (!conversation.aiSuspended) {
+      setIsLoading(true);
+    }
     
     try {
       await addMessage(currentUser.uid, userMessageContent);
