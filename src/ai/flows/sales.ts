@@ -86,6 +86,7 @@ export const salesFlow = ai.defineFlow(
         content: [{ text: msg.content }],
       })),
       tools: [getBusinessLocationTool, getCompanyPoliciesTool],
+      cache: { enabled: false },
     }
     const { text } = await ai.generate(args);
     return text;

@@ -143,6 +143,7 @@ export const invoiceFlow = ai.defineFlow(
         content: [{ text: msg.content }],
       })),
       tools: [getProductInfoTool, createInvoiceTool],
+      cache: { enabled: false },
     });
     return text;
   }

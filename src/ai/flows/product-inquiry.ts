@@ -97,6 +97,7 @@ export const productInquiryFlow = ai.defineFlow(
         content: [{ text: msg.content }],
       })),
       tools: [getProductInfoTool],
+      cache: { enabled: false },
     }
     const { text } = await ai.generate(args);
     return text;
