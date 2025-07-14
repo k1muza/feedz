@@ -83,7 +83,7 @@ export function ChatWidget() {
                 messages: updatedMessages,
                 lastMessage: updatedData.lastMessage,
                 // AI is suspended if the per-convo flag is true OR the global setting is false
-                aiSuspended: updatedData.aiSuspended || !appSettings?.aiChatEnabled || false,
+                aiSuspended: !(appSettings?.aiChatEnabled && !updatedData.aiSuspended),
             }));
         }
     });
@@ -123,16 +123,12 @@ export function ChatWidget() {
   return (
     <>
       <div className="fixed bottom-5 right-5 z-50">
-        <motion.button
+        <motion.button className="bg-green-600 text-white p-4 rounded-full shadow-lg hover:bg-green-700 transition-colors"
           onClick={() => setIsOpen(!isOpen)}
-          className={cn(
-            "bg-green-600 text-white p-4 rounded-full shadow-lg hover:bg-green-700 transition-colors",
-            isOpen && 'hidden'
-          )}
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.9 }}
         >
-          <MessageSquare size={24} />
+          {isOpen ? <X size={24} /> : <MessageSquare size={24} />}
         </motion.button>
       </div>
 
