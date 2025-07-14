@@ -1106,6 +1106,15 @@ export async function createInvoice(invoiceData: Omit<Invoice, 'id' | 'invoiceNu
   }
 }
 
+const toJSONSafe = (timestamp: any) => {
+    if (timestamp && typeof timestamp.toJSON === 'function') {
+        return timestamp.toJSON();
+    }
+    // Handle cases where it might already be a string or needs a default
+    return timestamp ? new Date(timestamp).toJSON() : new Date().toJSON();
+};
+
+
 export async function getAllInvoices(): Promise<Invoice[]> {
   try {
     const snapshot = await getDocs(query(invoicesCollection, orderBy('issueDate', 'desc')));
@@ -1116,8 +1125,8 @@ export async function getAllInvoices(): Promise<Invoice[]> {
         return {
             id: doc.id,
             ...data,
-            issueDate: data.issueDate.toJSON(),
-            dueDate: data.dueDate.toJSON(),
+            issueDate: toJSONSafe(data.issueDate),
+            dueDate: toJSONSafe(data.dueDate),
         } as Invoice;
     });
   } catch (error) {
@@ -1136,8 +1145,8 @@ export async function getInvoiceById(id: string): Promise<Invoice | null> {
         return {
             id: docSnap.id,
             ...data,
-            issueDate: data.issueDate.toJSON(),
-            dueDate: data.dueDate.toJSON(),
+            issueDate: toJSONSafe(data.issueDate),
+            dueDate: toJSONSafe(data.dueDate),
         } as Invoice;
     } catch (error) {
         console.error("Error fetching invoice by ID:", error);
