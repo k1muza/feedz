@@ -246,22 +246,6 @@ export async function addMessage(uid: string, content: string): Promise<Conversa
     history: historyForAI.map(msg => ({ role: msg.role, content: msg.content })),
   };
 
-  // If this is the very first message, add a system prompt or a different initial message
-  if (aiInput.history.length === 1 && aiInput.history[0].role === 'user') {
-      const welcomeMessage = "Hi there! I'm Feedy, your friendly AI assistant. How can I help you with your animal nutrition needs today?";
-      const aiMessage: Message = {
-        role: 'model',
-        content: welcomeMessage,
-        timestamp: Date.now(),
-      };
-      await push(messagesRef, aiMessage);
-      await update(chatRef, {
-        lastMessage: aiMessage,
-        adminHasUnreadMessages: true
-      });
-      return startOrGetConversation(uid);
-  }
-
   const aiResponseContent = await routeInquiry(aiInput);
   
   // 5. Add AI message
@@ -352,6 +336,18 @@ export async function setAiSuspension(uid: string, suspended: boolean) {
   try {
     const chatRef = ref(rtdb, `chats/${uid}/aiSuspended`);
     await set(chatRef, suspended);
+
+    if (suspended) {
+        const takeoverMessage = {
+            role: 'model' as const,
+            content: "A human agent has joined the chat and will assist you shortly.",
+            timestamp: Date.now(),
+        };
+        const messagesRef = ref(rtdb, `chats/${uid}/messages`);
+        await push(messagesRef, takeoverMessage);
+        await update(ref(rtdb, `chats/${uid}`), { lastMessage: takeoverMessage });
+    }
+
     revalidatePath('/admin/conversations');
     return { success: true };
   } catch (error) {

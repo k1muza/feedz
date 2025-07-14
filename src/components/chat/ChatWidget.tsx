@@ -4,14 +4,14 @@
 import { useState, useEffect, useRef } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { MessageSquare, Send, X, Bot, User } from 'lucide-react';
-import { Conversation, Message, SerializableMessage } from '@/types/chat';
+import { Conversation, Message } from '@/types/chat';
 import { startOrGetConversation, addMessage } from '@/app/actions';
 import { signInAnonymously } from 'firebase/auth';
 import { auth, rtdb } from '@/lib/firebase';
 import ReactMarkdown from 'react-markdown';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
-import { ref, onValue } from 'firebase/database';
+import { ref, onValue, set, onDisconnect } from 'firebase/database';
 
 export function ChatWidget() {
   const [isOpen, setIsOpen] = useState(false);
@@ -28,9 +28,13 @@ export function ChatWidget() {
         const unsubscribeAuth = auth.onAuthStateChanged(async (user) => {
           if (user) {
             setCurrentUser(user);
-            // Initial load
             const convo = await startOrGetConversation(user.uid);
             setConversation(convo);
+            
+            // Set up presence system
+            const statusRef = ref(rtdb, `status/${user.uid}`);
+            await set(statusRef, { isOnline: true });
+            onDisconnect(statusRef).set({ isOnline: false });
           }
         });
         return () => unsubscribeAuth();
@@ -42,7 +46,6 @@ export function ChatWidget() {
   }, []);
 
   useEffect(() => {
-    // Set up real-time listener once we have a user and conversation ID
     if (!currentUser?.uid) return;
 
     const chatRef = ref(rtdb, `chats/${currentUser.uid}`);
@@ -61,8 +64,6 @@ export function ChatWidget() {
             }));
         }
     });
-
-    // Cleanup listener on component unmount or when user/convo changes
     return () => unsubscribe();
   }, [currentUser?.uid]);
 
@@ -79,13 +80,10 @@ export function ChatWidget() {
     setNewMessage('');
     setIsLoading(true);
     
-    // The server action will add both the user and AI message
-    // The real-time listener will then update the conversation state automatically
     try {
       await addMessage(currentUser.uid, userMessageContent);
     } catch (error) {
       console.error("Failed to send message:", error);
-      // Optional: Add error handling message to UI
     } finally {
       setIsLoading(false);
     }

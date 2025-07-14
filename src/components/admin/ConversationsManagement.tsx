@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
@@ -12,62 +13,100 @@ import { setAiSuspension, addAdminMessage, markConversationAsRead } from '@/app/
 import { rtdb } from '@/lib/firebase';
 import { ref, onValue } from 'firebase/database';
 
+interface ConvoWithPresence extends Conversation {
+    isOnline?: boolean;
+}
+
 export const ConversationsManagement = ({ initialConversations }: { initialConversations: Conversation[] }) => {
-  const [conversations, setConversations] = useState<Conversation[]>(initialConversations);
-  const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
+  const [conversations, setConversations] = useState<ConvoWithPresence[]>(initialConversations);
+  const [selectedConversation, setSelectedConversation] = useState<ConvoWithPresence | null>(null);
   const [newMessage, setNewMessage] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const { toast } = useToast();
   const messagesEndRef = useRef<null | HTMLDivElement>(null);
 
-  // Filter conversations based on search term
   const filteredConversations = conversations.filter(convo => 
     convo.id.toLowerCase().includes(searchTerm.toLowerCase()) || 
     convo.lastMessage?.content.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   useEffect(() => {
-    if (initialConversations.length > 0 && !selectedConversation) {
-      const firstUnread = initialConversations.find(c => c.adminHasUnreadMessages) || initialConversations[0];
-      handleSelectConversation(firstUnread);
-    }
-  }, [initialConversations, selectedConversation]);
+    // Listen for all conversations and statuses
+    const chatsRef = ref(rtdb, 'chats');
+    const statusRef = ref(rtdb, 'status');
 
-  useEffect(() => {
-    if (!selectedConversation) return;
+    const unsubscribeChats = onValue(chatsRef, (snapshot) => {
+        if (!snapshot.exists()) {
+            setConversations([]);
+            return;
+        }
 
-    const messagesRef = ref(rtdb, `chats/${selectedConversation.id}`);
-    const unsubscribe = onValue(messagesRef, (snapshot) => {
-      if (snapshot.exists()) {
-        const updatedData = snapshot.val();
-        const updatedMessages = updatedData.messages ? Object.values(updatedData.messages) as Message[] : [];
-        updatedMessages.sort((a, b) => a.timestamp - b.timestamp);
+        const allChats = snapshot.val();
+        const updatedConversations: ConvoWithPresence[] = Object.keys(allChats).map(uid => {
+            const chatData = allChats[uid];
+            const messages = chatData.messages ? Object.values(chatData.messages) as Message[] : [];
+            return {
+                id: uid,
+                startTime: chatData.startTime,
+                messages: messages,
+                lastMessage: chatData.lastMessage,
+                aiSuspended: chatData.aiSuspended || false,
+                adminHasUnreadMessages: chatData.adminHasUnreadMessages || false,
+                isOnline: false, // Default to offline
+            };
+        });
 
-        const updatedConversation = {
-          ...selectedConversation,
-          messages: updatedMessages,
-          lastMessage: updatedData.lastMessage,
-          aiSuspended: updatedData.aiSuspended || false,
-          adminHasUnreadMessages: updatedData.adminHasUnreadMessages || false
-        };
-        setSelectedConversation(updatedConversation);
+        setConversations(prev => {
+            const convoMap = new Map(prev.map(c => [c.id, c]));
+            updatedConversations.forEach(uc => {
+                const existing = convoMap.get(uc.id);
+                convoMap.set(uc.id, { ...existing, ...uc });
+            });
+            return Array.from(convoMap.values())
+                 .sort((a, b) => (b.lastMessage?.timestamp || 0) - (a.lastMessage?.timestamp || 0));
+        });
 
-        // Update conversations list
-        setConversations(prev => 
-          prev.map(c => c.id === updatedConversation.id 
-            ? { ...c, 
-                lastMessage: updatedConversation.lastMessage, 
-                adminHasUnreadMessages: updatedConversation.adminHasUnreadMessages 
-              } 
-            : c
-          ).sort((a, b) => (b.lastMessage?.timestamp || 0) - (a.lastMessage?.timestamp || 0))
-        );
-      }
+        // If a conversation is selected, update its data
+        setSelectedConversation(prev => {
+            if (!prev) return null;
+            const updated = allChats[prev.id];
+            if (!updated) return null;
+
+            const updatedMessages = updated.messages ? Object.values(updated.messages) as Message[] : [];
+            updatedMessages.sort((a, b) => a.timestamp - b.timestamp);
+            
+            return {
+                ...prev,
+                messages: updatedMessages,
+                lastMessage: updated.lastMessage,
+                aiSuspended: updated.aiSuspended || false,
+                adminHasUnreadMessages: updated.adminHasUnreadMessages || false,
+            };
+        });
+    });
+    
+    const unsubscribeStatus = onValue(statusRef, (snapshot) => {
+        if (!snapshot.exists()) return;
+        const allStatuses = snapshot.val();
+        setConversations(prev => prev.map(c => ({
+            ...c,
+            isOnline: allStatuses[c.id]?.isOnline || false,
+        })));
+        setSelectedConversation(prev => prev ? { ...prev, isOnline: allStatuses[prev.id]?.isOnline || false } : null);
     });
 
-    return () => unsubscribe();
-  }, [selectedConversation?.id]);
+    // Select first conversation on initial load if none selected
+    if (initialConversations.length > 0 && !selectedConversation) {
+        const firstUnread = initialConversations.find(c => c.adminHasUnreadMessages) || initialConversations[0];
+        handleSelectConversation(firstUnread);
+    }
+    
+    return () => {
+        unsubscribeChats();
+        unsubscribeStatus();
+    };
+  }, []); // Run once on mount
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -77,7 +116,7 @@ export const ConversationsManagement = ({ initialConversations }: { initialConve
     return new Date(timestamp);
   };
   
-  const handleSelectConversation = (convo: Conversation) => {
+  const handleSelectConversation = (convo: ConvoWithPresence) => {
     setSelectedConversation(convo);
     if(convo.adminHasUnreadMessages){
       markConversationAsRead(convo.id);
@@ -92,10 +131,8 @@ export const ConversationsManagement = ({ initialConversations }: { initialConve
 
     const previousState = selectedConversation.aiSuspended;
     
-    // Optimistic UI update
     const updatedConversation = { ...selectedConversation, aiSuspended: suspended };
     setSelectedConversation(updatedConversation);
-    setConversations(prev => prev.map(c => c.id === selectedConversation.id ? updatedConversation : c));
 
     try {
       const result = await setAiSuspension(selectedConversation.id, suspended);
@@ -113,10 +150,6 @@ export const ConversationsManagement = ({ initialConversations }: { initialConve
       });
       // Revert on error
       setSelectedConversation(prev => ({ ...prev!, aiSuspended: previousState }));
-      setConversations(prev => prev.map(c => c.id === selectedConversation.id 
-        ? ({ ...c, aiSuspended: previousState }) 
-        : c
-      ));
     }
   };
   
@@ -182,13 +215,14 @@ export const ConversationsManagement = ({ initialConversations }: { initialConve
                   <div className="flex items-center gap-2 mb-1">
                     <div className={cn(
                       "w-2 h-2 rounded-full flex-shrink-0",
-                      convo.adminHasUnreadMessages 
-                        ? "bg-indigo-400 animate-pulse" 
-                        : "bg-gray-600"
-                    )} />
+                      convo.isOnline ? "bg-green-400" : "bg-gray-600"
+                    )} title={convo.isOnline ? "Online" : "Offline"} />
                     <p className="font-medium text-white truncate">
                       {convo.lastMessage?.content || 'New Conversation'}
                     </p>
+                    {convo.adminHasUnreadMessages && (
+                        <div className="w-2.5 h-2.5 rounded-full bg-indigo-400 flex-shrink-0" title="Unread messages"/>
+                    )}
                   </div>
                   
                   <div className="flex items-center gap-2 text-xs text-gray-400 mt-1">
@@ -240,11 +274,10 @@ export const ConversationsManagement = ({ initialConversations }: { initialConve
                   <h3 className="font-semibold text-white">
                     Conversation with {selectedConversation.id}
                   </h3>
-                  {selectedConversation.adminHasUnreadMessages && (
-                    <span className="px-2 py-0.5 text-xs font-medium bg-indigo-500/20 text-indigo-300 rounded-full">
-                      New messages
-                    </span>
-                  )}
+                   <div className={cn(
+                      "w-2.5 h-2.5 rounded-full flex-shrink-0",
+                      selectedConversation.isOnline ? "bg-green-400" : "bg-gray-600"
+                    )} title={selectedConversation.isOnline ? "Online" : "Offline"} />
                 </div>
                 <p className="text-sm text-gray-400 mt-1">
                   Started {format(getTimestamp(selectedConversation.startTime), "PPP 'at' p")}

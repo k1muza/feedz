@@ -78,10 +78,17 @@ export const salesFlow = ai.defineFlow(
     outputSchema: ChatOutputSchema,
   },
   async (input) => {
+    
+    const historyForAI = [...input.history];
+    // If the conversation starts with a model message, add a dummy user message
+    if (historyForAI.length > 0 && historyForAI[0].role === 'model') {
+        historyForAI.unshift({ role: 'user', content: "Hello" });
+    }
+
     const args = {
       model: 'googleai/gemini-2.0-flash',
       system: systemPrompt,
-      messages: input.history.map(msg => ({
+      messages: historyForAI.map(msg => ({
         role: msg.role,
         content: [{ text: msg.content }],
       })),
