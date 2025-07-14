@@ -7,7 +7,6 @@ import {
   BarChart,
   CartesianGrid,
   Cell,
-  Legend,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -15,7 +14,6 @@ import {
 } from 'recharts';
 import type { Product, BlogPost, User } from '@/types';
 import Image from 'next/image';
-import { AnalyticsDashboard } from './AnalyticsDashboard';
 
 interface DashboardClientProps {
     products: Product[];
@@ -173,10 +171,6 @@ export function DashboardClient({ products, blogPosts, users }: DashboardClientP
             </ul>
         </div>
       </div>
-      
-      {/* Analytics Section */}
-      <AnalyticsDashboard />
-
     </div>
   );
 }

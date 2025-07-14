@@ -47,7 +47,7 @@ export const AnalyticsDashboard = () => {
     }, []);
 
     return (
-        <div className="space-y-8">
+        <div className="space-y-8 mb-8">
             <h2 className="text-2xl font-bold text-white">Analytics Overview</h2>
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 
