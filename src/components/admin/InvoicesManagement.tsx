@@ -153,8 +153,13 @@ export const InvoicesManagement = ({ initialInvoices }: { initialInvoices: Invoi
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="bg-gray-800 border-gray-700 text-white">
                           <DropdownMenuItem asChild>
+                            <Link href={`/admin/invoices/${invoice.id}/template`} className="flex items-center gap-2 cursor-pointer">
+                              <Eye className="w-4 h-4" /> View
+                            </Link>
+                          </DropdownMenuItem>
+                           <DropdownMenuItem asChild>
                             <Link href={`/admin/invoices/${invoice.id}`} className="flex items-center gap-2 cursor-pointer">
-                              <Eye className="w-4 h-4" /> View / Edit
+                              <Edit className="w-4 h-4" /> Edit
                             </Link>
                           </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => confirmDelete(invoice)} className="flex items-center gap-2 text-red-400 cursor-pointer focus:bg-red-900/50 focus:text-red-300">
