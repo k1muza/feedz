@@ -180,21 +180,41 @@ export async function startOrGetConversation(uid: string): Promise<Conversation>
       id: uid,
       startTime: data.startTime,
       messages: messages as Message[],
+      aiSuspended: data.aiSuspended || false,
+      lastMessage: data.lastMessage,
     };
   } else {
-    // Create a new conversation
+    // Create a new conversation with a welcome message
+    const welcomeMessage: Message = {
+      role: 'model',
+      content: "Hi there! I'm Feedy, your friendly AI assistant. How can I help you with your animal nutrition needs today?",
+      timestamp: Date.now(),
+    };
+    const messagesRef = ref(rtdb, `chats/${uid}/messages`);
+    const newMessageRef = push(messagesRef);
+
     const newConversationData = {
       startTime: serverTimestamp(),
-      messages: {},
+      messages: { [newMessageRef.key!]: welcomeMessage },
+      lastMessage: welcomeMessage,
+      aiSuspended: false,
     };
+    
     await set(chatRef, newConversationData);
-    return { id: uid, startTime: Date.now(), messages: [] };
+    
+    return { 
+      id: uid, 
+      startTime: Date.now(), 
+      messages: [welcomeMessage],
+      aiSuspended: false,
+      lastMessage: welcomeMessage,
+    };
   }
 }
 
 export async function addMessage(uid: string, content: string): Promise<Conversation> {
+  const chatRef = ref(rtdb, `chats/${uid}`);
   const messagesRef = ref(rtdb, `chats/${uid}/messages`);
-  const chatMetaRef = ref(rtdb, `chats/${uid}`);
   
   // 1. Add user message
   const userMessage: Message = {
@@ -205,12 +225,15 @@ export async function addMessage(uid: string, content: string): Promise<Conversa
   await push(messagesRef, userMessage);
   
   // Update last message for admin view
-  await set(child(chatMetaRef, 'lastMessage'), userMessage);
+  await set(child(chatRef, 'lastMessage'), userMessage);
 
 
-  // 2. Check if AI chat is enabled before getting a response
+  // 2. Check if AI chat is enabled globally and for this specific conversation
   const settings = await getAppSettings();
-  if (!settings.aiChatEnabled) {
+  const convoSnapshot = await get(chatRef);
+  const isAiSuspended = convoSnapshot.val()?.aiSuspended || false;
+
+  if (!settings.aiChatEnabled || isAiSuspended) {
       return startOrGetConversation(uid);
   }
 
@@ -230,7 +253,7 @@ export async function addMessage(uid: string, content: string): Promise<Conversa
     timestamp: Date.now(),
   };
   await push(messagesRef, aiMessage);
-  await set(child(chatMetaRef, 'lastMessage'), aiMessage);
+  await set(child(chatRef, 'lastMessage'), aiMessage);
   
   // 6. Return the final state of the conversation
   revalidatePath('/admin/conversations');
@@ -255,6 +278,7 @@ export async function getConversations(): Promise<Conversation[]> {
         startTime: chatData.startTime,
         messages: messages,
         lastMessage: chatData.lastMessage,
+        aiSuspended: chatData.aiSuspended || false,
       };
     });
 
@@ -265,6 +289,18 @@ export async function getConversations(): Promise<Conversation[]> {
   } catch (error) {
     console.error("Error fetching conversations from RTDB:", error);
     return [];
+  }
+}
+
+export async function setAiSuspension(uid: string, suspended: boolean) {
+  try {
+    const chatRef = ref(rtdb, `chats/${uid}/aiSuspended`);
+    await set(chatRef, suspended);
+    revalidatePath('/admin/conversations');
+    return { success: true };
+  } catch (error) {
+    console.error("Error setting AI suspension:", error);
+    return { success: false, error: "Failed to update AI suspension status." };
   }
 }
 

@@ -1,18 +1,46 @@
+
 'use client';
 
 import { useState } from 'react';
 import { Conversation, Message } from '@/types/chat';
 import { format, formatDistanceToNow } from 'date-fns';
-import { Bot, User } from 'lucide-react';
+import { Bot, User, Power, PowerOff } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import ReactMarkdown from 'react-markdown';
+import { Switch } from '../ui/switch';
+import { useToast } from '../ui/use-toast';
+import { setAiSuspension } from '@/app/actions';
 
 export const ConversationsManagement = ({ initialConversations }: { initialConversations: Conversation[] }) => {
-  const [conversations] = useState<Conversation[]>(initialConversations);
+  const [conversations, setConversations] = useState<Conversation[]>(initialConversations);
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(conversations[0] || null);
+  const { toast } = useToast();
 
   const getTimestamp = (timestamp: number): Date => {
     return new Date(timestamp);
+  };
+
+  const handleAiToggle = async (conversationId: string, suspended: boolean) => {
+    if (!selectedConversation) return;
+
+    // Optimistically update UI
+    const updatedConversation = { ...selectedConversation, aiSuspended: suspended };
+    setSelectedConversation(updatedConversation);
+    setConversations(prev => prev.map(c => c.id === conversationId ? updatedConversation : c));
+
+    const result = await setAiSuspension(conversationId, suspended);
+
+    if (result.success) {
+      toast({
+        title: `AI ${suspended ? 'Suspended' : 'Re-enabled'}`,
+        description: `The AI assistant has been ${suspended ? 'deactivated' : 'reactivated'} for this chat.`,
+      });
+    } else {
+      // Revert UI on failure
+      toast({ title: "Error", description: result.error, variant: 'destructive' });
+      setSelectedConversation(prev => ({ ...prev!, aiSuspended: !suspended }));
+       setConversations(prev => prev.map(c => c.id === conversationId ? ({ ...c, aiSuspended: !suspended }) : c));
+    }
   };
 
   return (
@@ -32,9 +60,12 @@ export const ConversationsManagement = ({ initialConversations }: { initialConve
                 selectedConversation?.id === convo.id && "bg-indigo-500/10"
               )}
             >
-              <p className="font-semibold text-white truncate">
-                {convo.lastMessage?.content || 'New Conversation'}
-              </p>
+              <div className="flex justify-between items-start">
+                <p className="font-semibold text-white truncate pr-2">
+                  {convo.lastMessage?.content || 'New Conversation'}
+                </p>
+                {convo.aiSuspended && <PowerOff className="w-4 h-4 text-yellow-400 flex-shrink-0" title="AI Suspended"/>}
+              </div>
               <p className="text-sm text-gray-400">
                 {formatDistanceToNow(getTimestamp(convo.startTime), { addSuffix: true })}
               </p>
@@ -48,11 +79,24 @@ export const ConversationsManagement = ({ initialConversations }: { initialConve
       <div className="w-2/3 flex flex-col">
         {selectedConversation ? (
           <>
-            <div className="p-4 border-b border-gray-700">
-              <h3 className="font-semibold text-white">
-                Conversation from {format(getTimestamp(selectedConversation.startTime), "PPP p")}
-              </h3>
-              <p className="text-sm text-gray-400">User ID: {selectedConversation.id}</p>
+            <div className="p-4 border-b border-gray-700 flex justify-between items-center">
+              <div>
+                <h3 className="font-semibold text-white">
+                  Conversation from {format(getTimestamp(selectedConversation.startTime), "PPP p")}
+                </h3>
+                <p className="text-sm text-gray-400">User ID: {selectedConversation.id}</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <label htmlFor="ai-toggle" className="text-sm text-gray-300">
+                  {selectedConversation.aiSuspended ? 'AI Suspended' : 'AI Active'}
+                </label>
+                <Switch
+                  id="ai-toggle"
+                  checked={!selectedConversation.aiSuspended}
+                  onCheckedChange={(checked) => handleAiToggle(selectedConversation.id, !checked)}
+                  aria-label="Toggle AI assistant for this chat"
+                />
+              </div>
             </div>
             <div className="flex-grow p-4 space-y-4 overflow-y-auto">
               {selectedConversation.messages.map((message, index) => (

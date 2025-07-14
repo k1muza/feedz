@@ -13,4 +13,5 @@ export type Conversation = {
     startTime: number;
     messages: SerializableMessage[];
     lastMessage?: SerializableMessage;
+    aiSuspended?: boolean; // New flag to control AI responses
 };

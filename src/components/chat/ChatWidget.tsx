@@ -28,17 +28,6 @@ export function ChatWidget() {
           if (user) {
             setCurrentUser(user);
             const convo = await startOrGetConversation(user.uid);
-            
-            // Seed conversation if it's new
-            if (convo.messages.length === 0) {
-              const welcomeMessage: SerializableMessage = {
-                role: 'model',
-                content: "Hi there! I'm Feedy, your friendly AI assistant. How can I help you with your animal nutrition needs today?",
-                timestamp: Date.now(),
-              };
-              convo.messages.push(welcomeMessage);
-            }
-            
             setConversation(convo);
           }
         });
@@ -87,7 +76,7 @@ export function ChatWidget() {
           onClick={() => setIsOpen(!isOpen)}
           className={cn(
             "bg-green-600 text-white p-4 rounded-full shadow-lg hover:bg-green-700 transition-colors",
-            isOpen && 'hidden sm:flex'
+            isOpen && 'hidden'
           )}
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.9 }}
