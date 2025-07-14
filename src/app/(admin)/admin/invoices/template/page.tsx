@@ -20,7 +20,7 @@ const InvoicePage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 py-10 px-4 print:mx-0 print:p-0 print:padding-none print:border-none print:bg-white">
+    <div className="min-h-screen print:mx-0 print:p-0 print:padding-none print:border-none print:bg-white">
       <InvoiceTemplateOptimized invoiceData={invoiceData} />
     </div>
   );
