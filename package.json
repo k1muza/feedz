@@ -71,6 +71,10 @@
     "zod": "^3.24.2"
   },
   "devDependencies": {
+    "@opentelemetry/api": "^1.9.0",
+    "@opentelemetry/exporter-jaeger": "^1.25.1",
+    "@opentelemetry/instrumentation": "^0.53.0",
+    "@opentelemetry/sdk-node": "^0.53.0",
     "@tailwindcss/typography": "^0.5.13",
     "@types/node": "^20",
     "@types/react": "^18",
