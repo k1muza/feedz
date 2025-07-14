@@ -7,10 +7,11 @@ import { MessageSquare, Send, X, Bot, User } from 'lucide-react';
 import { Conversation, Message, SerializableMessage } from '@/types/chat';
 import { startOrGetConversation, addMessage } from '@/app/actions';
 import { signInAnonymously } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
+import { auth, rtdb } from '@/lib/firebase';
 import ReactMarkdown from 'react-markdown';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
+import { ref, onValue } from 'firebase/database';
 
 export function ChatWidget() {
   const [isOpen, setIsOpen] = useState(false);
@@ -24,20 +25,47 @@ export function ChatWidget() {
     const authenticateAndLoadChat = async () => {
       try {
         await signInAnonymously(auth);
-        const unsubscribe = auth.onAuthStateChanged(async (user) => {
+        const unsubscribeAuth = auth.onAuthStateChanged(async (user) => {
           if (user) {
             setCurrentUser(user);
+            // Initial load
             const convo = await startOrGetConversation(user.uid);
             setConversation(convo);
           }
         });
-        return () => unsubscribe();
+        return () => unsubscribeAuth();
       } catch (error) {
         console.error("Anonymous sign-in failed:", error);
       }
     };
     authenticateAndLoadChat();
   }, []);
+
+  useEffect(() => {
+    // Set up real-time listener once we have a user and conversation ID
+    if (!currentUser || !conversation?.id) return;
+
+    const chatRef = ref(rtdb, `chats/${currentUser.uid}`);
+    const unsubscribe = onValue(chatRef, (snapshot) => {
+        if (snapshot.exists()) {
+            const updatedData = snapshot.val();
+            const updatedMessages = updatedData.messages ? Object.values(updatedData.messages) as Message[] : [];
+            updatedMessages.sort((a, b) => a.timestamp - b.timestamp);
+            
+            setConversation(prev => ({
+                ...(prev as Conversation),
+                id: currentUser.uid,
+                messages: updatedMessages,
+                lastMessage: updatedData.lastMessage,
+                aiSuspended: updatedData.aiSuspended || false,
+            }));
+        }
+    });
+
+    // Cleanup listener on component unmount or when user/convo changes
+    return () => unsubscribe();
+  }, [currentUser, conversation?.id]);
+
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -51,6 +79,7 @@ export function ChatWidget() {
     setNewMessage('');
     setIsLoading(true);
 
+    // Optimistically add user message - RTDB will sync it back anyway
     const tempUserMessage: SerializableMessage = {
       role: 'user',
       content: userMessageContent,
@@ -58,12 +87,14 @@ export function ChatWidget() {
     };
 
     setConversation(prev => prev ? ({ ...prev, messages: [...prev.messages, tempUserMessage] }) : null);
-
+    
+    // The server action will add both the user and AI message
+    // The real-time listener will then update the conversation state automatically
     try {
-      const updatedConversation = await addMessage(currentUser.uid, userMessageContent);
-      setConversation(updatedConversation);
+      await addMessage(currentUser.uid, userMessageContent);
     } catch (error) {
       console.error("Failed to send message:", error);
+      // Optional: Add error handling message to UI
     } finally {
       setIsLoading(false);
     }
