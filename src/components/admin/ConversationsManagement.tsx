@@ -244,9 +244,11 @@ export const ConversationsManagement = ({ initialConversations }: { initialConve
                 
                 <div className="flex flex-col items-end pl-2">
                   {convo.aiSuspended ? (
-                    <PowerOff className="w-4 h-4 text-amber-400" title="AI Suspended"/>
+                    <span title="AI Suspended">
+                      <PowerOff className="w-4 h-4 text-amber-400" />
+                    </span>
                   ) : (
-                    <Bot className="w-4 h-4 text-indigo-400" title="AI Active"/>
+                    <Bot className="w-4 h-4 text-indigo-400" />
                   )}
                 </div>
               </button>

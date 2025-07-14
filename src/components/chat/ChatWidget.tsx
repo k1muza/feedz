@@ -4,7 +4,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { MessageSquare, Send, X, Bot, User } from 'lucide-react';
-import { Conversation, Message, AppSettings } from '@/types';
+import { AppSettings } from '@/types';
 import { startOrGetConversation, addMessage, getAppSettings } from '@/app/actions';
 import { signInAnonymously } from 'firebase/auth';
 import { auth, rtdb } from '@/lib/firebase';
@@ -12,6 +12,21 @@ import ReactMarkdown from 'react-markdown';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
 import { ref, onValue, set, onDisconnect } from 'firebase/database';
+
+// Define Message type locally if not exported from '@/types'
+type Message = {
+  id?: string;
+  role: 'user' | 'model';
+  content: string;
+  timestamp: number;
+};
+
+type Conversation = {
+  id: string;
+  messages: Message[];
+  lastMessage?: Message;
+  aiSuspended?: boolean;
+};
 
 export function ChatWidget() {
   const [isOpen, setIsOpen] = useState(false);
@@ -204,11 +219,11 @@ export function ChatWidget() {
                   onChange={(e) => setNewMessage(e.target.value)}
                   placeholder="Ask about products or advice..."
                   className="w-full pr-12 p-3 border border-gray-600 rounded-lg bg-gray-700 text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-                  disabled={isLoading || conversation?.aiSuspended}
+                  disabled={isLoading}
                 />
                 <button
                   type="submit"
-                  disabled={isLoading || !newMessage.trim() || conversation?.aiSuspended}
+                  disabled={isLoading || !newMessage.trim()}
                   className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-indigo-600 text-white hover:bg-indigo-500 disabled:bg-gray-500 disabled:cursor-not-allowed transition-colors"
                 >
                   <Send size={18} />

@@ -47,6 +47,10 @@ export default function InvoiceTemplatePage({ params }: { params: { id: string }
     ...invoice,
     date: getTimestamp(invoice.date).toISOString().split('T')[0],
     dueDate: getTimestamp(invoice.dueDate).toISOString().split('T')[0],
+    items: invoice.items.map(item => ({
+      ...item,
+      id: typeof item.id === 'string' ? Number(item.id) : item.id,
+    })),
   }
 
   return (
