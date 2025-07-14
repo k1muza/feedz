@@ -9,9 +9,10 @@ import { cn } from '@/lib/utils';
 import ReactMarkdown from 'react-markdown';
 import { Switch } from '../ui/switch';
 import { useToast } from '../ui/use-toast';
-import { setAiSuspension, addAdminMessage, markConversationAsRead } from '@/app/actions';
+import { setAiSuspension, addAdminMessage, markConversationAsRead, getAppSettings } from '@/app/actions';
 import { rtdb } from '@/lib/firebase';
 import { ref, onValue } from 'firebase/database';
+import type { AppSettings } from '@/types';
 
 interface ConvoWithPresence extends Conversation {
     isOnline?: boolean;
@@ -23,6 +24,7 @@ export const ConversationsManagement = ({ initialConversations }: { initialConve
   const [newMessage, setNewMessage] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [appSettings, setAppSettings] = useState<AppSettings | null>(null);
   const { toast } = useToast();
   const messagesEndRef = useRef<null | HTMLDivElement>(null);
 
@@ -32,6 +34,9 @@ export const ConversationsManagement = ({ initialConversations }: { initialConve
   );
 
   useEffect(() => {
+    // Fetch global settings
+    getAppSettings().then(setAppSettings);
+
     // Listen for all conversations and statuses
     const chatsRef = ref(rtdb, 'chats');
     const statusRef = ref(rtdb, 'status');
@@ -284,11 +289,14 @@ export const ConversationsManagement = ({ initialConversations }: { initialConve
                 </p>
               </div>
               
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3" title={!appSettings?.aiChatEnabled ? 'The global AI setting is disabled.' : ''}>
                 <div className="flex flex-col items-end">
                   <label 
                     htmlFor="ai-toggle" 
-                    className="text-sm font-medium text-gray-300"
+                    className={cn(
+                        "text-sm font-medium",
+                        !appSettings?.aiChatEnabled ? "text-gray-500" : "text-gray-300"
+                    )}
                   >
                     AI Assistant
                   </label>
@@ -300,6 +308,7 @@ export const ConversationsManagement = ({ initialConversations }: { initialConve
                   id="ai-toggle"
                   checked={!selectedConversation.aiSuspended}
                   onCheckedChange={(checked) => handleAiToggle(!checked)}
+                  disabled={!appSettings?.aiChatEnabled}
                   className="data-[state=checked]:bg-indigo-500"
                 />
               </div>
