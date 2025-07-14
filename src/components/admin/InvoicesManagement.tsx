@@ -136,8 +136,8 @@ export const InvoicesManagement = ({ initialInvoices }: { initialInvoices: Invoi
                 {invoices.map((invoice) => (
                   <tr key={invoice.id} className="hover:bg-gray-700/50 transition-colors">
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-white">{invoice.invoiceNumber}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">{invoice.customerName}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">{format(getTimestamp(invoice.issueDate), "PPP")}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">{invoice.client.name}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">{format(getTimestamp(invoice.date), "PPP")}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-white">${invoice.totalAmount.toFixed(2)}</td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full capitalize ${getStatusClass(invoice.status)}`}>

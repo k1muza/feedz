@@ -21,20 +21,27 @@ import { Timestamp } from 'firebase/firestore';
 
 
 const InvoiceItemSchema = z.object({
-    productId: z.string().min(1, 'Product is required'),
-    productName: z.string(),
+    id: z.string(),
+    description: z.string().min(1, 'Description is required'),
     quantity: z.coerce.number().min(0.01, 'Quantity must be positive'),
-    unitPrice: z.coerce.number().min(0),
-    totalPrice: z.coerce.number().min(0),
+    price: z.coerce.number().min(0),
 });
 
 const InvoiceFormSchema = z.object({
-  customerName: z.string().min(1, "Customer name is required"),
-  customerEmail: z.string().email("Invalid email address"),
+  client: z.object({
+    name: z.string().min(1, "Customer name is required"),
+    email: z.string().email("Invalid email address"),
+    address: z.string().min(1, "Address is required"),
+    city: z.string().min(1, "City is required"),
+    phone: z.string().min(1, "Phone is required"),
+  }),
   status: z.enum(['draft', 'sent', 'paid', 'void']),
-  issueDate: z.date({ required_error: "Issue date is required."}),
+  date: z.date({ required_error: "Issue date is required."}),
   dueDate: z.date({ required_error: "Due date is required." }),
   items: z.array(InvoiceItemSchema).min(1, "At least one line item is required."),
+  notes: z.string().optional(),
+  paymentTerms: z.string().optional(),
+  taxRate: z.coerce.number().min(0).max(100),
 });
 
 type FormValues = z.infer<typeof InvoiceFormSchema>;
@@ -61,21 +68,33 @@ export const InvoiceForm = ({ invoice }: { invoice?: Invoice }) => {
   const form = useForm<FormValues>({
     resolver: zodResolver(InvoiceFormSchema),
     defaultValues: {
-      customerName: invoice?.customerName || '',
-      customerEmail: invoice?.customerEmail || '',
+      client: {
+          name: invoice?.client.name || '',
+          email: invoice?.client.email || '',
+          address: invoice?.client.address || '',
+          city: invoice?.client.city || '',
+          phone: invoice?.client.phone || '',
+      },
       status: invoice?.status || 'draft',
-      issueDate: invoice ? getTimestamp(invoice.issueDate) : new Date(),
+      date: invoice ? getTimestamp(invoice.date) : new Date(),
       dueDate: invoice ? getTimestamp(invoice.dueDate) : new Date(new Date().setDate(new Date().getDate() + 30)),
-      items: invoice?.items || [],
+      items: invoice?.items.map(item => ({...item, id: item.id || crypto.randomUUID()})) || [],
+      notes: invoice?.notes || 'Thank you for your business!',
+      paymentTerms: invoice?.paymentTerms || 'Payment due within 30 days.',
+      taxRate: invoice?.taxRate ? invoice.taxRate * 100 : 15,
     }
   });
 
-  const { fields, append, remove, update } = useFieldArray({
+  const { fields, append, remove } = useFieldArray({
     control: form.control,
     name: "items"
   });
 
-  const totalAmount = form.watch('items').reduce((acc, item) => acc + (item.totalPrice || 0), 0);
+  const watchedItems = form.watch('items');
+  const taxRate = form.watch('taxRate') / 100;
+
+  const subtotal = watchedItems.reduce((acc, item) => acc + ((item.quantity || 0) * (item.price || 0)), 0);
+  const totalAmount = subtotal * (1 + taxRate);
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -88,27 +107,10 @@ export const InvoiceForm = ({ invoice }: { invoice?: Invoice }) => {
   const handleProductChange = (index: number, productId: string) => {
     const product = products.find(p => p.id === productId);
     if(product) {
-        const quantity = form.getValues(`items.${index}.quantity`) || 1;
-        update(index, {
-            ...form.getValues(`items.${index}`),
-            productId: product.id,
-            productName: product.ingredient?.name || 'N/A',
-            unitPrice: product.price,
-            totalPrice: product.price * quantity,
-        });
+        form.setValue(`items.${index}.description`, product.ingredient?.name || 'N/A');
+        form.setValue(`items.${index}.price`, product.price);
     }
   };
-
-  const handleQuantityChange = (index: number, quantity: number) => {
-    const item = form.getValues(`items.${index}`);
-    if(item) {
-        update(index, {
-            ...item,
-            quantity,
-            totalPrice: item.unitPrice * quantity,
-        });
-    }
-  }
 
   const onSubmit: SubmitHandler<FormValues> = async (data) => {
     setIsSubmitting(true);
@@ -117,9 +119,15 @@ export const InvoiceForm = ({ invoice }: { invoice?: Invoice }) => {
     const payload = {
       ...data,
       totalAmount,
-      issueDate: Timestamp.fromDate(data.issueDate),
+      taxRate: data.taxRate / 100, // convert percentage to decimal
+      date: Timestamp.fromDate(data.date),
       dueDate: Timestamp.fromDate(data.dueDate),
-      customerId: invoice?.customerId || 'temp-customer-id', // Use existing or placeholder
+      bank: invoice?.bank || { // Use existing or default
+          name: 'NMB Bank',
+          accountName: 'FeedSport Enterprises',
+          accountNumber: '0123456789',
+          branch: 'Borrowdale Branch'
+      },
     };
 
     let result;
@@ -165,23 +173,47 @@ export const InvoiceForm = ({ invoice }: { invoice?: Invoice }) => {
       
       {serverError && <Alert variant="destructive"><AlertCircle className="h-4 w-4" /><AlertTitle>Error</AlertTitle><AlertDescription>{serverError}</AlertDescription></Alert>}
 
+      {/* Customer Details */}
       <div className="bg-gray-800/50 border border-gray-700 rounded-xl p-6 space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label htmlFor="customerName" className="block text-sm font-medium text-gray-300">Customer Name</label>
-              <input {...form.register('customerName')} className="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md p-2"/>
-              {form.formState.errors.customerName && <p className="text-red-500 text-xs mt-1">{form.formState.errors.customerName.message}</p>}
-            </div>
-             <div>
-              <label htmlFor="customerEmail" className="block text-sm font-medium text-gray-300">Customer Email</label>
-              <input {...form.register('customerEmail')} className="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md p-2"/>
-              {form.formState.errors.customerEmail && <p className="text-red-500 text-xs mt-1">{form.formState.errors.customerEmail.message}</p>}
-            </div>
-          </div>
+          <h3 className="text-lg font-semibold text-white">Customer Information</h3>
+           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label htmlFor="client.name" className="block text-sm font-medium text-gray-300">Customer Name</label>
+                <input {...form.register('client.name')} className="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md p-2"/>
+                {form.formState.errors.client?.name && <p className="text-red-500 text-xs mt-1">{form.formState.errors.client.name.message}</p>}
+              </div>
+              <div>
+                <label htmlFor="client.email" className="block text-sm font-medium text-gray-300">Email</label>
+                <input {...form.register('client.email')} className="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md p-2"/>
+                 {form.formState.errors.client?.email && <p className="text-red-500 text-xs mt-1">{form.formState.errors.client.email.message}</p>}
+              </div>
+           </div>
+           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label htmlFor="client.address" className="block text-sm font-medium text-gray-300">Address</label>
+                <input {...form.register('client.address')} className="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md p-2"/>
+                 {form.formState.errors.client?.address && <p className="text-red-500 text-xs mt-1">{form.formState.errors.client.address.message}</p>}
+              </div>
+              <div>
+                <label htmlFor="client.city" className="block text-sm font-medium text-gray-300">City/Town</label>
+                <input {...form.register('client.city')} className="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md p-2"/>
+                {form.formState.errors.client?.city && <p className="text-red-500 text-xs mt-1">{form.formState.errors.client.city.message}</p>}
+              </div>
+           </div>
+           <div>
+              <label htmlFor="client.phone" className="block text-sm font-medium text-gray-300">Phone</label>
+              <input {...form.register('client.phone')} className="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md p-2"/>
+              {form.formState.errors.client?.phone && <p className="text-red-500 text-xs mt-1">{form.formState.errors.client.phone.message}</p>}
+           </div>
+      </div>
+
+       {/* Invoice Details */}
+      <div className="bg-gray-800/50 border border-gray-700 rounded-xl p-6 space-y-6">
+           <h3 className="text-lg font-semibold text-white">Invoice Details</h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <Controller
                 control={form.control}
-                name="issueDate"
+                name="date"
                 render={({ field }) => (
                 <div>
                     <label className="block text-sm font-medium text-gray-300 mb-1">Issue Date</label>
@@ -190,7 +222,7 @@ export const InvoiceForm = ({ invoice }: { invoice?: Invoice }) => {
                         <CalendarIcon className="mr-2 h-4 w-4 inline"/>{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
                     </button>
                     </PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent></Popover>
-                    {form.formState.errors.issueDate && <p className="text-red-500 text-xs mt-1">{form.formState.errors.issueDate.message}</p>}
+                    {form.formState.errors.date && <p className="text-red-500 text-xs mt-1">{form.formState.errors.date.message}</p>}
                 </div>
             )}/>
             <Controller
@@ -216,39 +248,63 @@ export const InvoiceForm = ({ invoice }: { invoice?: Invoice }) => {
           </div>
       </div>
       
+      {/* Line Items */}
       <div className="bg-gray-800/50 border border-gray-700 rounded-xl p-6">
           <h3 className="text-lg font-semibold text-white mb-4">Line Items</h3>
           <div className="space-y-4">
               {fields.map((item, index) => (
-                  <div key={item.id} className="flex flex-col md:flex-row items-start gap-4 p-4 bg-gray-900/50 rounded-lg">
-                      <div className="flex-1 w-full md:w-auto">
+                  <div key={item.id} className="grid grid-cols-1 md:grid-cols-[2fr,1fr,1fr,auto] gap-4 items-start p-4 bg-gray-900/50 rounded-lg">
+                      <div className="w-full">
+                        <label className="text-xs text-gray-400">Product</label>
                         <select
-                            {...form.register(`items.${index}.productId`)}
                             onChange={(e) => handleProductChange(index, e.target.value)}
-                            className="w-full bg-gray-700 border-gray-600 rounded-md p-2"
+                            className="w-full bg-gray-700 border-gray-600 rounded-md p-2 mt-1"
                         >
                             <option value="">Select a product</option>
                             {products.map(p => <option key={p.id} value={p.id}>{p.ingredient?.name}</option>)}
                         </select>
+                        <input type="hidden" {...form.register(`items.${index}.id`)} />
                       </div>
-                      <div className="grid grid-cols-3 gap-4 w-full md:w-auto">
-                        <input type="number" step="any" placeholder="Qty" {...form.register(`items.${index}.quantity`)} onChange={(e) => handleQuantityChange(index, Number(e.target.value))} className="w-full bg-gray-700 border-gray-600 rounded-md p-2" />
-                        <input type="number" step="any" placeholder="Unit Price" {...form.register(`items.${index}.unitPrice`)} className="w-full bg-gray-700 border-gray-600 rounded-md p-2" disabled/>
-                        <input type="number" step="any" placeholder="Total" {...form.register(`items.${index}.totalPrice`)} className="w-full bg-gray-700 border-gray-600 rounded-md p-2" disabled/>
+                      <div>
+                        <label className="text-xs text-gray-400">Quantity</label>
+                        <input type="number" step="any" {...form.register(`items.${index}.quantity`)} className="w-full bg-gray-700 border-gray-600 rounded-md p-2 mt-1" />
                       </div>
-                      <button type="button" onClick={() => remove(index)} className="p-2 text-red-500 hover:text-red-400 hover:bg-gray-700 rounded-md"><Trash2 className="w-5 h-5"/></button>
+                       <div>
+                        <label className="text-xs text-gray-400">Unit Price</label>
+                        <input type="number" step="any" {...form.register(`items.${index}.price`)} className="w-full bg-gray-700 border-gray-600 rounded-md p-2 mt-1"/>
+                      </div>
+                      <div className="self-end">
+                        <button type="button" onClick={() => remove(index)} className="p-2 text-red-500 hover:text-red-400 hover:bg-gray-700 rounded-md"><Trash2 className="w-5 h-5"/></button>
+                      </div>
                   </div>
               ))}
           </div>
-          <button type="button" onClick={() => append({productId: '', productName: '', quantity: 1, unitPrice: 0, totalPrice: 0})} className="mt-4 px-3 py-2 text-sm bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg flex items-center gap-2"><Plus className="w-4 h-4"/> Add Item</button>
+          <button type="button" onClick={() => append({id: crypto.randomUUID(), description: '', quantity: 1, price: 0})} className="mt-4 px-3 py-2 text-sm bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg flex items-center gap-2"><Plus className="w-4 h-4"/> Add Item</button>
           {form.formState.errors.items && <p className="text-red-500 text-xs mt-2">{form.formState.errors.items.message || form.formState.errors.items.root?.message}</p>}
           <div className="mt-6 pt-4 border-t border-gray-700 flex justify-end">
-              <div className="text-right">
-                  <p className="text-gray-400">Total Amount</p>
-                  <p className="text-2xl font-bold text-white">${totalAmount.toFixed(2)}</p>
+              <div className="text-right w-full max-w-sm space-y-2">
+                  <div className="flex justify-between"><span className="text-gray-400">Subtotal</span><span>${subtotal.toFixed(2)}</span></div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-400">Tax (%)</span>
+                    <input type="number" {...form.register('taxRate')} className="w-20 bg-gray-700 border-gray-600 rounded-md p-1 text-right"/>
+                  </div>
+                  <div className="flex justify-between text-xl font-bold text-white pt-2 border-t border-gray-600"><span>Total</span><span>${totalAmount.toFixed(2)}</span></div>
               </div>
           </div>
       </div>
+
+       {/* Notes & Terms */}
+        <div className="bg-gray-800/50 border border-gray-700 rounded-xl p-6 space-y-6">
+            <h3 className="text-lg font-semibold text-white">Notes & Payment Terms</h3>
+            <div>
+                <label htmlFor="notes" className="block text-sm font-medium text-gray-300">Notes</label>
+                <textarea {...form.register('notes')} rows={3} className="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md p-2"/>
+            </div>
+            <div>
+                <label htmlFor="paymentTerms" className="block text-sm font-medium text-gray-300">Payment Terms</label>
+                <input {...form.register('paymentTerms')} className="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md p-2"/>
+            </div>
+        </div>
     </form>
   );
 };

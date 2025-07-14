@@ -1117,7 +1117,7 @@ const toJSONSafe = (timestamp: any) => {
 
 export async function getAllInvoices(): Promise<Invoice[]> {
   try {
-    const snapshot = await getDocs(query(invoicesCollection, orderBy('issueDate', 'desc')));
+    const snapshot = await getDocs(query(invoicesCollection, orderBy('date', 'desc')));
     if (snapshot.empty) return [];
     
     return snapshot.docs.map(doc => {
@@ -1125,7 +1125,7 @@ export async function getAllInvoices(): Promise<Invoice[]> {
         return {
             id: doc.id,
             ...data,
-            issueDate: toJSONSafe(data.issueDate),
+            date: toJSONSafe(data.date),
             dueDate: toJSONSafe(data.dueDate),
         } as Invoice;
     });
@@ -1145,7 +1145,7 @@ export async function getInvoiceById(id: string): Promise<Invoice | null> {
         return {
             id: docSnap.id,
             ...data,
-            issueDate: toJSONSafe(data.issueDate),
+            date: toJSONSafe(data.date),
             dueDate: toJSONSafe(data.dueDate),
         } as Invoice;
     } catch (error) {

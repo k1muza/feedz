@@ -157,22 +157,40 @@ export type Policy = {
 }
 
 export type InvoiceItem = {
-    productId: string;
-    productName: string;
+    id: string; // Changed from productId to a unique id for the line item itself
+    description: string; // was productName
     quantity: number;
-    unitPrice: number;
-    totalPrice: number;
+    price: number; // was unitPrice
 };
+
+export type ClientInfo = {
+    name: string;
+    email: string;
+    address: string;
+    city: string;
+    phone: string;
+};
+
+
+export type BankInfo = {
+    name: string;
+    accountName: string;
+    accountNumber: string;
+    branch: string;
+};
+
 
 export type Invoice = {
     id: string;
     invoiceNumber: string;
-    customerId: string; // Or a more complex customer object
-    customerName: string;
-    customerEmail: string;
-    issueDate: { seconds: number, nanoseconds: number };
+    date: { seconds: number, nanoseconds: number }; // was issueDate
     dueDate: { seconds: number, nanoseconds: number };
+    client: ClientInfo;
     items: InvoiceItem[];
+    taxRate: number; // New field
+    notes: string; // New field
+    paymentTerms: string; // New field
+    bank: BankInfo; // New field
     totalAmount: number;
     status: 'draft' | 'sent' | 'paid' | 'void';
 };
