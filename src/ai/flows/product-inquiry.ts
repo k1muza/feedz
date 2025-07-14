@@ -53,7 +53,7 @@ const getProductInfoTool = ai.defineTool(
       moq: p.moq,
       key_benefits: p.ingredient?.key_benefits,
       applications: p.ingredient?.applications,
-      inStock: p.stock > p.moq,
+      inStock: p.stock > 0,
     }));
   }
 );

@@ -21,7 +21,7 @@ import {
   arrayUnion,
   setDoc,
 } from 'firebase/firestore';
-import { getDatabase, ref, get, set, push, serverTimestamp, child } from 'firebase/database';
+import { getDatabase, ref, get, set, push, serverTimestamp, child, onValue } from 'firebase/database';
 import { revalidatePath } from 'next/cache';
 import { db, rtdb } from '@/lib/firebase';
 import { BlogPost, BlogCategory, User, Product, Ingredient, ProductCategory, Composition, ContactInquiry, NewsletterSubscription, AppSettings, Policy, Invoice, InvoiceItem } from '@/types';
@@ -260,6 +260,26 @@ export async function addMessage(uid: string, content: string): Promise<Conversa
   return startOrGetConversation(uid);
 }
 
+
+export async function addAdminMessage(uid: string, content: string): Promise<{ success: boolean; error?: string }> {
+  const chatRef = ref(rtdb, `chats/${uid}`);
+  const messagesRef = ref(rtdb, `chats/${uid}/messages`);
+
+  const adminMessage: Message = {
+    role: 'model', // Admins are treated as the 'model' role
+    content,
+    timestamp: Date.now(),
+  };
+
+  try {
+    await push(messagesRef, adminMessage);
+    await set(child(chatRef, 'lastMessage'), adminMessage);
+    return { success: true };
+  } catch (error: any) {
+    console.error("Error sending admin message:", error);
+    return { success: false, error: error.message };
+  }
+}
 
 export async function getConversations(): Promise<Conversation[]> {
   try {

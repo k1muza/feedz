@@ -1,20 +1,58 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Conversation, Message } from '@/types/chat';
 import { format, formatDistanceToNow } from 'date-fns';
-import { Bot, User, Power, PowerOff } from 'lucide-react';
+import { Bot, User, PowerOff, Send, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import ReactMarkdown from 'react-markdown';
 import { Switch } from '../ui/switch';
 import { useToast } from '../ui/use-toast';
-import { setAiSuspension } from '@/app/actions';
+import { setAiSuspension, addAdminMessage } from '@/app/actions';
+import { rtdb } from '@/lib/firebase';
+import { ref, onValue } from 'firebase/database';
 
 export const ConversationsManagement = ({ initialConversations }: { initialConversations: Conversation[] }) => {
   const [conversations, setConversations] = useState<Conversation[]>(initialConversations);
-  const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(conversations[0] || null);
+  const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(initialConversations[0] || null);
+  const [newMessage, setNewMessage] = useState('');
+  const [isSending, setIsSending] = useState(false);
   const { toast } = useToast();
+  const messagesEndRef = useRef<null | HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!selectedConversation) return;
+
+    const messagesRef = ref(rtdb, `chats/${selectedConversation.id}`);
+    const unsubscribe = onValue(messagesRef, (snapshot) => {
+      if (snapshot.exists()) {
+        const updatedData = snapshot.val();
+        const updatedMessages = updatedData.messages ? Object.values(updatedData.messages) as Message[] : [];
+        updatedMessages.sort((a, b) => a.timestamp - b.timestamp);
+
+        const updatedConversation = {
+            ...selectedConversation,
+            messages: updatedMessages,
+            lastMessage: updatedData.lastMessage,
+            aiSuspended: updatedData.aiSuspended || false,
+        };
+        setSelectedConversation(updatedConversation);
+
+        // Also update the list view
+        setConversations(prev => prev.map(c => c.id === updatedConversation.id ? { ...c, lastMessage: updatedConversation.lastMessage } : c)
+          .sort((a, b) => (b.lastMessage?.timestamp || 0) - (a.lastMessage?.timestamp || 0))
+        );
+      }
+    });
+
+    return () => unsubscribe();
+  }, [selectedConversation?.id]);
+
+
+   useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [selectedConversation?.messages]);
 
   const getTimestamp = (timestamp: number): Date => {
     return new Date(timestamp);
@@ -42,6 +80,21 @@ export const ConversationsManagement = ({ initialConversations }: { initialConve
        setConversations(prev => prev.map(c => c.id === conversationId ? ({ ...c, aiSuspended: !suspended }) : c));
     }
   };
+  
+  const handleAdminSubmit = async (e: React.FormEvent) => {
+      e.preventDefault();
+      if (!newMessage.trim() || !selectedConversation) return;
+      
+      setIsSending(true);
+      const result = await addAdminMessage(selectedConversation.id, newMessage);
+      setIsSending(false);
+      
+      if (result.success) {
+          setNewMessage('');
+      } else {
+          toast({ title: "Error", description: result.error, variant: 'destructive' });
+      }
+  };
 
   return (
     <div className="flex h-[calc(100vh-150px)] bg-gray-800/50 border border-gray-700 rounded-xl overflow-hidden">
@@ -67,9 +120,9 @@ export const ConversationsManagement = ({ initialConversations }: { initialConve
                 {convo.aiSuspended && <PowerOff className="w-4 h-4 text-yellow-400 flex-shrink-0" title="AI Suspended"/>}
               </div>
               <p className="text-sm text-gray-400">
-                {formatDistanceToNow(getTimestamp(convo.startTime), { addSuffix: true })}
+                {formatDistanceToNow(getTimestamp(convo.lastMessage?.timestamp || convo.startTime), { addSuffix: true })}
               </p>
-              <p className="text-xs text-gray-500 mt-1">{convo.messages.length} messages</p>
+              <p className="text-xs text-gray-500 mt-1">{convo.id}</p>
             </button>
           ))}
         </div>
@@ -79,10 +132,10 @@ export const ConversationsManagement = ({ initialConversations }: { initialConve
       <div className="w-2/3 flex flex-col">
         {selectedConversation ? (
           <>
-            <div className="p-4 border-b border-gray-700 flex justify-between items-center">
+            <div className="p-4 border-b border-gray-700 flex justify-between items-center flex-shrink-0">
               <div>
                 <h3 className="font-semibold text-white">
-                  Conversation from {format(getTimestamp(selectedConversation.startTime), "PPP p")}
+                  Conversation started {format(getTimestamp(selectedConversation.startTime), "PPP p")}
                 </h3>
                 <p className="text-sm text-gray-400">User ID: {selectedConversation.id}</p>
               </div>
@@ -119,7 +172,27 @@ export const ConversationsManagement = ({ initialConversations }: { initialConve
                   )}
                 </div>
               ))}
+              <div ref={messagesEndRef} />
             </div>
+             <form onSubmit={handleAdminSubmit} className="p-4 border-t border-gray-700/50 bg-gray-800 flex-shrink-0">
+              <div className="relative">
+                <input
+                  type="text"
+                  value={newMessage}
+                  onChange={(e) => setNewMessage(e.target.value)}
+                  placeholder="Type your reply..."
+                  className="w-full pr-12 p-3 border border-gray-600 rounded-lg bg-gray-700 text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                  disabled={isSending}
+                />
+                <button
+                  type="submit"
+                  disabled={isSending || !newMessage.trim()}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-indigo-600 text-white hover:bg-indigo-500 disabled:bg-gray-500 disabled:cursor-not-allowed transition-colors"
+                >
+                  {isSending ? <Loader2 className="w-4 h-4 animate-spin"/> : <Send size={18} />}
+                </button>
+              </div>
+            </form>
           </>
         ) : (
           <div className="flex items-center justify-center h-full">
