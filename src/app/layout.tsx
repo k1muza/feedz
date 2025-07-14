@@ -1,3 +1,4 @@
+
 import "@/app/globals.css";
 import { GoogleAnalytics } from "@next/third-parties/google";
 import { Metadata } from "next";
@@ -64,7 +65,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={cn("min-h-screen bg-background font-sans antialiased", fontSans.variable)}>
+      <body
+        className={cn("min-h-screen bg-background font-sans antialiased", fontSans.variable)}
+        suppressHydrationWarning={true}
+      >
         <AuthProvider>
             {children}
         </AuthProvider>
