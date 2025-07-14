@@ -21,7 +21,7 @@ import {
   arrayUnion,
   setDoc,
 } from 'firebase/firestore';
-import { getDatabase, ref, get, set, push, serverTimestamp, child, onValue } from 'firebase/database';
+import { getDatabase, ref, get, set, push, serverTimestamp, child, onValue, update } from 'firebase/database';
 import { revalidatePath } from 'next/cache';
 import { db, rtdb } from '@/lib/firebase';
 import { BlogPost, BlogCategory, User, Product, Ingredient, ProductCategory, Composition, ContactInquiry, NewsletterSubscription, AppSettings, Policy, Invoice, InvoiceItem } from '@/types';
@@ -157,7 +157,7 @@ export async function getNewsletterSubscriptions(): Promise<NewsletterSubscripti
       return {
         id: doc.id,
         ...data,
-        submittedAt: data.submittedAt.toJSON(),
+        subscribedAt: data.submittedAt.toJSON(),
       } as NewsletterSubscription;
     });
   } catch (error) {
@@ -185,6 +185,7 @@ export async function startOrGetConversation(uid: string): Promise<Conversation>
       messages: messages,
       aiSuspended: data.aiSuspended || false,
       lastMessage: data.lastMessage,
+      adminHasUnreadMessages: data.adminHasUnreadMessages || false,
     };
   } else {
     // Create a new conversation with a welcome message
@@ -201,6 +202,7 @@ export async function startOrGetConversation(uid: string): Promise<Conversation>
       messages: { [newMessageRef.key!]: welcomeMessage },
       lastMessage: welcomeMessage,
       aiSuspended: false,
+      adminHasUnreadMessages: false,
     };
     
     await set(chatRef, newConversationData);
@@ -211,6 +213,7 @@ export async function startOrGetConversation(uid: string): Promise<Conversation>
       messages: [welcomeMessage],
       aiSuspended: false,
       lastMessage: welcomeMessage,
+      adminHasUnreadMessages: false,
     };
   }
 }
@@ -227,8 +230,11 @@ export async function addMessage(uid: string, content: string): Promise<Conversa
   };
   await push(messagesRef, userMessage);
   
-  // Update last message for admin view
-  await set(child(chatRef, 'lastMessage'), userMessage);
+  // Update last message and set unread flag for admin
+  await update(chatRef, {
+    lastMessage: userMessage,
+    adminHasUnreadMessages: true
+  });
 
 
   // 2. Check if AI chat is enabled globally and for this specific conversation
@@ -262,7 +268,10 @@ export async function addMessage(uid: string, content: string): Promise<Conversa
     timestamp: Date.now(),
   };
   await push(messagesRef, aiMessage);
-  await set(child(chatRef, 'lastMessage'), aiMessage);
+  await update(chatRef, {
+    lastMessage: aiMessage,
+    adminHasUnreadMessages: true // Also mark AI messages as unread for the admin
+  });
   
   // 6. Return the final state of the conversation
   revalidatePath('/admin/conversations');
@@ -282,11 +291,25 @@ export async function addAdminMessage(uid: string, content: string): Promise<{ s
 
   try {
     await push(messagesRef, adminMessage);
-    await set(child(chatRef, 'lastMessage'), adminMessage);
+    await update(chatRef, {
+      lastMessage: adminMessage,
+      adminHasUnreadMessages: false, // Admin message marks it as read
+    });
     return { success: true };
   } catch (error: any) {
     console.error("Error sending admin message:", error);
     return { success: false, error: error.message };
+  }
+}
+
+export async function markConversationAsRead(uid: string) {
+  try {
+    const chatRef = ref(rtdb, `chats/${uid}/adminHasUnreadMessages`);
+    await set(chatRef, false);
+    return { success: true };
+  } catch (error) {
+    console.error("Error marking conversation as read:", error);
+    return { success: false, error: "Failed to update read status." };
   }
 }
 
@@ -308,6 +331,7 @@ export async function getConversations(): Promise<Conversation[]> {
         messages: messages,
         lastMessage: chatData.lastMessage,
         aiSuspended: chatData.aiSuspended || false,
+        adminHasUnreadMessages: chatData.adminHasUnreadMessages || false,
       };
     });
 

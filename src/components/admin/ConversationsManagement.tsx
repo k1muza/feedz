@@ -9,7 +9,7 @@ import { cn } from '@/lib/utils';
 import ReactMarkdown from 'react-markdown';
 import { Switch } from '../ui/switch';
 import { useToast } from '../ui/use-toast';
-import { setAiSuspension, addAdminMessage } from '@/app/actions';
+import { setAiSuspension, addAdminMessage, markConversationAsRead } from '@/app/actions';
 import { rtdb } from '@/lib/firebase';
 import { ref, onValue } from 'firebase/database';
 
@@ -20,6 +20,18 @@ export const ConversationsManagement = ({ initialConversations }: { initialConve
   const [isSending, setIsSending] = useState(false);
   const { toast } = useToast();
   const messagesEndRef = useRef<null | HTMLDivElement>(null);
+
+   useEffect(() => {
+    // Select the first conversation and mark it as read on initial load
+    if (initialConversations.length > 0) {
+      const firstConvo = initialConversations[0];
+      setSelectedConversation(firstConvo);
+      if (firstConvo.adminHasUnreadMessages) {
+        markConversationAsRead(firstConvo.id);
+      }
+    }
+  }, [initialConversations]);
+
 
   useEffect(() => {
     if (!selectedConversation) return;
@@ -36,11 +48,12 @@ export const ConversationsManagement = ({ initialConversations }: { initialConve
             messages: updatedMessages,
             lastMessage: updatedData.lastMessage,
             aiSuspended: updatedData.aiSuspended || false,
+            adminHasUnreadMessages: updatedData.adminHasUnreadMessages || false
         };
         setSelectedConversation(updatedConversation);
 
         // Also update the list view
-        setConversations(prev => prev.map(c => c.id === updatedConversation.id ? { ...c, lastMessage: updatedConversation.lastMessage } : c)
+        setConversations(prev => prev.map(c => c.id === updatedConversation.id ? { ...c, lastMessage: updatedConversation.lastMessage, adminHasUnreadMessages: updatedConversation.adminHasUnreadMessages } : c)
           .sort((a, b) => (b.lastMessage?.timestamp || 0) - (a.lastMessage?.timestamp || 0))
         );
       }
@@ -57,6 +70,14 @@ export const ConversationsManagement = ({ initialConversations }: { initialConve
   const getTimestamp = (timestamp: number): Date => {
     return new Date(timestamp);
   };
+  
+  const handleSelectConversation = (convo: Conversation) => {
+    setSelectedConversation(convo);
+    if(convo.adminHasUnreadMessages){
+      markConversationAsRead(convo.id);
+    }
+  };
+
 
   const handleAiToggle = async (conversationId: string, suspended: boolean) => {
     if (!selectedConversation) return;
@@ -107,16 +128,21 @@ export const ConversationsManagement = ({ initialConversations }: { initialConve
           {conversations.map(convo => (
             <button
               key={convo.id}
-              onClick={() => setSelectedConversation(convo)}
+              onClick={() => handleSelectConversation(convo)}
               className={cn(
                 "w-full text-left p-4 border-b border-gray-700/50 hover:bg-gray-700/50",
                 selectedConversation?.id === convo.id && "bg-indigo-500/10"
               )}
             >
               <div className="flex justify-between items-start">
-                <p className="font-semibold text-white truncate pr-2">
-                  {convo.lastMessage?.content || 'New Conversation'}
-                </p>
+                 <div className="flex items-center gap-2">
+                  {convo.adminHasUnreadMessages && (
+                    <div className="w-2.5 h-2.5 bg-indigo-400 rounded-full flex-shrink-0" title="New message"></div>
+                  )}
+                  <p className="font-semibold text-white truncate pr-2">
+                    {convo.lastMessage?.content || 'New Conversation'}
+                  </p>
+                </div>
                 {convo.aiSuspended && <PowerOff className="w-4 h-4 text-yellow-400 flex-shrink-0" title="AI Suspended"/>}
               </div>
               <p className="text-sm text-gray-400">

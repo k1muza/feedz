@@ -14,4 +14,5 @@ export type Conversation = {
     messages: SerializableMessage[];
     lastMessage?: SerializableMessage;
     aiSuspended?: boolean; // New flag to control AI responses
+    adminHasUnreadMessages?: boolean; // New flag for unread status
 };
