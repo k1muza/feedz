@@ -176,7 +176,6 @@ export async function startOrGetConversation(uid: string): Promise<Conversation>
   if (snapshot.exists()) {
     const data = snapshot.val();
     const messages = data.messages ? Object.values(data.messages) as Message[] : [];
-    // Ensure messages are sorted by timestamp
     messages.sort((a, b) => a.timestamp - b.timestamp);
     
     return {
@@ -188,19 +187,11 @@ export async function startOrGetConversation(uid: string): Promise<Conversation>
       adminHasUnreadMessages: data.adminHasUnreadMessages || false,
     };
   } else {
-    // Create a new conversation with a welcome message
-    const welcomeMessage: Message = {
-      role: 'model',
-      content: "Hi there! I'm Feedy, your friendly AI assistant. How can I help you with your animal nutrition needs today?",
-      timestamp: Date.now(),
-    };
-    const messagesRef = ref(rtdb, `chats/${uid}/messages`);
-    const newMessageRef = push(messagesRef);
-
+    // Create a new empty conversation
     const newConversationData = {
       startTime: serverTimestamp(),
-      messages: { [newMessageRef.key!]: welcomeMessage },
-      lastMessage: welcomeMessage,
+      messages: {},
+      lastMessage: null,
       aiSuspended: false,
       adminHasUnreadMessages: false,
     };
@@ -210,9 +201,9 @@ export async function startOrGetConversation(uid: string): Promise<Conversation>
     return { 
       id: uid, 
       startTime: Date.now(), 
-      messages: [welcomeMessage],
+      messages: [],
       aiSuspended: false,
-      lastMessage: welcomeMessage,
+      lastMessage: undefined,
       adminHasUnreadMessages: false,
     };
   }
@@ -248,17 +239,29 @@ export async function addMessage(uid: string, content: string): Promise<Conversa
 
   // 3. Get current conversation history to pass to AI
   const currentConversation = await startOrGetConversation(uid);
-  let historyForAI = [...currentConversation.messages];
-
-  // FIX: Ensure the conversation doesn't start with a 'model' message.
-  if (historyForAI.length === 1 && historyForAI[0].role === 'model') {
-      historyForAI.unshift({ role: 'user', content: 'Hello', timestamp: Date.now() - 1000 });
-  }
+  const historyForAI = [...currentConversation.messages];
 
   // 4. Get AI response using the router flow
   const aiInput = {
     history: historyForAI.map(msg => ({ role: msg.role, content: msg.content })),
   };
+
+  // If this is the very first message, add a system prompt or a different initial message
+  if (aiInput.history.length === 1 && aiInput.history[0].role === 'user') {
+      const welcomeMessage = "Hi there! I'm Feedy, your friendly AI assistant. How can I help you with your animal nutrition needs today?";
+      const aiMessage: Message = {
+        role: 'model',
+        content: welcomeMessage,
+        timestamp: Date.now(),
+      };
+      await push(messagesRef, aiMessage);
+      await update(chatRef, {
+        lastMessage: aiMessage,
+        adminHasUnreadMessages: true
+      });
+      return startOrGetConversation(uid);
+  }
+
   const aiResponseContent = await routeInquiry(aiInput);
   
   // 5. Add AI message
@@ -1186,7 +1189,10 @@ const toJSONSafe = (timestamp: any) => {
     if (timestamp && typeof timestamp.toJSON === 'function') {
         return timestamp.toJSON();
     }
-    return new Date(timestamp).toJSON();
+    if (typeof timestamp === 'string') {
+        return new Date(timestamp).toJSON();
+    }
+    return new Date().toJSON();
 };
 
 

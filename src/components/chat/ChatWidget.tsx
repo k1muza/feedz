@@ -43,7 +43,7 @@ export function ChatWidget() {
 
   useEffect(() => {
     // Set up real-time listener once we have a user and conversation ID
-    if (!currentUser || !conversation?.id) return;
+    if (!currentUser?.uid) return;
 
     const chatRef = ref(rtdb, `chats/${currentUser.uid}`);
     const unsubscribe = onValue(chatRef, (snapshot) => {
@@ -64,7 +64,7 @@ export function ChatWidget() {
 
     // Cleanup listener on component unmount or when user/convo changes
     return () => unsubscribe();
-  }, [currentUser, conversation?.id]);
+  }, [currentUser?.uid]);
 
 
   useEffect(() => {
@@ -78,15 +78,6 @@ export function ChatWidget() {
     const userMessageContent = newMessage;
     setNewMessage('');
     setIsLoading(true);
-
-    // Optimistically add user message - RTDB will sync it back anyway
-    const tempUserMessage: SerializableMessage = {
-      role: 'user',
-      content: userMessageContent,
-      timestamp: Date.now(),
-    };
-
-    setConversation(prev => prev ? ({ ...prev, messages: [...prev.messages, tempUserMessage] }) : null);
     
     // The server action will add both the user and AI message
     // The real-time listener will then update the conversation state automatically
@@ -148,6 +139,11 @@ export function ChatWidget() {
 
             {/* Messages */}
             <div className="flex-1 p-4 space-y-4 overflow-y-auto">
+              {conversation?.messages.length === 0 && (
+                <div className="text-center text-gray-400 text-sm mt-8">
+                  Ask a question about our products or for formulation advice to get started.
+                </div>
+              )}
               {conversation?.messages.map((message, index) => (
                 <div key={index} className={cn("flex items-start gap-3", message.role === 'user' ? 'justify-end' : 'justify-start')}>
                   {message.role === 'model' && (
