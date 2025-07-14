@@ -175,11 +175,14 @@ export async function startOrGetConversation(uid: string): Promise<Conversation>
 
   if (snapshot.exists()) {
     const data = snapshot.val();
-    const messages = data.messages ? Object.values(data.messages) : [];
+    const messages = data.messages ? Object.values(data.messages) as Message[] : [];
+    // Ensure messages are sorted by timestamp
+    messages.sort((a, b) => a.timestamp - b.timestamp);
+    
     return {
       id: uid,
       startTime: data.startTime,
-      messages: messages as Message[],
+      messages: messages,
       aiSuspended: data.aiSuspended || false,
       lastMessage: data.lastMessage,
     };
@@ -239,10 +242,16 @@ export async function addMessage(uid: string, content: string): Promise<Conversa
 
   // 3. Get current conversation history to pass to AI
   const currentConversation = await startOrGetConversation(uid);
+  let historyForAI = [...currentConversation.messages];
+
+  // FIX: Ensure the conversation doesn't start with a 'model' message.
+  if (historyForAI.length === 1 && historyForAI[0].role === 'model') {
+      historyForAI.unshift({ role: 'user', content: 'Hello', timestamp: Date.now() - 1000 });
+  }
 
   // 4. Get AI response using the router flow
   const aiInput = {
-    history: currentConversation.messages.map(msg => ({ role: msg.role, content: msg.content })),
+    history: historyForAI.map(msg => ({ role: msg.role, content: msg.content })),
   };
   const aiResponseContent = await routeInquiry(aiInput);
   
@@ -1148,11 +1157,12 @@ export async function createInvoice(invoiceData: Omit<Invoice, 'id' | 'invoiceNu
 }
 
 const toJSONSafe = (timestamp: any) => {
+    if (!timestamp) return new Date().toJSON();
+    if (timestamp instanceof Date) return timestamp.toJSON();
     if (timestamp && typeof timestamp.toJSON === 'function') {
         return timestamp.toJSON();
     }
-    // Handle cases where it might already be a string or needs a default
-    return timestamp ? new Date(timestamp).toJSON() : new Date().toJSON();
+    return new Date(timestamp).toJSON();
 };
 
 
