@@ -39,6 +39,26 @@ export const BlogPostForm = ({ post }: BlogPostFormProps) => {
   const [categories, setCategories] = useState<BlogCategory[]>([]);
   const [users, setUsers] = useState<User[]>([]);
 
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+    setValue,
+    watch,
+    reset,
+  } = useForm<FormValues>({
+    resolver: zodResolver(BlogFormSchema),
+    defaultValues: post ? {
+        title: post.title,
+        category: post.category,
+        excerpt: post.excerpt,
+        content: post.content,
+        image: post.image,
+        tags: post.tags?.join(', '),
+        authorId: '', // Will be set in useEffect
+    } : {},
+  });
+
   useEffect(() => {
     async function fetchData() {
       const [fetchedCategories, fetchedUsers] = await Promise.all([
@@ -51,24 +71,20 @@ export const BlogPostForm = ({ post }: BlogPostFormProps) => {
     fetchData();
   }, []);
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-    setValue,
-    watch,
-  } = useForm<FormValues>({
-    resolver: zodResolver(BlogFormSchema),
-    defaultValues: {
-      title: post?.title || '',
-      category: post?.category || '',
-      excerpt: post?.excerpt || '',
-      content: post?.content || '',
-      image: post?.image || '',
-      tags: post?.tags?.join(', ') || '',
-      authorId: users.find(u => u.name === post?.author.name)?.id || '',
-    },
-  });
+  useEffect(() => {
+    if (post && users.length > 0) {
+      const author = users.find(u => u.name === post.author.name);
+      reset({
+        title: post.title,
+        category: post.category,
+        excerpt: post.excerpt,
+        content: post.content,
+        image: post.image,
+        tags: post.tags?.join(', '),
+        authorId: author?.id || '',
+      });
+    }
+  }, [post, users, reset]);
 
   const featuredImage = watch('image');
 
