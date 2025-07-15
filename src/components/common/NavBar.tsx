@@ -17,7 +17,7 @@ const links = [
   { href: '/about', label: 'About' },
   { href: '/products', label: 'Products' },
   { href: '/formulations', label: 'Formulations' },
-  { href: '/blog', label: 'Resources' },
+  { href: '/blog', label: 'Blog' },
   { href: '/contact', label: 'Contact' },
 ]
 
