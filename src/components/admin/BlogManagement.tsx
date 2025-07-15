@@ -1,7 +1,7 @@
 
 'use client';
 
-import { Plus, Download, MoreHorizontal, Search, Filter, Edit, Trash2, Eye, FolderOpen } from "lucide-react";
+import { Plus, Download, MoreHorizontal, Search, Filter, Edit, Trash2, Eye, FolderOpen, Loader2 } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -12,15 +12,27 @@ import Link from "next/link";
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import { BlogPost } from "@/types";
-import { getAllBlogPosts, updatePostFeaturedStatus } from "@/app/actions";
+import { getAllBlogPosts, updatePostFeaturedStatus, deleteBlogPost } from "@/app/actions";
 import { Switch } from "../ui/switch";
 import { useToast } from "../ui/use-toast";
 import { CategoryManagementModal } from "./CategoryManagementModal";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export const BlogManagement = () => {
   const [posts, setPosts] = useState<BlogPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
+  const [isAlertOpen, setIsAlertOpen] = useState(false);
+  const [postToDelete, setPostToDelete] = useState<BlogPost | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -51,9 +63,28 @@ export const BlogManagement = () => {
     }
   };
 
+  const confirmDelete = (post: BlogPost) => {
+    setPostToDelete(post);
+    setIsAlertOpen(true);
+  };
+
+  const handleDelete = async () => {
+    if (!postToDelete) return;
+    const result = await deleteBlogPost(postToDelete.id);
+    if (result.success) {
+      toast({ title: "Success", description: `Post "${postToDelete.title}" deleted.` });
+      fetchPosts();
+    } else {
+      toast({ title: "Error", description: result.error, variant: 'destructive' });
+    }
+    setIsAlertOpen(false);
+    setPostToDelete(null);
+  };
+
   if (loading) {
     return (
-        <div className="text-center text-gray-400">
+        <div className="text-center text-gray-400 p-8">
+            <Loader2 className="w-6 h-6 animate-spin inline-block mr-2" />
             Loading posts...
         </div>
     )
@@ -167,7 +198,7 @@ export const BlogManagement = () => {
                               <Edit className="w-4 h-4" /> Edit
                             </Link>
                           </DropdownMenuItem>
-                          <DropdownMenuItem className="flex items-center gap-2 text-red-400 cursor-pointer focus:bg-red-900/50 focus:text-red-300">
+                          <DropdownMenuItem onClick={() => confirmDelete(post)} className="flex items-center gap-2 text-red-400 cursor-pointer focus:bg-red-900/50 focus:text-red-300">
                             <Trash2 className="w-4 h-4" /> Delete
                           </DropdownMenuItem>
                         </DropdownMenuContent>
@@ -184,6 +215,23 @@ export const BlogManagement = () => {
         isOpen={isCategoryModalOpen}
         onClose={() => setIsCategoryModalOpen(false)}
       />
+      <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the post:
+              <strong className="text-white mx-1">"{postToDelete?.title}"</strong>.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-500">
+              Yes, delete post
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 };

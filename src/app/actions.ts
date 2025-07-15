@@ -572,7 +572,7 @@ export async function saveBlogPost(
     return { success: false, errors: validation.error.flatten().fieldErrors };
   }
 
-  const { title, tags, authorId, ...restData } = validation.data;
+  const { tags, authorId, ...restData } = validation.data;
   
   const authorDocRef = doc(db, 'users', authorId);
   const authorSnap = await getDoc(authorDocRef);
@@ -583,7 +583,7 @@ export async function saveBlogPost(
 
   const authorData = authorSnap.data() as User;
 
-  const slug = title
+  const slug = restData.title
     .toLowerCase()
     .replace(/[^a-z0-9\s-]/g, '')
     .trim()
@@ -636,6 +636,19 @@ export async function updatePostFeaturedStatus(postId: string, isFeatured: boole
   } catch (error) {
     console.error('Error updating featured status:', error);
     return { success: false, error: 'Failed to update post.' };
+  }
+}
+
+export async function deleteBlogPost(postId: string) {
+  try {
+    const postRef = doc(db, 'blogPosts', postId);
+    await deleteDoc(postRef);
+    revalidatePath('/admin/blog');
+    revalidatePath('/blog');
+    return { success: true };
+  } catch (error) {
+    console.error('Error deleting blog post:', error);
+    return { success: false, error: 'Failed to delete blog post.' };
   }
 }
 
