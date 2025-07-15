@@ -123,10 +123,18 @@ export function ChatWidget() {
   return (
     <>
       <div className="fixed bottom-5 right-5 z-50">
-        <motion.button className="bg-green-600 text-white p-4 rounded-full shadow-lg hover:bg-green-700 transition-colors"
+        <motion.button
+          className="bg-green-600 text-white p-4 rounded-full shadow-lg hover:bg-green-700 transition-colors"
           onClick={() => setIsOpen(!isOpen)}
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.9 }}
+          animate={{ y: [0, -5, 0] }}
+          transition={{
+            duration: 1.5,
+            repeat: Infinity,
+            repeatType: 'reverse',
+            ease: 'easeInOut',
+          }}
         >
           {isOpen ? <X size={24} /> : <MessageSquare size={24} />}
         </motion.button>
