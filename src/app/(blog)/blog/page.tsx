@@ -94,7 +94,7 @@ export default async function BlogPage() {
             {allPosts.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 {recentPosts.map(post => (
-                    <article key={post.id} className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow overflow-hidden border border-gray-100">
+                    <article key={post.id} className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow overflow-hidden border border-gray-100 flex flex-col">
                     <div className="h-48 relative">
                         <Image
                         src={post.image}
@@ -103,7 +103,7 @@ export default async function BlogPage() {
                         className="object-cover"
                         />
                     </div>
-                    <div className="p-6">
+                    <div className="p-6 flex flex-col flex-grow">
                         <div className="flex items-center mb-3">
                         <span className="text-xs font-medium text-green-600">{post.category}</span>
                         <span className="mx-2 text-gray-300">•</span>
@@ -114,16 +114,18 @@ export default async function BlogPage() {
                             {post.title}
                         </Link>
                         </h3>
-                        <p className="text-gray-600 mb-4">{post.excerpt}</p>
-                        <Link
-                        href={`/blog/${post.slug}`}
-                        className="inline-flex items-center text-green-600 hover:text-green-700 text-sm font-medium"
-                        >
-                        Read more
-                        <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                        </svg>
-                        </Link>
+                        <p className="text-gray-600 mb-4 flex-grow">{post.excerpt}</p>
+                        <div className="mt-auto">
+                            <Link
+                            href={`/blog/${post.slug}`}
+                            className="inline-flex items-center text-green-600 hover:text-green-700 text-sm font-medium"
+                            >
+                            Read more
+                            <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                            </svg>
+                            </Link>
+                        </div>
                     </div>
                     </article>
                 ))}
