@@ -1,4 +1,3 @@
-
 // components/layout/Footer.tsx
 import Link from 'next/link';
 import {
@@ -6,12 +5,11 @@ import {
     FaFacebookF,
     FaInstagram,
     FaLinkedinIn,
-    FaMapMarkerAlt,
-    FaPhoneAlt,
     FaRegClock,
-    FaTwitter,
+    FaXTwitter,
     FaWhatsapp
-} from 'react-icons/fa';
+} from 'react-icons/fa6';
+import { FaMapMarkerAlt, FaPhoneAlt } from 'react-icons/fa';
 import { FaShieldHalved, FaWheatAwn } from 'react-icons/fa6';
 import { ProductCategory } from '@/types';
 
@@ -45,7 +43,7 @@ export default function Footer({ productCategories }: { productCategories: Produ
             <div className="flex space-x-4">
               {[
                 { icon: FaFacebookF, url: "#" },
-                { icon: FaTwitter, url: "#" },
+                { icon: FaXTwitter, url: "#" },
                 { icon: FaInstagram, url: "#" },
                 { icon: FaLinkedinIn, url: "#" }
               ].map((social, index) => (
@@ -110,7 +108,7 @@ export default function Footer({ productCategories }: { productCategories: Produ
             <ul className="space-y-4">
               <li className="flex items-start">
                 <FaMapMarkerAlt className="text-green-500 mt-1 mr-3 flex-shrink-0" />
-                <span className="text-gray-400">2 William Pollet, Borrowdale, Harare, Zimbabwe</span>
+                <span className="text-gray-400">2 William Pollet Rd, Borrowdale, Harare, Zimbabwe</span>
               </li>
               <li className="flex items-center">
                 <FaPhoneAlt className="text-green-500 mr-3 flex-shrink-0" />

@@ -1,6 +1,6 @@
 'use client';
 
-import { FaFacebook, FaTwitter, FaLinkedin, FaWhatsapp, FaShareAlt } from 'react-icons/fa';
+import { FaFacebook, FaLinkedin, FaWhatsapp, FaShareAlt, FaXTwitter } from 'react-icons/fa6';
 
 interface ShareButtonsProps {
     title: string;
@@ -18,10 +18,10 @@ export function ShareButtons({ title, slug }: ShareButtonsProps) {
             color: 'text-blue-600 hover:bg-blue-100',
         },
         {
-            name: 'Twitter',
-            icon: <FaTwitter />,
+            name: 'X',
+            icon: <FaXTwitter />,
             url: `https://twitter.com/intent/tweet?url=${encodeURIComponent(url)}&text=${encodeURIComponent(title)}`,
-            color: 'text-sky-500 hover:bg-sky-100',
+            color: 'text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800',
         },
         {
             name: 'LinkedIn',
