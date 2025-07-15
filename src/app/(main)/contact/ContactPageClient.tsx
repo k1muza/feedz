@@ -167,8 +167,8 @@ export default function ContactPageClient() {
                     </div>
                     <div>
                       <h3 className="font-medium text-gray-700">Email</h3>
-                      <a href="mailto:support@feedsport.co.zw" className="text-green-600 hover:underline">
-                        support@feedsport.co.zw
+                      <a href="mailto:admin@feedsport.co.zw" className="text-green-600 hover:underline">
+                        admin@feedsport.co.zw
                       </a>
                     </div>
                   </div>
