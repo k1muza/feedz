@@ -30,7 +30,6 @@ export default function EditBlogPostPage({ params }: { params: { slug: string } 
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-white mb-6">Edit Blog Post</h1>
       {post && <BlogPostForm post={post} />}
     </div>
   );

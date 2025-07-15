@@ -1,4 +1,3 @@
-
 import BlogCategories from '@/components/blog/BlogCategories';
 import NewsletterSignup from '@/components/blog/NewsletterSignup';
 import SecondaryHero from '@/components/common/SecondaryHero';
@@ -14,7 +13,6 @@ export const metadata: Metadata = {
     canonical: '/blog',
   },
 };
-
 
 export default async function BlogPage() {
   const allPosts = await getAllBlogPosts();
@@ -34,7 +32,6 @@ export default async function BlogPage() {
     .sort(([, countA], [, countB]) => countB - countA)
     .slice(0, 6)
     .map(([tag]) => tag);
-
 
   return (
     <>
@@ -64,9 +61,12 @@ export default async function BlogPage() {
                 <span className="uppercase text-sm bg-green-600/80 px-3 py-1 rounded-full">
                   {featuredPost.category}
                 </span>
-                <h3 className="mt-4 text-3xl font-bold leading-snug">
-                  {featuredPost.title}
-                </h3>
+                {/* Fixed height for title */}
+                <div className="mt-4 max-w-3xl">
+                  <h3 className="text-2xl md:text-3xl font-bold leading-tight line-clamp-3">
+                    {featuredPost.title}
+                  </h3>
+                </div>
                 <Link
                   href={`/blog/${featuredPost.slug}`}
                   className="mt-4 inline-block bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-full transition"
@@ -82,7 +82,7 @@ export default async function BlogPage() {
         <div className="flex flex-col lg:flex-row gap-12">
           {/* Articles Grid */}
           <div className="lg:w-2/3">
-             <div className="flex items-center justify-between mb-8">
+            <div className="flex items-center justify-between mb-8">
               <h2 className="text-2xl font-bold text-gray-900">
                 Latest Articles
               </h2>
@@ -90,51 +90,61 @@ export default async function BlogPage() {
                 View all categories →
               </Link>
             </div>
-            
+
             {allPosts.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 {recentPosts.map(post => (
-                    <article key={post.id} className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow overflow-hidden border border-gray-100 flex flex-col">
+                  <article 
+                    key={post.id} 
+                    className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow overflow-hidden border border-gray-100 flex flex-col h-full"
+                  >
                     <div className="h-48 relative">
-                        <Image
+                      <Image
                         src={post.image}
                         alt={post.title}
                         fill
                         className="object-cover"
-                        />
+                      />
                     </div>
                     <div className="p-6 flex flex-col flex-grow">
-                        <div className="flex items-center mb-3">
+                      <div className="flex items-center mb-3">
                         <span className="text-xs font-medium text-green-600">{post.category}</span>
                         <span className="mx-2 text-gray-300">•</span>
                         <span className="text-xs text-gray-500">{post.readingTime}</span>
-                        </div>
-                        <h3 className="text-xl font-bold text-gray-900 mb-2">
+                      </div>
+                      
+                      {/* Consistent title sizing */}
+                      <h3 className="text-xl font-bold text-gray-900 mb-2 min-h-[56px] line-clamp-2">
                         <Link href={`/blog/${post.slug}`} className="hover:text-green-700 transition-colors duration-200">
-                            {post.title}
+                          {post.title}
                         </Link>
-                        </h3>
-                        <p className="text-gray-600 mb-4 flex-grow">{post.excerpt}</p>
-                        <div className="mt-auto">
-                            <Link
-                            href={`/blog/${post.slug}`}
-                            className="inline-flex items-center text-green-600 hover:text-green-700 text-sm font-medium"
-                            >
-                            Read more
-                            <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                            </svg>
-                            </Link>
-                        </div>
+                      </h3>
+                      
+                      {/* Consistent excerpt sizing */}
+                      <p className="text-gray-600 mb-4 line-clamp-3 min-h-[72px]">
+                        {post.excerpt}
+                      </p>
+                      
+                      <div className="mt-auto">
+                        <Link
+                          href={`/blog/${post.slug}`}
+                          className="inline-flex items-center text-green-600 hover:text-green-700 text-sm font-medium"
+                        >
+                          Read more
+                          <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                          </svg>
+                        </Link>
+                      </div>
                     </div>
-                    </article>
+                  </article>
                 ))}
-                </div>
+              </div>
             ) : (
-                <div className="text-center py-16 bg-gray-50 rounded-lg">
-                    <h3 className="text-xl font-semibold text-gray-700">No articles found.</h3>
-                    <p className="text-gray-500 mt-2">Check back later for more updates!</p>
-                </div>
+              <div className="text-center py-16 bg-gray-50 rounded-lg">
+                <h3 className="text-xl font-semibold text-gray-700">No articles found.</h3>
+                <p className="text-gray-500 mt-2">Check back later for more updates!</p>
+              </div>
             )}
           </div>
 
