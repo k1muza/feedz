@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import Footer from '@/components/common/Footer';
 import NavBar from '@/components/common/NavBar';
 import { useEffect, useState } from 'react';
-import { getProductCategories } from './actions';
+import { getAllProducts } from './actions';
 import { ProductCategory } from '@/types';
 
 export default function NotFound() {
@@ -17,8 +17,16 @@ export default function NotFound() {
 
   useEffect(() => {
     async function fetchCategories() {
-      const productCategories = await getProductCategories();
-      setCategories(productCategories);
+      const allProducts = await getAllProducts();
+      const uniqueCategories = allProducts
+        .map(p => p.ingredient?.category)
+        .filter((value, index, self) => value && self.indexOf(value) === index)
+        .map(categorySlug => ({
+            id: categorySlug!,
+            name: categorySlug!.replace(/-/g, ' '),
+            slug: categorySlug!,
+        }));
+      setCategories(uniqueCategories);
     }
     fetchCategories();
   }, []);
