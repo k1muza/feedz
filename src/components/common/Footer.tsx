@@ -158,10 +158,10 @@ export default function Footer({ productCategories }: { productCategories: Produ
             </p>
             <div className="flex flex-wrap justify-center gap-4 md:gap-6">
               <Link
-                href="/privacy-policy"
+                href="/policies"
                 className="text-gray-500 hover:text-green-500 text-sm transition-colors duration-300"
               >
-                Privacy Policy
+                Company Policies
               </Link>
               <Link
                 href="/terms-of-service"
