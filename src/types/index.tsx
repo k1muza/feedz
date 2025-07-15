@@ -132,14 +132,14 @@ export type ContactInquiry = {
   email: string;
   message: string;
   phone?: string;
-  submittedAt: { seconds: number; nanoseconds: number };
+  submittedAt: string;
   read: boolean;
 }
 
 export type NewsletterSubscription = {
   id: string;
   email: string;
-  subscribedAt: { seconds: number; nanoseconds: number };
+  subscribedAt: string;
 }
 
 export type AppSettings = {
@@ -154,6 +154,7 @@ export type Policy = {
     title: string;
     content: string;
     lastUpdated: string;
+    effectiveDate?: string;
 }
 
 export type InvoiceItem = {
@@ -183,8 +184,8 @@ export type BankInfo = {
 export type Invoice = {
     id: string;
     invoiceNumber: string;
-    date: { seconds: number, nanoseconds: number }; // was issueDate
-    dueDate: { seconds: number, nanoseconds: number };
+    date: { seconds: number, nanoseconds: number } | string;
+    dueDate: { seconds: number, nanoseconds: number } | string;
     client: ClientInfo;
     items: InvoiceItem[];
     taxRate: number; // New field

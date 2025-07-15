@@ -136,7 +136,7 @@ export async function getContactInquiries(): Promise<ContactInquiry[]> {
       return {
         id: doc.id,
         ...data,
-        submittedAt: data.submittedAt.toJSON(),
+        submittedAt: data.submittedAt.toDate().toISOString(),
       } as ContactInquiry;
     });
   } catch (error) {
@@ -157,7 +157,7 @@ export async function getNewsletterSubscriptions(): Promise<NewsletterSubscripti
       return {
         id: doc.id,
         ...data,
-        subscribedAt: data.submittedAt.toJSON(),
+        subscribedAt: data.subscribedAt.toDate().toISOString(),
       } as NewsletterSubscription;
     });
   } catch (error) {
@@ -1109,7 +1109,7 @@ export async function getAllPolicies(): Promise<Policy[]> {
             return {
                 id: doc.id,
                 ...data,
-                lastUpdated: data.lastUpdated.toJSON(),
+                lastUpdated: data.lastUpdated.toDate().toISOString(),
             } as Policy;
         });
     } catch (error) {
@@ -1128,7 +1128,7 @@ export async function getPolicyById(id: string): Promise<Policy | null> {
         return {
             id: docSnap.id,
             ...data,
-            lastUpdated: data.lastUpdated.toJSON(),
+            lastUpdated: data.lastUpdated.toDate().toISOString(),
         } as Policy;
     } catch (error) {
         console.error("Error fetching policy by ID:", error);
@@ -1151,7 +1151,8 @@ export async function savePolicy(data: z.infer<typeof PolicyFormSchema>, policyI
         if (policyId) {
             await updateDoc(doc(db, 'policies', policyId), payload);
         } else {
-            await addDoc(policiesCollection, payload);
+            const docRef = await addDoc(policiesCollection, payload);
+            await updateDoc(docRef, { effectiveDate: Timestamp.now() });
         }
         revalidatePath('/admin/policies');
         revalidatePath('/policies');
@@ -1195,8 +1196,8 @@ export async function createInvoice(invoiceData: Omit<Invoice, 'id' | 'invoiceNu
 const toJSONSafe = (timestamp: any) => {
     if (!timestamp) return new Date().toJSON();
     if (timestamp instanceof Date) return timestamp.toJSON();
-    if (timestamp && typeof timestamp.toJSON === 'function') {
-        return timestamp.toJSON();
+    if (timestamp && typeof timestamp.toDate === 'function') {
+        return timestamp.toDate().toISOString();
     }
     if (typeof timestamp === 'string') {
         return new Date(timestamp).toJSON();
