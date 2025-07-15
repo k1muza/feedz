@@ -2,15 +2,16 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { FaArrowRight } from 'react-icons/fa';
-import { FaFlask, FaLeaf, FaShieldHalved } from 'react-icons/fa6';
+import { FaArrowRight, FaBolt, FaFlask, FaGem, FaVial, FaPagelines } from 'react-icons/fa';
+import { FaLeaf, FaShieldHalved } from 'react-icons/fa6';
 import Link from 'next/link';
 import Image from 'next/image';
 import ProductsSection from '@/components/home/ProductsSection';
-import { Product } from '@/types';
+import { Product, ProductCategory } from '@/types';
 
 interface HomeClientProps {
   featuredProducts: Product[];
+  productCategories: ProductCategory[];
 }
 
 const cardVariants = {
@@ -29,13 +30,35 @@ const cardVariants = {
   },
 };
 
-const categoryData = [
-    { name: 'Protein Feeds', description: 'High-quality protein sources for muscle development.', icon: <FaLeaf/>, href: '/products/categories/protein-feeds' },
-    { name: 'Energy Feeds', description: 'Fueling growth and performance with premium energy.', icon: <FaLeaf/>, href: '/products/categories/energy-feeds' },
-    { name: 'Minerals & Additives', description: 'Essential nutrients for health and vitality.', icon: <FaLeaf/>, href: '/products/categories/minerals' },
-];
+const categoryDetails: { [key: string]: { icon: React.ReactNode; description: string; } } = {
+    'protein-feeds': {
+        icon: <FaLeaf/>,
+        description: 'High-quality protein sources for muscle development.'
+    },
+    'energy-feeds': {
+        icon: <FaBolt/>,
+        description: 'Fueling growth and performance with premium energy.'
+    },
+    'minerals': {
+        icon: <FaGem/>,
+        description: 'Essential nutrients for health and vitality.'
+    },
+    'amino-acids': {
+        icon: <FaVial/>,
+        description: 'Pure, targeted supplements for precise diet formulation.'
+    },
+    'forage-products': {
+        icon: <FaPagelines/>,
+        description: 'High-fiber ingredients to support digestive health.'
+    },
+     'fiber-products': {
+        icon: <FaLeaf/>,
+        description: 'Concentrated fiber sources to improve gut motility.'
+    },
+};
 
-export default function HomeClient({ featuredProducts }: HomeClientProps) {
+
+export default function HomeClient({ featuredProducts, productCategories }: HomeClientProps) {
   return (
     <main className="bg-gray-50 text-gray-800">
       {/* Hero Section */}
@@ -89,23 +112,26 @@ export default function HomeClient({ featuredProducts }: HomeClientProps) {
         <div className="container mx-auto px-4">
           <h2 id="ingredient-categories-heading" className="text-3xl font-bold text-center mb-10">Our Core Ingredient Categories</h2>
           <div className="grid md:grid-cols-3 gap-8">
-            {categoryData.map((category, index) => (
-              <motion.div
-                key={index}
-                className="bg-white p-8 rounded-xl shadow-lg hover:shadow-2xl transition-shadow duration-300 flex flex-col items-center text-center"
-                variants={cardVariants}
-                initial="offscreen"
-                whileInView="onscreen"
-                viewport={{ once: true, amount: 0.5 }}
-              >
-                <div className="text-4xl text-green-600 mb-4">{category.icon}</div>
-                <h3 className="text-2xl font-bold mb-2">{category.name}</h3>
-                <p className="text-gray-600 mb-4 flex-grow">{category.description}</p>
-                <Link href={category.href} className="text-green-600 font-semibold hover:underline">
-                  View Products <FaArrowRight className="inline-block ml-1" />
-                </Link>
-              </motion.div>
-            ))}
+            {productCategories.slice(0, 3).map((category, index) => {
+              const details = categoryDetails[category.slug] || { icon: <FaLeaf/>, description: `View all ${category.name} products.` };
+              return (
+                <motion.div
+                  key={category.id}
+                  className="bg-white p-8 rounded-xl shadow-lg hover:shadow-2xl transition-shadow duration-300 flex flex-col items-center text-center"
+                  variants={cardVariants}
+                  initial="offscreen"
+                  whileInView="onscreen"
+                  viewport={{ once: true, amount: 0.5 }}
+                >
+                  <div className="text-4xl text-green-600 mb-4">{details.icon}</div>
+                  <h3 className="text-2xl font-bold mb-2">{category.name}</h3>
+                  <p className="text-gray-600 mb-4 flex-grow">{details.description}</p>
+                  <Link href={`/products/categories/${category.slug}`} className="text-green-600 font-semibold hover:underline">
+                    View Products <FaArrowRight className="inline-block ml-1" />
+                  </Link>
+                </motion.div>
+              )
+            })}
           </div>
         </div>
       </section>

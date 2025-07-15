@@ -1,9 +1,11 @@
 
-import { getAllProducts } from '@/app/actions';
+import { getAllProducts, getProductCategories } from '@/app/actions';
 import HomeClient from '@/components/home/HomeClient';
+import { ProductCategory } from '@/types';
 
 export default async function HomePage() {
   const allProducts = await getAllProducts();
+  const productCategories: ProductCategory[] = await getProductCategories();
   
   // Use featured products if available, otherwise fallback to the 3 most recent products
   let featuredProducts = allProducts.filter(p => p.featured);
@@ -12,6 +14,6 @@ export default async function HomePage() {
   }
 
   return (
-    <HomeClient featuredProducts={featuredProducts} />
+    <HomeClient featuredProducts={featuredProducts} productCategories={productCategories} />
   );
 }
