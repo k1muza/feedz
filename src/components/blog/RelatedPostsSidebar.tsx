@@ -60,9 +60,9 @@ export function RelatedPostsSidebar({ currentPostId }: RelatedPostsSidebarProps)
               <p className="text-gray-600 mb-4 text-sm">
                 Our nutritionists are available to help with your feed formulation challenges.
               </p>
-              <button className="w-full bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-lg text-sm font-medium transition-colors">
+               <Link href="/contact" className="w-full bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-lg text-sm font-medium transition-colors block text-center">
                 Contact Our Team
-              </button>
+              </Link>
             </div>
         </div>
     );
