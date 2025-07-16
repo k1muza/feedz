@@ -115,7 +115,7 @@ export default function AboutPage() {
                   <Image
                     width={500}
                     height={500}
-                    src="/images/egg-dish.jpg"
+                    src="https://dy15acotyf9k1.cloudfront.net/egg-dish.jpg"
                     alt="Healthy poultry enjoying our specialized feed"
                     className="w-full h-full object-cover transition duration-500 hover:scale-105"
                   />
@@ -124,7 +124,7 @@ export default function AboutPage() {
                   <Image
                     width={500}
                     height={500}
-                    src="/images/hero-4.png"
+                    src="https://dy15acotyf9k1.cloudfront.net/hero-4.png"
                     alt="Cattle feeding sustainably with our innovative products"
                     className="w-full h-full object-cover transition duration-500 hover:scale-105"
                   />
@@ -205,7 +205,7 @@ export default function AboutPage() {
               <Image
                 width={800}
                 height={600}
-                src="/images/team-4.png"
+                src="https://dy15acotyf9k1.cloudfront.net/team-4.png"
                 alt="The FeedSport team of nutritionists and scientists collaborating"
                 className="w-full h-full object-cover"
               />
