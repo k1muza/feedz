@@ -3,12 +3,12 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  FaArrowRight, 
-  FaBolt, 
-  FaFlask, 
-  FaGem, 
-  FaVial, 
+import {
+  FaArrowRight,
+  FaBolt,
+  FaFlask,
+  FaGem,
+  FaVial,
   FaPagelines,
   FaLeaf,
   FaShieldAlt,
@@ -30,27 +30,27 @@ interface HomeClientProps {
 
 const categoryDetails: { [key: string]: { icon: React.ReactNode; description: string } } = {
   'protein-feeds': {
-    icon: <FaLeaf/>,
+    icon: <FaLeaf />,
     description: 'High-quality protein sources for muscle development and growth.'
   },
   'energy-feeds': {
-    icon: <FaBolt/>,
+    icon: <FaBolt />,
     description: 'Premium energy sources to fuel performance and productivity.'
   },
   'minerals': {
-    icon: <FaGem/>,
+    icon: <FaGem />,
     description: 'Essential minerals for health, vitality, and reproductive success.'
   },
   'amino-acids': {
-    icon: <FaVial/>,
+    icon: <FaVial />,
     description: 'Targeted amino acid supplements for precise nutrition.'
   },
   'forage-products': {
-    icon: <FaPagelines/>,
+    icon: <FaPagelines />,
     description: 'High-fiber ingredients supporting digestive health.'
   },
   'fiber-products': {
-    icon: <FaLeaf/>,
+    icon: <FaLeaf />,
     description: 'Concentrated fiber sources for optimal gut function.'
   }
 };
@@ -76,39 +76,81 @@ export default function HomeClient({ featuredProducts, productCategories }: Home
   }, []);
 
   const categories = ['all', ...Array.from(new Set(featuredProducts.map(p => p.ingredient?.category).filter(Boolean)))];
-  const filteredProducts = activeCategory === 'all' 
-    ? featuredProducts 
+  const filteredProducts = activeCategory === 'all'
+    ? featuredProducts
     : featuredProducts.filter(p => p.ingredient?.category === activeCategory);
-
-  const testimonials = [
-    {
-      quote: "Since switching to their premium feed ingredients, our milk production has increased by 18%. The quality is consistent and the results speak for themselves.",
-      author: "Sarah Mitchell",
-      role: "Dairy Farm Owner",
-      location: "Wisconsin"
-    },
-    {
-      quote: "The technical support team helped us optimize our feed formulation. Our livestock health has never been better, and our costs have actually decreased.",
-      author: "Michael Chen",
-      role: "Cattle Rancher",
-      location: "Texas"
-    },
-    {
-      quote: "Their amino acid supplements transformed our poultry operation. Better feed conversion rates and healthier birds across the board.",
-      author: "Emily Rodriguez",
-      role: "Poultry Producer",
-      location: "Georgia"
-    }
-  ];
 
   return (
     <div className="bg-white">
       {/* Modern Hero Section */}
-      <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-br from-slate-900 via-slate-800 to-emerald-900">
-        {/* Animated Background Elements */}
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute top-1/4 left-1/4 w-72 h-72 bg-emerald-400 rounded-full blur-3xl animate-pulse"></div>
-          <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-blue-400 rounded-full blur-3xl animate-pulse delay-1000"></div>
+      <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-br from-green-900 via-emerald-900 to-green-700 text-white">
+        {/* Subtle grid background */}
+        <div className="absolute inset-0 overflow-hidden opacity-20">
+          <div className="absolute top-0 left-0 w-full h-full bg-[linear-gradient(to_right,#4ade8055_1px,transparent_1px),linear-gradient(to_bottom,#4ade8055_1px,transparent_1px)] bg-[size:40px_40px]"></div>
+          <div className="absolute -bottom-20 -right-20 w-64 h-32 bg-emerald-500 rounded-full mix-blend-screen opacity-10 blur-3xl"></div>
+        </div>
+
+        {/* Slowly moving circles */}
+        <div className="absolute inset-0 overflow-hidden opacity-10">
+          {/* Large circle - slow movement */}
+          <motion.div
+            className="absolute w-96 h-96 bg-emerald-400 rounded-full mix-blend-multiply blur-3xl"
+            initial={{ x: -200, y: -200 }}
+            animate={{
+              x: ["-200px", "200px", "-200px"],
+              y: ["-200px", "100px", "-200px"],
+            }}
+            transition={{
+              duration: 40,
+              repeat: Infinity,
+              ease: "linear"
+            }}
+          />
+          
+          {/* Medium circle - medium speed */}
+          <motion.div
+            className="absolute w-64 h-64 bg-blue-400 rounded-full mix-blend-multiply blur-2xl"
+            initial={{ x: "100vw", y: "50vh" }}
+            animate={{
+              x: ["-300px", "calc(100vw + 100px)", "-300px"],
+              y: ["20vh", "80vh", "20vh"],
+            }}
+            transition={{
+              duration: 30,
+              repeat: Infinity,
+              ease: "linear"
+            }}
+          />
+          
+          {/* Small circle - faster movement */}
+          <motion.div
+            className="absolute w-32 h-32 bg-green-300 rounded-full mix-blend-multiply blur-xl"
+            initial={{ x: "50vw", y: "100vh" }}
+            animate={{
+              x: ["10vw", "90vw", "10vw"],
+              y: ["-100px", "calc(100vh + 100px)", "-100px"],
+            }}
+            transition={{
+              duration: 25,
+              repeat: Infinity,
+              ease: "linear"
+            }}
+          />
+          
+          {/* Extra small circle - different path */}
+          <motion.div
+            className="absolute w-20 h-20 bg-teal-300 rounded-full mix-blend-multiply blur-lg"
+            initial={{ x: 0, y: 0 }}
+            animate={{
+              x: ["0px", "50vw", "100vw", "50vw", "0px"],
+              y: ["0px", "30vh", "60vh", "90vh", "0px"],
+            }}
+            transition={{
+              duration: 35,
+              repeat: Infinity,
+              ease: "linear"
+            }}
+          />
         </div>
 
         {/* Content */}
@@ -156,15 +198,6 @@ export default function HomeClient({ featuredProducts, productCategories }: Home
               Browse Ingredients
               <FaArrowRight className="ml-2 group-hover:translate-x-1 transition-transform" />
             </Link>
-            <button 
-              onClick={() => setIsVideoPlaying(true)}
-              className="group flex items-center text-white hover:text-green-300 transition-colors"
-            >
-              <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center mr-3 group-hover:bg-white/30 transition-colors">
-                <FaPlay className="text-white ml-1" />
-              </div>
-              Watch Success Stories
-            </button>
           </motion.div>
         </div>
 
@@ -230,11 +263,10 @@ export default function HomeClient({ featuredProducts, productCategories }: Home
               <button
                 key={category}
                 onClick={() => setActiveCategory(category)}
-                className={`px-6 py-2 rounded-full transition-all duration-300 font-medium capitalize ${
-                  activeCategory === category
+                className={`px-6 py-2 rounded-full transition-all duration-300 font-medium capitalize ${activeCategory === category
                     ? 'bg-green-600 text-white shadow-lg'
                     : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                }`}
+                  }`}
               >
                 {category.replace('-', ' ')}
               </button>
@@ -257,7 +289,7 @@ export default function HomeClient({ featuredProducts, productCategories }: Home
                     <img
                       src={product.images[0]}
                       alt={product.ingredient?.name}
-                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                      className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-300"
                     />
                     {product.certifications?.length > 0 && (
                       <div className="absolute top-3 right-3 flex flex-wrap gap-1">
@@ -343,7 +375,7 @@ export default function HomeClient({ featuredProducts, productCategories }: Home
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
             {productCategories.slice(0, 6).map((category, index) => {
-              const details = categoryDetails[category.slug] || { icon: <FaLeaf/>, description: `View all ${category.name} products.` };
+              const details = categoryDetails[category.slug] || { icon: <FaLeaf />, description: `View all ${category.name} products.` };
               return (
                 <motion.div
                   key={category.id}
