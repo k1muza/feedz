@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -19,72 +20,15 @@ import {
   FaPlay,
   FaCheck
 } from 'react-icons/fa';
+import { Product, ProductCategory } from '@/types';
+import Link from 'next/link';
 
-// Mock data for demonstration
-const mockFeaturedProducts = [
-  {
-    id: 1,
-    images: ['/api/placeholder/300/200'],
-    ingredient: {
-      name: 'Premium Soybean Meal',
-      category: 'protein-feeds',
-      description: 'High-quality protein source with excellent amino acid profile for optimal growth and development.',
-      compositions: [
-        { nutrient: { name: 'Protein', unit: '%' }, value: '48' },
-        { nutrient: { name: 'Crude Fiber', unit: '%' }, value: '3.5' },
-        { nutrient: { name: 'Fat', unit: '%' }, value: '1.2' },
-        { nutrient: { name: 'Moisture', unit: '%' }, value: '12' }
-      ]
-    },
-    moq: 25,
-    certifications: ['Non-GMO', 'Organic']
-  },
-  {
-    id: 2,
-    images: ['/api/placeholder/300/200'],
-    ingredient: {
-      name: 'Corn Gluten Meal',
-      category: 'energy-feeds',
-      description: 'Energy-rich feed ingredient that provides sustained nutrition for high-performance livestock.',
-      compositions: [
-        { nutrient: { name: 'Protein', unit: '%' }, value: '60' },
-        { nutrient: { name: 'Energy', unit: 'MJ/kg' }, value: '16.2' },
-        { nutrient: { name: 'Lysine', unit: '%' }, value: '1.8' },
-        { nutrient: { name: 'Methionine', unit: '%' }, value: '1.2' }
-      ]
-    },
-    moq: 20,
-    certifications: ['ISO 9001']
-  },
-  {
-    id: 3,
-    images: ['/api/placeholder/300/200'],
-    ingredient: {
-      name: 'Calcium Carbonate',
-      category: 'minerals',
-      description: 'Essential mineral supplement for bone development and eggshell quality in poultry.',
-      compositions: [
-        { nutrient: { name: 'Calcium', unit: '%' }, value: '38' },
-        { nutrient: { name: 'Phosphorus', unit: '%' }, value: '0.1' },
-        { nutrient: { name: 'Magnesium', unit: '%' }, value: '0.5' },
-        { nutrient: { name: 'Purity', unit: '%' }, value: '99.5' }
-      ]
-    },
-    moq: 10,
-    certifications: ['Feed Grade']
-  }
-];
+interface HomeClientProps {
+  featuredProducts: Product[];
+  productCategories: ProductCategory[];
+}
 
-const mockCategories = [
-  { id: 1, name: 'Protein Feeds', slug: 'protein-feeds' },
-  { id: 2, name: 'Energy Feeds', slug: 'energy-feeds' },
-  { id: 3, name: 'Minerals', slug: 'minerals' },
-  { id: 4, name: 'Amino Acids', slug: 'amino-acids' },
-  { id: 5, name: 'Forage Products', slug: 'forage-products' },
-  { id: 6, name: 'Fiber Products', slug: 'fiber-products' }
-];
-
-const categoryDetails = {
+const categoryDetails: { [key: string]: { icon: React.ReactNode; description: string } } = {
   'protein-feeds': {
     icon: <FaLeaf/>,
     description: 'High-quality protein sources for muscle development and growth.'
@@ -113,12 +57,12 @@ const categoryDetails = {
 
 const stats = [
   { value: '50+', label: 'Premium Ingredients', icon: <FaLeaf /> },
-  { value: '25+', label: 'Years Experience', icon: <FaAward /> },
+  { value: '10+', label: 'Years Experience', icon: <FaAward /> },
   { value: '1000+', label: 'Happy Farmers', icon: <FaUsers /> },
   { value: '99.5%', label: 'Quality Assured', icon: <FaShieldAlt /> }
 ];
 
-export default function ModernFarmHomepage() {
+export default function HomeClient({ featuredProducts, productCategories }: HomeClientProps) {
   const [activeCategory, setActiveCategory] = useState('all');
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
   const [currentTestimonial, setCurrentTestimonial] = useState(0);
@@ -131,10 +75,10 @@ export default function ModernFarmHomepage() {
     return () => clearInterval(interval);
   }, []);
 
-  const categories = ['all', ...Array.from(new Set(mockFeaturedProducts.map(p => p.ingredient?.category).filter(Boolean)))];
+  const categories = ['all', ...Array.from(new Set(featuredProducts.map(p => p.ingredient?.category).filter(Boolean)))];
   const filteredProducts = activeCategory === 'all' 
-    ? mockFeaturedProducts 
-    : mockFeaturedProducts.filter(p => p.ingredient?.category === activeCategory);
+    ? featuredProducts 
+    : featuredProducts.filter(p => p.ingredient?.category === activeCategory);
 
   const testimonials = [
     {
@@ -208,10 +152,10 @@ export default function ModernFarmHomepage() {
             transition={{ duration: 0.8, delay: 0.6 }}
             className="flex flex-col sm:flex-row gap-4 justify-center items-center"
           >
-            <button className="group bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-4 rounded-lg text-lg font-semibold flex items-center transition-all duration-300 hover:scale-105">
+            <Link href="/products" className="group bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-4 rounded-lg text-lg font-semibold flex items-center transition-all duration-300 hover:scale-105">
               Browse Ingredients
               <FaArrowRight className="ml-2 group-hover:translate-x-1 transition-transform" />
-            </button>
+            </Link>
             <button 
               onClick={() => setIsVideoPlaying(true)}
               className="group flex items-center text-white hover:text-emerald-300 transition-colors"
@@ -247,6 +191,7 @@ export default function ModernFarmHomepage() {
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, delay: index * 0.1 }}
+                viewport={{ once: true, amount: 0.5 }}
                 className="text-center"
               >
                 <div className="text-3xl flex justify-center text-emerald-600 mb-2">{stat.icon}</div>
@@ -265,6 +210,7 @@ export default function ModernFarmHomepage() {
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8 }}
+            viewport={{ once: true, amount: 0.5 }}
             className="text-center mb-16"
           >
             <span className="inline-block bg-emerald-50 text-emerald-600 px-4 py-2 rounded-full text-sm font-semibold mb-4">
@@ -359,9 +305,9 @@ export default function ModernFarmHomepage() {
                         <p className="text-xs text-slate-500">Minimum Order</p>
                         <p className="font-semibold text-slate-900">{product.moq} tons</p>
                       </div>
-                      <button className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg font-medium transition-colors">
+                      <Link href={`/products/${product.id}`} className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg font-medium transition-colors">
                         Learn More
-                      </button>
+                      </Link>
                     </div>
                   </div>
                 </motion.div>
@@ -370,9 +316,9 @@ export default function ModernFarmHomepage() {
           </div>
 
           <div className="text-center mt-12">
-            <button className="bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-4 rounded-lg font-semibold transition-all duration-300 hover:scale-105">
+            <Link href="/products" className="bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-4 rounded-lg font-semibold transition-all duration-300 hover:scale-105">
               View All Ingredients
-            </button>
+            </Link>
           </div>
         </div>
       </section>
@@ -384,6 +330,7 @@ export default function ModernFarmHomepage() {
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8 }}
+            viewport={{ once: true, amount: 0.5 }}
             className="text-center mb-16"
           >
             <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mb-6">
@@ -395,7 +342,7 @@ export default function ModernFarmHomepage() {
           </motion.div>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {mockCategories.slice(0, 6).map((category, index) => {
+            {productCategories.slice(0, 6).map((category, index) => {
               const details = categoryDetails[category.slug] || { icon: <FaLeaf/>, description: `View all ${category.name} products.` };
               return (
                 <motion.div
@@ -403,6 +350,7 @@ export default function ModernFarmHomepage() {
                   initial={{ opacity: 0, y: 20 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.6, delay: index * 0.1 }}
+                  viewport={{ once: true, amount: 0.5 }}
                   className="group bg-white p-8 rounded-2xl shadow-lg border border-slate-200 hover:shadow-xl transition-all duration-300 hover:-translate-y-2"
                 >
                   <div className="text-4xl text-emerald-600 mb-4 group-hover:scale-110 transition-transform">
@@ -410,10 +358,10 @@ export default function ModernFarmHomepage() {
                   </div>
                   <h3 className="text-xl font-bold text-slate-900 mb-3">{category.name}</h3>
                   <p className="text-slate-600 mb-4">{details.description}</p>
-                  <button className="text-emerald-600 font-semibold hover:text-emerald-700 flex items-center">
+                  <Link href={`/products/categories/${category.slug}`} className="text-emerald-600 font-semibold hover:text-emerald-700 flex items-center">
                     Explore Products
                     <FaArrowRight className="ml-2 group-hover:translate-x-1 transition-transform" />
-                  </button>
+                  </Link>
                 </motion.div>
               );
             })}
@@ -423,12 +371,13 @@ export default function ModernFarmHomepage() {
 
 
       {/* Why Choose Us Section */}
-      <section className="py-20 bg-slate-50">
+      <section className="py-20 bg-white">
         <div className="container mx-auto px-4">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8 }}
+            viewport={{ once: true, amount: 0.5 }}
             className="text-center mb-16"
           >
             <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mb-6">
@@ -441,6 +390,7 @@ export default function ModernFarmHomepage() {
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6 }}
+              viewport={{ once: true, amount: 0.5 }}
               className="text-center"
             >
               <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-6">
@@ -456,6 +406,7 @@ export default function ModernFarmHomepage() {
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.2 }}
+              viewport={{ once: true, amount: 0.5 }}
               className="text-center"
             >
               <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-6">
@@ -471,6 +422,7 @@ export default function ModernFarmHomepage() {
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.4 }}
+              viewport={{ once: true, amount: 0.5 }}
               className="text-center"
             >
               <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-6">
@@ -492,6 +444,7 @@ export default function ModernFarmHomepage() {
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8 }}
+            viewport={{ once: true, amount: 0.5 }}
           >
             <h2 className="text-3xl md:text-4xl font-bold mb-6">
               Ready to Optimize Your Feed Program?
@@ -500,12 +453,12 @@ export default function ModernFarmHomepage() {
               Let our nutrition experts help you create a customized feed program that maximizes performance and profitability for your specific operation.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <button className="bg-white text-emerald-600 px-8 py-4 rounded-lg font-semibold hover:bg-emerald-50 transition-colors">
+              <Link href="/contact" className="bg-white text-emerald-600 px-8 py-4 rounded-lg font-semibold hover:bg-emerald-50 transition-colors">
                 Get Custom Consultation
-              </button>
-              <button className="border-2 border-white text-white px-8 py-4 rounded-lg font-semibold hover:bg-white hover:text-emerald-600 transition-colors">
+              </Link>
+              <Link href="/products" className="border-2 border-white text-white px-8 py-4 rounded-lg font-semibold hover:bg-white hover:text-emerald-600 transition-colors">
                 Download Product Catalog
-              </button>
+              </Link>
             </div>
           </motion.div>
         </div>
