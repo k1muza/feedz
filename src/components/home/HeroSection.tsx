@@ -1,4 +1,3 @@
-
 'use client';
 
 // import { Player } from '@lottiefiles/react-lottie-player';
@@ -20,7 +19,7 @@ export default function HeroSection() {
   return (
     <section 
       ref={ref}
-      className="relative bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white overflow-hidden"
+      className="relative bg-gradient-to-br from-green-950 via-green-900 to-green-800 text-white overflow-hidden"
     >
       {/* Animated background elements */}
       <div className="absolute inset-0 overflow-hidden opacity-20">
