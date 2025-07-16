@@ -248,7 +248,6 @@ export default async function Page({ params }: { params: { id: string } }) {
         {/* Related Products */}
         <section className="bg-gray-50 py-12" aria-labelledby="related-products-heading">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <h2 id="related-products-heading" className="text-2xl font-bold text-gray-900 mb-8">Related Products</h2>
             <RelatedProducts currentProductId={product.id} category={product.ingredient?.category} />
           </div>
         </section>
