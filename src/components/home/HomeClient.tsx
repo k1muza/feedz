@@ -91,62 +91,47 @@ export default function HomeClient({ featuredProducts, productCategories }: Home
         </div>
 
         {/* Slowly moving circles */}
-        <div className="absolute inset-0 overflow-hidden opacity-10">
-          {/* Large circle - slow movement */}
+        <div className="absolute inset-0 overflow-hidden opacity-5">
+          {/* Large circle - ultra slow movement */}
           <motion.div
-            className="absolute w-96 h-96 bg-emerald-400 rounded-full mix-blend-multiply blur-3xl"
-            initial={{ x: -200, y: -200 }}
+            className="absolute w-80 h-80 bg-emerald-300 rounded-full mix-blend-multiply blur-3xl"
+            initial={{ x: -150, y: -150 }}
             animate={{
-              x: ["-200px", "200px", "-200px"],
-              y: ["-200px", "100px", "-200px"],
+              x: ["-150px", "150px", "-150px"],
+              y: ["-150px", "80px", "-150px"],
             }}
             transition={{
-              duration: 40,
+              duration: 60,
               repeat: Infinity,
               ease: "linear"
             }}
           />
           
-          {/* Medium circle - medium speed */}
+          {/* Medium circle - very slow movement */}
           <motion.div
-            className="absolute w-64 h-64 bg-blue-400 rounded-full mix-blend-multiply blur-2xl"
-            initial={{ x: "100vw", y: "50vh" }}
+            className="absolute w-56 h-56 bg-green-200 rounded-full mix-blend-multiply blur-3xl"
+            initial={{ x: "100vw", y: "40vh" }}
             animate={{
-              x: ["-300px", "calc(100vw + 100px)", "-300px"],
-              y: ["20vh", "80vh", "20vh"],
+              x: ["-250px", "calc(100vw + 150px)", "-250px"],
+              y: ["30vh", "70vh", "30vh"],
             }}
             transition={{
-              duration: 30,
+              duration: 50,
               repeat: Infinity,
               ease: "linear"
             }}
           />
           
-          {/* Small circle - faster movement */}
+          {/* Small circle - slow movement */}
           <motion.div
-            className="absolute w-32 h-32 bg-green-300 rounded-full mix-blend-multiply blur-xl"
-            initial={{ x: "50vw", y: "100vh" }}
+            className="absolute w-28 h-28 bg-emerald-200 rounded-full mix-blend-multiply blur-2xl"
+            initial={{ x: "40vw", y: "90vh" }}
             animate={{
-              x: ["10vw", "90vw", "10vw"],
-              y: ["-100px", "calc(100vh + 100px)", "-100px"],
+              x: ["20vw", "80vw", "20vw"],
+              y: ["-80px", "calc(100vh + 80px)", "-80px"],
             }}
             transition={{
-              duration: 25,
-              repeat: Infinity,
-              ease: "linear"
-            }}
-          />
-          
-          {/* Extra small circle - different path */}
-          <motion.div
-            className="absolute w-20 h-20 bg-teal-300 rounded-full mix-blend-multiply blur-lg"
-            initial={{ x: 0, y: 0 }}
-            animate={{
-              x: ["0px", "50vw", "100vw", "50vw", "0px"],
-              y: ["0px", "30vh", "60vh", "90vh", "0px"],
-            }}
-            transition={{
-              duration: 35,
+              duration: 45,
               repeat: Infinity,
               ease: "linear"
             }}
