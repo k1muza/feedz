@@ -1,6 +1,7 @@
 'use client';
 
-import { FaFacebook, FaLinkedin, FaWhatsapp, FaShareAlt, FaXTwitter } from 'react-icons/fa6';
+import { FaShareAlt } from 'react-icons/fa';
+import { FaFacebook, FaLinkedin, FaWhatsapp, FaXTwitter } from 'react-icons/fa6';
 
 interface ShareButtonsProps {
     title: string;
