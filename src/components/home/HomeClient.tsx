@@ -152,13 +152,13 @@ export default function HomeClient({ featuredProducts, productCategories }: Home
             transition={{ duration: 0.8, delay: 0.6 }}
             className="flex flex-col sm:flex-row gap-4 justify-center items-center"
           >
-            <Link href="/products" className="group bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-4 rounded-lg text-lg font-semibold flex items-center transition-all duration-300 hover:scale-105">
+            <Link href="/products" className="group bg-green-600 hover:bg-green-700 text-white px-8 py-4 rounded-lg text-lg font-semibold flex items-center transition-all duration-300 hover:scale-105">
               Browse Ingredients
               <FaArrowRight className="ml-2 group-hover:translate-x-1 transition-transform" />
             </Link>
             <button 
               onClick={() => setIsVideoPlaying(true)}
-              className="group flex items-center text-white hover:text-emerald-300 transition-colors"
+              className="group flex items-center text-white hover:text-green-300 transition-colors"
             >
               <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center mr-3 group-hover:bg-white/30 transition-colors">
                 <FaPlay className="text-white ml-1" />
@@ -194,7 +194,7 @@ export default function HomeClient({ featuredProducts, productCategories }: Home
                 viewport={{ once: true, amount: 0.5 }}
                 className="text-center"
               >
-                <div className="text-3xl flex justify-center text-emerald-600 mb-2">{stat.icon}</div>
+                <div className="text-3xl flex justify-center text-green-600 mb-2">{stat.icon}</div>
                 <div className="text-3xl font-bold text-slate-900 mb-1">{stat.value}</div>
                 <div className="text-slate-600">{stat.label}</div>
               </motion.div>
@@ -213,7 +213,7 @@ export default function HomeClient({ featuredProducts, productCategories }: Home
             viewport={{ once: true, amount: 0.5 }}
             className="text-center mb-16"
           >
-            <span className="inline-block bg-emerald-50 text-emerald-600 px-4 py-2 rounded-full text-sm font-semibold mb-4">
+            <span className="inline-block bg-green-50 text-green-600 px-4 py-2 rounded-full text-sm font-semibold mb-4">
               PREMIUM INGREDIENTS
             </span>
             <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mb-6">
@@ -232,7 +232,7 @@ export default function HomeClient({ featuredProducts, productCategories }: Home
                 onClick={() => setActiveCategory(category)}
                 className={`px-6 py-2 rounded-full transition-all duration-300 font-medium capitalize ${
                   activeCategory === category
-                    ? 'bg-emerald-600 text-white shadow-lg'
+                    ? 'bg-green-600 text-white shadow-lg'
                     : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                 }`}
               >
@@ -264,7 +264,7 @@ export default function HomeClient({ featuredProducts, productCategories }: Home
                         {product.certifications.map((cert) => (
                           <span
                             key={cert}
-                            className="bg-emerald-100 text-emerald-800 text-xs px-2 py-1 rounded-full"
+                            className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full"
                           >
                             {cert}
                           </span>
@@ -287,7 +287,7 @@ export default function HomeClient({ featuredProducts, productCategories }: Home
 
                     <div className="mb-6">
                       <h4 className="font-semibold text-slate-800 mb-3 flex items-center">
-                        <FaInfoCircle className="text-emerald-500 mr-2" />
+                        <FaInfoCircle className="text-green-500 mr-2" />
                         Key Specifications
                       </h4>
                       <div className="space-y-2">
@@ -305,7 +305,7 @@ export default function HomeClient({ featuredProducts, productCategories }: Home
                         <p className="text-xs text-slate-500">Minimum Order</p>
                         <p className="font-semibold text-slate-900">{product.moq} tons</p>
                       </div>
-                      <Link href={`/products/${product.id}`} className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg font-medium transition-colors">
+                      <Link href={`/products/${product.id}`} className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium transition-colors">
                         Learn More
                       </Link>
                     </div>
@@ -316,7 +316,7 @@ export default function HomeClient({ featuredProducts, productCategories }: Home
           </div>
 
           <div className="text-center mt-12">
-            <Link href="/products" className="bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-4 rounded-lg font-semibold transition-all duration-300 hover:scale-105">
+            <Link href="/products" className="bg-green-600 hover:bg-green-700 text-white px-8 py-4 rounded-lg font-semibold transition-all duration-300 hover:scale-105">
               View All Ingredients
             </Link>
           </div>
@@ -353,12 +353,12 @@ export default function HomeClient({ featuredProducts, productCategories }: Home
                   viewport={{ once: true, amount: 0.5 }}
                   className="group bg-white p-8 rounded-2xl shadow-lg border border-slate-200 hover:shadow-xl transition-all duration-300 hover:-translate-y-2"
                 >
-                  <div className="text-4xl text-emerald-600 mb-4 group-hover:scale-110 transition-transform">
+                  <div className="text-4xl text-green-600 mb-4 group-hover:scale-110 transition-transform">
                     {details.icon}
                   </div>
                   <h3 className="text-xl font-bold text-slate-900 mb-3">{category.name}</h3>
                   <p className="text-slate-600 mb-4">{details.description}</p>
-                  <Link href={`/products/categories/${category.slug}`} className="text-emerald-600 font-semibold hover:text-emerald-700 flex items-center">
+                  <Link href={`/products/categories/${category.slug}`} className="text-green-600 font-semibold hover:text-green-700 flex items-center">
                     Explore Products
                     <FaArrowRight className="ml-2 group-hover:translate-x-1 transition-transform" />
                   </Link>
@@ -393,8 +393,8 @@ export default function HomeClient({ featuredProducts, productCategories }: Home
               viewport={{ once: true, amount: 0.5 }}
               className="text-center"
             >
-              <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                <FaShieldAlt className="text-2xl text-emerald-600" />
+              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                <FaShieldAlt className="text-2xl text-green-600" />
               </div>
               <h3 className="text-xl font-bold text-slate-900 mb-4">Uncompromising Quality</h3>
               <p className="text-slate-600 leading-relaxed">
@@ -409,8 +409,8 @@ export default function HomeClient({ featuredProducts, productCategories }: Home
               viewport={{ once: true, amount: 0.5 }}
               className="text-center"
             >
-              <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                <FaFlask className="text-2xl text-emerald-600" />
+              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                <FaFlask className="text-2xl text-green-600" />
               </div>
               <h3 className="text-xl font-bold text-slate-900 mb-4">Science-Backed Formulation</h3>
               <p className="text-slate-600 leading-relaxed">
@@ -425,8 +425,8 @@ export default function HomeClient({ featuredProducts, productCategories }: Home
               viewport={{ once: true, amount: 0.5 }}
               className="text-center"
             >
-              <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                <FaChartLine className="text-2xl text-emerald-600" />
+              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                <FaChartLine className="text-2xl text-green-600" />
               </div>
               <h3 className="text-xl font-bold text-slate-900 mb-4">Proven Results</h3>
               <p className="text-slate-600 leading-relaxed">
@@ -438,7 +438,7 @@ export default function HomeClient({ featuredProducts, productCategories }: Home
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 bg-gradient-to-r from-emerald-600 to-emerald-700 text-white">
+      <section className="py-20 bg-gradient-to-r from-green-600 to-green-700 text-white">
         <div className="container mx-auto px-4 text-center">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -449,14 +449,14 @@ export default function HomeClient({ featuredProducts, productCategories }: Home
             <h2 className="text-3xl md:text-4xl font-bold mb-6">
               Ready to Optimize Your Feed Program?
             </h2>
-            <p className="text-xl text-emerald-100 max-w-3xl mx-auto mb-8 leading-relaxed">
+            <p className="text-xl text-green-100 max-w-3xl mx-auto mb-8 leading-relaxed">
               Let our nutrition experts help you create a customized feed program that maximizes performance and profitability for your specific operation.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link href="/contact" className="bg-white text-emerald-600 px-8 py-4 rounded-lg font-semibold hover:bg-emerald-50 transition-colors">
+              <Link href="/contact" className="bg-white text-green-600 px-8 py-4 rounded-lg font-semibold hover:bg-green-50 transition-colors">
                 Get Custom Consultation
               </Link>
-              <Link href="/products" className="border-2 border-white text-white px-8 py-4 rounded-lg font-semibold hover:bg-white hover:text-emerald-600 transition-colors">
+              <Link href="/products" className="border-2 border-white text-white px-8 py-4 rounded-lg font-semibold hover:bg-white hover:text-green-600 transition-colors">
                 Download Product Catalog
               </Link>
             </div>
