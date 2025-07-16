@@ -83,7 +83,7 @@ export default function HomeClient({ featuredProducts, productCategories }: Home
   return (
     <div className="bg-white">
       {/* Modern Hero Section */}
-      <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-br from-green-900 via-emerald-900 to-green-700 text-white">
+      <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-br from-green-900 to-green-700 text-white">
         {/* Subtle grid background */}
         <div className="absolute inset-0 overflow-hidden opacity-20">
           <div className="absolute top-0 left-0 w-full h-full bg-[linear-gradient(to_right,#4ade8055_1px,transparent_1px),linear-gradient(to_bottom,#4ade8055_1px,transparent_1px)] bg-[size:40px_40px]"></div>
