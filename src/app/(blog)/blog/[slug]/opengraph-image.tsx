@@ -12,7 +12,7 @@ export default async function Image({ params }: { params: { slug: string } }) {
         src={post?.image}
         alt={post?.title}
         style={{
-          objectFit: 'cover',
+          objectFit: 'contain',
           width: '100%',
           height: '100%',
           transform: 'scale(1.05)',
