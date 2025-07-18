@@ -23,12 +23,8 @@ export async function generateMetadata(
     }
   }
 
-  // Ensure the image URL is absolute for social sharing
-  const imageUrl = post.image.startsWith('http') 
-    ? post.image 
-    : `https://feedsport.co.zw${post.image}`;
-
-  const previousImages = (await parent).openGraph?.images || []
+  // The opengraph-image.tsx file will handle the Open Graph image generation.
+  // We no longer need to specify the images array here.
 
   return {
     title: post.title,
@@ -42,21 +38,11 @@ export async function generateMetadata(
       type: 'article',
       publishedTime: new Date(post.date).toISOString(),
       authors: [post.author.name],
-      images: [
-        {
-          url: imageUrl,
-          width: 1200,
-          height: 630,
-          alt: post.title,
-        },
-        ...previousImages,
-      ],
     },
     twitter: {
       card: 'summary_large_image',
       title: `${post.title} | FeedSport Blog`,
       description: post.excerpt,
-      images: [imageUrl],
     },
   }
 }
