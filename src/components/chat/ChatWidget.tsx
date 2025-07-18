@@ -12,6 +12,7 @@ import ReactMarkdown from 'react-markdown';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
 import { ref, onValue, set, onDisconnect } from 'firebase/database';
+import useNotificationSound from '@/hooks/useNotificationSound';
 
 // Define Message type locally if not exported from '@/types'
 type Message = {
@@ -36,6 +37,7 @@ export function ChatWidget() {
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [appSettings, setAppSettings] = useState<AppSettings | null>(null);
   const messagesEndRef = useRef<null | HTMLDivElement>(null);
+  const { playNotificationSound, preload } = useNotificationSound('/sounds/notification.mp3');
 
   useEffect(() => {
     const authenticateAndLoadChat = async () => {
@@ -69,6 +71,7 @@ export function ChatWidget() {
 
   useEffect(() => {
     if (!currentUser?.uid) return;
+    let isFirstLoad = true;
 
     const chatRef = ref(rtdb, `chats/${currentUser.uid}`);
     const unsubscribe = onValue(chatRef, (snapshot) => {
@@ -77,23 +80,38 @@ export function ChatWidget() {
             const updatedMessages = updatedData.messages ? Object.values(updatedData.messages) as Message[] : [];
             updatedMessages.sort((a, b) => a.timestamp - b.timestamp);
             
-            setConversation(prev => ({
-                ...(prev as Conversation),
-                id: currentUser.uid,
-                messages: updatedMessages,
-                lastMessage: updatedData.lastMessage,
-                // AI is suspended if the per-convo flag is true OR the global setting is false
-                aiSuspended: !(appSettings?.aiChatEnabled && !updatedData.aiSuspended),
-            }));
+            setConversation(prev => {
+                const prevMessagesLength = prev?.messages.length || 0;
+                // Play sound only if a new message from the model arrives and the window is open
+                if (isOpen && !isFirstLoad && updatedMessages.length > prevMessagesLength && updatedMessages[updatedMessages.length - 1].role === 'model') {
+                    playNotificationSound();
+                }
+
+                return {
+                    ...(prev as Conversation),
+                    id: currentUser.uid,
+                    messages: updatedMessages,
+                    lastMessage: updatedData.lastMessage,
+                    aiSuspended: !(appSettings?.aiChatEnabled && !updatedData.aiSuspended),
+                }
+            });
+
+            isFirstLoad = false;
         }
     });
     return () => unsubscribe();
-  }, [currentUser?.uid, appSettings]);
+  }, [currentUser?.uid, appSettings, isOpen, playNotificationSound]);
 
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [conversation?.messages]);
+  
+  useEffect(() => {
+    if (isOpen) {
+      preload();
+    }
+  }, [isOpen, preload]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
