@@ -33,6 +33,16 @@ import { generateProductDetails, GenerateProductDetailsInput, GenerateProductDet
 import { getNutrients } from '@/data/nutrients';
 import type { Conversation, Message } from '@/types/chat';
 import { routeInquiry } from '@/ai/flows/router';
+import * as admin from 'firebase-admin';
+
+
+// Initialize Firebase Admin SDK
+if (!admin.apps.length) {
+    admin.initializeApp({
+        credential: admin.credential.applicationDefault(),
+        databaseURL: process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL,
+    });
+}
 
 
 const s3Client = new S3Client({
@@ -157,7 +167,7 @@ export async function getNewsletterSubscriptions(): Promise<NewsletterSubscripti
       return {
         id: doc.id,
         ...data,
-        subscribedAt: data.subscribedAt.toDate().toISOString(),
+        subscribedAt: data.submittedAt.toDate().toISOString(),
       } as NewsletterSubscription;
     });
   } catch (error) {
@@ -168,6 +178,37 @@ export async function getNewsletterSubscriptions(): Promise<NewsletterSubscripti
 
 
 // --- CHAT ACTIONS (RTDB) ---
+
+async function sendNewMessageNotification(userId: string, messageContent: string) {
+    const tokensSnapshot = await getDocs(collection(db, 'fcmTokens'));
+    if (tokensSnapshot.empty) {
+        console.log("No admin tokens to send notification to.");
+        return;
+    }
+
+    const tokens = tokensSnapshot.docs.map(doc => doc.data().token);
+
+    const message = {
+        notification: {
+            title: 'New Chat Message',
+            body: `User ${userId.substring(0, 6)}...: ${messageContent.substring(0, 100)}`
+        },
+        webpush: {
+            fcm_options: {
+                link: `/admin/conversations?chatId=${userId}`
+            }
+        },
+        tokens: tokens,
+    };
+
+    try {
+        await admin.messaging().sendEachForMulticast(message);
+        console.log('Notifications sent successfully');
+    } catch (error) {
+        console.error('Error sending notifications:', error);
+    }
+}
+
 
 export async function startOrGetConversation(uid: string): Promise<Conversation> {
   const chatRef = ref(rtdb, `chats/${uid}`);
@@ -226,6 +267,9 @@ export async function addMessage(uid: string, content: string): Promise<Conversa
     lastMessage: userMessage,
     adminHasUnreadMessages: true
   });
+
+  // Send notification to admins
+  await sendNewMessageNotification(uid, content);
 
 
   // 2. Check if AI chat is enabled globally and for this specific conversation
