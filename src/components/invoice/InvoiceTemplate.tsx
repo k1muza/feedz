@@ -64,7 +64,7 @@ const InvoiceTemplateOptimized: React.FC<InvoiceTemplateProps> = ({ invoiceData 
             phone: '(+263) 774 684 534',
             email: 'accounts@feedsport.co.zw',
             taxId: 'TAX-123-456-789',
-            logo: '/images/favicon.ico'
+            logo: '/fav.png'
         },
         client: {
             name: 'Client Name',
