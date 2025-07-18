@@ -4,36 +4,34 @@
 import { config } from 'dotenv';
 config();
 
+import { GenerateProductDetailsInput, GenerateProductDetailsOutput, generateProductDetails } from '@/ai/flows/generate-product-details';
+import { RecommendIngredientCombinationsInput, RecommendIngredientCombinationsOutput, recommendIngredientCombinations } from '@/ai/flows/recommend-ingredient-combinations';
+import { routeInquiry } from '@/ai/flows/router';
+import { getNutrients } from '@/data/nutrients';
+import { db, rtdb } from '@/lib/firebase';
+import { sendNewMessageNotification } from '@/lib/firebase-admin';
+import { AppSettings, BlogCategory, BlogPost, Composition, ContactInquiry, Ingredient, Invoice, NewsletterSubscription, Policy, Product, ProductCategory, User } from '@/types';
+import type { Conversation, Message } from '@/types/chat';
+import { DeleteObjectCommand, ListObjectsV2Command, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { get, push, ref, serverTimestamp, set, update } from 'firebase/database';
 import {
+  Timestamp,
   addDoc,
   collection,
-  getDocs,
+  deleteDoc,
   doc,
   getDoc,
-  updateDoc,
-  deleteDoc,
-  query,
-  where,
+  getDocs,
   limit,
-  writeBatch,
-  Timestamp,
   orderBy,
-  arrayUnion,
+  query,
   setDoc,
+  updateDoc,
+  where
 } from 'firebase/firestore';
-import { getDatabase, ref, get, set, push, serverTimestamp, child, onValue, update } from 'firebase/database';
 import { revalidatePath } from 'next/cache';
-import { db, rtdb } from '@/lib/firebase';
-import { BlogPost, BlogCategory, User, Product, Ingredient, ProductCategory, Composition, ContactInquiry, NewsletterSubscription, AppSettings, Policy, Invoice, InvoiceItem } from '@/types';
 import { z } from 'zod';
-import { S3Client, PutObjectCommand, ListObjectsV2Command, DeleteObjectCommand } from "@aws-sdk/client-s3";
-import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-import { RecommendIngredientCombinationsInput, RecommendIngredientCombinationsOutput, recommendIngredientCombinations } from '@/ai/flows/recommend-ingredient-combinations';
-import { generateProductDetails, GenerateProductDetailsInput, GenerateProductDetailsOutput } from '@/ai/flows/generate-product-details';
-import { getNutrients } from '@/data/nutrients';
-import type { Conversation, Message } from '@/types/chat';
-import { routeInquiry } from '@/ai/flows/router';
-import { sendNewMessageNotification } from '@/lib/firebase-admin';
 
 
 const s3Client = new S3Client({

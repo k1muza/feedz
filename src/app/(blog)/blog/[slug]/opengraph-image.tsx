@@ -1,7 +1,7 @@
 import { ImageResponse } from 'next/og';
 import { getPostBySlug } from '@/app/actions';
 
-export const runtime = 'edge';
+export const runtime = 'nodejs';
 
 export const alt = 'FeedSport Blog';
 export const size = {
