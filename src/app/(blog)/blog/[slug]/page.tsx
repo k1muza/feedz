@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { notFound } from 'next/navigation';
 import { Metadata, ResolvingMetadata } from 'next';
@@ -22,6 +23,11 @@ export async function generateMetadata(
     }
   }
 
+  // Ensure the image URL is absolute for social sharing
+  const imageUrl = post.image.startsWith('http') 
+    ? post.image 
+    : `https://feedsport.co.zw${post.image}`;
+
   const previousImages = (await parent).openGraph?.images || []
 
   return {
@@ -38,7 +44,7 @@ export async function generateMetadata(
       authors: [post.author.name],
       images: [
         {
-          url: post.image,
+          url: imageUrl,
           width: 1200,
           height: 630,
           alt: post.title,
@@ -50,7 +56,7 @@ export async function generateMetadata(
       card: 'summary_large_image',
       title: `${post.title} | FeedSport Blog`,
       description: post.excerpt,
-      images: [post.image],
+      images: [imageUrl],
     },
   }
 }
