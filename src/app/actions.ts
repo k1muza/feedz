@@ -202,8 +202,8 @@ async function sendNewMessageNotification(userId: string, messageContent: string
     };
 
     try {
-        await admin.messaging().sendEachForMulticast(message);
-        console.log('Notifications sent successfully');
+        const response = await admin.messaging().sendEachForMulticast(message);
+        console.log('Notifications sent successfully:', response.successCount);
     } catch (error) {
         console.error('Error sending notifications:', error);
     }
@@ -253,7 +253,7 @@ export async function startOrGetConversation(uid: string): Promise<Conversation>
 export async function addMessage(uid: string, content: string): Promise<Conversation> {
   const chatRef = ref(rtdb, `chats/${uid}`);
   const messagesRef = ref(rtdb, `chats/${uid}/messages`);
-  
+
   // 1. Add user message
   const userMessage: Message = {
     role: 'user',
@@ -271,40 +271,53 @@ export async function addMessage(uid: string, content: string): Promise<Conversa
   // Send notification to admins
   await sendNewMessageNotification(uid, content);
 
-
   // 2. Check if AI chat is enabled globally and for this specific conversation
   const settings = await getAppSettings();
-  const convoSnapshot = await get(chatRef);
-  const isAiSuspended = convoSnapshot.val()?.aiSuspended || false;
+  const currentConversation = await startOrGetConversation(uid); // Get the conversation state AFTER adding user message
+  const isAiSuspended = currentConversation.aiSuspended || false;
 
   if (!settings.aiChatEnabled || isAiSuspended) {
-      return startOrGetConversation(uid);
+    return currentConversation;
   }
 
-  // 3. Get current conversation history to pass to AI
-  const currentConversation = await startOrGetConversation(uid);
-  const historyForAI = [...currentConversation.messages];
-
-  // 4. Get AI response using the router flow
-  const aiInput = {
-    history: historyForAI.map(msg => ({ role: msg.role, content: msg.content })),
-  };
-
-  const aiResponseContent = await routeInquiry(aiInput);
+  // 3. Get AI response using the router flow
+  const historyForAI = currentConversation.messages.map(msg => ({ 
+    role: msg.role, 
+    content: msg.content 
+  }));
   
-  // 5. Add AI message
-  const aiMessage: Message = {
-    role: 'model',
-    content: aiResponseContent,
-    timestamp: Date.now(),
-  };
-  await push(messagesRef, aiMessage);
-  await update(chatRef, {
-    lastMessage: aiMessage,
-    adminHasUnreadMessages: true // Also mark AI messages as unread for the admin
-  });
+  const aiInput = { history: historyForAI };
+
+  try {
+    const aiResponseContent = await routeInquiry(aiInput);
+
+    // 4. Add AI message
+    const aiMessage: Message = {
+      role: 'model',
+      content: aiResponseContent,
+      timestamp: Date.now(),
+    };
+    await push(messagesRef, aiMessage);
+    await update(chatRef, {
+      lastMessage: aiMessage,
+      adminHasUnreadMessages: true // Also mark AI messages as unread for the admin
+    });
+  } catch (error) {
+    console.error("Error getting AI response:", error);
+    // Optionally, add an error message to the chat
+    const errorMessage: Message = {
+      role: 'model',
+      content: 'Sorry, I encountered an error. An agent will be with you shortly.',
+      timestamp: Date.now(),
+    };
+    await push(messagesRef, errorMessage);
+    await update(chatRef, {
+      lastMessage: errorMessage,
+      adminHasUnreadMessages: true
+    });
+  }
   
-  // 6. Return the final state of the conversation
+  // 5. Return the final state of the conversation
   revalidatePath('/admin/conversations');
   return startOrGetConversation(uid);
 }
