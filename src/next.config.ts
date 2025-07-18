@@ -1,3 +1,4 @@
+
 import type {NextConfig} from 'next';
 
 const nextConfig: NextConfig = {
@@ -32,7 +33,9 @@ const nextConfig: NextConfig = {
         "fs": false,
         "net": false,
         "tls": false,
-        "dns": false
+        "dns": false,
+        "crypto": false,
+        "stream": false,
       }
     }
 
