@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -36,6 +37,7 @@ import withAuth from '@/components/auth/withAuth';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { cn } from '@/lib/utils';
 import { requestNotificationPermission } from '@/lib/firebase-messaging-client';
+import { AuthProvider } from '@/context/AuthContext';
 
 const navSections = [
     {
@@ -270,4 +272,12 @@ function DashboardLayout({ children }: { children: ReactNode }) {
   );
 }
 
-export default withAuth(DashboardLayout);
+const AuthenticatedLayout = ({ children }: { children: ReactNode }) => {
+    return (
+        <AuthProvider>
+            <DashboardLayout>{children}</DashboardLayout>
+        </AuthProvider>
+    )
+}
+
+export default withAuth(AuthenticatedLayout);

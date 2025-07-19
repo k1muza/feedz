@@ -32,6 +32,14 @@ import {
 } from 'firebase/firestore';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
+import { S3Client, PutObjectCommand, ListObjectsV2Command, DeleteObjectCommand } from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { RecommendIngredientCombinationsInput, RecommendIngredientCombinationsOutput, recommendIngredientCombinations } from '@/ai/flows/recommend-ingredient-combinations';
+import { generateProductDetails, GenerateProductDetailsInput, GenerateProductDetailsOutput } from '@/ai/flows/generate-product-details';
+import { getNutrients } from '@/data/nutrients';
+import type { Conversation, Message } from '@/types/chat';
+import { routeInquiry } from '@/ai/flows/router';
+import { sendNewMessageNotification, sendUserNotification } from '@/lib/firebase-admin';
 
 
 const s3Client = new S3Client({
@@ -297,6 +305,8 @@ export async function addAdminMessage(uid: string, content: string): Promise<{ s
       lastMessage: adminMessage,
       adminHasUnreadMessages: false, // Admin message marks it as read
     });
+    // Send notification to the specific user
+    await sendUserNotification(uid, content);
     return { success: true };
   } catch (error: any) {
     console.error("Error sending admin message:", error);
@@ -570,7 +580,15 @@ export async function getPostBySlug(slug: string): Promise<BlogPost | null> {
       return null;
     }
     const docData = snapshot.docs[0];
-    return { id: docData.id, ...docData.data() } as BlogPost;
+    const postData = { id: docData.id, ...docData.data() } as BlogPost;
+
+    // Ensure image URL is absolute for social sharing
+    if (postData.image && !postData.image.startsWith('http')) {
+        const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://feedsport.co.zw';
+        postData.image = `${baseUrl}${postData.image}`;
+    }
+
+    return postData;
   } catch (error) {
     console.error(`Error fetching post by slug ${slug}:`, error);
     return null;

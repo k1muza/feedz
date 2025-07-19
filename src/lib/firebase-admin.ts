@@ -2,7 +2,7 @@
 'use server';
 
 import * as admin from 'firebase-admin';
-import { getFirestore, collection, getDocs } from 'firebase/firestore';
+import { getFirestore, collection, getDocs, doc, getDoc } from 'firebase/firestore';
 import { db } from './firebase'; // Use client-side db for reading tokens
 
 // Initialize Firebase Admin SDK if not already initialized
@@ -52,15 +52,53 @@ export async function sendNewMessageNotification(userId: string, messageContent:
 
     try {
         const response = await admin.messaging().sendEachForMulticast(message);
-        console.log('Notifications sent successfully:', response.successCount);
+        console.log('Notifications sent to admins successfully:', response.successCount);
         if (response.failureCount > 0) {
             response.responses.forEach(resp => {
                 if (!resp.success) {
-                    console.error('Failed to send notification:', resp.error);
+                    console.error('Failed to send admin notification:', resp.error);
                 }
             });
         }
     } catch (error) {
-        console.error('Error sending push notifications:', error);
+        console.error('Error sending push notifications to admins:', error);
+    }
+}
+
+
+export async function sendUserNotification(userId: string, messageContent: string) {
+    if (!admin.apps.length) {
+        console.log("Admin SDK not initialized. Skipping notification.");
+        return;
+    }
+
+    // Get the specific user's token
+    const tokenDocRef = doc(db, 'userFcmTokens', userId);
+    const tokenSnap = await getDoc(tokenDocRef);
+
+    if (!tokenSnap.exists()) {
+        console.log(`No FCM token found for user ${userId}.`);
+        return;
+    }
+
+    const token = tokenSnap.data().token;
+    if (!token) {
+        console.log(`Token field is empty for user ${userId}.`);
+        return;
+    }
+
+    const message = {
+        notification: {
+            title: 'New Message from Support',
+            body: messageContent.substring(0, 100),
+        },
+        token: token,
+    };
+
+    try {
+        const response = await admin.messaging().send(message);
+        console.log('Successfully sent message to user:', response);
+    } catch (error) {
+        console.error('Error sending message to user:', error);
     }
 }

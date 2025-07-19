@@ -1,10 +1,11 @@
+
 'use client';
 import { getMessaging, getToken, onMessage } from "firebase/messaging";
 import { app } from "./firebase";
 import { doc, setDoc } from 'firebase/firestore';
 import { db } from './firebase';
 
-export const requestNotificationPermission = async (userId: string) => {
+export const requestNotificationPermission = async (userId: string, isEndUser: boolean = false) => {
     if (typeof window === 'undefined' || !('Notification' in window)) {
         console.log("This browser does not support desktop notification");
         return;
@@ -19,8 +20,10 @@ export const requestNotificationPermission = async (userId: string) => {
             const currentToken = await getToken(messaging, { vapidKey: process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY });
             if (currentToken) {
                 console.log('FCM Token:', currentToken);
-                // Save the token to Firestore
-                const tokenRef = doc(db, 'fcmTokens', userId);
+                
+                // Save the token to the appropriate Firestore collection
+                const collectionName = isEndUser ? 'userFcmTokens' : 'fcmTokens';
+                const tokenRef = doc(db, collectionName, userId);
                 await setDoc(tokenRef, { token: currentToken, uid: userId }, { merge: true });
             } else {
                 console.log('No registration token available. Request permission to generate one.');
