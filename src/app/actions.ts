@@ -9,7 +9,7 @@ import { RecommendIngredientCombinationsInput, RecommendIngredientCombinationsOu
 import { routeInquiry } from '@/ai/flows/router';
 import { getNutrients } from '@/data/nutrients';
 import { db, rtdb } from '@/lib/firebase';
-import { sendNewMessageNotification } from '@/lib/firebase-admin';
+import { sendNewMessageNotification, sendUserNotification } from '@/lib/firebase-admin';
 import { AppSettings, BlogCategory, BlogPost, Composition, ContactInquiry, Ingredient, Invoice, NewsletterSubscription, Policy, Product, ProductCategory, User } from '@/types';
 import type { Conversation, Message } from '@/types/chat';
 import { DeleteObjectCommand, ListObjectsV2Command, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
@@ -32,14 +32,6 @@ import {
 } from 'firebase/firestore';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
-import { S3Client, PutObjectCommand, ListObjectsV2Command, DeleteObjectCommand } from "@aws-sdk/client-s3";
-import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-import { RecommendIngredientCombinationsInput, RecommendIngredientCombinationsOutput, recommendIngredientCombinations } from '@/ai/flows/recommend-ingredient-combinations';
-import { generateProductDetails, GenerateProductDetailsInput, GenerateProductDetailsOutput } from '@/ai/flows/generate-product-details';
-import { getNutrients } from '@/data/nutrients';
-import type { Conversation, Message } from '@/types/chat';
-import { routeInquiry } from '@/ai/flows/router';
-import { sendNewMessageNotification, sendUserNotification } from '@/lib/firebase-admin';
 
 
 const s3Client = new S3Client({
