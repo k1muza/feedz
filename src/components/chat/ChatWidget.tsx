@@ -82,9 +82,17 @@ export function ChatWidget() {
             
             setConversation(prev => {
                 const prevMessagesLength = prev?.messages.length || 0;
-                // Play sound only if a new message from the model arrives and the window is open
-                if (isOpen && !isFirstLoad && updatedMessages.length > prevMessagesLength && updatedMessages[updatedMessages.length - 1].role === 'model') {
+                
+                if (!isFirstLoad && updatedMessages.length > prevMessagesLength && updatedMessages[updatedMessages.length - 1].role === 'model') {
+                    // Play sound if tab is not focused
                     playNotificationSound();
+
+                    // Set app badge if chat is not open
+                    if (!isOpen) {
+                        if ('setAppBadge' in navigator) {
+                            navigator.setAppBadge(1).catch(error => console.error("Badge API error:", error));
+                        }
+                    }
                 }
 
                 return {
@@ -110,6 +118,10 @@ export function ChatWidget() {
   useEffect(() => {
     if (isOpen) {
       preload();
+      // Clear the badge when the user opens the chat
+      if ('clearAppBadge' in navigator) {
+        navigator.clearAppBadge().catch(error => console.error("Badge API error:", error));
+      }
     }
   }, [isOpen, preload]);
 
