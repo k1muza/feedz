@@ -1,3 +1,4 @@
+
 import SecondaryHero from '@/components/common/SecondaryHero';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -176,7 +177,7 @@ export default function AboutPage() {
         {/* Team CTA */}
         <section className="bg-white rounded-xl shadow-lg overflow-hidden max-w-7xl mx-auto">
           <div className="flex flex-col md:flex-row">
-            <div className="md:w-1/2 p-8 md:p-12 bg-white rounded-lg shadow-lg">
+            <div className="md:w-1/2 p-8 md:p-12 bg-white rounded-lg">
               <h2 className="text-3xl font-extrabold mb-4 text-gray-900">
                 Meet the FeedSport Specialists
               </h2>
