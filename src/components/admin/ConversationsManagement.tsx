@@ -4,7 +4,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Conversation, Message } from '@/types/chat';
 import { format, formatDistanceToNow } from 'date-fns';
-import { Bot, User, PowerOff, Send, Loader2, MailWarning, MailCheck } from 'lucide-react';
+import { Bot, User, PowerOff, Send, Loader2, MailWarning, MailCheck, Archive } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import ReactMarkdown from 'react-markdown';
 import { Switch } from '../ui/switch';
@@ -13,6 +13,7 @@ import { setAiSuspension, addAdminMessage, markConversationAsRead, getAppSetting
 import { rtdb } from '@/lib/firebase';
 import { ref, onValue } from 'firebase/database';
 import type { AppSettings } from '@/types';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface ConvoWithPresence extends Conversation {
     isOnline?: boolean;
@@ -178,6 +179,19 @@ export const ConversationsManagement = ({ initialConversations }: { initialConve
     }
   };
 
+  const archiveConversation = (id: string) => {
+    setConversations(prev => prev.filter(c => c.id !== id));
+    if (selectedConversation?.id === id) {
+      setSelectedConversation(null);
+    }
+    toast({
+        title: "Conversation Archived",
+        description: "The conversation has been removed from the list."
+    })
+    // In a real app, you would call a server action here to mark the conversation as archived.
+    // e.g., await archiveConversationAction(id);
+  };
+
   return (
     <div className="flex h-[calc(100vh-150px)] bg-gray-900 border border-gray-700 rounded-xl overflow-hidden">
       {/* Conversations sidebar */}
@@ -204,54 +218,77 @@ export const ConversationsManagement = ({ initialConversations }: { initialConve
         </div>
         
         <div className="flex-grow overflow-y-auto">
+          <AnimatePresence>
           {filteredConversations.length > 0 ? (
             filteredConversations.map(convo => (
-              <button
-                key={convo.id}
-                onClick={() => handleSelectConversation(convo)}
-                className={cn(
-                  "w-full text-left p-4 border-b border-gray-800 hover:bg-gray-800/50 transition-colors duration-150 flex justify-between items-start",
-                  selectedConversation?.id === convo.id 
-                    ? "bg-indigo-900/30 border-l-4 border-l-indigo-400" 
-                    : "bg-gray-900"
-                )}
-              >
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <div className={cn(
-                      "w-2 h-2 rounded-full flex-shrink-0",
-                      convo.isOnline ? "bg-green-400" : "bg-gray-600"
-                    )} title={convo.isOnline ? "Online" : "Offline"} />
-                    <p className="font-medium text-white truncate">
-                      {convo.lastMessage?.content || 'New Conversation'}
-                    </p>
-                    {convo.adminHasUnreadMessages && (
-                        <div className="w-2.5 h-2.5 rounded-full bg-indigo-400 flex-shrink-0" title="Unread messages"/>
-                    )}
+                <motion.div
+                    key={convo.id}
+                    className="relative"
+                    layout
+                    initial={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.3 }}
+                >
+                  <div className="absolute inset-y-0 right-0 bg-red-600 flex items-center justify-center w-20 text-white">
+                      <Archive className="w-6 h-6"/>
                   </div>
-                  
-                  <div className="flex items-center gap-2 text-xs text-gray-400 mt-1">
-                    <span className="truncate">ID: {convo.id}</span>
-                    <span className="text-gray-600">•</span>
-                    <span>
-                      {formatDistanceToNow(
-                        getTimestamp(convo.lastMessage?.timestamp || convo.startTime), 
-                        { addSuffix: true }
-                      )}
-                    </span>
-                  </div>
-                </div>
-                
-                <div className="flex flex-col items-end pl-2">
-                  {convo.aiSuspended ? (
-                    <span title="AI Suspended">
-                      <PowerOff className="w-4 h-4 text-amber-400" />
-                    </span>
-                  ) : (
-                    <Bot className="w-4 h-4 text-indigo-400" />
-                  )}
-                </div>
-              </button>
+                  <motion.div
+                    drag="x"
+                    dragConstraints={{ left: 0, right: 0 }}
+                    onDragEnd={(event, info) => {
+                        if (info.offset.x < -100) {
+                            archiveConversation(convo.id);
+                        }
+                    }}
+                    className="relative z-10"
+                  >
+                    <button
+                        onClick={() => handleSelectConversation(convo)}
+                        className={cn(
+                        "w-full text-left p-4 border-b border-gray-800 hover:bg-gray-800/50 transition-colors duration-150 flex justify-between items-start",
+                        selectedConversation?.id === convo.id 
+                            ? "bg-indigo-900/30 border-l-4 border-l-indigo-400" 
+                            : "bg-gray-900"
+                        )}
+                    >
+                        <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                            <div className={cn(
+                            "w-2 h-2 rounded-full flex-shrink-0",
+                            convo.isOnline ? "bg-green-400" : "bg-gray-600"
+                            )} title={convo.isOnline ? "Online" : "Offline"} />
+                            <p className="font-medium text-white truncate">
+                            {convo.lastMessage?.content || 'New Conversation'}
+                            </p>
+                            {convo.adminHasUnreadMessages && (
+                                <div className="w-2.5 h-2.5 rounded-full bg-indigo-400 flex-shrink-0" title="Unread messages"/>
+                            )}
+                        </div>
+                        
+                        <div className="flex items-center gap-2 text-xs text-gray-400 mt-1">
+                            <span className="truncate">ID: {convo.id}</span>
+                            <span className="text-gray-600">•</span>
+                            <span>
+                            {formatDistanceToNow(
+                                getTimestamp(convo.lastMessage?.timestamp || convo.startTime), 
+                                { addSuffix: true }
+                            )}
+                            </span>
+                        </div>
+                        </div>
+                        
+                        <div className="flex flex-col items-end pl-2">
+                        {convo.aiSuspended ? (
+                            <span title="AI Suspended">
+                            <PowerOff className="w-4 h-4 text-amber-400" />
+                            </span>
+                        ) : (
+                            <Bot className="w-4 h-4 text-indigo-400" />
+                        )}
+                        </div>
+                    </button>
+                  </motion.div>
+                </motion.div>
             ))
           ) : (
             <div className="flex flex-col items-center justify-center h-full p-8 text-center text-gray-500">
@@ -267,6 +304,7 @@ export const ConversationsManagement = ({ initialConversations }: { initialConve
               )}
             </div>
           )}
+          </AnimatePresence>
         </div>
       </div>
 
