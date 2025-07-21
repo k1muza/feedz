@@ -168,51 +168,50 @@ export async function getNewsletterSubscriptions(): Promise<NewsletterSubscripti
 
 // --- CHAT ACTIONS (RTDB) ---
 
-export async function startOrGetConversation(uid: string): Promise<Conversation> {
+export async function startOrGetConversation(uid: string): Promise<Conversation | null> {
   const chatRef = ref(rtdb, `chats/${uid}`);
   const snapshot = await get(chatRef);
 
   if (snapshot.exists()) {
     const data = snapshot.val();
-    const messages = data.messages ? Object.values(data.messages) as Message[] : [];
-    messages.sort((a, b) => a.timestamp - b.timestamp);
-    
-    return {
-      id: uid,
-      startTime: data.startTime,
-      messages: messages,
-      aiSuspended: data.aiSuspended || false,
-      lastMessage: data.lastMessage,
-      adminHasUnreadMessages: data.adminHasUnreadMessages || false,
-    };
-  } else {
-    // Create a new empty conversation
-    const newConversationData = {
-      startTime: serverTimestamp(),
-      messages: {},
-      lastMessage: null,
-      aiSuspended: false,
-      adminHasUnreadMessages: false,
-    };
-    
-    await set(chatRef, newConversationData);
-    
-    return { 
-      id: uid, 
-      startTime: Date.now(), 
-      messages: [],
-      aiSuspended: false,
-      lastMessage: undefined,
-      adminHasUnreadMessages: false,
-    };
+    // A conversation is only valid if it has messages
+    if (data.messages) {
+      const messages = Object.values(data.messages) as Message[];
+      messages.sort((a, b) => a.timestamp - b.timestamp);
+      
+      return {
+        id: uid,
+        startTime: data.startTime,
+        messages: messages,
+        aiSuspended: data.aiSuspended || false,
+        lastMessage: data.lastMessage,
+        adminHasUnreadMessages: data.adminHasUnreadMessages || false,
+      };
+    }
   }
+  
+  // Return null if no conversation exists or if it's empty
+  return null;
 }
 
 export async function addMessage(uid: string, content: string): Promise<Conversation> {
   const chatRef = ref(rtdb, `chats/${uid}`);
   const messagesRef = ref(rtdb, `chats/${uid}/messages`);
 
-  // 1. Add user message
+  // 1. Check if a conversation already exists.
+  const currentConversationSnap = await get(chatRef);
+  
+  // If no conversation exists, create it with the first message.
+  if (!currentConversationSnap.exists()) {
+    const newConversationData = {
+      startTime: serverTimestamp(),
+      aiSuspended: false,
+      adminHasUnreadMessages: true,
+    };
+    await set(chatRef, newConversationData);
+  }
+
+  // 2. Add user message
   const userMessage: Message = {
     role: 'user',
     content,
@@ -229,55 +228,65 @@ export async function addMessage(uid: string, content: string): Promise<Conversa
   // Send notification to admins
   await sendNewMessageNotification(uid, content);
 
-  // 2. Check if AI chat is enabled globally and for this specific conversation
-  const settings = await getAppSettings();
-  const currentConversation = await startOrGetConversation(uid); // Get the conversation state AFTER adding user message
-  const isAiSuspended = currentConversation.aiSuspended || false;
-
-  if (!settings.aiChatEnabled || isAiSuspended) {
-    return currentConversation;
-  }
-
-  // 3. Get AI response using the router flow
-  const historyForAI = currentConversation.messages.map(msg => ({ 
-    role: msg.role, 
-    content: msg.content 
-  }));
+  // 3. Get the full conversation state to pass to the AI
+  const conversationSnapAfterUserMessage = await get(chatRef);
+  const convoData = conversationSnapAfterUserMessage.val();
+  const allMessages = convoData.messages ? Object.values(convoData.messages) as Message[] : [];
+  allMessages.sort((a, b) => a.timestamp - b.timestamp);
   
-  const aiInput = { history: historyForAI };
+  // 4. Check if AI chat is enabled globally and for this specific conversation
+  const settings = await getAppSettings();
+  const isAiSuspended = convoData.aiSuspended || false;
 
-  try {
-    const aiResponseContent = await routeInquiry(aiInput);
+  if (settings.aiChatEnabled && !isAiSuspended) {
+    try {
+      const historyForAI = allMessages.map(msg => ({ 
+        role: msg.role, 
+        content: msg.content 
+      }));
+      const aiInput = { history: historyForAI };
+      const aiResponseContent = await routeInquiry(aiInput);
 
-    // 4. Add AI message
-    const aiMessage: Message = {
-      role: 'model',
-      content: aiResponseContent,
-      timestamp: Date.now(),
-    };
-    await push(messagesRef, aiMessage);
-    await update(chatRef, {
-      lastMessage: aiMessage,
-      adminHasUnreadMessages: true // Also mark AI messages as unread for the admin
-    });
-  } catch (error) {
-    console.error("Error getting AI response:", error);
-    // Optionally, add an error message to the chat
-    const errorMessage: Message = {
-      role: 'model',
-      content: 'Sorry, I encountered an error. An agent will be with you shortly.',
-      timestamp: Date.now(),
-    };
-    await push(messagesRef, errorMessage);
-    await update(chatRef, {
-      lastMessage: errorMessage,
-      adminHasUnreadMessages: true
-    });
+      const aiMessage: Message = {
+        role: 'model',
+        content: aiResponseContent,
+        timestamp: Date.now(),
+      };
+      await push(messagesRef, aiMessage);
+      await update(chatRef, {
+        lastMessage: aiMessage,
+        adminHasUnreadMessages: true
+      });
+    } catch (error) {
+      console.error("Error getting AI response:", error);
+      const errorMessage: Message = {
+        role: 'model',
+        content: 'Sorry, I encountered an error. An agent will be with you shortly.',
+        timestamp: Date.now(),
+      };
+      await push(messagesRef, errorMessage);
+      await update(chatRef, {
+        lastMessage: errorMessage,
+        adminHasUnreadMessages: true
+      });
+    }
   }
   
   // 5. Return the final state of the conversation
+  const finalSnap = await get(chatRef);
+  const finalData = finalSnap.val();
+  const finalMessages = finalData.messages ? Object.values(finalData.messages) as Message[] : [];
+  finalMessages.sort((a, b) => a.timestamp - b.timestamp);
+
   revalidatePath('/admin/conversations');
-  return startOrGetConversation(uid);
+  return {
+    id: uid,
+    startTime: finalData.startTime,
+    messages: finalMessages,
+    lastMessage: finalData.lastMessage,
+    aiSuspended: finalData.aiSuspended,
+    adminHasUnreadMessages: finalData.adminHasUnreadMessages
+  };
 }
 
 
@@ -326,18 +335,24 @@ export async function getConversations(): Promise<Conversation[]> {
     }
     
     const allChats = snapshot.val();
-    const conversations: Conversation[] = Object.keys(allChats).map(uid => {
-      const chatData = allChats[uid];
-      const messages = chatData.messages ? Object.values(chatData.messages) as Message[] : [];
-      return {
-        id: uid,
-        startTime: chatData.startTime,
-        messages: messages,
-        lastMessage: chatData.lastMessage,
-        aiSuspended: chatData.aiSuspended || false,
-        adminHasUnreadMessages: chatData.adminHasUnreadMessages || false,
-      };
-    });
+    const conversations: Conversation[] = Object.keys(allChats)
+      .map(uid => {
+        const chatData = allChats[uid];
+        // Only include conversations that have at least one message
+        if (!chatData.messages) {
+          return null;
+        }
+        const messages = Object.values(chatData.messages) as Message[];
+        return {
+          id: uid,
+          startTime: chatData.startTime,
+          messages: messages,
+          lastMessage: chatData.lastMessage,
+          aiSuspended: chatData.aiSuspended || false,
+          adminHasUnreadMessages: chatData.adminHasUnreadMessages || false,
+        };
+      })
+      .filter(Boolean) as Conversation[]; // Filter out the null values
 
     // Sort by last message timestamp, descending
     conversations.sort((a, b) => (b.lastMessage?.timestamp || 0) - (a.lastMessage?.timestamp || 0));
@@ -546,16 +561,34 @@ export async function getAllBlogPosts(): Promise<BlogPost[]> {
     if (snapshot.empty) {
       return [];
     }
-    return snapshot.docs.map(doc => {
-        const data = doc.data() as Omit<BlogPost, 'id'>;
+    const posts = await Promise.all(snapshot.docs.map(async doc => {
+        const data = doc.data() as Omit<BlogPost, 'id' | 'author'> & { author: any };
+        
+        let authorData: BlogPost['author'] = {
+            name: 'Deleted User',
+            role: 'N/A',
+            image: '/images/default-avatar.png'
+        };
+
+        // Check if author is a reference or an object
+        if (data.author && typeof data.author.get === 'function') { // It's a DocumentReference
+             const authorSnap = await getDoc(data.author);
+             if (authorSnap.exists()) {
+                 const user = authorSnap.data() as User;
+                 authorData = { name: user.name, role: user.role, image: user.image };
+             }
+        } else if (data.author && typeof data.author === 'object') { // It's a map
+            authorData = data.author;
+        }
+
         return {
             id: doc.id,
             ...data,
-            author: data.author && typeof data.author === 'object' && !('path' in data.author)
-                ? data.author
-                : { name: 'Deleted User', role: 'N/A', image: '/images/default-avatar.png' }
+            author: authorData
         };
-    }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    }));
+
+    return posts.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   } catch (error) {
     console.error("Error fetching blog posts:", error);
     return [];

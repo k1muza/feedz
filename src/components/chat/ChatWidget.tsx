@@ -77,7 +77,13 @@ export function ChatWidget() {
     const unsubscribe = onValue(chatRef, (snapshot) => {
         if (snapshot.exists()) {
             const updatedData = snapshot.val();
-            const updatedMessages = updatedData.messages ? Object.values(updatedData.messages) as Message[] : [];
+            // Only update if there are messages
+            if (!updatedData.messages) {
+                setConversation(null); // Clear conversation if it has no messages
+                return;
+            }
+
+            const updatedMessages = Object.values(updatedData.messages) as Message[];
             updatedMessages.sort((a, b) => a.timestamp - b.timestamp);
             
             setConversation(prev => {
@@ -105,6 +111,8 @@ export function ChatWidget() {
             });
 
             isFirstLoad = false;
+        } else {
+             setConversation(null);
         }
     });
     return () => unsubscribe();
@@ -127,18 +135,16 @@ export function ChatWidget() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newMessage.trim() || !conversation || !currentUser) return;
+    if (!newMessage.trim() || !currentUser) return;
 
     const userMessageContent = newMessage;
     setNewMessage('');
     
-    // Only show "typing" indicator if AI is not suspended
-    if (!conversation.aiSuspended) {
-      setIsLoading(true);
-    }
+    setIsLoading(true);
     
     try {
-      await addMessage(currentUser.uid, userMessageContent);
+      const updatedConversation = await addMessage(currentUser.uid, userMessageContent);
+      setConversation(updatedConversation);
     } catch (error) {
       console.error("Failed to send message:", error);
     } finally {
@@ -202,31 +208,32 @@ export function ChatWidget() {
 
             {/* Messages */}
             <div className="flex-1 p-4 space-y-4 overflow-y-auto">
-              {conversation?.messages.length === 0 && (
+              {!conversation?.messages || conversation.messages.length === 0 ? (
                 <div className="text-center text-gray-400 text-sm mt-8">
                   Ask a question about our products or for formulation advice to get started.
                 </div>
-              )}
-              {conversation?.messages.map((message, index) => (
-                <div key={index} className={cn("flex items-start gap-3", message.role === 'user' ? 'justify-end' : 'justify-start')}>
-                  {message.role === 'model' && (
-                    <div className="w-8 h-8 rounded-full bg-indigo-500/20 flex items-center justify-center flex-shrink-0">
-                      <Image src="/images/feedy.png" alt="Feedy Avatar" width={32} height={32} className="rounded-full" />
+              ) : (
+                conversation.messages.map((message, index) => (
+                  <div key={index} className={cn("flex items-start gap-3", message.role === 'user' ? 'justify-end' : 'justify-start')}>
+                    {message.role === 'model' && (
+                      <div className="w-8 h-8 rounded-full bg-indigo-500/20 flex items-center justify-center flex-shrink-0">
+                        <Image src="/images/feedy.png" alt="Feedy Avatar" width={32} height={32} className="rounded-full" />
+                      </div>
+                    )}
+                    <div className={cn(
+                      "p-3 rounded-lg max-w-lg prose prose-invert prose-sm",
+                      message.role === 'user' ? 'bg-gray-700' : 'bg-gray-900/80'
+                    )}>
+                      <ReactMarkdown>{message.content}</ReactMarkdown>
                     </div>
-                  )}
-                  <div className={cn(
-                    "p-3 rounded-lg max-w-lg prose prose-invert prose-sm",
-                    message.role === 'user' ? 'bg-gray-700' : 'bg-gray-900/80'
-                  )}>
-                    <ReactMarkdown>{message.content}</ReactMarkdown>
+                    {message.role === 'user' && (
+                      <div className="w-8 h-8 rounded-full bg-gray-600/50 flex items-center justify-center flex-shrink-0">
+                        <User className="w-5 h-5 text-gray-300" />
+                      </div>
+                    )}
                   </div>
-                  {message.role === 'user' && (
-                    <div className="w-8 h-8 rounded-full bg-gray-600/50 flex items-center justify-center flex-shrink-0">
-                      <User className="w-5 h-5 text-gray-300" />
-                    </div>
-                  )}
-                </div>
-              ))}
+                ))
+              )}
               {isLoading && (
                  <motion.div 
                     initial={{ opacity: 0, y: 10 }}

@@ -4,12 +4,12 @@
 import { useState, useEffect, useRef } from 'react';
 import { Conversation, Message } from '@/types/chat';
 import { format, formatDistanceToNow } from 'date-fns';
-import { Bot, User, PowerOff, Send, Loader2, MailWarning, MailCheck, Archive } from 'lucide-react';
+import { Bot, User, PowerOff, Send, Loader2, MailWarning, MailCheck, Archive, Wifi, WifiOff } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import ReactMarkdown from 'react-markdown';
 import { Switch } from '../ui/switch';
 import { useToast } from '../ui/use-toast';
-import { setAiSuspension, addAdminMessage, markConversationAsRead, getAppSettings } from '@/app/actions';
+import { setAiSuspension, addAdminMessage, markConversationAsRead, getAppSettings, getConversations } from '@/app/actions';
 import { rtdb } from '@/lib/firebase';
 import { ref, onValue } from 'firebase/database';
 import type { AppSettings } from '@/types';
@@ -26,93 +26,88 @@ export const ConversationsManagement = ({ initialConversations }: { initialConve
   const [isSending, setIsSending] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [appSettings, setAppSettings] = useState<AppSettings | null>(null);
+  const [filter, setFilter] = useState<'online' | 'all'>('online');
   const { toast } = useToast();
   const messagesEndRef = useRef<null | HTMLDivElement>(null);
 
-  const filteredConversations = conversations.filter(convo => 
-    convo.id.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    convo.lastMessage?.content.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredConversations = conversations.filter(convo => {
+    const searchMatch = convo.id.toLowerCase().includes(searchTerm.toLowerCase()) || 
+      convo.lastMessage?.content.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    if (filter === 'online') {
+      return convo.isOnline && searchMatch;
+    }
+    return searchMatch;
+  });
 
   useEffect(() => {
-    // Fetch global settings
     getAppSettings().then(setAppSettings);
 
-    // Listen for all conversations and statuses
     const chatsRef = ref(rtdb, 'chats');
     const statusRef = ref(rtdb, 'status');
 
-    const unsubscribeChats = onValue(chatsRef, (snapshot) => {
-        if (!snapshot.exists()) {
+    const handleDataUpdate = (allChats: any, allStatuses: any) => {
+        if (!allChats) {
             setConversations([]);
             return;
         }
 
-        const allChats = snapshot.val();
-        const updatedConversations: ConvoWithPresence[] = Object.keys(allChats).map(uid => {
-            const chatData = allChats[uid];
-            const messages = chatData.messages ? Object.values(chatData.messages) as Message[] : [];
-            return {
-                id: uid,
-                startTime: chatData.startTime,
-                messages: messages,
-                lastMessage: chatData.lastMessage,
-                aiSuspended: chatData.aiSuspended || false,
-                adminHasUnreadMessages: chatData.adminHasUnreadMessages || false,
-                isOnline: false, // Default to offline
-            };
-        });
+        const updatedConversations: ConvoWithPresence[] = Object.keys(allChats)
+            .map(uid => {
+                const chatData = allChats[uid];
+                if (!chatData.messages) return null; // Don't show empty conversations
+                
+                const messages = Object.values(chatData.messages) as Message[];
+                return {
+                    id: uid,
+                    startTime: chatData.startTime,
+                    messages: messages,
+                    lastMessage: chatData.lastMessage,
+                    aiSuspended: chatData.aiSuspended || false,
+                    adminHasUnreadMessages: chatData.adminHasUnreadMessages || false,
+                    isOnline: allStatuses?.[uid]?.isOnline || false,
+                };
+            })
+            .filter(Boolean) as ConvoWithPresence[];
 
-        setConversations(prev => {
-            const convoMap = new Map(prev.map(c => [c.id, c]));
-            updatedConversations.forEach(uc => {
-                const existing = convoMap.get(uc.id);
-                convoMap.set(uc.id, { ...existing, ...uc });
-            });
-            return Array.from(convoMap.values())
-                 .sort((a, b) => (b.lastMessage?.timestamp || 0) - (a.lastMessage?.timestamp || 0));
-        });
+        updatedConversations.sort((a, b) => (b.lastMessage?.timestamp || 0) - (a.lastMessage?.timestamp || 0));
+        setConversations(updatedConversations);
 
-        // If a conversation is selected, update its data
         setSelectedConversation(prev => {
             if (!prev) return null;
             const updated = allChats[prev.id];
             if (!updated) return null;
-
             const updatedMessages = updated.messages ? Object.values(updated.messages) as Message[] : [];
             updatedMessages.sort((a, b) => a.timestamp - b.timestamp);
-            
             return {
                 ...prev,
                 messages: updatedMessages,
                 lastMessage: updated.lastMessage,
                 aiSuspended: updated.aiSuspended || false,
                 adminHasUnreadMessages: updated.adminHasUnreadMessages || false,
+                isOnline: allStatuses?.[prev.id]?.isOnline || false,
             };
         });
-    });
-    
-    const unsubscribeStatus = onValue(statusRef, (snapshot) => {
-        if (!snapshot.exists()) return;
-        const allStatuses = snapshot.val();
-        setConversations(prev => prev.map(c => ({
-            ...c,
-            isOnline: allStatuses[c.id]?.isOnline || false,
-        })));
-        setSelectedConversation(prev => prev ? { ...prev, isOnline: allStatuses[prev.id]?.isOnline || false } : null);
+    };
+
+    let chatsData: any = null;
+    let statusesData: any = null;
+
+    const unsubscribeChats = onValue(chatsRef, (snapshot) => {
+        chatsData = snapshot.val();
+        handleDataUpdate(chatsData, statusesData);
     });
 
-    // Select first conversation on initial load if none selected
-    if (initialConversations.length > 0 && !selectedConversation) {
-        const firstUnread = initialConversations.find(c => c.adminHasUnreadMessages) || initialConversations[0];
-        handleSelectConversation(firstUnread);
-    }
+    const unsubscribeStatus = onValue(statusRef, (snapshot) => {
+        statusesData = snapshot.val();
+        handleDataUpdate(chatsData, statusesData);
+    });
     
     return () => {
         unsubscribeChats();
         unsubscribeStatus();
     };
-  }, []); // Run once on mount
+  }, []);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -198,7 +193,7 @@ export const ConversationsManagement = ({ initialConversations }: { initialConve
       <div className="w-1/3 border-r border-gray-700 flex flex-col bg-gray-900">
         <div className="p-4 border-b border-gray-700 bg-gray-900 sticky top-0 z-10">
           <h2 className="text-xl font-bold text-white mb-4">Conversations</h2>
-          <div className="relative">
+          <div className="relative mb-4">
             <input
               type="text"
               placeholder="Search conversations..."
@@ -215,6 +210,18 @@ export const ConversationsManagement = ({ initialConversations }: { initialConve
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
           </div>
+          <div className="flex bg-gray-800 p-1 rounded-lg">
+            <button
+                onClick={() => setFilter('online')}
+                className={cn('w-1/2 py-1 text-sm rounded-md transition-colors', filter === 'online' ? 'bg-indigo-600 text-white' : 'text-gray-400 hover:bg-gray-700')}>
+                Online
+            </button>
+            <button
+                onClick={() => setFilter('all')}
+                className={cn('w-1/2 py-1 text-sm rounded-md transition-colors', filter === 'all' ? 'bg-indigo-600 text-white' : 'text-gray-400 hover:bg-gray-700')}>
+                All
+            </button>
+          </div>
         </div>
         
         <div className="flex-grow overflow-y-auto">
@@ -223,7 +230,7 @@ export const ConversationsManagement = ({ initialConversations }: { initialConve
             filteredConversations.map(convo => (
                 <motion.div
                     key={convo.id}
-                    className="relative bg-gray-900"
+                    className="relative"
                     layout
                     initial={{ opacity: 1, height: 'auto' }}
                     exit={{ opacity: 0, height: 0 }}
@@ -293,7 +300,7 @@ export const ConversationsManagement = ({ initialConversations }: { initialConve
           ) : (
             <div className="flex flex-col items-center justify-center h-full p-8 text-center text-gray-500">
               <MailWarning className="w-12 h-12 mb-4 text-gray-600" />
-              <p>No conversations found</p>
+              <p>No {filter === 'online' ? 'online' : ''} conversations found</p>
               {searchTerm && (
                 <button 
                   onClick={() => setSearchTerm('')}
