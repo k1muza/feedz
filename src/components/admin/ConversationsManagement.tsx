@@ -223,7 +223,7 @@ export const ConversationsManagement = ({ initialConversations }: { initialConve
             filteredConversations.map(convo => (
                 <motion.div
                     key={convo.id}
-                    className="relative"
+                    className="relative bg-gray-900"
                     layout
                     initial={{ opacity: 1, height: 'auto' }}
                     exit={{ opacity: 0, height: 0 }}
@@ -240,15 +240,15 @@ export const ConversationsManagement = ({ initialConversations }: { initialConve
                             archiveConversation(convo.id);
                         }
                     }}
-                    className="relative z-10"
+                    className="relative z-10 bg-gray-900"
                   >
                     <button
                         onClick={() => handleSelectConversation(convo)}
                         className={cn(
-                        "w-full text-left p-4 border-b border-gray-800 hover:bg-gray-800/50 transition-colors duration-150 flex justify-between items-start",
+                        "w-full text-left p-4 border-b border-gray-800 hover:bg-gray-800 transition-colors duration-150 flex justify-between items-start",
                         selectedConversation?.id === convo.id 
                             ? "bg-indigo-900/30 border-l-4 border-l-indigo-400" 
-                            : "bg-gray-900"
+                            : ""
                         )}
                     >
                         <div className="flex-1 min-w-0">
