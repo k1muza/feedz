@@ -79,6 +79,7 @@ const navSections = [
       icon: SettingsIcon,
       links: [
         { path: '/admin/users', label: 'Users', icon: Users },
+        { path: '/admin/team', label: 'Team', icon: Users },
         { path: '/admin/settings', label: 'Settings', icon: SettingsIcon },
       ],
     },

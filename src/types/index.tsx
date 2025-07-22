@@ -41,6 +41,18 @@ export type User = {
     lastActive: string;
 };
 
+export type TeamMember = {
+    id: string;
+    name: string;
+    role: string;
+    image: string;
+    bio: string;
+    social: {
+        linkedin?: string;
+        email?: string;
+    };
+};
+
 
 export type BlogCategory = {
   id: string;

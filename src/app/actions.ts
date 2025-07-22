@@ -10,7 +10,7 @@ import { routeInquiry } from '@/ai/flows/router';
 import { getNutrients } from '@/data/nutrients';
 import { db, rtdb } from '@/lib/firebase';
 import { sendNewMessageNotification, sendUserNotification } from '@/lib/firebase-admin';
-import { AppSettings, BlogCategory, BlogPost, Composition, ContactInquiry, Ingredient, Invoice, NewsletterSubscription, Policy, Product, ProductCategory, User } from '@/types';
+import { AppSettings, BlogCategory, BlogPost, Composition, ContactInquiry, Ingredient, Invoice, NewsletterSubscription, Policy, Product, ProductCategory, User, TeamMember } from '@/types';
 import type { Conversation, Message } from '@/types/chat';
 import { DeleteObjectCommand, ListObjectsV2Command, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
@@ -781,6 +781,77 @@ export async function deleteUser(userId: string) {
     return { success: false, error: 'Failed to delete user.' };
   }
 }
+
+
+// --- TEAM MEMBER ACTIONS ---
+const teamMembersCollection = collection(db, 'teamMembers');
+
+const TeamMemberFormSchema = z.object({
+  name: z.string().min(1, 'Name is required'),
+  role: z.string().min(1, 'Role is required'),
+  bio: z.string().optional(),
+  image: z.string().url('A valid image URL is required'),
+  social: z.object({
+    linkedin: z.string().url().optional().or(z.literal('')),
+    email: z.string().email().optional().or(z.literal('')),
+  }).optional(),
+});
+
+export async function getAllTeamMembers(): Promise<TeamMember[]> {
+  try {
+    const snapshot = await getDocs(query(teamMembersCollection, orderBy('name')));
+    if (snapshot.empty) return [];
+    return snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...(doc.data() as Omit<TeamMember, 'id'>)
+    }));
+  } catch (error) {
+    console.error("Error fetching team members:", error);
+    return [];
+  }
+}
+
+export async function saveTeamMember(data: z.infer<typeof TeamMemberFormSchema>, memberId?: string) {
+  const validation = TeamMemberFormSchema.safeParse(data);
+  if (!validation.success) {
+    return { success: false, errors: validation.error.flatten().fieldErrors };
+  }
+
+  const payload = {
+    ...validation.data,
+    social: {
+      linkedin: data.social?.linkedin || '',
+      email: data.social?.email || ''
+    }
+  };
+
+  try {
+    if (memberId) {
+      await updateDoc(doc(db, 'teamMembers', memberId), payload);
+    } else {
+      await addDoc(teamMembersCollection, payload);
+    }
+    revalidatePath('/admin/team');
+    revalidatePath('/team');
+    return { success: true };
+  } catch (error) {
+    console.error('Error saving team member:', error);
+    return { success: false, errors: { _server: ['Failed to save team member.'] } };
+  }
+}
+
+export async function deleteTeamMember(memberId: string) {
+    try {
+        await deleteDoc(doc(db, "teamMembers", memberId));
+        revalidatePath('/admin/team');
+        revalidatePath('/team');
+        return { success: true };
+    } catch (error) {
+        console.error('Error deleting team member:', error);
+        return { success: false, error: 'Failed to delete team member.' };
+    }
+}
+
 
 
 // --- PRODUCT & INGREDIENT ACTIONS ---
