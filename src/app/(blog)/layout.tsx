@@ -1,13 +1,17 @@
 import Footer from "@/components/common/Footer";
 import NavBar from "@/components/common/NavBar";
-import { getAllProducts } from "../actions";
+import { ChatWidget } from "@/components/chat/ChatWidget";
+import { getAllProducts, getAppSettings } from "../actions";
 
 export default async function BlogLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const allProducts = await getAllProducts();
+  const [allProducts, settings] = await Promise.all([
+    getAllProducts(),
+    getAppSettings()
+  ]);
 
   const uniqueCategories = allProducts
     .map(p => p.ingredient?.category)
@@ -23,6 +27,7 @@ export default async function BlogLayout({
       <NavBar />
       {children}
       <Footer productCategories={uniqueCategories}/>
+      {settings.chatWidgetEnabled && <ChatWidget />}
     </>
   );
 }
