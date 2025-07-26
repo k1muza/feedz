@@ -1,7 +1,7 @@
 'use client';
 
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
-import { Globe, Users, File, TrafficCone, ArrowUpRight, Wifi, WifiOff } from 'lucide-react';
+import { Globe, Users, File, TrafficCone, ArrowUpRight, Wifi, WifiOff, Laptop, Smartphone, Tablet } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 
 interface RealtimeData {
@@ -12,7 +12,7 @@ interface RealtimeData {
   }>;
 }
 
-interface TrafficSource {
+interface ChartSource {
   name: string;
   value: number;
   color: string;
@@ -28,9 +28,19 @@ interface Country {
   users: number;
 }
 
+const DeviceIcon = ({ name }: { name: string }) => {
+    switch (name.toLowerCase()) {
+        case 'desktop': return <Laptop className="w-5 h-5 text-indigo-400" />;
+        case 'mobile': return <Smartphone className="w-5 h-5 text-indigo-400" />;
+        case 'tablet': return <Tablet className="w-5 h-5 text-indigo-400" />;
+        default: return <File className="w-5 h-5 text-indigo-400" />;
+    }
+}
+
 export const AnalyticsDashboard = () => {
   const [realtimeData, setRealtimeData] = useState<RealtimeData | null>(null);
-  const [trafficSources, setTrafficSources] = useState<TrafficSource[]>([]);
+  const [trafficSources, setTrafficSources] = useState<ChartSource[]>([]);
+  const [deviceData, setDeviceData] = useState<ChartSource[]>([]);
   const [topPages, setTopPages] = useState<TopPage[]>([]);
   const [countries, setCountries] = useState<Country[]>([]);
   const [loading, setLoading] = useState(true);
@@ -40,14 +50,15 @@ export const AnalyticsDashboard = () => {
   
   const eventSourceRef = useRef<EventSource | null>(null);
 
-  // Fetch static data (traffic sources, top pages, countries)
+  // Fetch static data (traffic sources, top pages, countries, devices)
   useEffect(() => {
     const fetchStaticData = async () => {
       try {
-        const [trafficRes, pagesRes, countriesRes] = await Promise.all([
+        const [trafficRes, pagesRes, countriesRes, devicesRes] = await Promise.all([
           fetch('/api/analytics/traffic-sources'),
           fetch('/api/analytics/top-pages'),
           fetch('/api/analytics/countries'),
+          fetch('/api/analytics/devices'),
         ]);
 
         if (trafficRes.ok) {
@@ -63,6 +74,11 @@ export const AnalyticsDashboard = () => {
         if (countriesRes.ok) {
           const countriesData = await countriesRes.json();
           if (countriesData.success) setCountries(countriesData.data);
+        }
+        
+        if (devicesRes.ok) {
+            const devicesData = await devicesRes.json();
+            if (devicesData.success) setDeviceData(devicesData.data);
         }
 
       } catch (err) {
@@ -188,10 +204,10 @@ export const AnalyticsDashboard = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-6">
         
         {/* Real-time Users */}
-        <div className="lg:col-span-1 bg-gradient-to-br from-gray-800/50 to-gray-900/50 border border-gray-700 rounded-xl p-5">
+        <div className="bg-gradient-to-br from-gray-800/50 to-gray-900/50 border border-gray-700 rounded-xl p-5">
           <h3 className="text-lg font-semibold text-white flex items-center gap-2 mb-4">
             <div className={`w-2 h-2 rounded-full ${
               connectionStatus === 'connected' ? 'bg-green-400 animate-ping' : 'bg-gray-400'
@@ -221,8 +237,7 @@ export const AnalyticsDashboard = () => {
         </div>
 
         {/* Traffic Sources & Top Pages */}
-        <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="bg-gradient-to-br from-gray-800/50 to-gray-900/50 border border-gray-700 rounded-xl p-5">
+        <div className="bg-gradient-to-br from-gray-800/50 to-gray-900/50 border border-gray-700 rounded-xl p-5">
             <h3 className="text-lg font-semibold text-white flex items-center gap-2 mb-4">
               <TrafficCone className="w-5 h-5 text-indigo-400"/> Traffic Sources
             </h3>
@@ -260,9 +275,49 @@ export const AnalyticsDashboard = () => {
                 </div>
               )}
             </div>
-          </div>
+        </div>
           
-          <div className="bg-gradient-to-br from-gray-800/50 to-gray-900/50 border border-gray-700 rounded-xl p-5">
+        <div className="bg-gradient-to-br from-gray-800/50 to-gray-900/50 border border-gray-700 rounded-xl p-5">
+            <h3 className="text-lg font-semibold text-white flex items-center gap-2 mb-4">
+              <DeviceIcon name="Device" /> Views by Device
+            </h3>
+            <div className="h-48">
+              {deviceData.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie 
+                      data={deviceData} 
+                      dataKey="value" 
+                      nameKey="name" 
+                      cx="50%" 
+                      cy="50%" 
+                      innerRadius={40} 
+                      outerRadius={60} 
+                      fill="#8884d8" 
+                      paddingAngle={5}
+                    >
+                      {deviceData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip 
+                      contentStyle={{
+                        backgroundColor: '#1f2937', 
+                        border: '1px solid #374151', 
+                        borderRadius: '0.5rem'
+                      }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="flex items-center justify-center h-full text-gray-500">
+                  No device data
+                </div>
+              )}
+            </div>
+        </div>
+        
+        <div className="bg-gradient-to-br from-gray-800/50 to-gray-900/50 border border-gray-700 rounded-xl p-5">
             <h3 className="text-lg font-semibold text-white flex items-center gap-2 mb-4">
               <File className="w-5 h-5 text-indigo-400"/> Top Pages (Last 7 Days)
             </h3>
@@ -282,7 +337,6 @@ export const AnalyticsDashboard = () => {
                 <div className="text-gray-500">No page data available</div>
               )}
             </div>
-          </div>
         </div>
       </div>
 
