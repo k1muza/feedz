@@ -2,8 +2,9 @@
 'use client';
 
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, TooltipProps } from 'recharts';
-import { Globe, Users, File, TrafficCone, ArrowUpRight, Wifi, WifiOff, Laptop, Smartphone, Tablet, Monitor, Chrome } from 'lucide-react';
+import { Globe, Users, File, TrafficCone, Wifi, WifiOff, Laptop, Smartphone, Tablet, Monitor, Chrome } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../ui/dialog';
 
 interface RealtimeData {
   activeUsers: number;
@@ -63,6 +64,8 @@ export const AnalyticsDashboard = () => {
   const [error, setError] = useState<string | null>(null);
   const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'disconnected'>('connecting');
   const [lastUpdate, setLastUpdate] = useState<string>('');
+  const [selectedPage, setSelectedPage] = useState<TopPage | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   
   const eventSourceRef = useRef<EventSource | null>(null);
 
@@ -176,6 +179,11 @@ export const AnalyticsDashboard = () => {
       }
     };
   }, []);
+
+  const handlePageClick = (page: TopPage) => {
+    setSelectedPage(page);
+    setIsModalOpen(true);
+  };
   
   const tooltipStyle = {
     backgroundColor: '#1f2937', 
@@ -211,7 +219,10 @@ export const AnalyticsDashboard = () => {
     );
   }
 
+  const liveUsersOnSelectedPage = realtimeData?.topPages.find(p => p.page === selectedPage?.page)?.users || 0;
+
   return (
+    <>
     <div className="space-y-8 mb-8">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold text-white">Analytics Overview</h2>
@@ -310,20 +321,24 @@ export const AnalyticsDashboard = () => {
             <h3 className="text-lg font-semibold text-white flex items-center gap-2 mb-4">
               <File className="w-5 h-5 text-indigo-400"/> Top Pages (Last 7 Days)
             </h3>
-            <div className="space-y-2 text-sm">
+            <div className="space-y-1 text-sm">
               <div className="flex justify-between text-gray-400 font-medium">
                 <p>Page</p><p>Views</p>
               </div>
               {topPages.slice(0, 6).map((page, index) => (
-                <div key={index} className="flex justify-between items-center text-gray-400 hover:bg-gray-800 p-1 rounded-md">
+                <button 
+                  key={index} 
+                  onClick={() => handlePageClick(page)}
+                  className="w-full flex justify-between items-center text-gray-400 hover:bg-gray-800 p-1 rounded-md text-left"
+                >
                   <span className="truncate" title={page.page}>
                     {page.page.length > 20 ? page.page.substring(0, 20) + '...' : page.page}
                   </span>
                   <span className="font-medium text-white">{page.views.toLocaleString()}</span>
-                </div>
+                </button>
               ))}
               {topPages.length === 0 && (
-                <div className="text-gray-500">No page data available</div>
+                <div className="text-gray-500 pt-4">No page data available</div>
               )}
             </div>
         </div>
@@ -477,5 +492,30 @@ export const AnalyticsDashboard = () => {
         </div>
       </div>
     </div>
+    
+    <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+      <DialogContent className="bg-gray-800/95 border-gray-700 text-white">
+        <DialogHeader>
+          <DialogTitle className="text-xl text-white">Page Insights</DialogTitle>
+          <DialogDescription className="text-gray-400 break-all">
+            {selectedPage?.page}
+          </DialogDescription>
+        </DialogHeader>
+        <div className="mt-4 space-y-4">
+          <div className="flex justify-between items-center bg-gray-700/50 p-4 rounded-lg">
+            <span className="font-medium text-gray-300">Live Users on this Page</span>
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-green-400 animate-ping"></div>
+              <span className="text-2xl font-bold text-green-400">{liveUsersOnSelectedPage}</span>
+            </div>
+          </div>
+          <div className="flex justify-between items-center bg-gray-700/50 p-4 rounded-lg">
+            <span className="font-medium text-gray-300">Total Views (Last 7 Days)</span>
+            <span className="text-2xl font-bold">{selectedPage?.views.toLocaleString()}</span>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+    </>
   );
 };
