@@ -163,6 +163,13 @@ export const AnalyticsDashboard = () => {
       }
     };
   }, []);
+  
+  const tooltipStyle = {
+    backgroundColor: '#1f2937', 
+    border: '1px solid #374151', 
+    borderRadius: '0.5rem',
+    color: '#d1d5db'
+  };
 
   if (loading) {
     return (
@@ -276,11 +283,7 @@ export const AnalyticsDashboard = () => {
                       ))}
                     </Pie>
                     <Tooltip 
-                      contentStyle={{
-                        backgroundColor: '#1f2937', 
-                        border: '1px solid #374151', 
-                        borderRadius: '0.5rem'
-                      }}
+                      contentStyle={tooltipStyle}
                     />
                   </PieChart>
                 </ResponsiveContainer>
@@ -340,11 +343,7 @@ export const AnalyticsDashboard = () => {
                       ))}
                     </Pie>
                     <Tooltip 
-                      contentStyle={{
-                        backgroundColor: '#1f2937', 
-                        border: '1px solid #374151', 
-                        borderRadius: '0.5rem'
-                      }}
+                      contentStyle={tooltipStyle}
                     />
                   </PieChart>
                 </ResponsiveContainer>
@@ -381,11 +380,7 @@ export const AnalyticsDashboard = () => {
                       ))}
                     </Pie>
                     <Tooltip 
-                      contentStyle={{
-                        backgroundColor: '#1f2937', 
-                        border: '1px solid #374151', 
-                        borderRadius: '0.5rem'
-                      }}
+                      contentStyle={tooltipStyle}
                     />
                   </PieChart>
                 </ResponsiveContainer>
@@ -422,11 +417,7 @@ export const AnalyticsDashboard = () => {
                       ))}
                     </Pie>
                     <Tooltip 
-                      contentStyle={{
-                        backgroundColor: '#1f2937', 
-                        border: '1px solid #374151', 
-                        borderRadius: '0.5rem'
-                      }}
+                      contentStyle={tooltipStyle}
                     />
                   </PieChart>
                 </ResponsiveContainer>
@@ -461,11 +452,7 @@ export const AnalyticsDashboard = () => {
                   width={80} 
                 />
                 <Tooltip 
-                  contentStyle={{
-                    backgroundColor: '#1f2937', 
-                    border: '1px solid #374151', 
-                    borderRadius: '0.5rem'
-                  }} 
+                  contentStyle={tooltipStyle}
                   cursor={{ fill: 'rgba(129, 140, 248, 0.1)' }}
                 />
                 <Bar dataKey="users" fill="#8884d8" barSize={20}>
