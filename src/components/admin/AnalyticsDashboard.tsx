@@ -1,7 +1,8 @@
+
 'use client';
 
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
-import { Globe, Users, File, TrafficCone, ArrowUpRight, Wifi, WifiOff, Laptop, Smartphone, Tablet, Monitor } from 'lucide-react';
+import { Globe, Users, File, TrafficCone, ArrowUpRight, Wifi, WifiOff, Laptop, Smartphone, Tablet, Monitor, Chrome } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 
 interface RealtimeData {
@@ -42,6 +43,7 @@ export const AnalyticsDashboard = () => {
   const [trafficSources, setTrafficSources] = useState<ChartSource[]>([]);
   const [deviceData, setDeviceData] = useState<ChartSource[]>([]);
   const [osData, setOsData] = useState<ChartSource[]>([]);
+  const [browserData, setBrowserData] = useState<ChartSource[]>([]);
   const [topPages, setTopPages] = useState<TopPage[]>([]);
   const [countries, setCountries] = useState<Country[]>([]);
   const [loading, setLoading] = useState(true);
@@ -55,12 +57,13 @@ export const AnalyticsDashboard = () => {
   useEffect(() => {
     const fetchStaticData = async () => {
       try {
-        const [trafficRes, pagesRes, countriesRes, devicesRes, osRes] = await Promise.all([
+        const [trafficRes, pagesRes, countriesRes, devicesRes, osRes, browserRes] = await Promise.all([
           fetch('/api/analytics/traffic-sources'),
           fetch('/api/analytics/top-pages'),
           fetch('/api/analytics/countries'),
           fetch('/api/analytics/devices'),
           fetch('/api/analytics/operating-system'),
+          fetch('/api/analytics/browser'),
         ]);
 
         if (trafficRes.ok) {
@@ -86,6 +89,11 @@ export const AnalyticsDashboard = () => {
         if (osRes.ok) {
             const osData = await osRes.json();
             if (osData.success) setOsData(osData.data);
+        }
+        
+        if (browserRes.ok) {
+            const browserData = await browserRes.json();
+            if (browserData.success) setBrowserData(browserData.data);
         }
 
       } catch (err) {
@@ -384,6 +392,47 @@ export const AnalyticsDashboard = () => {
               ) : (
                 <div className="flex items-center justify-center h-full text-gray-500">
                   No OS data
+                </div>
+              )}
+            </div>
+        </div>
+
+        {/* Views by Browser */}
+        <div className="bg-gradient-to-br from-gray-800/50 to-gray-900/50 border border-gray-700 rounded-xl p-5">
+            <h3 className="text-lg font-semibold text-white flex items-center gap-2 mb-4">
+              <Chrome className="w-5 h-5 text-indigo-400"/> Views by Browser
+            </h3>
+            <div className="h-48">
+              {browserData.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie 
+                      data={browserData} 
+                      dataKey="value" 
+                      nameKey="name" 
+                      cx="50%" 
+                      cy="50%" 
+                      innerRadius={40} 
+                      outerRadius={60} 
+                      fill="#8884d8" 
+                      paddingAngle={5}
+                    >
+                      {browserData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip 
+                      contentStyle={{
+                        backgroundColor: '#1f2937', 
+                        border: '1px solid #374151', 
+                        borderRadius: '0.5rem'
+                      }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="flex items-center justify-center h-full text-gray-500">
+                  No browser data
                 </div>
               )}
             </div>
