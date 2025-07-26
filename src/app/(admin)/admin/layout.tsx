@@ -27,6 +27,7 @@ import {
   Shield,
   Receipt,
   ChevronDown,
+  LayoutGrid,
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -60,6 +61,7 @@ const navSections = [
       title: 'Content',
       icon: FileText,
       links: [
+        { path: '/admin/content-dashboard', label: 'Content Overview', icon: LayoutGrid },
         { path: '/admin/blog', label: 'Blog', icon: FileText },
         { path: '/admin/assets', label: 'Assets', icon: ImageIcon },
         { path: '/admin/policies', label: 'Policies', icon: Shield },
@@ -142,10 +144,10 @@ function DashboardLayout({ children }: { children: ReactNode }) {
               title={sidebarCollapsed ? "Dashboard" : undefined}
             >
               <Home className="w-5 h-5" />
-              {!sidebarCollapsed && <span className="font-medium ml-3">Dashboard</span>}
+              {!sidebarCollapsed && <span className="font-medium ml-3">Analytics</span>}
               {sidebarCollapsed && (
                 <div className="absolute left-full ml-3 px-3 py-2 bg-gray-800 text-white text-sm rounded-md shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
-                  Dashboard
+                  Analytics
                 </div>
               )}
             </Link>
@@ -246,7 +248,7 @@ function DashboardLayout({ children }: { children: ReactNode }) {
               <Menu className="w-5 h-5" />
             </button>
             <h2 className="text-lg font-semibold text-gray-100">
-              {navSections.flatMap(s => s.links).find(item => isLinkActive(item.path))?.label || 'Dashboard'}
+              {navSections.flatMap(s => s.links).find(item => isLinkActive(item.path))?.label || 'Analytics'}
             </h2>
           </div>
           
