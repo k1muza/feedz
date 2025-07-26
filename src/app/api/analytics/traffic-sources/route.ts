@@ -1,6 +1,5 @@
-import { BetaAnalyticsDataClient } from '@google-analytics/data';
+import { analyticsDataClient } from '@/lib/google-analytics';
 import { NextRequest, NextResponse } from 'next/server';
-import path from 'path';
 
 interface TrafficSourcesResponse {
   success: boolean;
@@ -10,12 +9,6 @@ interface TrafficSourcesResponse {
     color: string;
   }>;
 }
-
-const analyticsDataClient = new BetaAnalyticsDataClient({
-  keyFilename: path.join(process.cwd(), 'google-credentials.json'),
-  projectId: process.env.GOOGLE_ANALYTICS_PROPERTY_ID,
-  scopes: ['https://www.googleapis.com/auth/analytics.readonly'],
-});
 
 const colorMap: { [key: string]: string } = {
   'direct': '#8884d8',

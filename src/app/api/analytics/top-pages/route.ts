@@ -1,6 +1,5 @@
-import { BetaAnalyticsDataClient } from '@google-analytics/data';
+import { analyticsDataClient } from '@/lib/google-analytics';
 import { NextRequest, NextResponse } from 'next/server';
-import path from 'path';
 
 interface TopPagesResponse {
   success: boolean;
@@ -9,12 +8,6 @@ interface TopPagesResponse {
     views: number;
   }>;
 }
-
-const analyticsDataClient = new BetaAnalyticsDataClient({
-  keyFilename: path.join(process.cwd(), 'google-credentials.json'),
-  projectId: process.env.GOOGLE_ANALYTICS_PROPERTY_ID,
-  scopes: ['https://www.googleapis.com/auth/analytics.readonly'],
-});
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
