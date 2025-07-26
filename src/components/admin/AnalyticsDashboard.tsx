@@ -1,7 +1,7 @@
 
 'use client';
 
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, TooltipProps } from 'recharts';
 import { Globe, Users, File, TrafficCone, ArrowUpRight, Wifi, WifiOff, Laptop, Smartphone, Tablet, Monitor, Chrome } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 
@@ -37,6 +37,19 @@ const DeviceIcon = ({ name }: { name: string }) => {
         default: return <Monitor className="w-5 h-5 text-indigo-400" />;
     }
 }
+
+// Custom Tooltip Component
+const CustomTooltip = ({ active, payload }: TooltipProps<number, string>) => {
+  if (active && payload && payload.length) {
+    return (
+      <div className="bg-gray-800 p-2 border border-gray-700 rounded-lg shadow-lg">
+        <p className="text-gray-200">{`${payload[0].name} : ${payload[0].value}`}</p>
+      </div>
+    );
+  }
+  return null;
+};
+
 
 export const AnalyticsDashboard = () => {
   const [realtimeData, setRealtimeData] = useState<RealtimeData | null>(null);
@@ -168,7 +181,6 @@ export const AnalyticsDashboard = () => {
     backgroundColor: '#1f2937', 
     border: '1px solid #374151', 
     borderRadius: '0.5rem',
-    color: '#d1d5db'
   };
 
   if (loading) {
@@ -282,9 +294,7 @@ export const AnalyticsDashboard = () => {
                         <Cell key={`cell-${index}`} fill={entry.color} />
                       ))}
                     </Pie>
-                    <Tooltip 
-                      contentStyle={tooltipStyle}
-                    />
+                    <Tooltip content={<CustomTooltip />} />
                   </PieChart>
                 </ResponsiveContainer>
               ) : (
@@ -342,9 +352,7 @@ export const AnalyticsDashboard = () => {
                         <Cell key={`cell-${index}`} fill={entry.color} />
                       ))}
                     </Pie>
-                    <Tooltip 
-                      contentStyle={tooltipStyle}
-                    />
+                    <Tooltip content={<CustomTooltip />} />
                   </PieChart>
                 </ResponsiveContainer>
               ) : (
@@ -379,9 +387,7 @@ export const AnalyticsDashboard = () => {
                         <Cell key={`cell-${index}`} fill={entry.color} />
                       ))}
                     </Pie>
-                    <Tooltip 
-                      contentStyle={tooltipStyle}
-                    />
+                    <Tooltip content={<CustomTooltip />} />
                   </PieChart>
                 </ResponsiveContainer>
               ) : (
@@ -416,9 +422,7 @@ export const AnalyticsDashboard = () => {
                         <Cell key={`cell-${index}`} fill={entry.color} />
                       ))}
                     </Pie>
-                    <Tooltip 
-                      contentStyle={tooltipStyle}
-                    />
+                    <Tooltip content={<CustomTooltip />} />
                   </PieChart>
                 </ResponsiveContainer>
               ) : (
