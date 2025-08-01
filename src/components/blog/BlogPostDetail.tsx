@@ -1,3 +1,4 @@
+
 'use client'
 
 import { BlogPost } from "@/types";
@@ -6,8 +7,36 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { RelatedPostsSidebar } from "./RelatedPostsSidebar";
 import { ShareButtons } from "./ShareButtons";
+import { useState } from "react";
+import { generateBlogPostAudio } from "@/app/actions";
+import { Loader2, Volume2 } from "lucide-react";
+import { useToast } from "@/components/ui/use-toast";
 
 export function BlogPostDetail({ post }: { post: BlogPost }) {
+    const [audioUrl, setAudioUrl] = useState<string | null>(null);
+    const [isGeneratingAudio, setIsGeneratingAudio] = useState(false);
+    const { toast } = useToast();
+
+    const handleReadAloud = async () => {
+        setIsGeneratingAudio(true);
+        setAudioUrl(null);
+        try {
+            // Prepare a simplified version of the content for TTS
+            const textToRead = `${post.title}. by ${post.author.name}. ${post.content}`;
+            const result = await generateBlogPostAudio({ text: textToRead });
+            setAudioUrl(result.audioDataUri);
+        } catch (error) {
+            console.error("Error generating audio:", error);
+            toast({
+                title: "Audio Generation Failed",
+                description: "We couldn't generate the audio for this post. Please try again later.",
+                variant: "destructive",
+            });
+        } finally {
+            setIsGeneratingAudio(false);
+        }
+    };
+
 
     const jsonLd = {
         '@context': 'https://schema.org',
@@ -35,11 +64,37 @@ export function BlogPostDetail({ post }: { post: BlogPost }) {
                     <article className="lg:w-2/3 bg-white p-6 md:p-10 rounded-2xl shadow-lg border border-gray-100">
                       <header className="mb-10">
                           {/* Category badge */}
-                          <div className="mb-4">
+                          <div className="mb-4 flex justify-between items-center">
                             <span className="inline-block bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium">
                               {post.category}
                             </span>
+                             <button
+                                onClick={handleReadAloud}
+                                disabled={isGeneratingAudio}
+                                className="flex items-center gap-2 px-3 py-1.5 text-sm bg-indigo-100 text-indigo-700 rounded-full hover:bg-indigo-200 transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
+                            >
+                                {isGeneratingAudio ? (
+                                    <>
+                                        <Loader2 className="w-4 h-4 animate-spin"/>
+                                        <span>Generating Audio...</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <Volume2 className="w-4 h-4"/>
+                                        <span>Read Aloud</span>
+                                    </>
+                                )}
+                            </button>
                           </div>
+                          
+                          {audioUrl && (
+                                <div className="my-6">
+                                    <audio controls autoPlay className="w-full">
+                                        <source src={audioUrl} type="audio/wav" />
+                                        Your browser does not support the audio element.
+                                    </audio>
+                                </div>
+                          )}
                           
                           {/* Title with better spacing */}
                           <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 leading-tight tracking-tight mb-6">

@@ -32,6 +32,7 @@ import {
 } from 'firebase/firestore';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
+import { generateAudio, TextToSpeechInput, TextToSpeechOutput } from '@/ai/flows/text-to-speech';
 
 
 const s3Client = new S3Client({
@@ -62,6 +63,13 @@ export async function getProductSuggestions(
 ): Promise<GenerateProductDetailsOutput> {
   return await generateProductDetails(input);
 }
+
+export async function generateBlogPostAudio(
+  input: TextToSpeechInput
+): Promise<TextToSpeechOutput> {
+  return await generateAudio(input);
+}
+
 
 // --- CONTACT & NEWSLETTER ACTIONS ---
 
