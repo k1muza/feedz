@@ -64,6 +64,7 @@ export async function getProductSuggestions(
   return await generateProductDetails(input);
 }
 
+// THIS IS DEPRECATED in favor of createAudioGenerationTask
 export async function generateBlogPostAudio(
   input: TextToSpeechInput
 ): Promise<TextToSpeechOutput> {
@@ -480,6 +481,26 @@ export async function deleteS3Asset(key: string) {
 
 const postsCollection = collection(db, 'blogPosts');
 const blogCategoriesCollection = collection(db, 'blogCategories');
+const backgroundTasksCollection = collection(db, 'backgroundTasks');
+
+// -- Audio Generation Task --
+export async function createAudioGenerationTask(blogPostId: string, text: string) {
+    try {
+        await addDoc(backgroundTasksCollection, {
+            type: 'generateAudio',
+            status: 'pending',
+            createdAt: Timestamp.now(),
+            payload: {
+                blogPostId,
+                text,
+            },
+        });
+        return { success: true };
+    } catch (error) {
+        console.error("Error creating audio generation task:", error);
+        return { success: false, error: "Could not create audio task." };
+    }
+}
 
 
 // -- Blog Category Actions --

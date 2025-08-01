@@ -10,9 +10,12 @@ import { AssetSelectionModal } from './AssetSelectionModal';
 import Image from 'next/image';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { saveBlogPost, getBlogCategories, getAllUsers, generateBlogPostAudio } from '@/app/actions';
+import { saveBlogPost, getBlogCategories, getAllUsers, createAudioGenerationTask } from '@/app/actions';
 import { useToast } from '../ui/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
+import { doc, onSnapshot } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+
 
 interface BlogPostFormProps {
   post?: BlogPost;
@@ -65,6 +68,23 @@ export const BlogPostForm = ({ post }: BlogPostFormProps) => {
 
   const featuredImage = watch('image');
   const audioUrl = watch('audioUrl');
+  
+  useEffect(() => {
+    if (!post?.id) return;
+    
+    // Listen for real-time updates on the blog post, specifically for the audioUrl
+    const unsub = onSnapshot(doc(db, "blogPosts", post.id), (doc) => {
+        const data = doc.data() as BlogPost;
+        if (data && data.audioUrl && data.audioUrl !== getValues('audioUrl')) {
+            setValue('audioUrl', data.audioUrl, { shouldValidate: true, shouldDirty: true });
+            setIsGeneratingAudio(false);
+            toast({ title: "Audio Ready!", description: "The audio for your post has been generated and saved." });
+        }
+    });
+
+    return () => unsub();
+
+  }, [post?.id, setValue, getValues, toast]);
 
   useEffect(() => {
     async function fetchData() {
@@ -95,6 +115,11 @@ export const BlogPostForm = ({ post }: BlogPostFormProps) => {
   }, [post, users, reset]);
 
   const handleGenerateAudio = async () => {
+    if (!post?.id) {
+        toast({ title: "Save Required", description: "Please save the post before generating audio.", variant: "destructive" });
+        return;
+    }
+
     const title = getValues('title');
     const content = getValues('content');
 
@@ -105,13 +130,14 @@ export const BlogPostForm = ({ post }: BlogPostFormProps) => {
 
     setIsGeneratingAudio(true);
     try {
-        const textToRead = `${title}. ${content}`;
-        const result = await generateBlogPostAudio({ text: textToRead });
-        setValue('audioUrl', result.audioDataUri, { shouldValidate: true, shouldDirty: true });
-        toast({ title: "Success", description: "Audio generated and URL is ready to be saved." });
+        const result = await createAudioGenerationTask(post.id, `${title}. ${content}`);
+        if(result.success){
+            toast({ title: "Processing Audio", description: "Audio generation has started. You will be notified when it's complete." });
+        } else {
+             throw new Error(result.error);
+        }
     } catch (error) {
-        toast({ title: "Error", description: "Failed to generate audio.", variant: "destructive" });
-    } finally {
+        toast({ title: "Error", description: (error as Error).message || "Failed to start audio generation.", variant: "destructive" });
         setIsGeneratingAudio(false);
     }
   };
@@ -130,7 +156,10 @@ export const BlogPostForm = ({ post }: BlogPostFormProps) => {
         title: 'Success!',
         description: `Post has been ${post ? 'updated' : 'published'}.`,
       });
-      router.push('/admin/blog');
+      if (!post) {
+        // If it's a new post, we need to redirect to the edit page to get the ID for audio generation
+        router.push('/admin/blog'); 
+      }
       router.refresh();
     } else {
       if (result.errors) {
@@ -328,15 +357,16 @@ export const BlogPostForm = ({ post }: BlogPostFormProps) => {
                  <button
                     type="button"
                     onClick={handleGenerateAudio}
-                    disabled={isGeneratingAudio}
-                    className="mt-2 w-full px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white rounded-lg flex items-center justify-center space-x-2 transition-colors disabled:opacity-70"
+                    disabled={isGeneratingAudio || !post?.id}
+                    className="mt-2 w-full px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white rounded-lg flex items-center justify-center space-x-2 transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
+                    title={!post?.id ? "Save the post first to enable audio generation" : ""}
                 >
                     {isGeneratingAudio ? (
                         <Loader2 className="w-4 h-4 animate-spin"/>
                     ) : (
                         <Volume2 className="w-4 h-4"/>
                     )}
-                    <span>{audioUrl ? 'Regenerate Audio' : 'Generate Audio'}</span>
+                    <span>{isGeneratingAudio ? 'Generating...' : (audioUrl ? 'Regenerate Audio' : 'Generate Audio')}</span>
                 </button>
                 <input type="hidden" {...register('audioUrl')} />
              </div>
