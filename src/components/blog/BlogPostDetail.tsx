@@ -63,6 +63,11 @@ export function BlogPostDetail({ post }: { post: BlogPost }) {
                                 </div>
                           )}
                           
+                          {/* Title with better spacing */}
+                          <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 leading-tight tracking-tight mb-6">
+                            {post.title}
+                          </h1>
+                          
                           {/* Author info with better spacing */}
                           <div className="flex flex-wrap items-center gap-4 text-gray-600">
                               <div className="flex items-center space-x-3">
