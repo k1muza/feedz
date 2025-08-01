@@ -560,6 +560,7 @@ const BlogFormSchema = z.object({
   image: z.string().url('Must be a valid URL'),
   tags: z.string().optional(),
   authorId: z.string().min(1, 'Author is required'),
+  audioUrl: z.string().url().optional(),
 });
 
 // Fetch all posts

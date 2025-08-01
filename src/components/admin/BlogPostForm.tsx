@@ -2,7 +2,7 @@
 'use client';
 
 import { BlogCategory, BlogPost, User } from '@/types';
-import { Save, ImageIcon, AlertCircle } from 'lucide-react';
+import { Save, ImageIcon, AlertCircle, Loader2, Volume2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { useForm, SubmitHandler } from 'react-hook-form';
@@ -10,7 +10,7 @@ import { AssetSelectionModal } from './AssetSelectionModal';
 import Image from 'next/image';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { saveBlogPost, getBlogCategories, getAllUsers } from '@/app/actions';
+import { saveBlogPost, getBlogCategories, getAllUsers, generateBlogPostAudio } from '@/app/actions';
 import { useToast } from '../ui/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 
@@ -26,6 +26,7 @@ const BlogFormSchema = z.object({
   image: z.string().url('A valid featured image URL is required'),
   tags: z.string().optional(),
   authorId: z.string().min(1, 'Author is required'),
+  audioUrl: z.string().url().optional(),
 });
 
 type FormValues = z.infer<typeof BlogFormSchema>;
@@ -36,6 +37,7 @@ export const BlogPostForm = ({ post }: BlogPostFormProps) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isGeneratingAudio, setIsGeneratingAudio] = useState(false);
   const [categories, setCategories] = useState<BlogCategory[]>([]);
   const [users, setUsers] = useState<User[]>([]);
 
@@ -44,6 +46,7 @@ export const BlogPostForm = ({ post }: BlogPostFormProps) => {
     handleSubmit,
     formState: { errors },
     setValue,
+    getValues,
     watch,
     reset,
   } = useForm<FormValues>({
@@ -56,8 +59,12 @@ export const BlogPostForm = ({ post }: BlogPostFormProps) => {
         image: post.image,
         tags: post.tags?.join(', '),
         authorId: '', // Will be set in useEffect
+        audioUrl: post.audioUrl,
     } : {},
   });
+
+  const featuredImage = watch('image');
+  const audioUrl = watch('audioUrl');
 
   useEffect(() => {
     async function fetchData() {
@@ -82,11 +89,33 @@ export const BlogPostForm = ({ post }: BlogPostFormProps) => {
         image: post.image,
         tags: post.tags?.join(', '),
         authorId: author?.id || '',
+        audioUrl: post.audioUrl,
       });
     }
   }, [post, users, reset]);
 
-  const featuredImage = watch('image');
+  const handleGenerateAudio = async () => {
+    const title = getValues('title');
+    const content = getValues('content');
+
+    if (!title || !content) {
+        toast({ title: "Content required", description: "Please enter a title and content before generating audio.", variant: "destructive" });
+        return;
+    }
+
+    setIsGeneratingAudio(true);
+    try {
+        const textToRead = `${title}. ${content}`;
+        const result = await generateBlogPostAudio({ text: textToRead });
+        setValue('audioUrl', result.audioDataUri, { shouldValidate: true, shouldDirty: true });
+        toast({ title: "Success", description: "Audio generated and URL is ready to be saved." });
+    } catch (error) {
+        toast({ title: "Error", description: "Failed to generate audio.", variant: "destructive" });
+    } finally {
+        setIsGeneratingAudio(false);
+    }
+  };
+
 
   const onSubmit: SubmitHandler<FormValues> = async (data) => {
     setIsSubmitting(true);
@@ -104,9 +133,7 @@ export const BlogPostForm = ({ post }: BlogPostFormProps) => {
       router.push('/admin/blog');
       router.refresh();
     } else {
-      // Handle server-side validation errors if any
       if (result.errors) {
-        // You can enhance this part to set individual field errors with setError
         setServerError(Object.values(result.errors).flat().join(', '));
       } else {
          setServerError('An unknown error occurred.');
@@ -288,6 +315,31 @@ export const BlogPostForm = ({ post }: BlogPostFormProps) => {
                  {errors.image && <p className="text-red-500 text-xs mt-1">{errors.image.message}</p>}
               </div>
             </div>
+             <div className="bg-gray-800/50 border border-gray-700 rounded-xl p-6">
+                <label className="block text-sm font-medium text-gray-300">Text-to-Speech Audio</label>
+                {audioUrl && (
+                    <div className="mt-2">
+                        <audio controls src={audioUrl} className="w-full">
+                            Your browser does not support the audio element.
+                        </audio>
+                        <p className="text-xs text-gray-400 mt-1 truncate">URL: {audioUrl}</p>
+                    </div>
+                )}
+                 <button
+                    type="button"
+                    onClick={handleGenerateAudio}
+                    disabled={isGeneratingAudio}
+                    className="mt-2 w-full px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white rounded-lg flex items-center justify-center space-x-2 transition-colors disabled:opacity-70"
+                >
+                    {isGeneratingAudio ? (
+                        <Loader2 className="w-4 h-4 animate-spin"/>
+                    ) : (
+                        <Volume2 className="w-4 h-4"/>
+                    )}
+                    <span>{audioUrl ? 'Regenerate Audio' : 'Generate Audio'}</span>
+                </button>
+                <input type="hidden" {...register('audioUrl')} />
+             </div>
           </div>
         </div>
       </form>

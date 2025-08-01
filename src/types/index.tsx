@@ -83,6 +83,7 @@ export const BlogPostSchema = z.object({
     image: z.string().url(),
   }),
   readingTime: z.string(),
+  audioUrl: z.string().url().optional(),
 });
 
 export type BlogPost = z.infer<typeof BlogPostSchema>;
