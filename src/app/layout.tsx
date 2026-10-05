@@ -64,9 +64,9 @@ export const metadata: Metadata = {
     },
   },
   icons: {
-    icon: '/favicon.png',
-    shortcut: '/favicon.png',
-    apple: '/favicon.png',
+    icon: '/favicon.webp',
+    shortcut: '/favicon.webp',
+    apple: '/favicon.webp',
   },
 };
 
@@ -78,7 +78,7 @@ const organizationJsonLd = {
       '@id': `${siteConfig.url}/#organization`,
       name: siteConfig.name,
       url: siteConfig.url,
-      logo: absoluteUrl('/favicon.png'),
+      logo: absoluteUrl('/favicon.webp'),
       email: siteConfig.email,
       telephone: siteConfig.phone,
       address: {

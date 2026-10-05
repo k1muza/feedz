@@ -16,7 +16,7 @@ export const siteConfig = {
 } as const;
 
 export const socialImage = {
-  url: '/opengraph-image.png',
+  url: '/opengraph-image.webp',
   width: 1024,
   height: 1024,
   alt: 'FeedSport International animal nutrition and feed ingredients',

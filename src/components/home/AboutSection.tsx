@@ -52,7 +52,7 @@ export default function AboutSection() {
                   <Image
                     width={500}
                     height={500}
-                    src="/images/egg-compare.jpg"
+                    src="/images/egg-compare.webp"
                     alt="Poultry farm"
                     className="w-full h-48 object-cover" />
                 </div>
@@ -60,7 +60,7 @@ export default function AboutSection() {
                   <Image
                     width={500}
                     height={500}
-                    src="/images/farm-2.png"
+                    src="/images/farm-2.webp"
                     alt="Cattle farm"
                     className="w-full h-48 object-cover" />
                 </div>

@@ -6,14 +6,14 @@ import { FaStar } from 'react-icons/fa';
 export default function TestimonialsSection() {
   const testimonials = [
     {
-      image: "/images/farmer-1.png",
+      image: "/images/farmer-1.webp",
       name: "James Mhashu",
       farm: "JJ Poultry Farm",
       rating: 5,
       quote: "Since switching to FeedSport, my egg production has increased by 20% and my birds are healthier than ever before."
     },
     {
-      image: "/images/farmer-2.png",
+      image: "/images/farmer-2.webp",
       name: "Pamela Choto",
       farm: "Choto Dairy Farm",
       rating: 5,
