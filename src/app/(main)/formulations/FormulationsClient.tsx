@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { analyzeDiet, type AnalyzedNutrient, type DietFormula } from '@/lib/diet-formula';
-import { downloadFile } from '@/lib/download';
 import { ingredientDefaultPricePerKg } from '@/lib/feed-ingredient-prices';
 import type { FormulationAlternativeKind, FormulationIngredientSuggestionResult, LeastCostFormulationResult } from '@/lib/feed-optimizer';
 import { feedProgrammeById, feedProgrammePhaseById } from '@/lib/feed-programmes';
@@ -73,7 +72,6 @@ export default function FormulationsClient() {
   const [formulationNote, setFormulationNote] = useState<string | null>(null);
   const [downloadableFormulation, setDownloadableFormulation] = useState<DownloadableFormulation | null>(null);
   const [downloadingPdf, setDownloadingPdf] = useState(false);
-  const [savingPdf, setSavingPdf] = useState(false);
   const [downloadError, setDownloadError] = useState<string | null>(null);
   const lastAutomaticFormulaKey = useRef<string | null>(null);
   const [programmeId, setProgrammeId] = useState(programmeChoices[0].id);
@@ -370,29 +368,6 @@ export default function FormulationsClient() {
     }
   }
 
-  async function saveDetailedPdf() {
-    if (!downloadableFormulation || !selectedPhase) return;
-    setSavingPdf(true);
-    setDownloadError(null);
-    try {
-      const response = await fetch('/api/feed-formulation/report', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ programmeId, phaseId, ...downloadableFormulation }),
-      });
-      if (!response.ok) {
-        const error = await response.json().catch(() => null) as { message?: string } | null;
-        throw new Error(error?.message ?? 'Could not download the formulation PDF.');
-      }
-      const phaseName = selectedPhase.label.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-      downloadFile(await response.arrayBuffer(), `feedsport-${phaseName}-formulation.pdf`, 'application/pdf');
-    } catch (error) {
-      setDownloadError(error instanceof Error ? error.message : String(error));
-    } finally {
-      setSavingPdf(false);
-    }
-  }
-
   return (
     <main className="fs-page bg-[#f3f0e8] [container-type:inline-size]">
       <p className="fs-mono mb-2.5 mt-0 text-[12px] uppercase tracking-[.08em] text-[#4f524b]">Formulation</p>
@@ -425,7 +400,7 @@ export default function FormulationsClient() {
           {downloadError ? <div className="border-t border-[#ece8de] bg-[#f6e0d9] px-5 py-3 text-[13px] leading-5 text-[#8f3420]">{downloadError}</div> : null}
           {formulationNote ? <div className="border-t border-[#ece8de] bg-[#e3eadf] px-5 py-3 text-[13px] leading-5 text-[#1f5c38]">{formulationNote}</div> : null}
           {ingredientPickerOpen ? <div className="flex flex-wrap items-end gap-2 border-t border-[#ece8de] bg-[#f3f0e8] px-5 py-4"><label className="flex min-w-[220px] flex-1 flex-col gap-1.5"><span className="text-[12px] font-semibold text-[#4f524b]">Ingredient to add</span><select autoFocus value={ingredientToAdd} onChange={(event) => setIngredientToAdd(event.target.value)} className="h-[42px] rounded-[4px] border border-[#bdb7a9] bg-white px-3 text-[14px] text-[#191b18]">{ingredientsAvailableToAdd.map((ingredient) => <option key={ingredient.engineId} value={ingredient.engineId}>{ingredient.name}</option>)}</select></label><button type="button" onClick={addIngredient} className="h-[42px] rounded-[4px] bg-[#1d3a2a] px-4 text-[14px] font-semibold text-white">Add</button><button type="button" onClick={() => setIngredientPickerOpen(false)} className="h-[42px] rounded-[4px] border border-[#bdb7a9] bg-transparent px-4 text-[14px] font-semibold">Cancel</button></div> : null}
-          <div className="flex flex-wrap gap-2.5 border-t border-[#d9d4c7] px-5 py-4"><button type="button" onClick={() => void calculateFormula()} disabled={balancing || !selectedPhase} className="h-[42px] rounded-[4px] border-[1.5px] border-[#191b18] bg-transparent px-4 text-[14px] font-semibold disabled:cursor-not-allowed disabled:opacity-40">{balancing ? 'Formulating…' : 'Formulate'}</button><button type="button" onClick={openIngredientPicker} disabled={ingredientsAvailableToAdd.length === 0 || ingredientPickerOpen || balancing} className="h-[42px] rounded-[4px] border-[1.5px] border-[#191b18] bg-transparent px-4 text-[14px] font-semibold disabled:cursor-not-allowed disabled:opacity-40">Add ingredient</button><a href={quoteHref} className="inline-flex h-[42px] items-center rounded-[4px] bg-[#d99a2b] px-4 text-[14px] font-semibold text-[#191b18] no-underline">Quote ingredients</a><button type="button" onClick={() => void openDetailedPdf()} disabled={!downloadableFormulation || balancing || downloadingPdf || savingPdf} title={downloadableFormulation ? 'Open the detailed formulation PDF in a new tab' : 'Formulate the recipe before viewing the PDF'} className="h-[42px] rounded-[4px] border-[1.5px] border-[#191b18] bg-[#fbfaf6] px-4 text-[14px] font-semibold text-[#191b18] disabled:cursor-not-allowed disabled:opacity-40">{downloadingPdf ? 'Opening PDF…' : 'View PDF'}</button><button type="button" onClick={() => void saveDetailedPdf()} disabled={!downloadableFormulation || balancing || downloadingPdf || savingPdf} title={downloadableFormulation ? 'Download the detailed formulation PDF' : 'Formulate the recipe before downloading the PDF'} className="h-[42px] rounded-[4px] bg-[#1d3a2a] px-4 text-[14px] font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40">{savingPdf ? 'Downloading…' : 'Download PDF'}</button></div>
+          <div className="flex flex-wrap gap-2.5 border-t border-[#d9d4c7] px-5 py-4"><button type="button" onClick={() => void calculateFormula()} disabled={balancing || !selectedPhase} className="h-[42px] rounded-[4px] border-[1.5px] border-[#191b18] bg-transparent px-4 text-[14px] font-semibold disabled:cursor-not-allowed disabled:opacity-40">{balancing ? 'Formulating…' : 'Formulate'}</button><button type="button" onClick={openIngredientPicker} disabled={ingredientsAvailableToAdd.length === 0 || ingredientPickerOpen || balancing} className="h-[42px] rounded-[4px] border-[1.5px] border-[#191b18] bg-transparent px-4 text-[14px] font-semibold disabled:cursor-not-allowed disabled:opacity-40">Add ingredient</button><a href={quoteHref} className="inline-flex h-[42px] items-center rounded-[4px] bg-[#d99a2b] px-4 text-[14px] font-semibold text-[#191b18] no-underline">Quote ingredients</a><button type="button" onClick={() => void openDetailedPdf()} disabled={!downloadableFormulation || balancing || downloadingPdf} title={downloadableFormulation ? 'Open the detailed formulation PDF in a new tab' : 'Formulate the recipe before viewing the PDF'} className="h-[42px] rounded-[4px] border-[1.5px] border-[#191b18] bg-[#fbfaf6] px-4 text-[14px] font-semibold text-[#191b18] disabled:cursor-not-allowed disabled:opacity-40">{downloadingPdf ? 'Opening PDF…' : 'View PDF'}</button></div>
         </section>
 
         <section className="rounded-[6px] border border-[#d9d4c7] bg-[#fbfaf6] px-5 pb-4">
