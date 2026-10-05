@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import DesignPlaceholder from '@/components/common/DesignPlaceholder';
+import { siteImages } from '@/data/unsplashImages';
 import { createPageMetadata } from '@/lib/seo';
 
 export const metadata: Metadata = createPageMetadata({
@@ -34,7 +35,7 @@ export default function AboutPage() {
 
       <section className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,300px),1fr))] gap-x-10 gap-y-5 border-t-2 border-[#191b18] py-7">
         <div><h2 className="m-0 text-[24px] font-bold">People behind the feed</h2><p className="mb-0 mt-2 text-[16px] leading-[1.55] text-[#3d403a]">Product knowledge, formulation support and delivery coordination sit together, so a technical question does not get lost between departments.</p><Link href="/team" className="mt-5 inline-flex h-[42px] items-center rounded-[4px] border-[1.5px] border-[#191b18] px-4 text-[14px] font-semibold text-[#191b18] no-underline">Meet the team →</Link></div>
-        <DesignPlaceholder label="team at work: loading, mixing, sampling" className="aspect-[3/2] rounded-[6px]"/>
+        <DesignPlaceholder label="team at work: loading, mixing, sampling" image={siteImages.warehouse} sizes="(min-width: 1024px) 50vw, 100vw" className="aspect-[3/2] rounded-[6px]"/>
       </section>
 
       <section className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,300px),1fr))] gap-x-10 gap-y-5 border-t-2 border-[#191b18] py-7">

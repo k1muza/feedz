@@ -1,4 +1,6 @@
 import { ReactNode } from 'react';
+import Image from 'next/image';
+import type { UnsplashImage } from '@/data/unsplashImages';
 
 type DesignPlaceholderProps = {
   label: string;
@@ -6,6 +8,10 @@ type DesignPlaceholderProps = {
   strong?: boolean;
   compact?: boolean;
   labelPosition?: 'top' | 'bottom';
+  // When set, the photo covers the placeholder; the striped background shows while it loads.
+  image?: UnsplashImage;
+  sizes?: string;
+  priority?: boolean;
   children?: ReactNode;
 };
 
@@ -15,11 +21,18 @@ export default function DesignPlaceholder({
   strong = false,
   compact = false,
   labelPosition = 'bottom',
+  image,
+  sizes = '(min-width: 1024px) 33vw, 100vw',
+  priority = false,
   children,
 }: DesignPlaceholderProps) {
   return (
     <div className={`fs-placeholder ${strong ? 'fs-placeholder--strong' : ''} ${compact ? 'fs-placeholder--compact' : ''} ${className}`}>
-      <span className={`fs-placeholder__label ${labelPosition === 'top' ? 'fs-placeholder__label--top' : ''}`}>{label}</span>
+      {image ? (
+        <Image src={image.src} alt={image.alt} title={`Photo: ${image.photographer} on Unsplash`} fill sizes={sizes} priority={priority} className="object-cover" />
+      ) : (
+        <span className={`fs-placeholder__label ${labelPosition === 'top' ? 'fs-placeholder__label--top' : ''}`}>{label}</span>
+      )}
       {children}
     </div>
   );

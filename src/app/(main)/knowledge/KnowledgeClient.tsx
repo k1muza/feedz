@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import DesignPlaceholder from '@/components/common/DesignPlaceholder';
+import { knowledgeImages } from '@/data/unsplashImages';
 
 const topics = ['All', 'Pig nutrition', 'Poultry nutrition', 'Cattle nutrition', 'Feed ingredients', 'Feed formulation', 'Farm economics', 'Feed manufacturing'];
 const articles = [
@@ -29,10 +30,10 @@ export default function KnowledgeClient() {
 
       {lead ? <>
         <article className="mb-9 grid grid-cols-[repeat(auto-fit,minmax(min(100%,420px),1fr))] items-center gap-[clamp(20px,3cqi,40px)] border-b border-[#d9d4c7] pb-9">
-          <DesignPlaceholder label={lead.image} strong className="aspect-[16/10] rounded-[6px]"/>
+          <DesignPlaceholder label={lead.image} image={knowledgeImages[lead.image]} sizes="(min-width: 1024px) 50vw, 100vw" priority strong className="aspect-[16/10] rounded-[6px]"/>
           <div className="flex flex-col gap-3.5"><span className="fs-mono text-[12px] font-semibold uppercase tracking-[.08em] text-[#1d3a2a]">{lead.topic}</span><h2 className="m-0 text-balance text-[clamp(28px,3.2cqi,46px)] font-bold leading-[1.05] tracking-[-.02em]">{lead.title}</h2><p className="m-0 text-[17px] leading-[1.55] text-[#3d403a]">{lead.excerpt}</p><div className="flex flex-wrap items-center gap-1.5"><span className="mr-1 text-[13px] text-[#4f524b]">Ingredients mentioned</span>{lead.ingredients.map((ingredient) => <Link key={ingredient} href={`/search?q=${encodeURIComponent(ingredient)}`} className="inline-flex h-[30px] items-center rounded-full border border-[#d9d4c7] bg-[#fbfaf6] px-3 text-[13px] font-semibold text-[#191b18] no-underline">{ingredient}</Link>)}</div></div>
         </article>
-        <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,300px),1fr))] gap-x-4 gap-y-7">{rest.map((article) => <article key={article.title} className="flex flex-col gap-3"><DesignPlaceholder label={article.image} className="aspect-[3/2] rounded-[6px]"/><span className="fs-label font-semibold text-[#1d3a2a]">{article.topic}</span><h2 className="m-0 text-pretty text-[21px] font-bold leading-[1.2]">{article.title}</h2><p className="m-0 text-[15px] leading-[1.5] text-[#4f524b]">{article.excerpt}</p></article>)}</div>
+        <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,300px),1fr))] gap-x-4 gap-y-7">{rest.map((article) => <article key={article.title} className="flex flex-col gap-3"><DesignPlaceholder label={article.image} image={knowledgeImages[article.image]} sizes="(min-width: 1024px) 33vw, 100vw" className="aspect-[3/2] rounded-[6px]"/><span className="fs-label font-semibold text-[#1d3a2a]">{article.topic}</span><h2 className="m-0 text-pretty text-[21px] font-bold leading-[1.2]">{article.title}</h2><p className="m-0 text-[15px] leading-[1.5] text-[#4f524b]">{article.excerpt}</p></article>)}</div>
       </> : <div className="rounded-[6px] border border-[#d9d4c7] bg-[#fbfaf6] p-[clamp(24px,4cqi,48px)]"><h2 className="m-0 text-[24px] font-bold">No guides in this topic yet.</h2></div>}
       <p className="fs-mono mb-0 mt-8 text-[11px] text-[#4f524b]">Article titles are placeholders. Content comes from the existing CMS-managed blog, grouped by topic.</p>
     </main>

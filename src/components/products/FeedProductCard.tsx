@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import DesignPlaceholder from '@/components/common/DesignPlaceholder';
+import { productImages } from '@/data/unsplashImages';
 import type { FeedProduct } from '@/data/feedProducts';
 
 const statusColour = { 'In stock': 'bg-[#2e7d4f]', Limited: 'bg-[#b7791f]', 'On request': 'bg-[#6b6f66]' };
@@ -8,7 +9,7 @@ export default function FeedProductCard({ product, showDescription = true }: { p
   return (
     <article className="fs-card flex h-full flex-col">
       <Link href={`/products/${product.id}`} aria-label={`View ${product.name}`} className="relative block aspect-[16/10] text-[#191b18] no-underline">
-        <DesignPlaceholder label={product.imageLabel} className="h-full w-full rounded-none" />
+        <DesignPlaceholder label={product.imageLabel} image={productImages[product.id]} sizes="(min-width: 1024px) 25vw, (min-width: 640px) 50vw, 100vw" className="h-full w-full rounded-none" />
         <span className="absolute left-3 top-3 inline-flex h-6 items-center gap-1.5 rounded-[3px] bg-[#fbfaf6] px-[9px] text-[12px] font-semibold"><i className={`h-[7px] w-[7px] rounded-full ${statusColour[product.status]}`} />{product.status}</span>
       </Link>
       <div className="flex flex-col gap-1 px-4 pt-4"><span className="fs-label text-[#4f524b]">{product.category}</span><h3 className="m-0 text-[19px] font-bold leading-[1.2] tracking-[-.01em]">{product.name}</h3><span className="text-[13px] text-[#4f524b]">{product.grade}</span></div>

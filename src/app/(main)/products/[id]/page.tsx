@@ -2,6 +2,7 @@ import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import DesignPlaceholder from '@/components/common/DesignPlaceholder';
+import { productImages } from '@/data/unsplashImages';
 import FeedProductCard from '@/components/products/FeedProductCard';
 import ProductSpecification from '@/components/products/ProductSpecification';
 import { animalNames } from '@/data/feedProducts';
@@ -67,7 +68,7 @@ export default async function ProductPage({ params }: Props) {
 
       <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,440px),1fr))] items-stretch gap-[clamp(24px,4cqi,56px)]">
         <div className="flex min-h-[300px] flex-col gap-2.5">
-          <DesignPlaceholder strong label={`product photo — ${product.imageLabel}`} className="min-h-[300px] flex-1 rounded-[6px] [&_.fs-placeholder__label]:bottom-[14px] [&_.fs-placeholder__label]:left-4 [&_.fs-placeholder__label]:text-[12px] [&_.fs-placeholder__label]:text-[#5d5e56]" />
+          <DesignPlaceholder strong label={`product photo — ${product.imageLabel}`} image={productImages[product.id]} sizes="(min-width: 1024px) 50vw, 100vw" priority className="min-h-[300px] flex-1 rounded-[6px] [&_.fs-placeholder__label]:bottom-[14px] [&_.fs-placeholder__label]:left-4 [&_.fs-placeholder__label]:text-[12px] [&_.fs-placeholder__label]:text-[#5d5e56]" />
         </div>
 
         <div className="flex flex-col gap-[22px]">
