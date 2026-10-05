@@ -1,0 +1,105 @@
+{
+  "schemaVersion": 1,
+  "id": "brazilian-2024-crystalline-amino-acids-swine",
+  "sourceId": "brazilian-tables-2024",
+  "sourceTable": "1.09",
+  "printedPage": 222,
+  "basis": "dry-matter",
+  "notes": [
+    "Energy columns are kept as published for swine: gross energy, digestible energy, standardized metabolizable energy, and net energy.",
+    "Do not silently reinterpret standardized metabolizable energy as ordinary ME."
+  ],
+  "ingredients": [
+    {
+      "id": "lysine-hcl",
+      "name": "Lysine - HCl",
+      "pigflowIngredientId": "l-lysine-hcl",
+      "nitrogenPct": 13.73,
+      "crudeProteinEquivalentPct": 85.81,
+      "standardizedDigestibilityPct": 98.1,
+      "energyKcalKg": {
+        "gross": 4901,
+        "digestible": 4808,
+        "standardizedMetabolizable": 4546,
+        "net": 3523
+      },
+      "digestibleProteinEquivalentPct": 84.1796
+    },
+    {
+      "id": "methionine",
+      "name": "Methionine",
+      "pigflowIngredientId": "dl-methionine",
+      "mappingNote": "Brazilian table labels the nutrient as Methionine; verify product stereoisomer/specification before treating it as a branded DL-methionine product.",
+      "nitrogenPct": 9.39,
+      "crudeProteinEquivalentPct": 58.67,
+      "standardizedDigestibilityPct": 99.5,
+      "energyKcalKg": {
+        "gross": 5684,
+        "digestible": 5656,
+        "standardizedMetabolizable": 5477,
+        "net": 4244
+      },
+      "digestibleProteinEquivalentPct": 58.3766
+    },
+    {
+      "id": "threonine",
+      "name": "Threonine",
+      "pigflowIngredientId": "l-threonine",
+      "nitrogenPct": 11.76,
+      "crudeProteinEquivalentPct": 73.49,
+      "standardizedDigestibilityPct": 96.8,
+      "energyKcalKg": {
+        "gross": 4173,
+        "digestible": 4039,
+        "standardizedMetabolizable": 3815,
+        "net": 2957
+      },
+      "digestibleProteinEquivalentPct": 71.1383
+    },
+    {
+      "id": "tryptophan",
+      "name": "Tryptophan",
+      "pigflowIngredientId": "l-tryptophan",
+      "nitrogenPct": 13.72,
+      "crudeProteinEquivalentPct": 85.73,
+      "standardizedDigestibilityPct": 99,
+      "energyKcalKg": {
+        "gross": 6506,
+        "digestible": 6441,
+        "standardizedMetabolizable": 6179,
+        "net": 4789
+      },
+      "digestibleProteinEquivalentPct": 84.8727
+    },
+    {
+      "id": "valine",
+      "name": "Valine",
+      "nitrogenPct": 11.96,
+      "crudeProteinEquivalentPct": 74.73,
+      "standardizedDigestibilityPct": 95.5,
+      "energyKcalKg": {
+        "gross": 6026,
+        "digestible": 5755,
+        "standardizedMetabolizable": 5527,
+        "net": 4283
+      },
+      "digestibleProteinEquivalentPct": 71.3671,
+      "pigflowIngredientId": "l-valine"
+    },
+    {
+      "id": "isoleucine",
+      "name": "Isoleucine",
+      "nitrogenPct": 10.68,
+      "crudeProteinEquivalentPct": 66.74,
+      "standardizedDigestibilityPct": 97.1,
+      "energyKcalKg": {
+        "gross": 6605,
+        "digestible": 6413,
+        "standardizedMetabolizable": 6210,
+        "net": 4813
+      },
+      "digestibleProteinEquivalentPct": 64.8045,
+      "pigflowIngredientId": "l-isoleucine"
+    }
+  ]
+}
