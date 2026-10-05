@@ -1,257 +1,76 @@
+import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { FaCertificate, FaCheck, FaLeaf, FaPhone, FaTruck, FaWhatsapp } from 'react-icons/fa';
-import { Metadata, ResolvingMetadata } from 'next';
-import ImageGallery from '@/components/products/ImageGallery';
-import RelatedProducts from '@/components/products/RelatedProducts';
 import Link from 'next/link';
+import DesignPlaceholder from '@/components/common/DesignPlaceholder';
+import FeedProductCard from '@/components/products/FeedProductCard';
+import { animalNames, feedProducts, getFeedProduct, getProductGroups } from '@/data/feedProducts';
 
-import { getProductById, getAllProducts } from '@/app/actions';
-import { TechnicalSpecs } from '@/components/products/TechnicalSpecs';
-import SecondaryHero from '@/components/common/SecondaryHero';
+type Props = { params: Promise<{ id: string }> };
 
-type Props = {
-  params: { id: string }
-}
-
-export async function generateMetadata(
-  { params }: Props,
-  parent: ResolvingMetadata
-): Promise<Metadata> {
-  const id = params.id
-  const product = await getProductById(id)
-
-  if (!product) {
-    return {
-      title: 'Product Not Found',
-      description: 'The requested product could not be found.'
-    }
-  }
-
-  const previousImages = (await parent).openGraph?.images || []
-
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { id } = await params;
+  const product = getFeedProduct(id);
+  if (!product) return { title: 'Product not found' };
   return {
-    title: `${product.ingredient?.name}`,
-    description: product.ingredient?.description,
-    alternates: {
-      canonical: `/products/${product.id}`,
-    },
-    openGraph: {
-      title: `${product.ingredient?.name} | FeedSport`,
-      description: product.ingredient?.description,
-      images: [
-        {
-          url: product.images[0],
-          width: 800,
-          height: 600,
-          alt: product.ingredient?.name,
-        },
-        ...previousImages,
-      ],
-    },
-  }
-}
-
-export async function generateStaticParams() {
-  const products = await getAllProducts();
-  return products.map(product => ({ id: product.id }));
-}
-
-export default async function Page({ params }: { params: { id: string } }) {
-  const { id } = params;
-  const product = await getProductById(id);
-
-  if (!product) {
-    notFound();
-  }
-
-  const jsonLd = {
-    '@context': 'https://schema.org',
-    '@type': 'Product',
-    name: product.ingredient?.name,
-    image: product.images,
-    description: product.ingredient?.description,
-    sku: product.id,
-    brand: {
-      '@type': 'Brand',
-      name: 'FeedSport',
-    },
-    offers: {
-      '@type': 'Offer',
-      url: `https://feedsport.co.zw/products/${product.id}`,
-      priceCurrency: 'USD',
-      price: product.price,
-      availability: 'https://schema.org/InStock',
-      priceValidUntil: new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString(), // Valid for 1 year
-    },
-    // Assuming some reviews exist
-    "aggregateRating": {
-      "@type": "AggregateRating",
-      "ratingValue": "4.8",
-      "reviewCount": "25"
-    }
+    title: product.name,
+    description: product.description,
+    alternates: { canonical: `/products/${product.id}` },
+    openGraph: { title: `${product.name} | FeedSport`, description: product.description },
   };
+}
+
+export function generateStaticParams() {
+  return feedProducts.map((product) => ({ id: product.id }));
+}
+
+export default async function ProductPage({ params }: Props) {
+  const { id } = await params;
+  const product = getFeedProduct(id);
+  if (!product) notFound();
+
+  const groups = getProductGroups(product);
+  const related = feedProducts.filter((item) => item.id !== product.id && (item.category === product.category || item.animals.some((animal) => product.animals.includes(animal)))).slice(0, 4);
+  const quoteText = encodeURIComponent(`Please quote ${product.name} — minimum order ${product.moq}`);
+  const statusColour = product.status === 'In stock' ? 'bg-[#2e7d4f]' : product.status === 'Limited' ? 'bg-[#b7791f]' : 'bg-[#6b6f66]';
+  const jsonLd = { '@context': 'https://schema.org', '@type': 'Product', name: product.name, description: product.description, sku: product.id, brand: { '@type': 'Brand', name: 'FeedSport' } };
 
   return (
-    <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-      />
-      <SecondaryHero
-        title={product.ingredient?.name || 'Product Details'}
-        subtitle={product.ingredient?.category?.replace('-', ' ') || 'Premium Feed Ingredient'}
-        minimal
-      />
-      <main className="bg-white">
-        {/* Product Header */}
-        <div className="pt-6">
-          <nav aria-label="Breadcrumb" className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <ol className="flex items-center space-x-2 text-sm text-gray-500 mb-4">
-              <li>
-                <Link href="/products" className="hover:text-green-600">Products</Link>
-              </li>
-              <li><span aria-hidden="true">/</span></li>
-              <li>
-                <Link href={`/products/categories/${product.ingredient?.category}`} className="hover:text-green-600 capitalize">
-                  {product.ingredient?.category?.replace('-', ' ')}
-                </Link>
-              </li>
-               <li><span aria-hidden="true">/</span></li>
-              <li aria-current="page">
-                <span className="text-gray-400">{product.ingredient?.name}</span>
-              </li>
-            </ol>
-          </nav>
+    <main className="mx-auto max-w-[1320px] bg-[#f3f0e8] px-[clamp(20px,4cqi,40px)] pb-[clamp(56px,7cqi,96px)] pt-[clamp(20px,3cqi,36px)] text-[#191b18] [container-type:inline-size]">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <nav aria-label="Breadcrumb" className="mb-5 flex flex-wrap gap-2 text-[13px] text-[#4f524b]"><Link href="/products" className="text-[#4f524b] underline underline-offset-[3px]">Products</Link><span>/</span><Link href={`/products/categories/${product.categorySlug}`} className="text-[#4f524b] underline underline-offset-[3px]">{product.category}</Link><span>/</span><b className="text-[#191b18]">{product.name}</b></nav>
 
-          {/* Main Product Content */}
-          <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8" aria-labelledby="product-heading">
-             <h1 id="product-heading" className="sr-only">{product.ingredient?.name} Details</h1>
-            <div className="lg:grid lg:grid-cols-2 lg:gap-8">
-              {/* Image Gallery */}
-              <div className="mb-8 lg:mb-0">
-                <ImageGallery images={product.images} name={product.ingredient?.name || ''} />
-              </div>
-
-              {/* Product Info */}
-              <div className="lg:pl-8">
-                <h2 className="text-3xl font-bold text-gray-900 mb-2">{product.ingredient?.name}</h2>
-
-                <div className="flex items-center mb-4">
-                  {product.ingredient?.category && (
-                    <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded mr-2">
-                      {product.ingredient.category.replace('-', ' ')}
-                    </span>
-                  )}
-                  {product.certifications?.map(cert => (
-                    <span key={cert} className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded mr-2">
-                      {cert}
-                    </span>
-                  ))}
-                </div>
-
-                <p className="text-lg text-gray-600 mb-6">{product.ingredient?.description}</p>
-
-                {/* Pricing */}
-                <div className="mb-6">
-                  <h3 className="text-2xl font-semibold text-gray-900">
-                    ${product.price.toLocaleString()}/ton
-                  </h3>
-                  <p className="text-sm text-gray-500">MOQ: {product.moq} tons</p>
-                </div>
-
-                {/* Key Benefits */}
-                <div className="mb-8">
-                  <h3 className="text-lg font-medium text-gray-900 mb-3">Key Benefits</h3>
-                  <ul className="space-y-2">
-                    {product.ingredient?.key_benefits?.map((benefit: string, index: number) => (
-                      <li key={index} className="flex items-center">
-                        <FaCheck className="text-green-500 mr-2" />
-                        <span>{benefit}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-
-                {/* Call to Action */}
-                <div className="border-t border-gray-200 pt-6">
-                  <div className="flex flex-col sm:flex-row gap-4">
-                    <Link
-                      href={`https://wa.me/263774684534?text=I'm interested in ${product.ingredient?.name} (Product ID: ${product.id})`}
-                      target="_blank"
-                      className="flex items-center justify-center bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-medium"
-                    >
-                      <FaWhatsapp className="mr-2" />
-                      Inquire on WhatsApp
-                    </Link>
-                    <Link
-                      href="tel:+263774684534"
-                      className="flex items-center justify-center border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 px-6 py-3 rounded-lg font-medium"
-                    >
-                      <FaPhone className="mr-2" />
-                      Call Our Sales Team
-                    </Link>
-                  </div>
-                </div>
-
-                {/* Product Highlights */}
-                <div className="mt-8 grid grid-cols-2 gap-4">
-                  <div className="bg-gray-50 p-4 rounded-lg">
-                    <div className="flex items-center">
-                      <FaLeaf className="text-green-500 mr-2" />
-                      <h4 className="font-medium">Applications</h4>
-                    </div>
-                    <p className="text-sm text-gray-600 mt-1">
-                      {product?.ingredient?.applications?.join(', ')}
-                    </p>
-                  </div>
-                  <div className="bg-gray-50 p-4 rounded-lg">
-                    <div className="flex items-center">
-                      <FaTruck className="text-green-500 mr-2" />
-                      <h4 className="font-medium">Shipping</h4>
-                    </div>
-                    <p className="text-sm text-gray-600 mt-1">
-                      {product.shipping}
-                    </p>
-                  </div>
-                  <div className="bg-gray-50 p-4 rounded-lg">
-                    <div className="flex items-center">
-                      <FaCertificate className="text-green-500 mr-2" />
-                      <h4 className="font-medium">Packaging</h4>
-                    </div>
-                    <p className="text-sm text-gray-600 mt-1">
-                      {product.packaging}
-                    </p>
-                  </div>
-                  <div className="bg-gray-50 p-4 rounded-lg">
-                    <div className="flex items-center">
-                      <div className="w-4 h-4 bg-green-500 rounded-full mr-2"></div>
-                      <h4 className="font-medium">Stock</h4>
-                    </div>
-                    <p className="text-sm text-gray-600 mt-1">
-                      {product.stock} tons available
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </section>
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,440px),1fr))] items-start gap-[clamp(24px,4cqi,56px)]">
+        <div className="flex flex-col gap-2.5">
+          <DesignPlaceholder strong label={`product photo — ${product.imageLabel}`} className="aspect-[4/3] rounded-[6px] [&_.fs-placeholder__label]:bottom-[14px] [&_.fs-placeholder__label]:left-4 [&_.fs-placeholder__label]:text-[12px] [&_.fs-placeholder__label]:text-[#5d5e56]" />
+          <div className="grid grid-cols-3 gap-2.5"><DesignPlaceholder compact label="bag + label" className="aspect-square rounded-[4px]" /><DesignPlaceholder compact label="texture macro" className="aspect-square rounded-[4px]" /><DesignPlaceholder compact label="bulk / store" className="aspect-square rounded-[4px]" /></div>
         </div>
 
-        {/* Technical Specifications */}
-        <section className="mt-16 border-t border-gray-200 py-12" aria-labelledby="tech-specs-heading">
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-             <h2 id="tech-specs-heading" className="sr-only">Technical Specifications for {product.ingredient?.name}</h2>
-            <TechnicalSpecs compositions={product.ingredient?.compositions} />
+        <div className="flex flex-col gap-[22px]">
+          <div className="flex flex-col gap-2.5">
+            <div className="flex flex-wrap items-center gap-2.5"><span className="fs-label text-[#4f524b]">{product.category}</span><span className="inline-flex items-center gap-1.5 rounded-[3px] border border-[#d9d4c7] bg-[#fbfaf6] px-2.5 py-1 text-[13px] font-semibold"><i className={`h-[7px] w-[7px] rounded-full ${statusColour}`} />{product.status}</span></div>
+            <h1 className="m-0 text-[clamp(38px,4.8cqi,66px)] font-bold leading-[.98] tracking-[-.03em]">{product.name}</h1>
+            <span className="text-[17px] text-[#3d403a]">{product.grade}</span>
+            <p className="m-0 mt-1 max-w-[560px] text-pretty text-[17px] leading-[1.55] text-[#3d403a]">{product.description}</p>
           </div>
-        </section>
 
-        {/* Related Products */}
-        <section className="bg-gray-50 py-12" aria-labelledby="related-products-heading">
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <RelatedProducts currentProductId={product.id} category={product.ingredient?.category} />
+          <dl className="m-0 grid grid-cols-[repeat(auto-fit,minmax(120px,1fr))] border-b border-t-2 border-b-[#d9d4c7] border-t-[#191b18]">{product.specs.map((spec) => <div key={spec.label} className="flex flex-col gap-1 py-3.5 pr-3.5"><dt className="fs-label text-[#4f524b]">{spec.label}</dt><dd className="m-0 text-[34px] font-semibold leading-none tracking-[-.01em] tabular-nums">{spec.value}<span className="ml-1 text-[14px] font-medium text-[#4f524b]">{spec.unit}</span></dd></div>)}</dl>
+
+          <div className="overflow-hidden rounded-[6px] border border-[#d9d4c7] bg-[#fbfaf6]">
+            <dl className="m-0 grid grid-cols-[repeat(auto-fit,minmax(min(100%,200px),1fr))]">{[['Minimum order', product.moq], ['Packaging', product.packaging], ['Origin / supplier', product.origin], ['Certifications', product.certifications]].map(([label, value], index) => <div key={label} className="flex flex-col gap-0.5 border-b border-[#e6e1d5] px-[18px] py-3.5"><dt className="text-[12px] text-[#4f524b]">{label}</dt><dd className={`m-0 ${index > 1 ? 'fs-mono text-[13px] text-[#7a5414]' : 'text-[17px] font-bold'}`}>{value}</dd></div>)}</dl>
+            <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,180px),1fr))] gap-2.5 px-[18px] py-4"><a href={`https://wa.me/263774684534?text=${quoteText}`} className="fs-button-amber inline-flex h-[52px] items-center justify-center text-[16px] no-underline">Request a quote</a><a href={`https://wa.me/263774684534?text=${encodeURIComponent(`Is ${product.name} available, and what is the lead time?`)}`} className="fs-button-secondary inline-flex h-[52px] items-center justify-center text-[16px] no-underline">Ask about availability</a></div>
+            <div className="flex flex-wrap gap-[18px] px-[18px] pb-4 text-[14px] font-semibold"><a href="tel:+263774684534" className="text-[#1d3a2a] no-underline">Ask FeedSport a question →</a><a href="https://wa.me/263774684534" className="text-[#1d3a2a] no-underline">WhatsApp us <span className="fs-mono font-medium text-[#4f524b]">+263 77 468 4534</span></a></div>
           </div>
-        </section>
-      </main>
-    </>
+        </div>
+      </div>
+
+      <section className="mt-[clamp(48px,6cqi,80px)]">
+        <div className="mb-5 flex flex-wrap items-end justify-between gap-4"><div className="flex flex-col gap-1.5"><h2 className="m-0 text-[clamp(28px,3cqi,42px)] font-bold tracking-[-.02em]">Nutritional profile</h2><span className="text-[15px] text-[#4f524b]">{product.nutrientGroups ? 'Typical values, as fed. Replace with FeedSport batch specification.' : 'Key specification. Full profile comes from the ingredient record.'}</span></div><button type="button" className="h-[42px] rounded-[4px] border-[1.5px] border-[#191b18] bg-transparent px-4 text-[14px] font-semibold">Download spec sheet (PDF)</button></div>
+        <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,280px),1fr))] gap-3">{groups.map((item) => <section key={item.title} className="rounded-[6px] border border-[#d9d4c7] bg-[#fbfaf6] px-[18px] pb-2 pt-1"><h3 className="fs-label m-0 border-b border-[#191b18] py-3.5 text-[#1d3a2a]">{item.title}</h3><dl className="m-0">{item.rows.map((row) => <div key={row.label} className="flex items-baseline justify-between gap-3 border-b border-[#ece8de] py-2.5"><dt className="text-[15px] text-[#3d403a]">{row.label}</dt><dd className="m-0 whitespace-nowrap text-[16px] font-semibold tabular-nums">{row.value}<span className="ml-1 text-[12px] font-medium text-[#4f524b]">{row.unit}</span></dd></div>)}</dl></section>)}</div>
+      </section>
+
+      <section className="mt-10 flex flex-wrap items-center gap-2.5 border-y border-[#d9d4c7] py-[18px]"><span className="fs-label mr-2 text-[#4f524b]">Used in feed for</span>{product.animals.map((animal) => <Link key={animal} href={`/products?animal=${animal}`} className="inline-flex h-[34px] items-center rounded-full bg-[#e3eadf] px-3.5 text-[14px] font-semibold text-[#1d3a2a] no-underline">{animalNames[animal]}</Link>)}<span className="flex-1" /><Link href="/formulations" className="text-[15px] font-semibold text-[#1d3a2a] no-underline">Use in a formulation →</Link></section>
+
+      {related.length > 0 && <section className="mt-[clamp(48px,6cqi,72px)]"><h2 className="mb-5 mt-0 text-[clamp(26px,2.6cqi,36px)] font-bold tracking-[-.02em]">Related ingredients</h2><div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,270px),1fr))] gap-4">{related.map((item) => <FeedProductCard key={item.id} product={item} showDescription={false} />)}</div></section>}
+    </main>
   );
 }

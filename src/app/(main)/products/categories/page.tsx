@@ -1,76 +1,14 @@
-
-import SecondaryHero from '@/components/common/SecondaryHero';
-import { getAllProducts } from '@/app/actions';
 import Link from 'next/link';
-import { FaSeedling, FaBolt, FaGem, FaVial, FaPagelines, FaLeaf } from 'react-icons/fa';
+import DesignPlaceholder from '@/components/common/DesignPlaceholder';
+import { feedProducts, productCategories } from '@/data/feedProducts';
 
-const categoryDetails: { [key: string]: { icon: React.ReactNode; description: string; name: string; } } = {
-    'protein-feeds': {
-        icon: <FaSeedling className="w-8 h-8" />,
-        description: 'Essential building blocks for muscle growth and development.',
-        name: 'Protein Feeds'
-    },
-    'energy-feeds': {
-        icon: <FaBolt className="w-8 h-8" />,
-        description: 'High-starch ingredients to fuel daily activity and production.',
-        name: 'Energy Feeds'
-    },
-    'minerals': {
-        icon: <FaGem className="w-8 h-8" />,
-        description: 'Crucial for bone structure, metabolic function, and overall health.',
-        name: 'Minerals'
-    },
-    'amino-acids': {
-        icon: <FaVial className="w-8 h-8" />,
-        description: 'Pure, targeted supplements for precise diet formulation.',
-        name: 'Amino Acids'
-    },
-    'forage-products': {
-        icon: <FaPagelines className="w-8 h-8" />,
-        description: 'High-fiber ingredients to support digestive health and satiety.',
-        name: 'Forage Products'
-    },
-    'fiber-products': {
-        icon: <FaLeaf className="w-8 h-8" />,
-        description: 'Concentrated fiber sources to improve gut motility.',
-        name: 'Fiber Products'
-    },
-};
-
-
-export default async function CategoriesPage() {
-    const products = await getAllProducts();
-    const categories = Array.from(new Set(products.map(p => p.ingredient?.category).filter(Boolean))) as string[];
-
-    return (
-        <>
-            <SecondaryHero
-                title="Browse by Category"
-                subtitle="Find the perfect ingredients for your formulation needs, organized by nutritional function."
-            />
-            <div className="bg-gray-50 py-16">
-                <div className="container mx-auto px-4 max-w-7xl">
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                        {categories.map(slug => {
-                            const details = categoryDetails[slug] || { icon: <FaLeaf />, description: `View all ${slug.replace('-', ' ')} products`, name: slug.replace('-', ' ') };
-                            return (
-                                <Link key={slug} href={`/products/categories/${slug}`} className="block group">
-                                    <div className="bg-white rounded-xl shadow-md p-8 h-full flex flex-col items-center text-center border-2 border-transparent group-hover:border-green-500 group-hover:shadow-xl transition-all duration-300 transform group-hover:-translate-y-1">
-                                        <div className="text-green-600 mb-4 transition-transform duration-300 group-hover:scale-110">
-                                            {details.icon}
-                                        </div>
-                                        <h3 className="text-xl font-bold text-gray-900 mb-2 capitalize">{details.name}</h3>
-                                        <p className="text-gray-600 flex-grow">{details.description}</p>
-                                        <span className="mt-6 text-sm font-medium text-green-600 group-hover:text-green-700">
-                                            View Products &rarr;
-                                        </span>
-                                    </div>
-                                </Link>
-                            )
-                        })}
-                    </div>
-                </div>
-            </div>
-        </>
-    );
+export default function CategoriesPage() {
+  return (
+    <main className="fs-page bg-[#f3f0e8] text-[#191b18] [container-type:inline-size]">
+      <p className="fs-label mb-2.5 text-[#4f524b]">Products</p>
+      <h1 className="fs-page-title">Browse by category</h1>
+      <p className="mb-7 mt-4 max-w-[680px] text-[17px] leading-[1.5] text-[#3d403a]">Find ingredients by their nutritional role in a feed formulation.</p>
+      <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,200px),1fr))] gap-3">{productCategories.map((category) => { const products = feedProducts.filter((product) => product.categorySlug === category.slug); return <Link key={category.slug} href={`/products/categories/${category.slug}`} className="fs-card flex flex-col text-[#191b18] no-underline"><DesignPlaceholder label={category.imageLabel} className="aspect-video rounded-none" /><span className="flex flex-col gap-1 px-3.5 pb-4 pt-3.5"><span className="flex items-baseline justify-between gap-2"><b className="text-[17px]">{category.name}</b><span className="fs-mono text-[12px] text-[#4f524b]">{products.length}</span></span><span className="text-[13px] leading-[1.4] text-[#4f524b]">{products.map((product) => product.name).slice(0, 3).join(', ')}</span></span></Link>; })}</div>
+    </main>
+  );
 }

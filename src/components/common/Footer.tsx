@@ -1,182 +1,38 @@
-// components/layout/Footer.tsx
 import Link from 'next/link';
-import {
-    FaEnvelope,
-    FaFacebookF,
-    FaInstagram,
-    FaLinkedinIn,
-    FaRegClock,
-    FaXTwitter,
-    FaWhatsapp
-} from 'react-icons/fa6';
-import { FaMapMarkerAlt, FaPhoneAlt } from 'react-icons/fa';
-import { FaShieldHalved, FaWheatAwn } from 'react-icons/fa6';
-import { ProductCategory } from '@/types';
+type FooterCategory = { id: string; name: string; slug: string };
 
-export default function Footer({ productCategories }: { productCategories: ProductCategory[] }) {
-  const currentYear = new Date().getFullYear();
+const fallbackCategories = [
+  { id: 'protein-feeds', name: 'Protein feeds', slug: 'protein-feeds' },
+  { id: 'energy-feeds', name: 'Energy feeds', slug: 'energy-feeds' },
+  { id: 'fiber-products', name: 'Fibre products', slug: 'fiber-products' },
+  { id: 'minerals', name: 'Minerals', slug: 'minerals' },
+  { id: 'amino-acids', name: 'Amino acids', slug: 'amino-acids' },
+  { id: 'premixes', name: 'Premixes & additives', slug: 'premixes-additives' },
+];
+
+export default function Footer({ productCategories }: { productCategories: FooterCategory[] }) {
+  const categories = productCategories.length ? productCategories.slice(0, 6) : fallbackCategories;
 
   return (
-    <footer className="bg-gray-900 text-white">
-      {/* Main Footer Content */}
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10">
-          {/* Brand Column */}
-          <div className="lg:col-span-2">
-            <div className="flex items-center mb-6">
-              <FaWheatAwn className="text-green-500 text-3xl mr-3" />
-              <span className="text-2xl font-bold">FeedSport</span>
-            </div>
-            <p className="text-gray-400 mb-6">
-              Pioneering animal nutrition solutions through science and innovation. 
-              Empowering farmers with premium feed ingredients since 2010.
-            </p>
-            
-            <div className="mb-6">
-              <h4 className="text-sm font-semibold text-gray-300 mb-3">CERTIFICATIONS</h4>
-              <div className="flex items-center gap-3">
-                <FaShieldHalved className="text-green-500 text-xl" />
-                <span className="text-sm text-gray-400">ISO 9001:2015 Certified</span>
-              </div>
-            </div>
-
-            <div className="flex space-x-4">
-              {[
-                { icon: FaFacebookF, url: "#" },
-                { icon: FaXTwitter, url: "#" },
-                { icon: FaInstagram, url: "#" },
-                { icon: FaLinkedinIn, url: "#" }
-              ].map((social, index) => (
-                <Link
-                  key={index}
-                  href={social.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-gray-400 hover:text-green-500 transition-colors duration-300"
-                  aria-label={`Follow us on ${social.icon.name.replace('Fa', '')}`}
-                >
-                  <social.icon className="text-xl" />
-                </Link>
-              ))}
-            </div>
+    <footer className="bg-[#191b18] text-[#e9e6dd]">
+      <div className="mx-auto max-w-[1320px] px-[clamp(20px,4cqi,40px)] pb-7 pt-[clamp(48px,6cqi,72px)]">
+        <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,180px),1fr))] gap-8">
+          <div className="flex flex-col gap-3.5">
+            <Link href="/" className="flex items-center gap-2.5 text-white no-underline"><span className="h-3.5 w-3.5 rotate-45 rounded-[2px] bg-[#d99a2b]"/><span className="text-[22px] font-extrabold">FeedSport</span></Link>
+            <p className="m-0 text-[14px] leading-[1.55] text-[#b9b6ab]">Feed ingredients and animal nutrition, Zimbabwe.</p>
+            <form className="mt-1.5 flex flex-col gap-2" action="/">
+              <label className="text-[13px] font-semibold">Price and stock updates</label>
+              <div className="flex gap-1.5"><input type="email" aria-label="Email" placeholder="Email" className="h-11 min-w-0 flex-1 rounded-[4px] border border-[#45473f] bg-[#2b2d29] px-3 text-[14px] text-white"/><button className="h-11 rounded-[4px] border-0 bg-[#e9e6dd] px-3.5 font-semibold text-[#191b18]">Subscribe</button></div>
+            </form>
           </div>
-
-          {/* Quick Links */}
-          <div>
-            <h4 className="text-lg font-bold mb-6 text-white">Quick Links</h4>
-            <ul className="space-y-3">
-              {[
-                { name: "Home", href: "/" },
-                { name: "About Us", href: "/about" },
-                { name: "Products", href: "/products" },
-                { name: "Formulations", href: "/formulations" },
-                { name: "Blog", href: "/blog" },
-                { name: "Contact", href: "/contact" }
-              ].map((link) => (
-                <li key={link.name}>
-                  <Link
-                    href={link.href}
-                    className="text-gray-400 hover:text-green-500 transition-colors duration-300"
-                  >
-                    {link.name}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {/* Products */}
-          <div>
-            <h4 className="text-lg font-bold mb-6 text-white">Product Categories</h4>
-            <ul className="space-y-3">
-              {productCategories.slice(0, 5).map((category) => (
-                <li key={category.id}>
-                  <Link
-                    href={`/products/categories/${category.slug}`}
-                    className="text-gray-400 hover:text-green-500 transition-colors duration-300 capitalize"
-                  >
-                    {category.name}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {/* Contact Info */}
-          <div>
-            <h4 className="text-lg font-bold mb-6 text-white">Contact Us</h4>
-            <ul className="space-y-4">
-              <li className="flex items-start">
-                <FaMapMarkerAlt className="text-green-500 mt-1 mr-3 flex-shrink-0" />
-                <span className="text-gray-400">2 William Pollet Rd, Borrowdale, Harare, Zimbabwe</span>
-              </li>
-              <li className="flex items-center">
-                <FaPhoneAlt className="text-green-500 mr-3 flex-shrink-0" />
-                <div>
-                  <a 
-                    href="tel:+263774684534" 
-                    className="text-gray-400 hover:text-green-500 transition-colors duration-300 block"
-                  >
-                    +263 77 468 4534
-                  </a>
-                  <a 
-                    href="https://wa.me/263774684534" 
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-xs text-green-500 flex items-center mt-1"
-                  >
-                    <FaWhatsapp className="mr-1" /> Chat on WhatsApp
-                  </a>
-                </div>
-              </li>
-              <li className="flex items-center">
-                <FaEnvelope className="text-green-500 mr-3 flex-shrink-0" />
-                <a 
-                  href="mailto:sales@feedsport.co.zw" 
-                  className="text-gray-400 hover:text-green-500 transition-colors duration-300"
-                >
-                  sales@feedsport.co.zw
-                </a>
-              </li>
-              <li className="flex items-center">
-                <FaRegClock className="text-green-500 mr-3 flex-shrink-0" />
-                <span className="text-gray-400">Mon-Fri: 8AM - 5PM</span>
-              </li>
-            </ul>
-          </div>
+          <nav className="flex flex-col gap-2.5 text-[15px]" aria-label="Product categories"><span className="fs-label mb-1 text-[#8f8c82]">Products</span>{categories.map((category) => <Link key={category.id} href={`/products/categories/${category.slug}`} className="capitalize text-[#e9e6dd] no-underline hover:text-white">{category.name}</Link>)}</nav>
+          <nav className="flex flex-col gap-2.5 text-[15px]" aria-label="Nutrition links"><span className="fs-label mb-1 text-[#8f8c82]">Nutrition</span><Link href="/#animals" className="text-[#e9e6dd] no-underline">Pig feed</Link><Link href="/#animals" className="text-[#e9e6dd] no-underline">Poultry feed</Link><Link href="/#animals" className="text-[#e9e6dd] no-underline">Cattle feed</Link><Link href="/formulations" className="text-[#e9e6dd] no-underline">Formulation</Link><Link href="/knowledge" className="text-[#e9e6dd] no-underline">Knowledge Centre</Link></nav>
+          <nav className="flex flex-col gap-2.5 text-[15px]" aria-label="Company links"><span className="fs-label mb-1 text-[#8f8c82]">Company</span><Link href="/about" className="text-[#e9e6dd] no-underline">About</Link><Link href="/team" className="text-[#e9e6dd] no-underline">Team</Link><Link href="/contact" className="text-[#e9e6dd] no-underline">Contact</Link></nav>
+          <div className="flex flex-col gap-2.5 text-[15px]"><span className="fs-label mb-1 text-[#8f8c82]">Contact</span><a href="tel:+263774684534" className="text-[#e9e6dd] no-underline">Phone <span className="fs-mono text-[13px] text-[#d9b36b]">+263 77 468 4534</span></a><a href="https://wa.me/263774684534" className="text-[#e9e6dd] no-underline">WhatsApp <span className="fs-mono text-[13px] text-[#d9b36b]">+263 77 468 4534</span></a><a href="mailto:sales@feedsport.co.zw" className="text-[#e9e6dd] no-underline">Email <span className="fs-mono text-[13px] text-[#d9b36b]">sales@feedsport.co.zw</span></a><span className="fs-mono text-[13px] leading-5 text-[#d9b36b]">2 William Pollet Rd, Borrowdale, Harare, Zimbabwe</span></div>
         </div>
+        <div className="mt-12 flex flex-wrap justify-between gap-3 border-t border-[#34362f] pt-5 text-[13px] text-[#8f8c82]"><span>© {new Date().getFullYear()} FeedSport</span><span className="flex gap-[18px]"><Link href="/policies" className="text-[#8f8c82] no-underline">Privacy</Link><Link href="/terms-of-service" className="text-[#8f8c82] no-underline">Terms</Link><Link href="/sitemap.xml" className="text-[#8f8c82] no-underline">Sitemap</Link></span></div>
       </div>
-
-      {/* Footer Bottom */}
-      <div className="border-t border-gray-800 py-6">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col md:flex-row justify-between items-center">
-            <p className="text-gray-500 text-sm mb-4 md:mb-0">
-              &copy; {currentYear} FeedSport International. All rights reserved.
-            </p>
-            <div className="flex flex-wrap justify-center gap-4 md:gap-6">
-              <Link
-                href="/policies"
-                className="text-gray-500 hover:text-green-500 text-sm transition-colors duration-300"
-              >
-                Company Policies
-              </Link>
-              <Link
-                href="/terms-of-service"
-                className="text-gray-500 hover:text-green-500 text-sm transition-colors duration-300"
-              >
-                Terms of Service
-              </Link>
-              <Link
-                href="/sitemap.xml"
-                className="text-gray-500 hover:text-green-500 text-sm transition-colors duration-300"
-              >
-                Sitemap
-              </Link>
-            </div>
-          </div>
-        </div>
-      </div>
+      <div className="h-[72px] min-[1080px]:hidden" aria-hidden="true" />
     </footer>
   );
 }

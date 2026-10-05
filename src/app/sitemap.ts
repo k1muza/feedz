@@ -1,8 +1,7 @@
 import { MetadataRoute } from 'next';
-import { getAllProducts } from '@/app/actions';
-import { getAllBlogPosts } from '@/app/actions';
+import { feedProducts, productCategories } from '@/data/feedProducts';
 
-export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+export default function sitemap(): MetadataRoute.Sitemap {
   const baseUrl = 'https://feedsport.co.zw';
 
   // Static pages
@@ -12,7 +11,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     '/products',
     '/products/categories',
     '/formulations',
-    '/blog',
+    '/knowledge',
     '/contact',
     '/policies',
     '/terms-of-service',
@@ -24,8 +23,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   }));
 
   // Dynamic product pages
-  const products = await getAllProducts();
-  const productRoutes = products.map((product) => ({
+  const productRoutes = feedProducts.map((product) => ({
     url: `${baseUrl}/products/${product.id}`,
     lastModified: new Date(), // In a real app, this would be the product's last updated date
     changeFrequency: 'weekly' as 'weekly',
@@ -33,24 +31,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   }));
   
   // Dynamic category pages
-  const categories = [...new Set(products.map(p => p.ingredient?.category).filter(Boolean))];
-  const categoryRoutes = categories.map((category) => ({
-    url: `${baseUrl}/products/categories/${category}`,
+  const categoryRoutes = productCategories.map((category) => ({
+    url: `${baseUrl}/products/categories/${category.slug}`,
     lastModified: new Date(),
     changeFrequency: 'weekly' as 'weekly',
     priority: 0.7
   }));
-
-
-  // Dynamic blog post pages
-  const blogPosts = await getAllBlogPosts();
-  const blogRoutes = blogPosts.map((post) => ({
-    url: `${baseUrl}/blog/${post.slug}`,
-    lastModified: new Date(post.date),
-    changeFrequency: 'yearly' as 'yearly', // Assuming blogs aren't updated frequently
-    priority: 0.7,
-  }));
-
-
-  return [...staticRoutes, ...productRoutes, ...categoryRoutes, ...blogRoutes];
+  return [...staticRoutes, ...productRoutes, ...categoryRoutes];
 }

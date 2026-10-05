@@ -4,14 +4,22 @@ import { GoogleAnalytics } from "@next/third-parties/google";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from '@vercel/speed-insights/next';
 import { Metadata } from "next";
-import { Inter as FontSans } from "next/font/google"
+import { Archivo, IBM_Plex_Mono } from "next/font/google"
 import { cn } from "@/lib/utils"
 import { Toaster } from "@/components/ui/toaster";
 import { AuthProvider } from "@/context/AuthContext";
 
-const fontSans = FontSans({
+const archivo = Archivo({
   subsets: ["latin"],
-  variable: "--font-sans",
+  variable: "--font-archivo",
+  display: "swap",
+})
+
+const plexMono = IBM_Plex_Mono({
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
+  variable: "--font-plex-mono",
+  display: "swap",
 })
 
 export const metadata: Metadata = {
@@ -71,7 +79,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={cn("min-h-screen bg-background font-sans antialiased", fontSans.variable)}
+        className={cn("min-h-screen antialiased", archivo.variable, plexMono.variable)}
         suppressHydrationWarning={true}
       >
         <AuthProvider>
