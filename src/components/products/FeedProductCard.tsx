@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import DesignPlaceholder from '@/components/common/DesignPlaceholder';
-import { FeedProduct } from '@/data/feedProducts';
+import type { FeedProduct } from '@/data/feedProducts';
 
 const statusColour = { 'In stock': 'bg-[#2e7d4f]', Limited: 'bg-[#b7791f]', 'On request': 'bg-[#6b6f66]' };
 

@@ -1,7 +1,8 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import DesignPlaceholder from '@/components/common/DesignPlaceholder';
-import { feedProducts, productCategories } from '@/data/feedProducts';
+import { productCategories } from '@/data/feedProducts';
+import { feedProducts } from '@/data/feedProductNutrition';
 import { absoluteUrl, createPageMetadata, serializeJsonLd } from '@/lib/seo';
 
 export const metadata: Metadata = createPageMetadata({

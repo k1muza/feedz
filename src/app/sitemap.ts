@@ -1,5 +1,6 @@
 import { MetadataRoute } from 'next';
-import { feedProducts, productCategories } from '@/data/feedProducts';
+import { productCategories } from '@/data/feedProducts';
+import { feedProducts } from '@/data/feedProductNutrition';
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const baseUrl = 'https://feedsport.co.zw';

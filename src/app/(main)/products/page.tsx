@@ -1,6 +1,6 @@
 import { Metadata } from 'next';
 import ProductsClient from './ProductsClient';
-import { feedProducts } from '@/data/feedProducts';
+import { feedProducts } from '@/data/feedProductNutrition';
 import { absoluteUrl, createPageMetadata, serializeJsonLd } from '@/lib/seo';
 
 export const metadata: Metadata = createPageMetadata({
@@ -26,7 +26,7 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(itemListJsonLd) }} />
-      <ProductsClient initialQuery={query.q || ''} initialAnimal={query.animal || 'all'} initialCategory={query.category || 'All'} />
+      <ProductsClient products={feedProducts} initialQuery={query.q || ''} initialAnimal={query.animal || 'all'} initialCategory={query.category || 'All'} />
     </>
   );
 }

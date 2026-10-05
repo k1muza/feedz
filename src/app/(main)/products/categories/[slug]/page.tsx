@@ -2,7 +2,8 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import FeedProductCard from '@/components/products/FeedProductCard';
-import { feedProducts, productCategories } from '@/data/feedProducts';
+import { productCategories } from '@/data/feedProducts';
+import { feedProducts } from '@/data/feedProductNutrition';
 import { absoluteUrl, breadcrumbJsonLd, createPageMetadata, serializeJsonLd } from '@/lib/seo';
 
 type Props = { params: Promise<{ slug: string }> };

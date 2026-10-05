@@ -1,4 +1,4 @@
-import { feedProducts } from '@/data/feedProducts';
+import { feedProducts } from '@/data/feedProductNutrition';
 import FeedProductCard from './FeedProductCard';
 
 export default function RelatedProducts({ 
