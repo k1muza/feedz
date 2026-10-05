@@ -9,14 +9,13 @@ import { Metadata } from 'next';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { FileText, Clock, AlertCircle } from 'lucide-react';
+import { createPageMetadata } from '@/lib/seo';
 
-export const metadata: Metadata = {
+export const metadata: Metadata = createPageMetadata({
   title: 'Company Policies',
   description: 'Read the official policies of FeedSport International regarding privacy, returns, and terms of service.',
-  alternates: {
-    canonical: '/policies',
-  },
-};
+  path: '/policies',
+});
 
 const policies = [
   {

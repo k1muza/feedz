@@ -154,8 +154,8 @@ export default function ContactPageClient() {
                     </div>
                     <div>
                       <h3 className="font-medium text-gray-700">Email</h3>
-                      <a href="mailto:admin@feedsport.co.zw" className="text-green-600 hover:underline">
-                        admin@feedsport.co.zw
+                      <a href="mailto:sales@feedsport.co.zw" className="text-green-600 hover:underline">
+                        sales@feedsport.co.zw
                       </a>
                     </div>
                   </div>
@@ -182,7 +182,7 @@ export default function ContactPageClient() {
                     </div>
                     <div>
                       <h3 className="font-medium text-gray-700">Location</h3>
-                      <address className="not-italic text-gray-600">2 Off William Pollet Drive, Borrowdale, Harare, Zimbabwe</address>
+                      <address className="not-italic text-gray-600">2 William Pollet Road, Borrowdale, Harare, Zimbabwe</address>
                     </div>
                   </div>
                 </div>

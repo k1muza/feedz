@@ -12,12 +12,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
     '/products/categories',
     '/formulations',
     '/knowledge',
+    '/team',
     '/contact',
     '/policies',
     '/terms-of-service',
   ].map((route) => ({
     url: `${baseUrl}${route}`,
-    lastModified: new Date(),
     changeFrequency: route === '/' ? 'daily' : 'monthly' as 'daily' | 'monthly',
     priority: route === '/' ? 1 : 0.8,
   }));
@@ -25,7 +25,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
   // Dynamic product pages
   const productRoutes = feedProducts.map((product) => ({
     url: `${baseUrl}/products/${product.id}`,
-    lastModified: new Date(), // In a real app, this would be the product's last updated date
     changeFrequency: 'weekly' as 'weekly',
     priority: 0.9,
   }));
@@ -33,7 +32,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
   // Dynamic category pages
   const categoryRoutes = productCategories.map((category) => ({
     url: `${baseUrl}/products/categories/${category.slug}`,
-    lastModified: new Date(),
     changeFrequency: 'weekly' as 'weekly',
     priority: 0.7
   }));

@@ -4,19 +4,19 @@ import Link from 'next/link';
 import DesignPlaceholder from '@/components/common/DesignPlaceholder';
 import FeedProductCard from '@/components/products/FeedProductCard';
 import { animalNames, feedProducts, getFeedProduct, getProductGroups } from '@/data/feedProducts';
+import { absoluteUrl, breadcrumbJsonLd, createPageMetadata, serializeJsonLd } from '@/lib/seo';
 
 type Props = { params: Promise<{ id: string }> };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
   const product = getFeedProduct(id);
-  if (!product) return { title: 'Product not found' };
-  return {
-    title: product.name,
-    description: product.description,
-    alternates: { canonical: `/products/${product.id}` },
-    openGraph: { title: `${product.name} | FeedSport`, description: product.description },
-  };
+  if (!product) return { title: 'Product not found', robots: { index: false } };
+  return createPageMetadata({
+    title: `${product.name} Specifications & Nutrition`,
+    description: `${product.description} View typical specifications, packaging, availability and minimum order information from FeedSport.`,
+    path: `/products/${product.id}`,
+  });
 }
 
 export function generateStaticParams() {
@@ -32,11 +32,35 @@ export default async function ProductPage({ params }: Props) {
   const related = feedProducts.filter((item) => item.id !== product.id && (item.category === product.category || item.animals.some((animal) => product.animals.includes(animal)))).slice(0, 4);
   const quoteText = encodeURIComponent(`Please quote ${product.name} — minimum order ${product.moq}`);
   const statusColour = product.status === 'In stock' ? 'bg-[#2e7d4f]' : product.status === 'Limited' ? 'bg-[#b7791f]' : 'bg-[#6b6f66]';
-  const jsonLd = { '@context': 'https://schema.org', '@type': 'Product', name: product.name, description: product.description, sku: product.id, brand: { '@type': 'Brand', name: 'FeedSport' } };
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'Product',
+        '@id': `${absoluteUrl(`/products/${product.id}`)}#product`,
+        name: product.name,
+        description: product.description,
+        sku: product.id,
+        category: product.category,
+        url: absoluteUrl(`/products/${product.id}`),
+        additionalProperty: product.specs.map((spec) => ({
+          '@type': 'PropertyValue',
+          name: spec.label,
+          value: `${spec.value} ${spec.unit}`.trim(),
+        })),
+      },
+      breadcrumbJsonLd([
+        { name: 'Home', path: '/' },
+        { name: 'Feed ingredients', path: '/products' },
+        { name: product.category, path: `/products/categories/${product.categorySlug}` },
+        { name: product.name, path: `/products/${product.id}` },
+      ]),
+    ],
+  };
 
   return (
     <main className="mx-auto max-w-[1320px] bg-[#f3f0e8] px-[clamp(20px,4cqi,40px)] pb-[clamp(56px,7cqi,96px)] pt-[clamp(20px,3cqi,36px)] text-[#191b18] [container-type:inline-size]">
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }} />
       <nav aria-label="Breadcrumb" className="mb-5 flex flex-wrap gap-2 text-[13px] text-[#4f524b]"><Link href="/products" className="text-[#4f524b] underline underline-offset-[3px]">Products</Link><span>/</span><Link href={`/products/categories/${product.categorySlug}`} className="text-[#4f524b] underline underline-offset-[3px]">{product.category}</Link><span>/</span><b className="text-[#191b18]">{product.name}</b></nav>
 
       <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,440px),1fr))] items-start gap-[clamp(24px,4cqi,56px)]">

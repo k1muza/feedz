@@ -40,24 +40,24 @@
     --sidebar-ring: 262.1 83.3% 57.8%;
   }
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
+    --background: 100 7.3% 8%;
+    --foreground: 52 17.4% 91%;
+    --card: 100 5.5% 10.8%;
+    --card-foreground: 52 17.4% 91%;
+    --popover: 100 5.5% 10.8%;
+    --popover-foreground: 52 17.4% 91%;
     --primary: 262.1 83.3% 57.8%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
+    --secondary: 96 6.7% 14.7%;
+    --secondary-foreground: 52 17.4% 91%;
+    --muted: 96 6.7% 14.7%;
+    --muted-foreground: 65 6.1% 64.5%;
+    --accent: 96 6.7% 14.7%;
+    --accent-foreground: 52 17.4% 91%;
+    --destructive: 0 65% 52%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 86 6.9% 19.8%;
+    --input: 86 6.9% 19.8%;
     --ring: 262.1 83.3% 57.8%;
     --chart-1: 220 70% 50%;
     --chart-2: 160 60% 45%;
@@ -82,8 +82,8 @@
   }
   body {
     margin: 0;
-    background: #f3f0e8;
-    color: #191b18;
+    background: var(--fs-grain);
+    color: var(--fs-charcoal);
     font-family: var(--font-archivo), Arial, sans-serif;
   }
 }
@@ -97,7 +97,24 @@
   --fs-amber: #d99a2b;
   --fs-charcoal: #191b18;
   --fs-muted: #4f524b;
+  --fs-raised: #f3f0e8;
+  --fs-faint: #7a7b72;
 }
+
+/* Dark mode is only switched on inside the /dashboard workspace. */
+html.dark {
+  color-scheme: dark;
+  --fs-grain: #141613;
+  --fs-paper: #1b1d1a;
+  --fs-raised: #252823;
+  --fs-stone: #33362f;
+  --fs-field: #8fc4a1;
+  --fs-leaf: #1f3328;
+  --fs-charcoal: #ecebe4;
+  --fs-muted: #a9aa9f;
+  --fs-faint: #85877d;
+}
+html.dark a:hover { color: #b3dcc0; }
 
 html { scroll-behavior: smooth; }
 button, input, select, textarea { font-family: inherit; }

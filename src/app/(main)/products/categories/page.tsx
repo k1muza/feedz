@@ -1,10 +1,31 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import DesignPlaceholder from '@/components/common/DesignPlaceholder';
 import { feedProducts, productCategories } from '@/data/feedProducts';
+import { absoluteUrl, createPageMetadata, serializeJsonLd } from '@/lib/seo';
+
+export const metadata: Metadata = createPageMetadata({
+  title: 'Feed Ingredient Categories',
+  description: 'Browse FeedSport ingredients by nutritional role, including protein feeds, energy feeds, minerals, amino acids and premixes.',
+  path: '/products/categories',
+});
 
 export default function CategoriesPage() {
+  const itemListJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'ItemList',
+    name: 'Feed ingredient categories',
+    itemListElement: productCategories.map((category, index) => ({
+      '@type': 'ListItem',
+      position: index + 1,
+      name: category.name,
+      url: absoluteUrl(`/products/categories/${category.slug}`),
+    })),
+  };
+
   return (
     <main className="fs-page bg-[#f3f0e8] text-[#191b18] [container-type:inline-size]">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(itemListJsonLd) }} />
       <p className="fs-label mb-2.5 text-[#4f524b]">Products</p>
       <h1 className="fs-page-title">Browse by category</h1>
       <p className="mb-7 mt-4 max-w-[680px] text-[17px] leading-[1.5] text-[#3d403a]">Find ingredients by their nutritional role in a feed formulation.</p>

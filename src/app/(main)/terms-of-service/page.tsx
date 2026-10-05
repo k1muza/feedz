@@ -1,14 +1,13 @@
 
 import SecondaryHero from '@/components/common/SecondaryHero';
 import type { Metadata } from 'next';
+import { createPageMetadata } from '@/lib/seo';
 
-export const metadata: Metadata = {
+export const metadata: Metadata = createPageMetadata({
   title: 'Terms of Service',
   description: 'Read the terms and conditions for using the FeedSport International website and services.',
-  alternates: {
-    canonical: '/terms-of-service',
-  },
-};
+  path: '/terms-of-service',
+});
 
 export default function TermsOfServicePage() {
   return (

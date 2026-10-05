@@ -21,10 +21,10 @@ const config = {
       colors: {
         plane: "var(--fs-grain)",
         surface: "var(--fs-paper)",
-        raised: "#f3f0e8",
+        raised: "var(--fs-raised)",
         ink: "var(--fs-charcoal)",
         "ink-muted": "var(--fs-muted)",
-        "ink-faint": "#7a7b72",
+        "ink-faint": "var(--fs-faint)",
         hairline: "var(--fs-stone)",
         brand: "var(--fs-field)",
         "brand-soft": "var(--fs-leaf)",

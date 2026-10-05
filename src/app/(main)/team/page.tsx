@@ -1,11 +1,12 @@
 import { Metadata } from 'next';
 import DesignPlaceholder from '@/components/common/DesignPlaceholder';
+import { createPageMetadata } from '@/lib/seo';
 
-export const metadata: Metadata = {
+export const metadata: Metadata = createPageMetadata({
   title: 'Our team',
-  description: 'Meet the people behind FeedSport.',
-  alternates: { canonical: '/team' },
-};
+  description: 'Meet the FeedSport team supporting feed ingredient quality, animal nutrition, quotations and deliveries in Zimbabwe.',
+  path: '/team',
+});
 
 const team = [
   { name: 'Nutrition & formulation', role: 'Technical team', bio: 'Practical ingredient selection, nutrient targets and formulation support for livestock producers.' },

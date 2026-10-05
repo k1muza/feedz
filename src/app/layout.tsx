@@ -8,6 +8,8 @@ import { Archivo, IBM_Plex_Mono } from "next/font/google"
 import { cn } from "@/lib/utils"
 import { Toaster } from "@/components/ui/toaster";
 import { AuthProvider } from "@/context/AuthContext";
+import { dashboardThemeScript } from "@/lib/dashboard-theme";
+import { absoluteUrl, serializeJsonLd, siteConfig, socialImage } from "@/lib/seo";
 
 const archivo = Archivo({
   subsets: ["latin"],
@@ -23,37 +25,32 @@ const plexMono = IBM_Plex_Mono({
 })
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://feedsport.co.zw'),
-  alternates: {
-    canonical: '/',
-  },
+  metadataBase: new URL(siteConfig.url),
   title: {
-    default: 'FeedSport International - AI-Optimized Animal Nutrition',
+    default: 'FeedSport International | Feed Ingredients Zimbabwe',
     template: '%s | FeedSport International',
   },
-  description: "Pioneering animal nutrition with AI-optimized feed solutions. We provide premium, scientifically-formulated ingredients to empower farmers and boost livestock performance.",
-  keywords: ['animal feed', 'livestock nutrition', 'poultry feed', 'cattle feed', 'swine feed', 'aquafeed', 'feed ingredients', 'FeedSport'],
+  description: siteConfig.description,
+  applicationName: siteConfig.name,
+  authors: [{ name: siteConfig.name, url: siteConfig.url }],
+  creator: siteConfig.name,
+  publisher: siteConfig.name,
+  category: 'Animal nutrition',
+  keywords: ['animal feed Zimbabwe', 'feed ingredients Zimbabwe', 'livestock nutrition', 'poultry feed ingredients', 'pig feed ingredients', 'cattle feed', 'feed formulation', 'FeedSport'],
   openGraph: {
-    title: 'FeedSport International - AI-Optimized Animal Nutrition',
-    description: 'Precision-formulated supplements to maximize growth efficiency and herd health.',
-    url: 'https://feedsport.co.zw',
-    siteName: 'FeedSport International',
-    images: [
-      {
-        url: '/images/og-image.png', // Must be an absolute URL
-        width: 1200,
-        height: 630,
-        alt: 'FeedSport International a pioneer in animal nutrition',
-      },
-    ],
-    locale: 'en_US',
+    title: 'FeedSport International | Feed Ingredients Zimbabwe',
+    description: siteConfig.description,
+    url: siteConfig.url,
+    siteName: siteConfig.name,
+    images: [socialImage],
+    locale: 'en_ZW',
     type: 'website',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'FeedSport International - AI-Optimized Animal Nutrition',
-    description: 'Precision-formulated supplements to maximize growth efficiency and herd health.',
-    images: ['/images/og-image.png'], // Must be an absolute URL
+    title: 'FeedSport International | Feed Ingredients Zimbabwe',
+    description: siteConfig.description,
+    images: [socialImage.url],
   },
   robots: {
     index: true,
@@ -67,8 +64,45 @@ export const metadata: Metadata = {
     },
   },
   icons: {
-    icon: '/fav.png',
+    icon: '/favicon.png',
+    shortcut: '/favicon.png',
+    apple: '/favicon.png',
   },
+};
+
+const organizationJsonLd = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'Organization',
+      '@id': `${siteConfig.url}/#organization`,
+      name: siteConfig.name,
+      url: siteConfig.url,
+      logo: absoluteUrl('/favicon.png'),
+      email: siteConfig.email,
+      telephone: siteConfig.phone,
+      address: {
+        '@type': 'PostalAddress',
+        ...siteConfig.address,
+      },
+      contactPoint: {
+        '@type': 'ContactPoint',
+        telephone: siteConfig.phone,
+        contactType: 'sales',
+        areaServed: 'ZW',
+        availableLanguage: 'English',
+      },
+    },
+    {
+      '@type': 'WebSite',
+      '@id': `${siteConfig.url}/#website`,
+      name: siteConfig.name,
+      alternateName: siteConfig.shortName,
+      url: siteConfig.url,
+      publisher: { '@id': `${siteConfig.url}/#organization` },
+      inLanguage: 'en-ZW',
+    },
+  ],
 };
 
 export default function RootLayout({
@@ -78,10 +112,17 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: dashboardThemeScript }} />
+      </head>
       <body
         className={cn("min-h-screen antialiased", archivo.variable, plexMono.variable)}
         suppressHydrationWarning={true}
       >
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: serializeJsonLd(organizationJsonLd) }}
+        />
         <AuthProvider>
             {children}
         </AuthProvider>

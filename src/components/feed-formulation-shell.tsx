@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { usePathname } from "next/navigation";
 import {
   BookOpen,
@@ -9,12 +9,19 @@ import {
   FlaskConical,
   Layers3,
   LayoutDashboard,
+  Moon,
   PanelLeftClose,
   PanelLeftOpen,
+  Sun,
   Wheat,
   X,
 } from "lucide-react";
 
+import {
+  applyDashboardTheme,
+  resolveDashboardTheme,
+  saveDashboardTheme,
+} from "@/lib/dashboard-theme";
 import { feedFormulationHref } from "@/lib/formulation-routes";
 
 const NAV = [
@@ -28,6 +35,19 @@ const NAV = [
 export function FeedFormulationShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(true);
+
+  // Dark mode is scoped to the dashboard: apply it on entry (covers client-side
+  // navigation from the public site) and drop it when leaving.
+  useEffect(() => {
+    applyDashboardTheme(resolveDashboardTheme());
+    return () => document.documentElement.classList.remove("dark");
+  }, []);
+
+  function toggleTheme() {
+    const next = document.documentElement.classList.contains("dark") ? "light" : "dark";
+    applyDashboardTheme(next);
+    saveDashboardTheme(next);
+  }
 
   return (
     <div className="flex min-h-dvh bg-plane text-ink">
@@ -125,6 +145,16 @@ export function FeedFormulationShell({ children }: { children: ReactNode }) {
                 )?.label ?? "Dashboard"}
               </div>
             </div>
+            <button
+              type="button"
+              onClick={toggleTheme}
+              aria-label="Toggle dark mode"
+              title="Toggle dark mode"
+              className="ml-auto shrink-0 rounded-lg border border-hairline p-2 text-ink-muted transition hover:bg-raised hover:text-ink"
+            >
+              <Moon size={16} className="dark:hidden" />
+              <Sun size={16} className="hidden dark:block" />
+            </button>
           </div>
         </header>
 
