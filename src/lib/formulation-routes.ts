@@ -6,13 +6,13 @@ export type FeedFormulationSection =
 
 const SECTION_PATHS: Record<FeedFormulationSection, string> = {
   programmes: "programmes",
-  formulations: "my-formulations",
+  formulations: "formulations",
   ingredients: "ingredients",
   nutrients: "nutrients",
 };
 
 export function feedFormulationHref(section?: FeedFormulationSection): string {
-  return section ? `/formulations/${SECTION_PATHS[section]}` : "/formulations";
+  return section ? `/dashboard/${SECTION_PATHS[section]}` : "/dashboard";
 }
 
 export function feedIngredientHref(ingredientId: string): string {
