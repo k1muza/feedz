@@ -19,6 +19,15 @@ const config = {
     },
     extend: {
       colors: {
+        plane: "var(--fs-grain)",
+        surface: "var(--fs-paper)",
+        raised: "#f3f0e8",
+        ink: "var(--fs-charcoal)",
+        "ink-muted": "var(--fs-muted)",
+        "ink-faint": "#7a7b72",
+        hairline: "var(--fs-stone)",
+        brand: "var(--fs-field)",
+        "brand-soft": "var(--fs-leaf)",
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
