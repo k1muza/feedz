@@ -1,0 +1,4256 @@
+{
+  "schemaVersion": 1,
+  "id": "brazilian-tables-2024-ingredient-library",
+  "name": "Brazilian Tables 2024 swine feed ingredient nutrient library",
+  "basis": {
+    "nutrientComposition": "as-fed",
+    "energy": "kcal/kg",
+    "aminoAcids": "percent",
+    "macroMinerals": "percent",
+    "traceMinerals": "ppm"
+  },
+  "source": {
+    "publisher": "Federal University of Viçosa, Department of Animal Science",
+    "title": "Brazilian Tables for Poultry and Swine — Composition of Feedstuffs and Nutritional Requirements",
+    "edition": "5th Edition",
+    "year": 2024,
+    "chapter": "1 — Feedstuff Composition and Nutritional Value",
+    "doi": "10.26626/978-85-8179-212-5.2024.C001.p.1-230",
+    "url": "https://editorascienza.com.br/pdfs/UFV/poultry_swine_en_chapter_1.pdf"
+  },
+  "notes": [
+    "Table 1.01 feedstuffs are stored on the published as-fed basis.",
+    "Table 1.09 crystalline amino acids are published on a dry-matter basis; their provenance records this exception explicitly.",
+    "Table 1.10 inorganic mineral sources are stored on the published as-fed basis.",
+    "Legacy PigFlow ingredient IDs are retained only where the Brazilian source identity is an exact or explicitly documented compatible mapping.",
+    "Missing Brazilian source values remain missing. PigFlow only treats narrowly defined nutrient families as structural zero by ingredient category.",
+    "Ingredients without a defensible Brazilian Tables identity were removed from the canonical formulation library rather than silently retaining another database."
+  ],
+  "ingredients": [
+    {
+      "id": "corn-yellow-dent",
+      "name": "Corn, Grain (Average)",
+      "aliases": [
+        "yellow maize",
+        "maize",
+        "Corn, Yellow Dent"
+      ],
+      "category": "cereal",
+      "composition": {
+        "dryMatterPct": 88.6,
+        "crudeProteinPct": 7.81,
+        "digestibleProteinPct": 6.72,
+        "crudeFatPct": 3.73,
+        "crudeFibrePct": 1.72,
+        "ashPct": 1.12,
+        "starchPct": 63.4,
+        "neutralDetergentFibrePct": 13.8,
+        "acidDetergentFibrePct": 3.16,
+        "linoleicAcidPct": 1.91
+      },
+      "energy": {
+        "digestibleKcalKg": 3442,
+        "metabolizableKcalKg": 3360,
+        "netKcalKg": 2667
+      },
+      "aminoAcids": {
+        "totalPct": {
+          "lysine": 0.25,
+          "methionine": 0.16,
+          "methionineCysteine": 0.33,
+          "threonine": 0.3,
+          "tryptophan": 0.06,
+          "arginine": 0.39,
+          "valine": 0.4,
+          "isoleucine": 0.28,
+          "leucine": 0.96,
+          "histidine": 0.24,
+          "phenylalanine": 0.36,
+          "phenylalanineTyrosine": 0.65,
+          "cysteine": 0.17,
+          "tyrosine": 0.29
+        },
+        "sidDigestibilityPct": {
+          "lysine": 78.9,
+          "methionine": 86.4,
+          "methionineCysteine": 88.1,
+          "threonine": 78.8,
+          "tryptophan": 75.7,
+          "arginine": 89.6,
+          "valine": 88.5,
+          "isoleucine": 89.9,
+          "leucine": 89.5,
+          "histidine": 86.5,
+          "phenylalanine": 89.7,
+          "phenylalanineTyrosine": 91,
+          "cysteine": 89.7,
+          "tyrosine": 92.6
+        },
+        "sidPct": {
+          "lysine": 0.2,
+          "methionine": 0.14,
+          "methionineCysteine": 0.29,
+          "threonine": 0.24,
+          "tryptophan": 0.05,
+          "arginine": 0.35,
+          "valine": 0.35,
+          "isoleucine": 0.25,
+          "leucine": 0.85,
+          "histidine": 0.2,
+          "phenylalanine": 0.33,
+          "phenylalanineTyrosine": 0.59,
+          "cysteine": 0.15,
+          "tyrosine": 0.27
+        }
+      },
+      "macroMinerals": {
+        "calciumPct": 0.02,
+        "totalPhosphorusPct": 0.23,
+        "availablePhosphorusPct": 0.05,
+        "sttdPhosphorusPct": 0.1,
+        "sodiumPct": 0.01,
+        "chloridePct": 0.09,
+        "potassiumPct": 0.32,
+        "magnesiumPct": 0.11
+      },
+      "traceMineralsPpm": {
+        "manganese": 6.89,
+        "iron": 22.8,
+        "copper": 2.23,
+        "zinc": 21.5,
+        "selenium": 0.07
+      },
+      "vitamins": {},
+      "constraints": {
+        "notes": []
+      },
+      "provenance": {
+        "sourceIngredientName": "Corn, Grain (Average)",
+        "sourcePage": 73,
+        "sourceTable": "Table 1.01",
+        "source": {
+          "publisher": "Federal University of Viçosa, Department of Animal Science",
+          "title": "Brazilian Tables for Poultry and Swine — Composition of Feedstuffs and Nutritional Requirements",
+          "year": 2024,
+          "url": "https://editorascienza.com.br/pdfs/UFV/poultry_swine_en_chapter_1.pdf",
+          "priority": "primary",
+          "basis": "As-fed; Brazilian Tables 2024 Table 1.01"
+        },
+        "nutrientSources": {},
+        "notes": [
+          "Nutrient values are transcribed from the Brazilian Tables 2024 Table 1.01 swine columns; source dashes remain missing rather than being converted to zero."
+        ]
+      }
+    },
+    {
+      "id": "soybean-meal-dehulled-solvent-extracted",
+      "name": "Soybean, Meal 48% CP",
+      "aliases": [
+        "soybean meal 48%",
+        "soya meal 48%",
+        "dehulled soybean meal",
+        "Soybean Meal, Dehulled, Solvent Extracted"
+      ],
+      "category": "protein_meal",
+      "composition": {
+        "dryMatterPct": 88.9,
+        "crudeProteinPct": 48.2,
+        "digestibleProteinPct": 44,
+        "crudeFatPct": 1.72,
+        "crudeFibrePct": 4.55,
+        "ashPct": 6.1,
+        "starchPct": 3,
+        "neutralDetergentFibrePct": 11.5,
+        "acidDetergentFibrePct": 8.6,
+        "linoleicAcidPct": 0.77
+      },
+      "energy": {
+        "digestibleKcalKg": 3548,
+        "metabolizableKcalKg": 3306,
+        "netKcalKg": 2080
+      },
+      "aminoAcids": {
+        "totalPct": {
+          "lysine": 2.97,
+          "methionine": 0.63,
+          "methionineCysteine": 1.35,
+          "threonine": 1.87,
+          "tryptophan": 0.67,
+          "arginine": 3.49,
+          "valine": 2.29,
+          "isoleucine": 2.23,
+          "leucine": 3.65,
+          "histidine": 1.25,
+          "phenylalanine": 2.48,
+          "phenylalanineTyrosine": 4.18,
+          "cysteine": 0.72,
+          "tyrosine": 1.7
+        },
+        "sidDigestibilityPct": {
+          "lysine": 91.2,
+          "methionine": 92.5,
+          "methionineCysteine": 90.3,
+          "threonine": 87.5,
+          "tryptophan": 90.3,
+          "arginine": 94.7,
+          "valine": 89.5,
+          "isoleucine": 90.2,
+          "leucine": 90.5,
+          "histidine": 91.2,
+          "phenylalanine": 90.5,
+          "phenylalanineTyrosine": 91.1,
+          "cysteine": 88.4,
+          "tyrosine": 91.9
+        },
+        "sidPct": {
+          "lysine": 2.71,
+          "methionine": 0.58,
+          "methionineCysteine": 1.22,
+          "threonine": 1.64,
+          "tryptophan": 0.61,
+          "arginine": 3.31,
+          "valine": 2.05,
+          "isoleucine": 2.01,
+          "leucine": 3.3,
+          "histidine": 1.14,
+          "phenylalanine": 2.24,
+          "phenylalanineTyrosine": 3.81,
+          "cysteine": 0.64,
+          "tyrosine": 1.56
+        }
+      },
+      "macroMinerals": {
+        "calciumPct": 0.34,
+        "totalPhosphorusPct": 0.59,
+        "availablePhosphorusPct": 0.23,
+        "sttdPhosphorusPct": 0.27,
+        "sodiumPct": 0.02,
+        "chloridePct": 0.05,
+        "potassiumPct": 2.13,
+        "magnesiumPct": 0.27
+      },
+      "traceMineralsPpm": {
+        "manganese": 30.7,
+        "iron": 159.5,
+        "copper": 9,
+        "zinc": 47.7,
+        "selenium": 0.34
+      },
+      "vitamins": {},
+      "constraints": {
+        "notes": []
+      },
+      "provenance": {
+        "sourceIngredientName": "Soybean, Meal 48% CP",
+        "sourcePage": 169,
+        "sourceTable": "Table 1.01",
+        "source": {
+          "publisher": "Federal University of Viçosa, Department of Animal Science",
+          "title": "Brazilian Tables for Poultry and Swine — Composition of Feedstuffs and Nutritional Requirements",
+          "year": 2024,
+          "url": "https://editorascienza.com.br/pdfs/UFV/poultry_swine_en_chapter_1.pdf",
+          "priority": "primary",
+          "basis": "As-fed; Brazilian Tables 2024 Table 1.01"
+        },
+        "nutrientSources": {},
+        "notes": [
+          "Nutrient values are transcribed from the Brazilian Tables 2024 Table 1.01 swine columns; source dashes remain missing rather than being converted to zero."
+        ]
+      }
+    },
+    {
+      "id": "soybean-meal-solvent-extracted",
+      "name": "Soybean, Meal 45.6% CP (Average)",
+      "aliases": [
+        "soybean meal 44%",
+        "soya meal 44%",
+        "soybean meal",
+        "Soybean Meal, Solvent Extracted"
+      ],
+      "category": "protein_meal",
+      "composition": {
+        "dryMatterPct": 89.5,
+        "crudeProteinPct": 45.6,
+        "digestibleProteinPct": 40.8,
+        "crudeFatPct": 1.91,
+        "crudeFibrePct": 4.82,
+        "ashPct": 5.91,
+        "starchPct": 4.74,
+        "neutralDetergentFibrePct": 11.6,
+        "acidDetergentFibrePct": 7.07,
+        "linoleicAcidPct": 0.67
+      },
+      "energy": {
+        "digestibleKcalKg": 3437,
+        "metabolizableKcalKg": 3179,
+        "netKcalKg": 2011
+      },
+      "aminoAcids": {
+        "totalPct": {
+          "lysine": 2.88,
+          "methionine": 0.61,
+          "methionineCysteine": 1.26,
+          "threonine": 1.84,
+          "tryptophan": 0.64,
+          "arginine": 3.33,
+          "valine": 2.21,
+          "isoleucine": 2.09,
+          "leucine": 3.51,
+          "histidine": 1.2,
+          "phenylalanine": 2.34,
+          "phenylalanineTyrosine": 4.05,
+          "cysteine": 0.65,
+          "tyrosine": 1.71
+        },
+        "sidDigestibilityPct": {
+          "lysine": 90.1,
+          "methionine": 91.8,
+          "methionineCysteine": 90.7,
+          "threonine": 86.4,
+          "tryptophan": 89.2,
+          "arginine": 94,
+          "valine": 88.1,
+          "isoleucine": 89.4,
+          "leucine": 89,
+          "histidine": 90.6,
+          "phenylalanine": 90,
+          "phenylalanineTyrosine": 89.9,
+          "cysteine": 89.6,
+          "tyrosine": 89.8
+        },
+        "sidPct": {
+          "lysine": 2.59,
+          "methionine": 0.56,
+          "methionineCysteine": 1.15,
+          "threonine": 1.59,
+          "tryptophan": 0.57,
+          "arginine": 3.13,
+          "valine": 1.95,
+          "isoleucine": 1.87,
+          "leucine": 3.12,
+          "histidine": 1.09,
+          "phenylalanine": 2.11,
+          "phenylalanineTyrosine": 3.64,
+          "cysteine": 0.58,
+          "tyrosine": 1.53
+        }
+      },
+      "macroMinerals": {
+        "calciumPct": 0.3,
+        "totalPhosphorusPct": 0.58,
+        "availablePhosphorusPct": 0.22,
+        "sttdPhosphorusPct": 0.26,
+        "sodiumPct": 0.01,
+        "chloridePct": 0.05,
+        "potassiumPct": 1.97,
+        "magnesiumPct": 0.33
+      },
+      "traceMineralsPpm": {
+        "manganese": 30.4,
+        "iron": 146.9,
+        "copper": 16.9,
+        "zinc": 47.9,
+        "selenium": 0.44
+      },
+      "vitamins": {},
+      "constraints": {
+        "notes": []
+      },
+      "provenance": {
+        "sourceIngredientName": "Soybean, Meal 45.6% CP (Average)",
+        "sourcePage": 165,
+        "sourceTable": "Table 1.01",
+        "source": {
+          "publisher": "Federal University of Viçosa, Department of Animal Science",
+          "title": "Brazilian Tables for Poultry and Swine — Composition of Feedstuffs and Nutritional Requirements",
+          "year": 2024,
+          "url": "https://editorascienza.com.br/pdfs/UFV/poultry_swine_en_chapter_1.pdf",
+          "priority": "primary",
+          "basis": "As-fed; Brazilian Tables 2024 Table 1.01"
+        },
+        "nutrientSources": {},
+        "notes": [
+          "Nutrient values are transcribed from the Brazilian Tables 2024 Table 1.01 swine columns; source dashes remain missing rather than being converted to zero."
+        ]
+      }
+    },
+    {
+      "id": "sunflower-meal-solvent-extracted",
+      "name": "Sunflower, Meal",
+      "aliases": [
+        "sunflower meal",
+        "sunflower cake",
+        "Sunflower Meal, Solvent Extracted"
+      ],
+      "category": "protein_meal",
+      "composition": {
+        "dryMatterPct": 89.8,
+        "crudeProteinPct": 33,
+        "digestibleProteinPct": 27.9,
+        "crudeFatPct": 1.98,
+        "crudeFibrePct": 25.8,
+        "ashPct": 6.11,
+        "starchPct": 4.38,
+        "neutralDetergentFibrePct": 40.7,
+        "acidDetergentFibrePct": 26.3,
+        "linoleicAcidPct": 1.03
+      },
+      "energy": {
+        "digestibleKcalKg": 2159,
+        "metabolizableKcalKg": 1951,
+        "netKcalKg": 995
+      },
+      "aminoAcids": {
+        "totalPct": {
+          "lysine": 1.14,
+          "methionine": 0.7,
+          "methionineCysteine": 1.26,
+          "threonine": 1.16,
+          "tryptophan": 0.43,
+          "arginine": 2.67,
+          "valine": 1.53,
+          "isoleucine": 1.25,
+          "leucine": 1.98,
+          "histidine": 0.79,
+          "phenylalanine": 1.45,
+          "phenylalanineTyrosine": 2.25,
+          "cysteine": 0.56,
+          "tyrosine": 0.8
+        },
+        "sidDigestibilityPct": {
+          "lysine": 79.2,
+          "methionine": 90.4,
+          "methionineCysteine": 85.4,
+          "threonine": 79.7,
+          "tryptophan": 83.5,
+          "arginine": 92.9,
+          "valine": 81.1,
+          "isoleucine": 83.3,
+          "leucine": 83.6,
+          "histidine": 82.8,
+          "phenylalanine": 86.2,
+          "phenylalanineTyrosine": 86.8,
+          "cysteine": 79.1,
+          "tyrosine": 87.8
+        },
+        "sidPct": {
+          "lysine": 0.9,
+          "methionine": 0.63,
+          "methionineCysteine": 1.08,
+          "threonine": 0.92,
+          "tryptophan": 0.36,
+          "arginine": 2.48,
+          "valine": 1.24,
+          "isoleucine": 1.04,
+          "leucine": 1.66,
+          "histidine": 0.65,
+          "phenylalanine": 1.25,
+          "phenylalanineTyrosine": 1.95,
+          "cysteine": 0.44,
+          "tyrosine": 0.7
+        }
+      },
+      "macroMinerals": {
+        "calciumPct": 0.35,
+        "totalPhosphorusPct": 0.98,
+        "availablePhosphorusPct": 0.32,
+        "sttdPhosphorusPct": 0.25,
+        "sodiumPct": 0.02,
+        "chloridePct": 0.15,
+        "potassiumPct": 1.42,
+        "magnesiumPct": 0.65
+      },
+      "traceMineralsPpm": {
+        "manganese": 0.34,
+        "iron": 248,
+        "copper": 26,
+        "zinc": 79,
+        "selenium": 0.5
+      },
+      "vitamins": {},
+      "constraints": {
+        "notes": []
+      },
+      "provenance": {
+        "sourceIngredientName": "Sunflower, Meal",
+        "sourcePage": 189,
+        "sourceTable": "Table 1.01",
+        "source": {
+          "publisher": "Federal University of Viçosa, Department of Animal Science",
+          "title": "Brazilian Tables for Poultry and Swine — Composition of Feedstuffs and Nutritional Requirements",
+          "year": 2024,
+          "url": "https://editorascienza.com.br/pdfs/UFV/poultry_swine_en_chapter_1.pdf",
+          "priority": "primary",
+          "basis": "As-fed; Brazilian Tables 2024 Table 1.01"
+        },
+        "nutrientSources": {},
+        "notes": [
+          "Nutrient values are transcribed from the Brazilian Tables 2024 Table 1.01 swine columns; source dashes remain missing rather than being converted to zero."
+        ]
+      }
+    },
+    {
+      "id": "wheat-bran",
+      "name": "Wheat, Bran",
+      "aliases": [
+        "bran",
+        "Wheat Bran"
+      ],
+      "category": "byproduct",
+      "composition": {
+        "dryMatterPct": 88.5,
+        "crudeProteinPct": 15.2,
+        "digestibleProteinPct": 11.7,
+        "crudeFatPct": 3.4,
+        "crudeFibrePct": 9.07,
+        "ashPct": 4.43,
+        "starchPct": 29.6,
+        "neutralDetergentFibrePct": 39.8,
+        "acidDetergentFibrePct": 13.1,
+        "linoleicAcidPct": 1.54
+      },
+      "energy": {
+        "digestibleKcalKg": 2481,
+        "metabolizableKcalKg": 2370,
+        "netKcalKg": 1694
+      },
+      "aminoAcids": {
+        "totalPct": {
+          "lysine": 0.6,
+          "methionine": 0.24,
+          "methionineCysteine": 0.55,
+          "threonine": 0.51,
+          "tryptophan": 0.22,
+          "arginine": 1.02,
+          "valine": 0.7,
+          "isoleucine": 0.48,
+          "leucine": 0.92,
+          "histidine": 0.4,
+          "phenylalanine": 0.6,
+          "phenylalanineTyrosine": 1.04,
+          "cysteine": 0.31,
+          "tyrosine": 0.44
+        },
+        "sidDigestibilityPct": {
+          "lysine": 72,
+          "methionine": 77.1,
+          "methionineCysteine": 74.9,
+          "threonine": 65.4,
+          "tryptophan": 70.9,
+          "arginine": 86.4,
+          "valine": 75.4,
+          "isoleucine": 77.5,
+          "leucine": 78.6,
+          "histidine": 85.3,
+          "phenylalanine": 81.3,
+          "phenylalanineTyrosine": 80.2,
+          "cysteine": 73.2,
+          "tyrosine": 78.7
+        },
+        "sidPct": {
+          "lysine": 0.43,
+          "methionine": 0.19,
+          "methionineCysteine": 0.41,
+          "threonine": 0.33,
+          "tryptophan": 0.16,
+          "arginine": 0.88,
+          "valine": 0.53,
+          "isoleucine": 0.37,
+          "leucine": 0.72,
+          "histidine": 0.34,
+          "phenylalanine": 0.49,
+          "phenylalanineTyrosine": 0.83,
+          "cysteine": 0.23,
+          "tyrosine": 0.35
+        }
+      },
+      "macroMinerals": {
+        "calciumPct": 0.14,
+        "totalPhosphorusPct": 0.94,
+        "availablePhosphorusPct": 0.49,
+        "sttdPhosphorusPct": 0.49,
+        "sodiumPct": 0.02,
+        "chloridePct": 0.07,
+        "potassiumPct": 1.1,
+        "magnesiumPct": 0.43
+      },
+      "traceMineralsPpm": {
+        "manganese": 102.7,
+        "iron": 205.3,
+        "copper": 15,
+        "zinc": 134.5,
+        "selenium": 0.31
+      },
+      "vitamins": {},
+      "constraints": {
+        "notes": []
+      },
+      "provenance": {
+        "sourceIngredientName": "Wheat, Bran",
+        "sourcePage": 197,
+        "sourceTable": "Table 1.01",
+        "source": {
+          "publisher": "Federal University of Viçosa, Department of Animal Science",
+          "title": "Brazilian Tables for Poultry and Swine — Composition of Feedstuffs and Nutritional Requirements",
+          "year": 2024,
+          "url": "https://editorascienza.com.br/pdfs/UFV/poultry_swine_en_chapter_1.pdf",
+          "priority": "primary",
+          "basis": "As-fed; Brazilian Tables 2024 Table 1.01"
+        },
+        "nutrientSources": {},
+        "notes": [
+          "Nutrient values are transcribed from the Brazilian Tables 2024 Table 1.01 swine columns; source dashes remain missing rather than being converted to zero."
+        ]
+      }
+    },
+    {
+      "id": "corn-oil",
+      "name": "Corn, Oil",
+      "aliases": [
+        "maize oil",
+        "Corn Oil"
+      ],
+      "category": "oil_fat",
+      "composition": {
+        "dryMatterPct": 99.3,
+        "crudeFatPct": 99.3,
+        "linoleicAcidPct": 51.9
+      },
+      "energy": {
+        "digestibleKcalKg": 8580,
+        "metabolizableKcalKg": 8280,
+        "netKcalKg": 7345
+      },
+      "aminoAcids": {
+        "totalPct": {},
+        "sidDigestibilityPct": {},
+        "sidPct": {}
+      },
+      "macroMinerals": {},
+      "traceMineralsPpm": {},
+      "vitamins": {},
+      "constraints": {
+        "notes": []
+      },
+      "provenance": {
+        "sourceIngredientName": "Corn, Oil",
+        "sourcePage": 83,
+        "sourceTable": "Table 1.01",
+        "source": {
+          "publisher": "Federal University of Viçosa, Department of Animal Science",
+          "title": "Brazilian Tables for Poultry and Swine — Composition of Feedstuffs and Nutritional Requirements",
+          "year": 2024,
+          "url": "https://editorascienza.com.br/pdfs/UFV/poultry_swine_en_chapter_1.pdf",
+          "priority": "primary",
+          "basis": "As-fed; Brazilian Tables 2024 Table 1.01"
+        },
+        "nutrientSources": {},
+        "notes": [
+          "Nutrient values are transcribed from the Brazilian Tables 2024 Table 1.01 swine columns; source dashes remain missing rather than being converted to zero."
+        ]
+      }
+    },
+    {
+      "id": "soybean-degummed-oil",
+      "name": "Soybean, Degummed Oil",
+      "aliases": [
+        "soybean oil",
+        "soya oil",
+        "degummed soybean oil"
+      ],
+      "category": "oil_fat",
+      "composition": {
+        "dryMatterPct": 99.7,
+        "crudeFatPct": 99.5,
+        "linoleicAcidPct": 52.2
+      },
+      "energy": {
+        "digestibleKcalKg": 8600,
+        "metabolizableKcalKg": 8300,
+        "netKcalKg": 7362
+      },
+      "aminoAcids": {
+        "totalPct": {},
+        "sidDigestibilityPct": {},
+        "sidPct": {}
+      },
+      "macroMinerals": {},
+      "traceMineralsPpm": {},
+      "vitamins": {},
+      "constraints": {
+        "notes": []
+      },
+      "provenance": {
+        "sourceIngredientName": "Soybean, Degummed Oil",
+        "sourcePage": 153,
+        "sourceTable": "Table 1.01",
+        "source": {
+          "publisher": "Federal University of Viçosa, Department of Animal Science",
+          "title": "Brazilian Tables for Poultry and Swine — Composition of Feedstuffs and Nutritional Requirements",
+          "year": 2024,
+          "url": "https://editorascienza.com.br/pdfs/UFV/poultry_swine_en_chapter_1.pdf",
+          "priority": "primary",
+          "basis": "As-fed; Brazilian Tables 2024 Table 1.01"
+        },
+        "nutrientSources": {},
+        "notes": [
+          "Nutrient values are transcribed from the Brazilian Tables 2024 Table 1.01 swine columns; source dashes remain missing rather than being converted to zero."
+        ]
+      }
+    },
+    {
+      "id": "barley-two-row",
+      "name": "Barley, Grain",
+      "aliases": [
+        "barley",
+        "Barley, Two Row"
+      ],
+      "category": "cereal",
+      "composition": {
+        "dryMatterPct": 87.7,
+        "crudeProteinPct": 10.3,
+        "digestibleProteinPct": 8.42,
+        "crudeFatPct": 2.02,
+        "crudeFibrePct": 4.74,
+        "ashPct": 2.18,
+        "starchPct": 52.1,
+        "neutralDetergentFibrePct": 16.2,
+        "acidDetergentFibrePct": 5.31
+      },
+      "energy": {
+        "digestibleKcalKg": 3106,
+        "metabolizableKcalKg": 3019,
+        "netKcalKg": 2308
+      },
+      "aminoAcids": {
+        "totalPct": {
+          "lysine": 0.41,
+          "methionine": 0.18,
+          "methionineCysteine": 0.44,
+          "threonine": 0.36,
+          "tryptophan": 0.13,
+          "arginine": 0.53,
+          "valine": 0.48,
+          "isoleucine": 0.36,
+          "leucine": 0.73,
+          "histidine": 0.25,
+          "phenylalanine": 0.52,
+          "phenylalanineTyrosine": 0.83,
+          "cysteine": 0.26,
+          "tyrosine": 0.31
+        },
+        "sidDigestibilityPct": {
+          "lysine": 73.7,
+          "methionine": 82,
+          "methionineCysteine": 82,
+          "threonine": 74.3,
+          "tryptophan": 76.9,
+          "arginine": 83.3,
+          "valine": 78.9,
+          "isoleucine": 80.6,
+          "leucine": 82.6,
+          "histidine": 81.8,
+          "phenylalanine": 83.7,
+          "phenylalanineTyrosine": 84.4,
+          "cysteine": 82,
+          "tyrosine": 85.7
+        },
+        "sidPct": {
+          "lysine": 0.3,
+          "methionine": 0.15,
+          "methionineCysteine": 0.36,
+          "threonine": 0.27,
+          "tryptophan": 0.1,
+          "arginine": 0.44,
+          "valine": 0.38,
+          "isoleucine": 0.29,
+          "leucine": 0.6,
+          "histidine": 0.2,
+          "phenylalanine": 0.44,
+          "phenylalanineTyrosine": 0.7,
+          "cysteine": 0.21,
+          "tyrosine": 0.27
+        }
+      },
+      "macroMinerals": {
+        "calciumPct": 0.04,
+        "totalPhosphorusPct": 0.35,
+        "availablePhosphorusPct": 0.15,
+        "sodiumPct": 0.02,
+        "chloridePct": 0.12,
+        "potassiumPct": 0.43,
+        "magnesiumPct": 0.13
+      },
+      "traceMineralsPpm": {
+        "manganese": 16.2,
+        "iron": 116,
+        "copper": 7.22,
+        "zinc": 29,
+        "selenium": 0.11
+      },
+      "vitamins": {},
+      "constraints": {
+        "notes": []
+      },
+      "provenance": {
+        "sourceIngredientName": "Barley, Grain",
+        "sourcePage": 23,
+        "sourceTable": "Table 1.01",
+        "source": {
+          "publisher": "Federal University of Viçosa, Department of Animal Science",
+          "title": "Brazilian Tables for Poultry and Swine — Composition of Feedstuffs and Nutritional Requirements",
+          "year": 2024,
+          "url": "https://editorascienza.com.br/pdfs/UFV/poultry_swine_en_chapter_1.pdf",
+          "priority": "primary",
+          "basis": "As-fed; Brazilian Tables 2024 Table 1.01"
+        },
+        "nutrientSources": {},
+        "notes": [
+          "Nutrient values are transcribed from the Brazilian Tables 2024 Table 1.01 swine columns; source dashes remain missing rather than being converted to zero."
+        ]
+      }
+    },
+    {
+      "id": "wheat-hard-red-winter",
+      "name": "Wheat, Grain",
+      "aliases": [
+        "wheat grain",
+        "wheat",
+        "Wheat, Hard Red Winter"
+      ],
+      "category": "cereal",
+      "composition": {
+        "dryMatterPct": 88,
+        "crudeProteinPct": 13.6,
+        "digestibleProteinPct": 12.3,
+        "crudeFatPct": 1.8,
+        "crudeFibrePct": 2.08,
+        "ashPct": 1.51,
+        "starchPct": 56.7,
+        "neutralDetergentFibrePct": 11.3,
+        "acidDetergentFibrePct": 3.09,
+        "linoleicAcidPct": 0.68
+      },
+      "energy": {
+        "digestibleKcalKg": 3340,
+        "metabolizableKcalKg": 3243,
+        "netKcalKg": 2489
+      },
+      "aminoAcids": {
+        "totalPct": {
+          "lysine": 0.35,
+          "methionine": 0.2,
+          "methionineCysteine": 0.48,
+          "threonine": 0.36,
+          "tryptophan": 0.15,
+          "arginine": 0.59,
+          "valine": 0.53,
+          "isoleucine": 0.44,
+          "leucine": 0.84,
+          "histidine": 0.3,
+          "phenylalanine": 0.57,
+          "phenylalanineTyrosine": 0.8,
+          "cysteine": 0.28,
+          "tyrosine": 0.23
+        },
+        "sidDigestibilityPct": {
+          "lysine": 82.2,
+          "methionine": 89.8,
+          "methionineCysteine": 89.9,
+          "threonine": 82.6,
+          "tryptophan": 87,
+          "arginine": 87.6,
+          "valine": 86.7,
+          "isoleucine": 88.8,
+          "leucine": 89.5,
+          "histidine": 89.3,
+          "phenylalanine": 91.4,
+          "phenylalanineTyrosine": 91.1,
+          "cysteine": 90,
+          "tyrosine": 90.3
+        },
+        "sidPct": {
+          "lysine": 0.29,
+          "methionine": 0.18,
+          "methionineCysteine": 0.43,
+          "threonine": 0.3,
+          "tryptophan": 0.13,
+          "arginine": 0.52,
+          "valine": 0.46,
+          "isoleucine": 0.39,
+          "leucine": 0.75,
+          "histidine": 0.27,
+          "phenylalanine": 0.52,
+          "phenylalanineTyrosine": 0.73,
+          "cysteine": 0.25,
+          "tyrosine": 0.21
+        }
+      },
+      "macroMinerals": {
+        "calciumPct": 0.05,
+        "totalPhosphorusPct": 0.3,
+        "availablePhosphorusPct": 0.08,
+        "sttdPhosphorusPct": 0.15,
+        "sodiumPct": 0.01,
+        "chloridePct": 0.08,
+        "potassiumPct": 0.39,
+        "magnesiumPct": 0.11
+      },
+      "traceMineralsPpm": {
+        "manganese": 22.93,
+        "iron": 42.69,
+        "copper": 3.36,
+        "zinc": 28.51
+      },
+      "vitamins": {},
+      "constraints": {
+        "notes": []
+      },
+      "provenance": {
+        "sourceIngredientName": "Wheat, Grain",
+        "sourcePage": 207,
+        "sourceTable": "Table 1.01",
+        "source": {
+          "publisher": "Federal University of Viçosa, Department of Animal Science",
+          "title": "Brazilian Tables for Poultry and Swine — Composition of Feedstuffs and Nutritional Requirements",
+          "year": 2024,
+          "url": "https://editorascienza.com.br/pdfs/UFV/poultry_swine_en_chapter_1.pdf",
+          "priority": "primary",
+          "basis": "As-fed; Brazilian Tables 2024 Table 1.01"
+        },
+        "nutrientSources": {},
+        "notes": [
+          "Nutrient values are transcribed from the Brazilian Tables 2024 Table 1.01 swine columns; source dashes remain missing rather than being converted to zero."
+        ]
+      }
+    },
+    {
+      "id": "sorghum-grain",
+      "name": "Sorghum, Grain",
+      "aliases": [
+        "milo",
+        "sorghum",
+        "Sorghum, Grain (Milo)"
+      ],
+      "category": "cereal",
+      "composition": {
+        "dryMatterPct": 87.5,
+        "crudeProteinPct": 8.65,
+        "digestibleProteinPct": 7.07,
+        "crudeFatPct": 3.13,
+        "crudeFibrePct": 2.58,
+        "ashPct": 1.3,
+        "starchPct": 66.6,
+        "neutralDetergentFibrePct": 11.2,
+        "acidDetergentFibrePct": 5.24,
+        "linoleicAcidPct": 1.05
+      },
+      "energy": {
+        "digestibleKcalKg": 3410,
+        "metabolizableKcalKg": 3358,
+        "netKcalKg": 2656
+      },
+      "aminoAcids": {
+        "totalPct": {
+          "lysine": 0.2,
+          "methionine": 0.15,
+          "methionineCysteine": 0.3,
+          "threonine": 0.28,
+          "tryptophan": 0.1,
+          "arginine": 0.35,
+          "valine": 0.44,
+          "isoleucine": 0.35,
+          "leucine": 1.17,
+          "histidine": 0.2,
+          "phenylalanine": 0.46,
+          "phenylalanineTyrosine": 0.82,
+          "cysteine": 0.15,
+          "tyrosine": 0.36
+        },
+        "sidDigestibilityPct": {
+          "lysine": 81.3,
+          "methionine": 89.6,
+          "methionineCysteine": 88.2,
+          "threonine": 84.1,
+          "tryptophan": 79.8,
+          "arginine": 90.2,
+          "valine": 90.1,
+          "isoleucine": 89.4,
+          "leucine": 89.1,
+          "histidine": 84.8,
+          "phenylalanine": 91.6,
+          "phenylalanineTyrosine": 92.3,
+          "cysteine": 86.7,
+          "tyrosine": 93.1
+        },
+        "sidPct": {
+          "lysine": 0.16,
+          "methionine": 0.13,
+          "methionineCysteine": 0.26,
+          "threonine": 0.24,
+          "tryptophan": 0.08,
+          "arginine": 0.32,
+          "valine": 0.4,
+          "isoleucine": 0.31,
+          "leucine": 1.04,
+          "histidine": 0.17,
+          "phenylalanine": 0.42,
+          "phenylalanineTyrosine": 0.76,
+          "cysteine": 0.13,
+          "tyrosine": 0.34
+        }
+      },
+      "macroMinerals": {
+        "calciumPct": 0.03,
+        "totalPhosphorusPct": 0.23,
+        "availablePhosphorusPct": 0.07,
+        "sttdPhosphorusPct": 0.08,
+        "sodiumPct": 0.02,
+        "chloridePct": 0.06,
+        "potassiumPct": 0.36,
+        "magnesiumPct": 0.14
+      },
+      "traceMineralsPpm": {
+        "manganese": 10.9,
+        "iron": 59.7,
+        "copper": 5.6,
+        "zinc": 49.8,
+        "selenium": 0.35
+      },
+      "vitamins": {},
+      "constraints": {
+        "notes": []
+      },
+      "provenance": {
+        "sourceIngredientName": "Sorghum, Grain",
+        "sourcePage": 147,
+        "sourceTable": "Table 1.01",
+        "source": {
+          "publisher": "Federal University of Viçosa, Department of Animal Science",
+          "title": "Brazilian Tables for Poultry and Swine — Composition of Feedstuffs and Nutritional Requirements",
+          "year": 2024,
+          "url": "https://editorascienza.com.br/pdfs/UFV/poultry_swine_en_chapter_1.pdf",
+          "priority": "primary",
+          "basis": "As-fed; Brazilian Tables 2024 Table 1.01"
+        },
+        "nutrientSources": {},
+        "notes": [
+          "Nutrient values are transcribed from the Brazilian Tables 2024 Table 1.01 swine columns; source dashes remain missing rather than being converted to zero."
+        ]
+      }
+    },
+    {
+      "id": "oats-grain",
+      "name": "Oats, Grain",
+      "aliases": [
+        "oats"
+      ],
+      "category": "cereal",
+      "composition": {
+        "dryMatterPct": 89,
+        "crudeProteinPct": 12.6,
+        "digestibleProteinPct": 10.1,
+        "crudeFatPct": 4.55,
+        "crudeFibrePct": 3.73,
+        "ashPct": 2.54,
+        "starchPct": 45.9,
+        "neutralDetergentFibrePct": 28.7,
+        "acidDetergentFibrePct": 11.1,
+        "linoleicAcidPct": 1.61
+      },
+      "energy": {
+        "digestibleKcalKg": 2645,
+        "metabolizableKcalKg": 2546,
+        "netKcalKg": 1967
+      },
+      "aminoAcids": {
+        "totalPct": {
+          "lysine": 0.52,
+          "methionine": 0.21,
+          "methionineCysteine": 0.59,
+          "threonine": 0.43,
+          "tryptophan": 0.16,
+          "arginine": 0.86,
+          "valine": 0.66,
+          "isoleucine": 0.48,
+          "leucine": 0.93,
+          "histidine": 0.28,
+          "phenylalanine": 0.65,
+          "phenylalanineTyrosine": 0.88,
+          "cysteine": 0.38,
+          "tyrosine": 0.23
+        },
+        "sidDigestibilityPct": {
+          "lysine": 75,
+          "methionine": 90.5,
+          "methionineCysteine": 79.7,
+          "threonine": 74.4,
+          "tryptophan": 81.3,
+          "arginine": 88.4,
+          "valine": 80.3,
+          "isoleucine": 81.3,
+          "leucine": 81.7,
+          "histidine": 82.1,
+          "phenylalanine": 84.6,
+          "phenylalanineTyrosine": 83,
+          "cysteine": 73.7,
+          "tyrosine": 78.3
+        },
+        "sidPct": {
+          "lysine": 0.39,
+          "methionine": 0.19,
+          "methionineCysteine": 0.47,
+          "threonine": 0.32,
+          "tryptophan": 0.13,
+          "arginine": 0.76,
+          "valine": 0.53,
+          "isoleucine": 0.39,
+          "leucine": 0.76,
+          "histidine": 0.23,
+          "phenylalanine": 0.55,
+          "phenylalanineTyrosine": 0.73,
+          "cysteine": 0.28,
+          "tyrosine": 0.18
+        }
+      },
+      "macroMinerals": {
+        "calciumPct": 0.07,
+        "totalPhosphorusPct": 0.38,
+        "availablePhosphorusPct": 0.22,
+        "sodiumPct": 0.01,
+        "chloridePct": 0.1,
+        "potassiumPct": 0.44,
+        "magnesiumPct": 0.15
+      },
+      "traceMineralsPpm": {},
+      "vitamins": {},
+      "constraints": {
+        "notes": []
+      },
+      "provenance": {
+        "sourceIngredientName": "Oats, Grain",
+        "sourcePage": 119,
+        "sourceTable": "Table 1.01",
+        "source": {
+          "publisher": "Federal University of Viçosa, Department of Animal Science",
+          "title": "Brazilian Tables for Poultry and Swine — Composition of Feedstuffs and Nutritional Requirements",
+          "year": 2024,
+          "url": "https://editorascienza.com.br/pdfs/UFV/poultry_swine_en_chapter_1.pdf",
+          "priority": "primary",
+          "basis": "As-fed; Brazilian Tables 2024 Table 1.01"
+        },
+        "nutrientSources": {},
+        "notes": [
+          "Nutrient values are transcribed from the Brazilian Tables 2024 Table 1.01 swine columns; source dashes remain missing rather than being converted to zero."
+        ]
+      }
+    },
+    {
+      "id": "rye-grain",
+      "name": "Rye, Grain",
+      "aliases": [
+        "rye grain",
+        "Rye"
+      ],
+      "category": "cereal",
+      "composition": {
+        "dryMatterPct": 87.3,
+        "crudeProteinPct": 10.3,
+        "digestibleProteinPct": 7.94,
+        "crudeFatPct": 1.6,
+        "crudeFibrePct": 1.9,
+        "ashPct": 2.15,
+        "starchPct": 59.6,
+        "neutralDetergentFibrePct": 14.1,
+        "acidDetergentFibrePct": 3.1,
+        "linoleicAcidPct": 0.48
+      },
+      "energy": {
+        "digestibleKcalKg": 3128,
+        "metabolizableKcalKg": 3057,
+        "netKcalKg": 2385
+      },
+      "aminoAcids": {
+        "totalPct": {
+          "lysine": 0.39,
+          "methionine": 0.17,
+          "methionineCysteine": 0.89,
+          "threonine": 0.35,
+          "tryptophan": 0.1,
+          "arginine": 0.51,
+          "valine": 0.49,
+          "isoleucine": 0.35,
+          "leucine": 0.63,
+          "histidine": 0.22,
+          "phenylalanine": 0.46,
+          "phenylalanineTyrosine": 0.73,
+          "cysteine": 0.72,
+          "tyrosine": 0.27
+        },
+        "sidDigestibilityPct": {
+          "lysine": 71.8,
+          "methionine": 82.4,
+          "methionineCysteine": 73,
+          "threonine": 71.4,
+          "tryptophan": 70,
+          "arginine": 80.4,
+          "valine": 75.5,
+          "isoleucine": 77.1,
+          "leucine": 79.4,
+          "histidine": 81.8,
+          "phenylalanine": 82.6,
+          "phenylalanineTyrosine": 80.8,
+          "cysteine": 70.8,
+          "tyrosine": 77.8
+        },
+        "sidPct": {
+          "lysine": 0.28,
+          "methionine": 0.14,
+          "methionineCysteine": 0.65,
+          "threonine": 0.25,
+          "tryptophan": 0.07,
+          "arginine": 0.41,
+          "valine": 0.37,
+          "isoleucine": 0.27,
+          "leucine": 0.5,
+          "histidine": 0.18,
+          "phenylalanine": 0.38,
+          "phenylalanineTyrosine": 0.59,
+          "cysteine": 0.51,
+          "tyrosine": 0.21
+        }
+      },
+      "macroMinerals": {
+        "calciumPct": 0.04,
+        "totalPhosphorusPct": 0.31,
+        "availablePhosphorusPct": 0.12,
+        "sttdPhosphorusPct": 0.09,
+        "sodiumPct": 0.01,
+        "chloridePct": 0.06,
+        "potassiumPct": 0.45,
+        "magnesiumPct": 0.11
+      },
+      "traceMineralsPpm": {},
+      "vitamins": {},
+      "constraints": {
+        "notes": []
+      },
+      "provenance": {
+        "sourceIngredientName": "Rye, Grain",
+        "sourcePage": 143,
+        "sourceTable": "Table 1.01",
+        "source": {
+          "publisher": "Federal University of Viçosa, Department of Animal Science",
+          "title": "Brazilian Tables for Poultry and Swine — Composition of Feedstuffs and Nutritional Requirements",
+          "year": 2024,
+          "url": "https://editorascienza.com.br/pdfs/UFV/poultry_swine_en_chapter_1.pdf",
+          "priority": "primary",
+          "basis": "As-fed; Brazilian Tables 2024 Table 1.01"
+        },
+        "nutrientSources": {},
+        "notes": [
+          "Nutrient values are transcribed from the Brazilian Tables 2024 Table 1.01 swine columns; source dashes remain missing rather than being converted to zero."
+        ]
+      }
+    },
+    {
+      "id": "triticale-grain",
+      "name": "Triticale, Grain",
+      "aliases": [
+        "triticale grain",
+        "Triticale"
+      ],
+      "category": "cereal",
+      "composition": {
+        "dryMatterPct": 88,
+        "crudeProteinPct": 13.6,
+        "digestibleProteinPct": 11,
+        "crudeFatPct": 1.56,
+        "crudeFibrePct": 2.13,
+        "ashPct": 1.7,
+        "starchPct": 60.3,
+        "neutralDetergentFibrePct": 12.6,
+        "acidDetergentFibrePct": 3.87,
+        "linoleicAcidPct": 0.5
+      },
+      "energy": {
+        "digestibleKcalKg": 3268,
+        "metabolizableKcalKg": 3185,
+        "netKcalKg": 2457
+      },
+      "aminoAcids": {
+        "totalPct": {
+          "lysine": 0.41,
+          "methionine": 0.2,
+          "methionineCysteine": 0.48,
+          "threonine": 0.37,
+          "tryptophan": 0.14,
+          "arginine": 0.62,
+          "valine": 0.52,
+          "isoleucine": 0.42,
+          "leucine": 0.79,
+          "histidine": 0.3,
+          "phenylalanine": 0.56,
+          "phenylalanineTyrosine": 0.88,
+          "cysteine": 0.28,
+          "tyrosine": 0.32
+        },
+        "sidDigestibilityPct": {
+          "lysine": 82.1,
+          "methionine": 90.6,
+          "methionineCysteine": 86.2,
+          "threonine": 77.3,
+          "tryptophan": 83.8,
+          "arginine": 87.7,
+          "valine": 79.8,
+          "isoleucine": 86.3,
+          "leucine": 85.1,
+          "histidine": 81.4,
+          "phenylalanine": 81.2,
+          "phenylalanineTyrosine": 81.2,
+          "cysteine": 83.1,
+          "tyrosine": 81.3
+        },
+        "sidPct": {
+          "lysine": 0.34,
+          "methionine": 0.18,
+          "methionineCysteine": 0.41,
+          "threonine": 0.29,
+          "tryptophan": 0.12,
+          "arginine": 0.54,
+          "valine": 0.41,
+          "isoleucine": 0.36,
+          "leucine": 0.67,
+          "histidine": 0.24,
+          "phenylalanine": 0.45,
+          "phenylalanineTyrosine": 0.71,
+          "cysteine": 0.23,
+          "tyrosine": 0.26
+        }
+      },
+      "macroMinerals": {
+        "calciumPct": 0.05,
+        "totalPhosphorusPct": 0.31,
+        "availablePhosphorusPct": 0.13,
+        "sttdPhosphorusPct": 0.15,
+        "sodiumPct": 0.02,
+        "chloridePct": 0.05,
+        "potassiumPct": 0.46,
+        "magnesiumPct": 0.1
+      },
+      "traceMineralsPpm": {
+        "manganese": 44.6,
+        "iron": 156,
+        "copper": 21.8,
+        "zinc": 64.1
+      },
+      "vitamins": {},
+      "constraints": {
+        "notes": []
+      },
+      "provenance": {
+        "sourceIngredientName": "Triticale, Gran",
+        "sourcePage": 195,
+        "sourceTable": "Table 1.01",
+        "source": {
+          "publisher": "Federal University of Viçosa, Department of Animal Science",
+          "title": "Brazilian Tables for Poultry and Swine — Composition of Feedstuffs and Nutritional Requirements",
+          "year": 2024,
+          "url": "https://editorascienza.com.br/pdfs/UFV/poultry_swine_en_chapter_1.pdf",
+          "priority": "primary",
+          "basis": "As-fed; Brazilian Tables 2024 Table 1.01"
+        },
+        "nutrientSources": {},
+        "notes": [
+          "Nutrient values are transcribed from the Brazilian Tables 2024 Table 1.01 swine columns; source dashes remain missing rather than being converted to zero."
+        ]
+      }
+    },
+    {
+      "id": "millet-proso",
+      "name": "Millet, Grain",
+      "aliases": [
+        "proso millet",
+        "millet",
+        "Millet, Proso"
+      ],
+      "category": "cereal",
+      "composition": {
+        "dryMatterPct": 89.3,
+        "crudeProteinPct": 11.6,
+        "digestibleProteinPct": 10.4,
+        "crudeFatPct": 4.59,
+        "crudeFibrePct": 2.36,
+        "ashPct": 1.72,
+        "starchPct": 62.4,
+        "neutralDetergentFibrePct": 20.5,
+        "acidDetergentFibrePct": 6.66,
+        "linoleicAcidPct": 1.63
+      },
+      "energy": {
+        "digestibleKcalKg": 3159,
+        "metabolizableKcalKg": 3046,
+        "netKcalKg": 2414
+      },
+      "aminoAcids": {
+        "totalPct": {
+          "lysine": 0.35,
+          "methionine": 0.27,
+          "methionineCysteine": 0.56,
+          "threonine": 0.5,
+          "tryptophan": 0.17,
+          "arginine": 0.54,
+          "valine": 0.68,
+          "isoleucine": 0.56,
+          "leucine": 1.29,
+          "histidine": 0.32,
+          "phenylalanine": 0.62,
+          "phenylalanineTyrosine": 0.99,
+          "cysteine": 0.29,
+          "tyrosine": 0.37
+        },
+        "sidDigestibilityPct": {
+          "lysine": 81.2,
+          "methionine": 88.9,
+          "methionineCysteine": 87.6,
+          "threonine": 81.1,
+          "tryptophan": 86.1,
+          "arginine": 92.2,
+          "valine": 87.5,
+          "isoleucine": 87.6,
+          "leucine": 90.3,
+          "histidine": 93.9,
+          "phenylalanine": 89.5,
+          "phenylalanineTyrosine": 84.6,
+          "cysteine": 86.4,
+          "tyrosine": 76.3
+        },
+        "sidPct": {
+          "lysine": 0.28,
+          "methionine": 0.24,
+          "methionineCysteine": 0.49,
+          "threonine": 0.41,
+          "tryptophan": 0.15,
+          "arginine": 0.5,
+          "valine": 0.6,
+          "isoleucine": 0.49,
+          "leucine": 1.16,
+          "histidine": 0.3,
+          "phenylalanine": 0.55,
+          "phenylalanineTyrosine": 0.84,
+          "cysteine": 0.25,
+          "tyrosine": 0.28
+        }
+      },
+      "macroMinerals": {
+        "calciumPct": 0.04,
+        "totalPhosphorusPct": 0.29,
+        "availablePhosphorusPct": 0.08,
+        "sttdPhosphorusPct": 0.11,
+        "sodiumPct": 0.01,
+        "chloridePct": 0.03,
+        "potassiumPct": 0.34,
+        "magnesiumPct": 0.13
+      },
+      "traceMineralsPpm": {
+        "manganese": 17.8,
+        "iron": 96.8,
+        "copper": 17.6,
+        "zinc": 29,
+        "selenium": 0.06
+      },
+      "vitamins": {},
+      "constraints": {
+        "notes": []
+      },
+      "provenance": {
+        "sourceIngredientName": "Millet, Grain",
+        "sourcePage": 117,
+        "sourceTable": "Table 1.01",
+        "source": {
+          "publisher": "Federal University of Viçosa, Department of Animal Science",
+          "title": "Brazilian Tables for Poultry and Swine — Composition of Feedstuffs and Nutritional Requirements",
+          "year": 2024,
+          "url": "https://editorascienza.com.br/pdfs/UFV/poultry_swine_en_chapter_1.pdf",
+          "priority": "primary",
+          "basis": "As-fed; Brazilian Tables 2024 Table 1.01"
+        },
+        "nutrientSources": {},
+        "notes": [
+          "Nutrient values are transcribed from the Brazilian Tables 2024 Table 1.01 swine columns; source dashes remain missing rather than being converted to zero."
+        ]
+      }
+    },
+    {
+      "id": "corn-high-lysine-grain",
+      "name": "Corn, High-Lysine Grain",
+      "aliases": [
+        "high-lysine maize",
+        "high-lysine corn"
+      ],
+      "category": "cereal",
+      "composition": {
+        "dryMatterPct": 88.4,
+        "crudeProteinPct": 8.26,
+        "digestibleProteinPct": 7.26,
+        "crudeFatPct": 3.66,
+        "crudeFibrePct": 1.52,
+        "ashPct": 1.12,
+        "starchPct": 65.4,
+        "neutralDetergentFibrePct": 10.8,
+        "acidDetergentFibrePct": 3.35,
+        "linoleicAcidPct": 1.92
+      },
+      "energy": {
+        "digestibleKcalKg": 3508,
+        "metabolizableKcalKg": 3409,
+        "netKcalKg": 2708
+      },
+      "aminoAcids": {
+        "totalPct": {
+          "lysine": 0.35,
+          "methionine": 0.15,
+          "methionineCysteine": 0.33,
+          "threonine": 0.34,
+          "tryptophan": 0.11,
+          "arginine": 0.51,
+          "valine": 0.45,
+          "isoleucine": 0.26,
+          "leucine": 0.73,
+          "histidine": 0.31,
+          "phenylalanine": 0.34,
+          "phenylalanineTyrosine": 0.57,
+          "cysteine": 0.18,
+          "tyrosine": 0.23
+        },
+        "sidDigestibilityPct": {
+          "lysine": 78.4,
+          "methionine": 93.8,
+          "methionineCysteine": 91.2,
+          "threonine": 80,
+          "tryptophan": 81.8,
+          "arginine": 92.9,
+          "valine": 86.4,
+          "isoleucine": 84.6,
+          "leucine": 92.2,
+          "histidine": 90,
+          "phenylalanine": 91.7,
+          "phenylalanineTyrosine": 89.4,
+          "cysteine": 89,
+          "tyrosine": 86.1
+        },
+        "sidPct": {
+          "lysine": 0.27,
+          "methionine": 0.14,
+          "methionineCysteine": 0.3,
+          "threonine": 0.27,
+          "tryptophan": 0.09,
+          "arginine": 0.47,
+          "valine": 0.39,
+          "isoleucine": 0.22,
+          "leucine": 0.67,
+          "histidine": 0.28,
+          "phenylalanine": 0.31,
+          "phenylalanineTyrosine": 0.51,
+          "cysteine": 0.16,
+          "tyrosine": 0.2
+        }
+      },
+      "macroMinerals": {
+        "calciumPct": 0.04,
+        "totalPhosphorusPct": 0.2,
+        "availablePhosphorusPct": 0.05,
+        "sttdPhosphorusPct": 0.09,
+        "sodiumPct": 0.01,
+        "chloridePct": 0.05,
+        "potassiumPct": 0.21,
+        "magnesiumPct": 0.05
+      },
+      "traceMineralsPpm": {
+        "manganese": 10.3,
+        "iron": 53.4,
+        "copper": 2.6,
+        "zinc": 17.6,
+        "selenium": 0.05
+      },
+      "vitamins": {},
+      "constraints": {
+        "notes": []
+      },
+      "provenance": {
+        "sourceIngredientName": "Corn, High-lysine Gran",
+        "sourcePage": 77,
+        "sourceTable": "Table 1.01",
+        "source": {
+          "publisher": "Federal University of Viçosa, Department of Animal Science",
+          "title": "Brazilian Tables for Poultry and Swine — Composition of Feedstuffs and Nutritional Requirements",
+          "year": 2024,
+          "url": "https://editorascienza.com.br/pdfs/UFV/poultry_swine_en_chapter_1.pdf",
+          "priority": "primary",
+          "basis": "As-fed; Brazilian Tables 2024 Table 1.01"
+        },
+        "nutrientSources": {},
+        "notes": [
+          "Nutrient values are transcribed from the Brazilian Tables 2024 Table 1.01 swine columns; source dashes remain missing rather than being converted to zero."
+        ]
+      }
+    },
+    {
+      "id": "corn-high-oil-grain",
+      "name": "Corn, High-Oil Grain",
+      "aliases": [
+        "high-oil maize",
+        "high-oil corn"
+      ],
+      "category": "cereal",
+      "composition": {
+        "dryMatterPct": 87.7,
+        "crudeProteinPct": 8.21,
+        "digestibleProteinPct": 7.05,
+        "crudeFatPct": 6.3,
+        "crudeFibrePct": 2.6,
+        "ashPct": 1.18,
+        "starchPct": 59,
+        "neutralDetergentFibrePct": 10.8,
+        "acidDetergentFibrePct": 3.35,
+        "linoleicAcidPct": 3.3
+      },
+      "energy": {
+        "digestibleKcalKg": 3630,
+        "metabolizableKcalKg": 3582,
+        "netKcalKg": 2835
+      },
+      "aminoAcids": {
+        "totalPct": {
+          "lysine": 0.26,
+          "methionine": 0.18,
+          "methionineCysteine": 0.39,
+          "threonine": 0.31,
+          "tryptophan": 0.07,
+          "arginine": 0.4,
+          "valine": 0.41,
+          "isoleucine": 0.32,
+          "leucine": 1.03,
+          "histidine": 0.27,
+          "phenylalanine": 0.42,
+          "phenylalanineTyrosine": 0.71,
+          "cysteine": 0.21,
+          "tyrosine": 0.29
+        },
+        "sidDigestibilityPct": {
+          "lysine": 79.8,
+          "methionine": 76.9,
+          "methionineCysteine": 83.8,
+          "threonine": 84.2,
+          "tryptophan": 82.8,
+          "arginine": 91.4,
+          "valine": 86.7,
+          "isoleucine": 87.8,
+          "leucine": 87.1,
+          "histidine": 89,
+          "phenylalanine": 90.9,
+          "phenylalanineTyrosine": 90.2,
+          "cysteine": 89.7,
+          "tyrosine": 89.3
+        },
+        "sidPct": {
+          "lysine": 0.21,
+          "methionine": 0.14,
+          "methionineCysteine": 0.33,
+          "threonine": 0.26,
+          "tryptophan": 0.06,
+          "arginine": 0.37,
+          "valine": 0.36,
+          "isoleucine": 0.28,
+          "leucine": 0.9,
+          "histidine": 0.24,
+          "phenylalanine": 0.38,
+          "phenylalanineTyrosine": 0.64,
+          "cysteine": 0.19,
+          "tyrosine": 0.26
+        }
+      },
+      "macroMinerals": {
+        "calciumPct": 0.02,
+        "totalPhosphorusPct": 0.27,
+        "availablePhosphorusPct": 0.07,
+        "sttdPhosphorusPct": 0.12,
+        "sodiumPct": 0.01,
+        "chloridePct": 0.05,
+        "potassiumPct": 0.35,
+        "magnesiumPct": 0.1
+      },
+      "traceMineralsPpm": {
+        "manganese": 4.3,
+        "iron": 93,
+        "copper": 3,
+        "zinc": 21.5,
+        "selenium": 0.19
+      },
+      "vitamins": {},
+      "constraints": {
+        "notes": []
+      },
+      "provenance": {
+        "sourceIngredientName": "Corn, High-oil Gran",
+        "sourcePage": 79,
+        "sourceTable": "Table 1.01",
+        "source": {
+          "publisher": "Federal University of Viçosa, Department of Animal Science",
+          "title": "Brazilian Tables for Poultry and Swine — Composition of Feedstuffs and Nutritional Requirements",
+          "year": 2024,
+          "url": "https://editorascienza.com.br/pdfs/UFV/poultry_swine_en_chapter_1.pdf",
+          "priority": "primary",
+          "basis": "As-fed; Brazilian Tables 2024 Table 1.01"
+        },
+        "nutrientSources": {},
+        "notes": [
+          "Nutrient values are transcribed from the Brazilian Tables 2024 Table 1.01 swine columns; source dashes remain missing rather than being converted to zero."
+        ]
+      }
+    },
+    {
+      "id": "rice-broken",
+      "name": "Rice, Broken",
+      "aliases": [
+        "broken rice",
+        "rice brokens"
+      ],
+      "category": "cereal",
+      "composition": {
+        "dryMatterPct": 88.2,
+        "crudeProteinPct": 8,
+        "digestibleProteinPct": 7.07,
+        "crudeFatPct": 1.48,
+        "crudeFibrePct": 0.6,
+        "ashPct": 0.89,
+        "starchPct": 74.9,
+        "neutralDetergentFibrePct": 6.33,
+        "acidDetergentFibrePct": 2.09,
+        "linoleicAcidPct": 0.37
+      },
+      "energy": {
+        "digestibleKcalKg": 3572,
+        "metabolizableKcalKg": 3489,
+        "netKcalKg": 2784
+      },
+      "aminoAcids": {
+        "totalPct": {
+          "lysine": 0.3,
+          "methionine": 0.2,
+          "methionineCysteine": 0.37,
+          "threonine": 0.28,
+          "tryptophan": 0.1,
+          "arginine": 0.61,
+          "valine": 0.48,
+          "isoleucine": 0.34,
+          "leucine": 0.68,
+          "histidine": 0.2,
+          "phenylalanine": 0.4,
+          "phenylalanineTyrosine": 0.78,
+          "cysteine": 0.17,
+          "tyrosine": 0.38
+        },
+        "sidDigestibilityPct": {
+          "lysine": 84.8,
+          "methionine": 86.5,
+          "methionineCysteine": 80.3,
+          "threonine": 82.4,
+          "tryptophan": 82,
+          "arginine": 92.8,
+          "valine": 85.5,
+          "isoleucine": 87.8,
+          "leucine": 89.3,
+          "histidine": 88.4,
+          "phenylalanine": 88,
+          "phenylalanineTyrosine": 87.4,
+          "cysteine": 73,
+          "tyrosine": 86.8
+        },
+        "sidPct": {
+          "lysine": 0.25,
+          "methionine": 0.17,
+          "methionineCysteine": 0.3,
+          "threonine": 0.23,
+          "tryptophan": 0.08,
+          "arginine": 0.57,
+          "valine": 0.41,
+          "isoleucine": 0.3,
+          "leucine": 0.61,
+          "histidine": 0.18,
+          "phenylalanine": 0.35,
+          "phenylalanineTyrosine": 0.68,
+          "cysteine": 0.12,
+          "tyrosine": 0.33
+        }
+      },
+      "macroMinerals": {
+        "calciumPct": 0.05,
+        "totalPhosphorusPct": 0.18,
+        "availablePhosphorusPct": 0.06,
+        "sttdPhosphorusPct": 0.06,
+        "sodiumPct": 0.02,
+        "chloridePct": 0.05,
+        "potassiumPct": 0.2,
+        "magnesiumPct": 0.08
+      },
+      "traceMineralsPpm": {
+        "manganese": 16.6,
+        "iron": 15.6,
+        "copper": 2.3,
+        "zinc": 10.3,
+        "selenium": 0.31
+      },
+      "vitamins": {},
+      "constraints": {
+        "notes": []
+      },
+      "provenance": {
+        "sourceIngredientName": "Rice, Broken",
+        "sourcePage": 139,
+        "sourceTable": "Table 1.01",
+        "source": {
+          "publisher": "Federal University of Viçosa, Department of Animal Science",
+          "title": "Brazilian Tables for Poultry and Swine — Composition of Feedstuffs and Nutritional Requirements",
+          "year": 2024,
+          "url": "https://editorascienza.com.br/pdfs/UFV/poultry_swine_en_chapter_1.pdf",
+          "priority": "primary",
+          "basis": "As-fed; Brazilian Tables 2024 Table 1.01"
+        },
+        "nutrientSources": {},
+        "notes": [
+          "Nutrient values are transcribed from the Brazilian Tables 2024 Table 1.01 swine columns; source dashes remain missing rather than being converted to zero."
+        ]
+      }
+    },
+    {
+      "id": "sorghum-grain-high-tannin",
+      "name": "Sorghum, Grain High Tannin",
+      "aliases": [
+        "high-tannin sorghum",
+        "high tannin sorghum"
+      ],
+      "category": "cereal",
+      "composition": {
+        "dryMatterPct": 85.9,
+        "crudeProteinPct": 8.97,
+        "digestibleProteinPct": 6.61,
+        "crudeFatPct": 2.35,
+        "crudeFibrePct": 2.78,
+        "ashPct": 1.86,
+        "starchPct": 56.8,
+        "neutralDetergentFibrePct": 9.8,
+        "acidDetergentFibrePct": 4.6,
+        "linoleicAcidPct": 1.13
+      },
+      "energy": {
+        "digestibleKcalKg": 3081,
+        "metabolizableKcalKg": 2984,
+        "netKcalKg": 2332
+      },
+      "aminoAcids": {
+        "totalPct": {
+          "lysine": 0.2,
+          "methionine": 0.15,
+          "methionineCysteine": 0.3,
+          "threonine": 0.29,
+          "tryptophan": 0.1,
+          "arginine": 0.35,
+          "valine": 0.44,
+          "isoleucine": 0.36,
+          "leucine": 1.16,
+          "histidine": 0.2,
+          "phenylalanine": 0.46,
+          "phenylalanineTyrosine": 0.82,
+          "cysteine": 0.15,
+          "tyrosine": 0.36
+        },
+        "sidDigestibilityPct": {
+          "lysine": 72.7,
+          "methionine": 81.3,
+          "methionineCysteine": 72.7,
+          "threonine": 75.8,
+          "tryptophan": 77.8,
+          "arginine": 68.4,
+          "valine": 79.2,
+          "isoleucine": 81.4,
+          "leucine": 85.1,
+          "histidine": 81.8,
+          "phenylalanine": 83.3,
+          "phenylalanineTyrosine": 83.9,
+          "cysteine": 64.1,
+          "tyrosine": 84.6
+        },
+        "sidPct": {
+          "lysine": 0.15,
+          "methionine": 0.12,
+          "methionineCysteine": 0.22,
+          "threonine": 0.22,
+          "tryptophan": 0.08,
+          "arginine": 0.24,
+          "valine": 0.35,
+          "isoleucine": 0.29,
+          "leucine": 0.99,
+          "histidine": 0.16,
+          "phenylalanine": 0.38,
+          "phenylalanineTyrosine": 0.68,
+          "cysteine": 0.1,
+          "tyrosine": 0.3
+        }
+      },
+      "macroMinerals": {
+        "calciumPct": 0.03,
+        "totalPhosphorusPct": 0.26,
+        "availablePhosphorusPct": 0.08,
+        "sttdPhosphorusPct": 0.09,
+        "sodiumPct": 0.01,
+        "chloridePct": 0.01,
+        "potassiumPct": 0.31,
+        "magnesiumPct": 0.11
+      },
+      "traceMineralsPpm": {
+        "manganese": 10.9,
+        "iron": 59.7,
+        "copper": 7.6,
+        "zinc": 18.6,
+        "selenium": 0.25
+      },
+      "vitamins": {},
+      "constraints": {
+        "notes": []
+      },
+      "provenance": {
+        "sourceIngredientName": "Sorghum, Grain High Tannin",
+        "sourcePage": 149,
+        "sourceTable": "Table 1.01",
+        "source": {
+          "publisher": "Federal University of Viçosa, Department of Animal Science",
+          "title": "Brazilian Tables for Poultry and Swine — Composition of Feedstuffs and Nutritional Requirements",
+          "year": 2024,
+          "url": "https://editorascienza.com.br/pdfs/UFV/poultry_swine_en_chapter_1.pdf",
+          "priority": "primary",
+          "basis": "As-fed; Brazilian Tables 2024 Table 1.01"
+        },
+        "nutrientSources": {},
+        "notes": [
+          "Nutrient values are transcribed from the Brazilian Tables 2024 Table 1.01 swine columns; source dashes remain missing rather than being converted to zero."
+        ]
+      }
+    },
+    {
+      "id": "bakery-waste-dehydrated",
+      "name": "Bakery, By-products",
+      "aliases": [
+        "bakery meal",
+        "bakery waste",
+        "Bakery Waste, Dehydrated"
+      ],
+      "category": "byproduct",
+      "composition": {
+        "dryMatterPct": 92.5,
+        "crudeProteinPct": 8.76,
+        "crudeFatPct": 8.96,
+        "crudeFibrePct": 1.57,
+        "ashPct": 1.31,
+        "starchPct": 46.5,
+        "neutralDetergentFibrePct": 4.36,
+        "acidDetergentFibrePct": 1.61,
+        "linoleicAcidPct": 1.79
+      },
+      "energy": {
+        "digestibleKcalKg": 3551,
+        "metabolizableKcalKg": 3480,
+        "netKcalKg": 2756
+      },
+      "aminoAcids": {
+        "totalPct": {
+          "lysine": 0.23,
+          "methionine": 0.13,
+          "methionineCysteine": 0.29,
+          "threonine": 0.27,
+          "tryptophan": 0.1,
+          "arginine": 0.36,
+          "valine": 0.37,
+          "isoleucine": 0.3,
+          "leucine": 0.59,
+          "histidine": 0.19,
+          "phenylalanine": 0.39,
+          "phenylalanineTyrosine": 0.66,
+          "cysteine": 0.16,
+          "tyrosine": 0.27
+        },
+        "sidDigestibilityPct": {
+          "lysine": 84,
+          "methionine": 86.7,
+          "methionineCysteine": 88,
+          "threonine": 83.5,
+          "tryptophan": 78.9,
+          "arginine": 83.5,
+          "valine": 87.8,
+          "isoleucine": 88.2,
+          "leucine": 83.5,
+          "histidine": 83.5,
+          "phenylalanine": 83.5,
+          "phenylalanineTyrosine": 83.5,
+          "cysteine": 89.1,
+          "tyrosine": 83.5
+        },
+        "sidPct": {
+          "lysine": 0.19,
+          "methionine": 0.11,
+          "methionineCysteine": 0.26,
+          "threonine": 0.23,
+          "tryptophan": 0.08,
+          "arginine": 0.3,
+          "valine": 0.32,
+          "isoleucine": 0.26,
+          "leucine": 0.49,
+          "histidine": 0.16,
+          "phenylalanine": 0.33,
+          "phenylalanineTyrosine": 0.55,
+          "cysteine": 0.14,
+          "tyrosine": 0.23
+        }
+      },
+      "macroMinerals": {
+        "calciumPct": 0.05,
+        "totalPhosphorusPct": 0.15,
+        "availablePhosphorusPct": 0.05,
+        "sttdPhosphorusPct": 0.04,
+        "sodiumPct": 0.19,
+        "chloridePct": 0.3,
+        "potassiumPct": 0.17,
+        "magnesiumPct": 0.04
+      },
+      "traceMineralsPpm": {
+        "manganese": 13.4,
+        "iron": 125.1,
+        "copper": 3.2,
+        "zinc": 61.5
+      },
+      "vitamins": {},
+      "constraints": {
+        "notes": []
+      },
+      "provenance": {
+        "sourceIngredientName": "Bakery, By-products",
+        "sourcePage": 21,
+        "sourceTable": "Table 1.01",
+        "source": {
+          "publisher": "Federal University of Viçosa, Department of Animal Science",
+          "title": "Brazilian Tables for Poultry and Swine — Composition of Feedstuffs and Nutritional Requirements",
+          "year": 2024,
+          "url": "https://editorascienza.com.br/pdfs/UFV/poultry_swine_en_chapter_1.pdf",
+          "priority": "primary",
+          "basis": "As-fed; Brazilian Tables 2024 Table 1.01"
+        },
+        "nutrientSources": {},
+        "notes": [
+          "Nutrient values are transcribed from the Brazilian Tables 2024 Table 1.01 swine columns; source dashes remain missing rather than being converted to zero."
+        ]
+      }
+    },
+    {
+      "id": "soybean-hulls",
+      "name": "Soybean, Hulls",
+      "aliases": [
+        "soya hulls",
+        "soy hulls",
+        "Soybean Hulls"
+      ],
+      "category": "byproduct",
+      "composition": {
+        "dryMatterPct": 89.7,
+        "crudeProteinPct": 11.6,
+        "digestibleProteinPct": 7.21,
+        "crudeFatPct": 2.53,
+        "crudeFibrePct": 36.5,
+        "ashPct": 4.23,
+        "starchPct": 3.65,
+        "neutralDetergentFibrePct": 58.1,
+        "acidDetergentFibrePct": 46.1,
+        "linoleicAcidPct": 1.11
+      },
+      "energy": {
+        "digestibleKcalKg": 2162,
+        "metabolizableKcalKg": 2046,
+        "netKcalKg": 1109
+      },
+      "aminoAcids": {
+        "totalPct": {
+          "lysine": 0.83,
+          "methionine": 0.16,
+          "methionineCysteine": 0.37,
+          "threonine": 0.48,
+          "tryptophan": 0.14,
+          "arginine": 0.8,
+          "valine": 0.63,
+          "isoleucine": 0.55,
+          "leucine": 0.92,
+          "histidine": 0.36,
+          "phenylalanine": 0.55,
+          "phenylalanineTyrosine": 1.08,
+          "cysteine": 0.21,
+          "tyrosine": 0.53
+        },
+        "sidDigestibilityPct": {
+          "lysine": 63,
+          "methionine": 75.3,
+          "methionineCysteine": 68.3,
+          "threonine": 64.2,
+          "tryptophan": 64.5,
+          "arginine": 87.6,
+          "valine": 64.1,
+          "isoleucine": 70.4,
+          "leucine": 72,
+          "histidine": 60.4,
+          "phenylalanine": 75.5,
+          "phenylalanineTyrosine": 68.9,
+          "cysteine": 62.9,
+          "tyrosine": 62.1
+        },
+        "sidPct": {
+          "lysine": 0.52,
+          "methionine": 0.12,
+          "methionineCysteine": 0.25,
+          "threonine": 0.31,
+          "tryptophan": 0.09,
+          "arginine": 0.7,
+          "valine": 0.4,
+          "isoleucine": 0.39,
+          "leucine": 0.66,
+          "histidine": 0.22,
+          "phenylalanine": 0.42,
+          "phenylalanineTyrosine": 0.74,
+          "cysteine": 0.13,
+          "tyrosine": 0.33
+        }
+      },
+      "macroMinerals": {
+        "calciumPct": 0.49,
+        "totalPhosphorusPct": 0.14,
+        "availablePhosphorusPct": 0.11,
+        "sttdPhosphorusPct": 0.04,
+        "sodiumPct": 0.01,
+        "chloridePct": 0.03,
+        "potassiumPct": 1.16,
+        "magnesiumPct": 0.17
+      },
+      "traceMineralsPpm": {
+        "manganese": 19,
+        "iron": 534,
+        "copper": 76.2,
+        "zinc": 35.7,
+        "selenium": 0.22
+      },
+      "vitamins": {},
+      "constraints": {
+        "notes": []
+      },
+      "provenance": {
+        "sourceIngredientName": "Soybean, Hulls",
+        "sourcePage": 161,
+        "sourceTable": "Table 1.01",
+        "source": {
+          "publisher": "Federal University of Viçosa, Department of Animal Science",
+          "title": "Brazilian Tables for Poultry and Swine — Composition of Feedstuffs and Nutritional Requirements",
+          "year": 2024,
+          "url": "https://editorascienza.com.br/pdfs/UFV/poultry_swine_en_chapter_1.pdf",
+          "priority": "primary",
+          "basis": "As-fed; Brazilian Tables 2024 Table 1.01"
+        },
+        "nutrientSources": {},
+        "notes": [
+          "Nutrient values are transcribed from the Brazilian Tables 2024 Table 1.01 swine columns; source dashes remain missing rather than being converted to zero."
+        ]
+      }
+    },
+    {
+      "id": "canola-meal",
+      "name": "Canola, Meal",
+      "aliases": [
+        "rapeseed meal",
+        "Canola Meal"
+      ],
+      "category": "protein_meal",
+      "composition": {
+        "dryMatterPct": 89.5,
+        "crudeProteinPct": 36.2,
+        "digestibleProteinPct": 29.1,
+        "crudeFatPct": 2.55,
+        "crudeFibrePct": 10.9,
+        "ashPct": 6.57,
+        "starchPct": 5.1,
+        "neutralDetergentFibrePct": 25.1,
+        "acidDetergentFibrePct": 8.45,
+        "linoleicAcidPct": 0.48
+      },
+      "energy": {
+        "digestibleKcalKg": 2983,
+        "metabolizableKcalKg": 2746,
+        "netKcalKg": 1709
+      },
+      "aminoAcids": {
+        "totalPct": {
+          "lysine": 2.02,
+          "methionine": 0.78,
+          "methionineCysteine": 1.75,
+          "threonine": 1.57,
+          "tryptophan": 0.46,
+          "arginine": 2.25,
+          "valine": 1.67,
+          "isoleucine": 1.31,
+          "leucine": 2.53,
+          "histidine": 1,
+          "phenylalanine": 1.41,
+          "phenylalanineTyrosine": 2.34,
+          "cysteine": 0.97,
+          "tyrosine": 0.93
+        },
+        "sidDigestibilityPct": {
+          "lysine": 76.2,
+          "methionine": 85.9,
+          "methionineCysteine": 81.7,
+          "threonine": 74.5,
+          "tryptophan": 76.1,
+          "arginine": 85.3,
+          "valine": 76,
+          "isoleucine": 77.9,
+          "leucine": 80.6,
+          "histidine": 83,
+          "phenylalanine": 81.6,
+          "phenylalanineTyrosine": 79.9,
+          "cysteine": 78.4,
+          "tyrosine": 77.4
+        },
+        "sidPct": {
+          "lysine": 1.54,
+          "methionine": 0.67,
+          "methionineCysteine": 1.43,
+          "threonine": 1.17,
+          "tryptophan": 0.35,
+          "arginine": 1.92,
+          "valine": 1.27,
+          "isoleucine": 1.02,
+          "leucine": 2.04,
+          "histidine": 0.83,
+          "phenylalanine": 1.15,
+          "phenylalanineTyrosine": 1.87,
+          "cysteine": 0.76,
+          "tyrosine": 0.72
+        }
+      },
+      "macroMinerals": {
+        "calciumPct": 0.63,
+        "totalPhosphorusPct": 1.14,
+        "availablePhosphorusPct": 0.39,
+        "sttdPhosphorusPct": 0.4,
+        "sodiumPct": 0.1,
+        "chloridePct": 0.11,
+        "potassiumPct": 0.55,
+        "magnesiumPct": 0.52
+      },
+      "traceMineralsPpm": {},
+      "vitamins": {},
+      "constraints": {
+        "notes": []
+      },
+      "provenance": {
+        "sourceIngredientName": "Canola, Meal",
+        "sourcePage": 43,
+        "sourceTable": "Table 1.01",
+        "source": {
+          "publisher": "Federal University of Viçosa, Department of Animal Science",
+          "title": "Brazilian Tables for Poultry and Swine — Composition of Feedstuffs and Nutritional Requirements",
+          "year": 2024,
+          "url": "https://editorascienza.com.br/pdfs/UFV/poultry_swine_en_chapter_1.pdf",
+          "priority": "primary",
+          "basis": "As-fed; Brazilian Tables 2024 Table 1.01"
+        },
+        "nutrientSources": {},
+        "notes": [
+          "Nutrient values are transcribed from the Brazilian Tables 2024 Table 1.01 swine columns; source dashes remain missing rather than being converted to zero."
+        ]
+      }
+    },
+    {
+      "id": "corn-ddgs",
+      "name": "Corn, DDGS - 6 to 9% of EE",
+      "aliases": [
+        "DDGS",
+        "corn DDGS",
+        "Corn Distillers Dried Grains with Solubles"
+      ],
+      "category": "byproduct",
+      "composition": {
+        "dryMatterPct": 90.2,
+        "crudeProteinPct": 30.5,
+        "digestibleProteinPct": 23.1,
+        "crudeFatPct": 7.68,
+        "crudeFibrePct": 7.9,
+        "ashPct": 3.43,
+        "starchPct": 3.09,
+        "neutralDetergentFibrePct": 48.5,
+        "acidDetergentFibrePct": 11.9
+      },
+      "energy": {
+        "digestibleKcalKg": 3123,
+        "metabolizableKcalKg": 2930,
+        "netKcalKg": 1970
+      },
+      "aminoAcids": {
+        "totalPct": {
+          "lysine": 0.77,
+          "methionine": 0.38,
+          "methionineCysteine": 0.76,
+          "threonine": 1.07,
+          "tryptophan": 0.16,
+          "arginine": 1.19,
+          "valine": 1.51,
+          "isoleucine": 1.13,
+          "leucine": 3.95,
+          "histidine": 0.83,
+          "phenylalanine": 1.55,
+          "phenylalanineTyrosine": 2.57,
+          "cysteine": 0.47,
+          "tyrosine": 1.02
+        },
+        "sidDigestibilityPct": {
+          "lysine": 59.1,
+          "methionine": 81.9,
+          "methionineCysteine": 83.5,
+          "threonine": 68,
+          "tryptophan": 73.6,
+          "arginine": 80.2,
+          "valine": 73.2,
+          "isoleucine": 74.1,
+          "leucine": 82.6,
+          "histidine": 73.2,
+          "phenylalanine": 80.4,
+          "phenylalanineTyrosine": 79.9,
+          "cysteine": 68.8,
+          "tyrosine": 80
+        },
+        "sidPct": {
+          "lysine": 0.45,
+          "methionine": 0.31,
+          "methionineCysteine": 0.63,
+          "threonine": 0.73,
+          "tryptophan": 0.11,
+          "arginine": 0.95,
+          "valine": 1.1,
+          "isoleucine": 0.83,
+          "leucine": 3.26,
+          "histidine": 0.6,
+          "phenylalanine": 1.24,
+          "phenylalanineTyrosine": 2.05,
+          "cysteine": 0.32,
+          "tyrosine": 0.81
+        }
+      },
+      "macroMinerals": {
+        "calciumPct": 0.04,
+        "totalPhosphorusPct": 0.38,
+        "availablePhosphorusPct": 0.12,
+        "sodiumPct": 0.03,
+        "chloridePct": 0.14,
+        "potassiumPct": 0.17,
+        "magnesiumPct": 0.06
+      },
+      "traceMineralsPpm": {
+        "manganese": 9.33,
+        "iron": 402.7,
+        "copper": 4.38,
+        "zinc": 36.9
+      },
+      "vitamins": {},
+      "constraints": {
+        "notes": []
+      },
+      "provenance": {
+        "sourceIngredientName": "Corn, DDGS - 6 to 9% of EE",
+        "sourcePage": 61,
+        "sourceTable": "Table 1.01",
+        "source": {
+          "publisher": "Federal University of Viçosa, Department of Animal Science",
+          "title": "Brazilian Tables for Poultry and Swine — Composition of Feedstuffs and Nutritional Requirements",
+          "year": 2024,
+          "url": "https://editorascienza.com.br/pdfs/UFV/poultry_swine_en_chapter_1.pdf",
+          "priority": "primary",
+          "basis": "As-fed; Brazilian Tables 2024 Table 1.01"
+        },
+        "nutrientSources": {},
+        "notes": [
+          "Nutrient values are transcribed from the Brazilian Tables 2024 Table 1.01 swine columns; source dashes remain missing rather than being converted to zero."
+        ]
+      }
+    },
+    {
+      "id": "corn-ddg-high-protein",
+      "name": "Corn, HP-DDG",
+      "aliases": [
+        "high-protein DDG",
+        "HP-DDG",
+        "Corn Distillers Dried Grains, High Protein"
+      ],
+      "category": "protein_meal",
+      "composition": {
+        "dryMatterPct": 91.6,
+        "crudeProteinPct": 42.1,
+        "digestibleProteinPct": 32.6,
+        "crudeFatPct": 11.9,
+        "crudeFibrePct": 6.87,
+        "ashPct": 2.62,
+        "starchPct": 1.62,
+        "neutralDetergentFibrePct": 30.1,
+        "acidDetergentFibrePct": 17
+      },
+      "energy": {
+        "digestibleKcalKg": 4060,
+        "metabolizableKcalKg": 3620,
+        "netKcalKg": 2456
+      },
+      "aminoAcids": {
+        "totalPct": {
+          "lysine": 1.32,
+          "methionine": 0.79,
+          "methionineCysteine": 1.56,
+          "threonine": 1.56,
+          "tryptophan": 0.23,
+          "arginine": 1.74,
+          "valine": 2.02,
+          "isoleucine": 1.49,
+          "leucine": 4.78,
+          "histidine": 1.19,
+          "phenylalanine": 2.06,
+          "phenylalanineTyrosine": 3.71,
+          "cysteine": 0.77,
+          "tyrosine": 1.65
+        },
+        "sidDigestibilityPct": {
+          "lysine": 79.2,
+          "methionine": 89.6,
+          "methionineCysteine": 87.2,
+          "threonine": 78.3,
+          "tryptophan": 92.4,
+          "arginine": 86.4,
+          "valine": 80.5,
+          "isoleucine": 80.6,
+          "leucine": 85.9,
+          "histidine": 83.1,
+          "phenylalanine": 84.8,
+          "phenylalanineTyrosine": 84.7,
+          "cysteine": 84.9,
+          "tyrosine": 84.5
+        },
+        "sidPct": {
+          "lysine": 0.82,
+          "methionine": 0.68,
+          "methionineCysteine": 1.26,
+          "threonine": 1.14,
+          "tryptophan": 0.18,
+          "arginine": 1.42,
+          "valine": 1.47,
+          "isoleucine": 1.08,
+          "leucine": 3.75,
+          "histidine": 0.89,
+          "phenylalanine": 1.53,
+          "phenylalanineTyrosine": 2.76,
+          "cysteine": 0.58,
+          "tyrosine": 1.23
+        }
+      },
+      "macroMinerals": {
+        "calciumPct": 0.01,
+        "totalPhosphorusPct": 0.48,
+        "availablePhosphorusPct": 0.27,
+        "sttdPhosphorusPct": 0.23,
+        "sodiumPct": 0.07,
+        "potassiumPct": 0.51,
+        "magnesiumPct": 0.1
+      },
+      "traceMineralsPpm": {
+        "manganese": 7.23,
+        "iron": 126.4,
+        "copper": 8.39,
+        "zinc": 58.4
+      },
+      "vitamins": {},
+      "constraints": {
+        "notes": []
+      },
+      "provenance": {
+        "sourceIngredientName": "Corn, HP-DDG",
+        "sourcePage": 63,
+        "sourceTable": "Table 1.01",
+        "source": {
+          "publisher": "Federal University of Viçosa, Department of Animal Science",
+          "title": "Brazilian Tables for Poultry and Swine — Composition of Feedstuffs and Nutritional Requirements",
+          "year": 2024,
+          "url": "https://editorascienza.com.br/pdfs/UFV/poultry_swine_en_chapter_1.pdf",
+          "priority": "primary",
+          "basis": "As-fed; Brazilian Tables 2024 Table 1.01"
+        },
+        "nutrientSources": {},
+        "notes": [
+          "Nutrient values are transcribed from the Brazilian Tables 2024 Table 1.01 swine columns; source dashes remain missing rather than being converted to zero."
+        ]
+      }
+    },
+    {
+      "id": "corn-germ",
+      "name": "Corn, Germ",
+      "aliases": [
+        "maize germ",
+        "Corn Germ"
+      ],
+      "category": "byproduct",
+      "composition": {
+        "dryMatterPct": 89.2,
+        "crudeProteinPct": 10.3,
+        "digestibleProteinPct": 7.37,
+        "crudeFatPct": 10.1,
+        "crudeFibrePct": 5.14,
+        "ashPct": 2.83,
+        "starchPct": 48.6,
+        "neutralDetergentFibrePct": 27.8,
+        "acidDetergentFibrePct": 8.5,
+        "linoleicAcidPct": 3.08
+      },
+      "energy": {
+        "digestibleKcalKg": 3355,
+        "metabolizableKcalKg": 3257,
+        "netKcalKg": 2571
+      },
+      "aminoAcids": {
+        "totalPct": {
+          "lysine": 0.47,
+          "methionine": 0.2,
+          "methionineCysteine": 0.42,
+          "threonine": 0.39,
+          "tryptophan": 0.11,
+          "arginine": 0.7,
+          "valine": 0.51,
+          "isoleucine": 0.33,
+          "leucine": 0.89,
+          "histidine": 0.31,
+          "phenylalanine": 0.44,
+          "phenylalanineTyrosine": 0.7,
+          "cysteine": 0.22,
+          "tyrosine": 0.26
+        },
+        "sidDigestibilityPct": {
+          "lysine": 62.3,
+          "methionine": 77.6,
+          "methionineCysteine": 71.2,
+          "threonine": 70.5,
+          "tryptophan": 68.5,
+          "arginine": 84.6,
+          "valine": 72.5,
+          "isoleucine": 74.5,
+          "leucine": 77,
+          "histidine": 78,
+          "phenylalanine": 73.5,
+          "phenylalanineTyrosine": 73.2,
+          "cysteine": 65.3,
+          "tyrosine": 72.6
+        },
+        "sidPct": {
+          "lysine": 0.29,
+          "methionine": 0.16,
+          "methionineCysteine": 0.3,
+          "threonine": 0.27,
+          "tryptophan": 0.08,
+          "arginine": 0.59,
+          "valine": 0.37,
+          "isoleucine": 0.25,
+          "leucine": 0.69,
+          "histidine": 0.24,
+          "phenylalanine": 0.32,
+          "phenylalanineTyrosine": 0.51,
+          "cysteine": 0.14,
+          "tyrosine": 0.19
+        }
+      },
+      "macroMinerals": {
+        "calciumPct": 0.03,
+        "totalPhosphorusPct": 0.43,
+        "availablePhosphorusPct": 0.24,
+        "sttdPhosphorusPct": 0.11,
+        "sodiumPct": 0.02,
+        "chloridePct": 0.08,
+        "potassiumPct": 0.62,
+        "magnesiumPct": 0.31
+      },
+      "traceMineralsPpm": {
+        "manganese": 19.6,
+        "iron": 116,
+        "copper": 10,
+        "zinc": 45.9,
+        "selenium": 0.1
+      },
+      "vitamins": {},
+      "constraints": {
+        "notes": []
+      },
+      "provenance": {
+        "sourceIngredientName": "Corn, Germ",
+        "sourcePage": 65,
+        "sourceTable": "Table 1.01",
+        "source": {
+          "publisher": "Federal University of Viçosa, Department of Animal Science",
+          "title": "Brazilian Tables for Poultry and Swine — Composition of Feedstuffs and Nutritional Requirements",
+          "year": 2024,
+          "url": "https://editorascienza.com.br/pdfs/UFV/poultry_swine_en_chapter_1.pdf",
+          "priority": "primary",
+          "basis": "As-fed; Brazilian Tables 2024 Table 1.01"
+        },
+        "nutrientSources": {},
+        "notes": [
+          "Nutrient values are transcribed from the Brazilian Tables 2024 Table 1.01 swine columns; source dashes remain missing rather than being converted to zero."
+        ]
+      }
+    },
+    {
+      "id": "corn-gluten-feed",
+      "name": "Corn, Gluten Feed 21% CP",
+      "aliases": [
+        "maize gluten feed",
+        "Corn Gluten Feed"
+      ],
+      "category": "byproduct",
+      "composition": {
+        "dryMatterPct": 89.8,
+        "crudeProteinPct": 21,
+        "digestibleProteinPct": 16.2,
+        "crudeFatPct": 3.2,
+        "crudeFibrePct": 8.26,
+        "ashPct": 5.55,
+        "starchPct": 19.2,
+        "neutralDetergentFibrePct": 36.9,
+        "acidDetergentFibrePct": 10.7,
+        "linoleicAcidPct": 1.46
+      },
+      "energy": {
+        "digestibleKcalKg": 2700,
+        "metabolizableKcalKg": 2560,
+        "netKcalKg": 1761
+      },
+      "aminoAcids": {
+        "totalPct": {
+          "lysine": 0.52,
+          "methionine": 0.33,
+          "methionineCysteine": 0.82,
+          "threonine": 0.78,
+          "tryptophan": 0.13,
+          "arginine": 0.86,
+          "valine": 1.06,
+          "isoleucine": 0.64,
+          "leucine": 1.87,
+          "histidine": 0.71,
+          "phenylalanine": 0.74,
+          "phenylalanineTyrosine": 1.09,
+          "cysteine": 0.49,
+          "tyrosine": 0.35
+        },
+        "sidDigestibilityPct": {
+          "lysine": 65.6,
+          "methionine": 82,
+          "methionineCysteine": 72.1,
+          "threonine": 71,
+          "tryptophan": 63.5,
+          "arginine": 83.2,
+          "valine": 74.6,
+          "isoleucine": 78.3,
+          "leucine": 83.8,
+          "histidine": 72.4,
+          "phenylalanine": 85.2,
+          "phenylalanineTyrosine": 84.7,
+          "cysteine": 65.5,
+          "tyrosine": 83.5
+        },
+        "sidPct": {
+          "lysine": 0.34,
+          "methionine": 0.27,
+          "methionineCysteine": 0.59,
+          "threonine": 0.55,
+          "tryptophan": 0.08,
+          "arginine": 0.72,
+          "valine": 0.79,
+          "isoleucine": 0.5,
+          "leucine": 1.57,
+          "histidine": 0.51,
+          "phenylalanine": 0.63,
+          "phenylalanineTyrosine": 0.92,
+          "cysteine": 0.32,
+          "tyrosine": 0.29
+        }
+      },
+      "macroMinerals": {
+        "calciumPct": 0.12,
+        "totalPhosphorusPct": 0.74,
+        "availablePhosphorusPct": 0.29,
+        "sttdPhosphorusPct": 0.21,
+        "sodiumPct": 0.18,
+        "chloridePct": 0.21,
+        "potassiumPct": 0.98,
+        "magnesiumPct": 0.32
+      },
+      "traceMineralsPpm": {
+        "manganese": 19.2,
+        "iron": 134,
+        "copper": 16.9,
+        "zinc": 72.9,
+        "selenium": 0.21
+      },
+      "vitamins": {},
+      "constraints": {
+        "notes": []
+      },
+      "provenance": {
+        "sourceIngredientName": "Corn, Gluten Feed 21% CP",
+        "sourcePage": 67,
+        "sourceTable": "Table 1.01",
+        "source": {
+          "publisher": "Federal University of Viçosa, Department of Animal Science",
+          "title": "Brazilian Tables for Poultry and Swine — Composition of Feedstuffs and Nutritional Requirements",
+          "year": 2024,
+          "url": "https://editorascienza.com.br/pdfs/UFV/poultry_swine_en_chapter_1.pdf",
+          "priority": "primary",
+          "basis": "As-fed; Brazilian Tables 2024 Table 1.01"
+        },
+        "nutrientSources": {},
+        "notes": [
+          "Nutrient values are transcribed from the Brazilian Tables 2024 Table 1.01 swine columns; source dashes remain missing rather than being converted to zero."
+        ]
+      }
+    },
+    {
+      "id": "corn-gluten-meal-60",
+      "name": "Corn, Gluten Meal 60% CP",
+      "aliases": [
+        "corn gluten meal",
+        "maize gluten meal",
+        "Corn Gluten Meal, 60% CP"
+      ],
+      "category": "protein_meal",
+      "composition": {
+        "dryMatterPct": 91.2,
+        "crudeProteinPct": 61.7,
+        "digestibleProteinPct": 56.4,
+        "crudeFatPct": 1.98,
+        "crudeFibrePct": 1.23,
+        "ashPct": 1.86,
+        "starchPct": 13.4,
+        "neutralDetergentFibrePct": 6.28,
+        "acidDetergentFibrePct": 6.18,
+        "linoleicAcidPct": 1.21
+      },
+      "energy": {
+        "digestibleKcalKg": 4341,
+        "metabolizableKcalKg": 3929,
+        "netKcalKg": 2518
+      },
+      "aminoAcids": {
+        "totalPct": {
+          "lysine": 1.05,
+          "methionine": 1.48,
+          "methionineCysteine": 2.41,
+          "threonine": 2.1,
+          "tryptophan": 0.3,
+          "arginine": 2,
+          "valine": 2.9,
+          "isoleucine": 2.55,
+          "leucine": 10.2,
+          "histidine": 1.32,
+          "phenylalanine": 3.94,
+          "phenylalanineTyrosine": 7.07,
+          "cysteine": 0.93,
+          "tyrosine": 3.13
+        },
+        "sidDigestibilityPct": {
+          "lysine": 87.6,
+          "methionine": 93.1,
+          "methionineCysteine": 90.6,
+          "threonine": 90.1,
+          "tryptophan": 80.5,
+          "arginine": 94.2,
+          "valine": 90.1,
+          "isoleucine": 90.2,
+          "leucine": 92.7,
+          "histidine": 92.1,
+          "phenylalanine": 92.5,
+          "phenylalanineTyrosine": 91.5,
+          "cysteine": 86.5,
+          "tyrosine": 90.3
+        },
+        "sidPct": {
+          "lysine": 0.92,
+          "methionine": 1.38,
+          "methionineCysteine": 2.18,
+          "threonine": 1.89,
+          "tryptophan": 0.24,
+          "arginine": 1.88,
+          "valine": 2.61,
+          "isoleucine": 2.3,
+          "leucine": 9.49,
+          "histidine": 1.22,
+          "phenylalanine": 3.64,
+          "phenylalanineTyrosine": 6.47,
+          "cysteine": 0.8,
+          "tyrosine": 2.83
+        }
+      },
+      "macroMinerals": {
+        "calciumPct": 0.03,
+        "totalPhosphorusPct": 0.52,
+        "availablePhosphorusPct": 0.05,
+        "sttdPhosphorusPct": 0.16,
+        "sodiumPct": 0.02,
+        "chloridePct": 0.05,
+        "potassiumPct": 0.3,
+        "magnesiumPct": 0.08
+      },
+      "traceMineralsPpm": {
+        "manganese": 3.1,
+        "iron": 113,
+        "copper": 19.1,
+        "zinc": 25.3,
+        "selenium": 0.2
+      },
+      "vitamins": {},
+      "constraints": {
+        "notes": []
+      },
+      "provenance": {
+        "sourceIngredientName": "Corn, Gluten Meal 60% CP",
+        "sourcePage": 69,
+        "sourceTable": "Table 1.01",
+        "source": {
+          "publisher": "Federal University of Viçosa, Department of Animal Science",
+          "title": "Brazilian Tables for Poultry and Swine — Composition of Feedstuffs and Nutritional Requirements",
+          "year": 2024,
+          "url": "https://editorascienza.com.br/pdfs/UFV/poultry_swine_en_chapter_1.pdf",
+          "priority": "primary",
+          "basis": "As-fed; Brazilian Tables 2024 Table 1.01"
+        },
+        "nutrientSources": {},
+        "notes": [
+          "Nutrient values are transcribed from the Brazilian Tables 2024 Table 1.01 swine columns; source dashes remain missing rather than being converted to zero."
+        ]
+      }
+    },
+    {
+      "id": "skim-milk-dried",
+      "name": "Milk Skimmed, Powder",
+      "aliases": [
+        "dried skim milk",
+        "skim milk powder",
+        "Skim Milk, Dried"
+      ],
+      "category": "protein_meal",
+      "composition": {
+        "dryMatterPct": 94.1,
+        "crudeProteinPct": 33.4,
+        "digestibleProteinPct": 30.1,
+        "crudeFatPct": 0.79,
+        "ashPct": 8.1,
+        "linoleicAcidPct": 0.02
+      },
+      "energy": {
+        "digestibleKcalKg": 3876,
+        "metabolizableKcalKg": 3646,
+        "netKcalKg": 2448
+      },
+      "aminoAcids": {
+        "totalPct": {
+          "lysine": 2.61,
+          "methionine": 0.84,
+          "methionineCysteine": 1.12,
+          "threonine": 1.51,
+          "tryptophan": 0.37,
+          "arginine": 1.19,
+          "valine": 2.17,
+          "isoleucine": 1.84,
+          "leucine": 3.21,
+          "histidine": 0.94,
+          "phenylalanine": 1.66,
+          "phenylalanineTyrosine": 3.04,
+          "cysteine": 0.28,
+          "tyrosine": 1.38
+        },
+        "sidDigestibilityPct": {
+          "lysine": 93,
+          "methionine": 95.2,
+          "methionineCysteine": 92.7,
+          "threonine": 89.3,
+          "tryptophan": 91,
+          "arginine": 95.3,
+          "valine": 88.1,
+          "isoleucine": 87.8,
+          "leucine": 93.7,
+          "histidine": 93.1,
+          "phenylalanine": 95.4,
+          "phenylalanineTyrosine": 94.1,
+          "cysteine": 85,
+          "tyrosine": 92.5
+        },
+        "sidPct": {
+          "lysine": 2.43,
+          "methionine": 0.8,
+          "methionineCysteine": 1.04,
+          "threonine": 1.35,
+          "tryptophan": 0.34,
+          "arginine": 1.13,
+          "valine": 1.91,
+          "isoleucine": 1.62,
+          "leucine": 3.01,
+          "histidine": 0.88,
+          "phenylalanine": 1.58,
+          "phenylalanineTyrosine": 2.86,
+          "cysteine": 0.24,
+          "tyrosine": 1.28
+        }
+      },
+      "macroMinerals": {
+        "calciumPct": 1.3,
+        "totalPhosphorusPct": 0.9,
+        "availablePhosphorusPct": 0.9,
+        "sttdPhosphorusPct": 0.81,
+        "sodiumPct": 0.47,
+        "chloridePct": 0.94,
+        "potassiumPct": 1.53,
+        "magnesiumPct": 0.11
+      },
+      "traceMineralsPpm": {},
+      "vitamins": {},
+      "constraints": {
+        "notes": []
+      },
+      "provenance": {
+        "sourceIngredientName": "Milk Skimmed, Powder",
+        "sourcePage": 109,
+        "sourceTable": "Table 1.01",
+        "source": {
+          "publisher": "Federal University of Viçosa, Department of Animal Science",
+          "title": "Brazilian Tables for Poultry and Swine — Composition of Feedstuffs and Nutritional Requirements",
+          "year": 2024,
+          "url": "https://editorascienza.com.br/pdfs/UFV/poultry_swine_en_chapter_1.pdf",
+          "priority": "primary",
+          "basis": "As-fed; Brazilian Tables 2024 Table 1.01"
+        },
+        "nutrientSources": {},
+        "notes": [
+          "Nutrient values are transcribed from the Brazilian Tables 2024 Table 1.01 swine columns; source dashes remain missing rather than being converted to zero."
+        ]
+      }
+    },
+    {
+      "id": "whey-dried",
+      "name": "Milk Whey, Powder",
+      "aliases": [
+        "dried whey",
+        "whey powder",
+        "Whey, Dried"
+      ],
+      "category": "byproduct",
+      "composition": {
+        "dryMatterPct": 95.2,
+        "crudeProteinPct": 12.3,
+        "digestibleProteinPct": 10.9,
+        "crudeFatPct": 0.93,
+        "ashPct": 8.74,
+        "linoleicAcidPct": 0.02
+      },
+      "energy": {
+        "digestibleKcalKg": 3486,
+        "metabolizableKcalKg": 3371,
+        "netKcalKg": 2391
+      },
+      "aminoAcids": {
+        "totalPct": {
+          "lysine": 0.95,
+          "methionine": 0.22,
+          "methionineCysteine": 0.44,
+          "threonine": 0.72,
+          "tryptophan": 0.19,
+          "arginine": 0.35,
+          "valine": 0.65,
+          "isoleucine": 0.66,
+          "leucine": 1.08,
+          "histidine": 0.24,
+          "phenylalanine": 0.4,
+          "phenylalanineTyrosine": 0.65,
+          "cysteine": 0.22,
+          "tyrosine": 0.25
+        },
+        "sidDigestibilityPct": {
+          "lysine": 91.4,
+          "methionine": 90.5,
+          "methionineCysteine": 89.3,
+          "threonine": 86.1,
+          "tryptophan": 83.6,
+          "arginine": 91.9,
+          "valine": 87.2,
+          "isoleucine": 89.5,
+          "leucine": 92.5,
+          "histidine": 91.7,
+          "phenylalanine": 90.5,
+          "phenylalanineTyrosine": 89.5,
+          "cysteine": 88,
+          "tyrosine": 88
+        },
+        "sidPct": {
+          "lysine": 0.87,
+          "methionine": 0.2,
+          "methionineCysteine": 0.39,
+          "threonine": 0.62,
+          "tryptophan": 0.16,
+          "arginine": 0.32,
+          "valine": 0.57,
+          "isoleucine": 0.59,
+          "leucine": 1,
+          "histidine": 0.22,
+          "phenylalanine": 0.36,
+          "phenylalanineTyrosine": 0.58,
+          "cysteine": 0.19,
+          "tyrosine": 0.22
+        }
+      },
+      "macroMinerals": {
+        "calciumPct": 0.75,
+        "totalPhosphorusPct": 0.68,
+        "availablePhosphorusPct": 0.68,
+        "sttdPhosphorusPct": 0.61,
+        "sodiumPct": 0.79,
+        "chloridePct": 1.34,
+        "potassiumPct": 2.08,
+        "magnesiumPct": 0.11
+      },
+      "traceMineralsPpm": {
+        "manganese": 3,
+        "iron": 12.3,
+        "copper": 16.5,
+        "zinc": 115,
+        "selenium": 0.21
+      },
+      "vitamins": {},
+      "constraints": {
+        "notes": []
+      },
+      "provenance": {
+        "sourceIngredientName": "Milk Whey, Powder",
+        "sourcePage": 111,
+        "sourceTable": "Table 1.01",
+        "source": {
+          "publisher": "Federal University of Viçosa, Department of Animal Science",
+          "title": "Brazilian Tables for Poultry and Swine — Composition of Feedstuffs and Nutritional Requirements",
+          "year": 2024,
+          "url": "https://editorascienza.com.br/pdfs/UFV/poultry_swine_en_chapter_1.pdf",
+          "priority": "primary",
+          "basis": "As-fed; Brazilian Tables 2024 Table 1.01"
+        },
+        "nutrientSources": {},
+        "notes": [
+          "Nutrient values are transcribed from the Brazilian Tables 2024 Table 1.01 swine columns; source dashes remain missing rather than being converted to zero."
+        ]
+      }
+    },
+    {
+      "id": "molasses-cane",
+      "name": "Sugarcane, Molasses",
+      "aliases": [
+        "cane molasses",
+        "molasses",
+        "Molasses, Cane"
+      ],
+      "category": "byproduct",
+      "composition": {
+        "dryMatterPct": 73.9,
+        "crudeProteinPct": 3.66,
+        "crudeFatPct": 0.1,
+        "crudeFibrePct": 2.46,
+        "ashPct": 8.75
+      },
+      "energy": {
+        "digestibleKcalKg": 2403,
+        "metabolizableKcalKg": 2345,
+        "netKcalKg": 1665
+      },
+      "aminoAcids": {
+        "totalPct": {},
+        "sidDigestibilityPct": {},
+        "sidPct": {}
+      },
+      "macroMinerals": {
+        "calciumPct": 0.76,
+        "totalPhosphorusPct": 0.06,
+        "availablePhosphorusPct": 0.02,
+        "sttdPhosphorusPct": 0.02,
+        "sodiumPct": 0.58,
+        "chloridePct": 1.38,
+        "potassiumPct": 3.25
+      },
+      "traceMineralsPpm": {},
+      "vitamins": {},
+      "constraints": {
+        "notes": []
+      },
+      "provenance": {
+        "sourceIngredientName": "Sugarcane, Molasses",
+        "sourcePage": 185,
+        "sourceTable": "Table 1.01",
+        "source": {
+          "publisher": "Federal University of Viçosa, Department of Animal Science",
+          "title": "Brazilian Tables for Poultry and Swine — Composition of Feedstuffs and Nutritional Requirements",
+          "year": 2024,
+          "url": "https://editorascienza.com.br/pdfs/UFV/poultry_swine_en_chapter_1.pdf",
+          "priority": "primary",
+          "basis": "As-fed; Brazilian Tables 2024 Table 1.01"
+        },
+        "nutrientSources": {},
+        "notes": [
+          "Nutrient values are transcribed from the Brazilian Tables 2024 Table 1.01 swine columns; source dashes remain missing rather than being converted to zero."
+        ]
+      }
+    },
+    {
+      "id": "lactose",
+      "name": "Lactose",
+      "aliases": [
+        "milk sugar"
+      ],
+      "category": "other",
+      "composition": {
+        "dryMatterPct": 96.4,
+        "ashPct": 0.17
+      },
+      "energy": {
+        "digestibleKcalKg": 3565,
+        "metabolizableKcalKg": 3518,
+        "netKcalKg": 2568
+      },
+      "aminoAcids": {
+        "totalPct": {},
+        "sidDigestibilityPct": {},
+        "sidPct": {}
+      },
+      "macroMinerals": {},
+      "traceMineralsPpm": {},
+      "vitamins": {},
+      "constraints": {
+        "notes": []
+      },
+      "provenance": {
+        "sourceIngredientName": "Lactose",
+        "sourcePage": 103,
+        "sourceTable": "Table 1.01",
+        "source": {
+          "publisher": "Federal University of Viçosa, Department of Animal Science",
+          "title": "Brazilian Tables for Poultry and Swine — Composition of Feedstuffs and Nutritional Requirements",
+          "year": 2024,
+          "url": "https://editorascienza.com.br/pdfs/UFV/poultry_swine_en_chapter_1.pdf",
+          "priority": "primary",
+          "basis": "As-fed; Brazilian Tables 2024 Table 1.01"
+        },
+        "nutrientSources": {},
+        "notes": [
+          "Nutrient values are transcribed from the Brazilian Tables 2024 Table 1.01 swine columns; source dashes remain missing rather than being converted to zero."
+        ]
+      }
+    },
+    {
+      "id": "limestone-ground",
+      "name": "Limestone",
+      "aliases": [
+        "limestone",
+        "calcitic limestone",
+        "Limestone, Ground"
+      ],
+      "category": "mineral",
+      "composition": {},
+      "energy": {},
+      "aminoAcids": {
+        "totalPct": {},
+        "sidDigestibilityPct": {},
+        "sidPct": {}
+      },
+      "macroMinerals": {
+        "calciumPct": 37.5,
+        "magnesiumPct": 0.27
+      },
+      "traceMineralsPpm": {},
+      "vitamins": {},
+      "constraints": {
+        "notes": []
+      },
+      "provenance": {
+        "sourceIngredientName": "Limestone",
+        "sourcePage": 223,
+        "sourceTable": "Table 1.10",
+        "source": {
+          "publisher": "Federal University of Viçosa, Department of Animal Science",
+          "title": "Brazilian Tables for Poultry and Swine — Composition of Feedstuffs and Nutritional Requirements",
+          "year": 2024,
+          "url": "https://editorascienza.com.br/pdfs/UFV/poultry_swine_en_chapter_1.pdf",
+          "priority": "primary",
+          "basis": "As-fed; Brazilian Tables 2024 Table 1.10 inorganic mineral sources"
+        },
+        "nutrientSources": {},
+        "notes": [
+          "Only nutrient values explicitly published for this mineral source are stored; other mineral-family values are treated as structural zero by PigFlow."
+        ]
+      }
+    },
+    {
+      "id": "calcium-carbonate",
+      "name": "Calcium Carbonate",
+      "aliases": [
+        "calcium carbonate",
+        "feed-grade limestone",
+        "Calcium Carbonate (Feed-Grade Limestone)"
+      ],
+      "category": "mineral",
+      "composition": {},
+      "energy": {},
+      "aminoAcids": {
+        "totalPct": {},
+        "sidDigestibilityPct": {},
+        "sidPct": {}
+      },
+      "macroMinerals": {
+        "calciumPct": 43.3
+      },
+      "traceMineralsPpm": {},
+      "vitamins": {},
+      "constraints": {
+        "notes": []
+      },
+      "provenance": {
+        "sourceIngredientName": "Calcium Carbonate",
+        "sourcePage": 223,
+        "sourceTable": "Table 1.10",
+        "source": {
+          "publisher": "Federal University of Viçosa, Department of Animal Science",
+          "title": "Brazilian Tables for Poultry and Swine — Composition of Feedstuffs and Nutritional Requirements",
+          "year": 2024,
+          "url": "https://editorascienza.com.br/pdfs/UFV/poultry_swine_en_chapter_1.pdf",
+          "priority": "primary",
+          "basis": "As-fed; Brazilian Tables 2024 Table 1.10 inorganic mineral sources"
+        },
+        "nutrientSources": {},
+        "notes": [
+          "Only nutrient values explicitly published for this mineral source are stored; other mineral-family values are treated as structural zero by PigFlow."
+        ]
+      }
+    },
+    {
+      "id": "dicalcium-phosphate",
+      "name": "Dicalcium Phosphate",
+      "aliases": [
+        "dicalcium phosphate",
+        "DCP",
+        "Calcium Phosphate (Dicalcium)"
+      ],
+      "category": "mineral",
+      "composition": {},
+      "energy": {},
+      "aminoAcids": {
+        "totalPct": {},
+        "sidDigestibilityPct": {},
+        "sidPct": {}
+      },
+      "macroMinerals": {
+        "calciumPct": 24,
+        "totalPhosphorusPct": 18.5,
+        "availablePhosphorusPct": 18.5,
+        "sttdPhosphorusPct": 13.9
+      },
+      "traceMineralsPpm": {},
+      "vitamins": {},
+      "constraints": {
+        "notes": []
+      },
+      "provenance": {
+        "sourceIngredientName": "Dicalcium Phosphate",
+        "sourcePage": 223,
+        "sourceTable": "Table 1.10",
+        "source": {
+          "publisher": "Federal University of Viçosa, Department of Animal Science",
+          "title": "Brazilian Tables for Poultry and Swine — Composition of Feedstuffs and Nutritional Requirements",
+          "year": 2024,
+          "url": "https://editorascienza.com.br/pdfs/UFV/poultry_swine_en_chapter_1.pdf",
+          "priority": "primary",
+          "basis": "As-fed; Brazilian Tables 2024 Table 1.10 inorganic mineral sources"
+        },
+        "nutrientSources": {},
+        "notes": [
+          "Only nutrient values explicitly published for this mineral source are stored; other mineral-family values are treated as structural zero by PigFlow."
+        ]
+      }
+    },
+    {
+      "id": "monocalcium-phosphate",
+      "name": "Monocalcium Phosphate",
+      "aliases": [
+        "MCP"
+      ],
+      "category": "mineral",
+      "composition": {},
+      "energy": {},
+      "aminoAcids": {
+        "totalPct": {},
+        "sidDigestibilityPct": {},
+        "sidPct": {}
+      },
+      "macroMinerals": {
+        "calciumPct": 18.9,
+        "totalPhosphorusPct": 21.4,
+        "availablePhosphorusPct": 22,
+        "sttdPhosphorusPct": 16.4
+      },
+      "traceMineralsPpm": {},
+      "vitamins": {},
+      "constraints": {
+        "notes": []
+      },
+      "provenance": {
+        "sourceIngredientName": "Monocalcium Phosphate",
+        "sourcePage": 223,
+        "sourceTable": "Table 1.10",
+        "source": {
+          "publisher": "Federal University of Viçosa, Department of Animal Science",
+          "title": "Brazilian Tables for Poultry and Swine — Composition of Feedstuffs and Nutritional Requirements",
+          "year": 2024,
+          "url": "https://editorascienza.com.br/pdfs/UFV/poultry_swine_en_chapter_1.pdf",
+          "priority": "primary",
+          "basis": "As-fed; Brazilian Tables 2024 Table 1.10 inorganic mineral sources"
+        },
+        "nutrientSources": {},
+        "notes": [
+          "Only nutrient values explicitly published for this mineral source are stored; other mineral-family values are treated as structural zero by PigFlow."
+        ]
+      }
+    },
+    {
+      "id": "sodium-chloride",
+      "name": "Salt",
+      "aliases": [
+        "salt",
+        "feed salt",
+        "Sodium Chloride"
+      ],
+      "category": "mineral",
+      "composition": {},
+      "energy": {},
+      "aminoAcids": {
+        "totalPct": {},
+        "sidDigestibilityPct": {},
+        "sidPct": {}
+      },
+      "macroMinerals": {
+        "sodiumPct": 39.7,
+        "chloridePct": 59.6
+      },
+      "traceMineralsPpm": {},
+      "vitamins": {},
+      "constraints": {
+        "notes": []
+      },
+      "provenance": {
+        "sourceIngredientName": "Salt",
+        "sourcePage": 223,
+        "sourceTable": "Table 1.10",
+        "source": {
+          "publisher": "Federal University of Viçosa, Department of Animal Science",
+          "title": "Brazilian Tables for Poultry and Swine — Composition of Feedstuffs and Nutritional Requirements",
+          "year": 2024,
+          "url": "https://editorascienza.com.br/pdfs/UFV/poultry_swine_en_chapter_1.pdf",
+          "priority": "primary",
+          "basis": "As-fed; Brazilian Tables 2024 Table 1.10 inorganic mineral sources"
+        },
+        "nutrientSources": {},
+        "notes": [
+          "Only nutrient values explicitly published for this mineral source are stored; other mineral-family values are treated as structural zero by PigFlow."
+        ]
+      }
+    },
+    {
+      "id": "l-lysine-hcl",
+      "name": "Lysine - HCl",
+      "aliases": [
+        "lysine HCl",
+        "lysine hydrochloride",
+        "L-Lysine HCl"
+      ],
+      "category": "amino_acid",
+      "composition": {
+        "crudeProteinPct": 85.81,
+        "digestibleProteinPct": 84.1796
+      },
+      "energy": {
+        "digestibleKcalKg": 4808,
+        "standardizedMetabolizableKcalKg": 4546,
+        "netKcalKg": 3523
+      },
+      "aminoAcids": {
+        "totalPct": {
+          "lysine": 71.659708
+        },
+        "sidDigestibilityPct": {},
+        "sidPct": {
+          "lysine": 70.298173
+        }
+      },
+      "macroMinerals": {},
+      "traceMineralsPpm": {},
+      "vitamins": {},
+      "constraints": {
+        "notes": [
+          "Brazilian Table 1.09 publishes standardized metabolizable energy (MESn35), not ordinary ME; PigFlow preserves it separately and does not relabel it as ME."
+        ]
+      },
+      "provenance": {
+        "sourceIngredientName": "Lysine - HCl",
+        "sourcePage": 222,
+        "sourceTable": "Table 1.09",
+        "source": {
+          "publisher": "Federal University of Viçosa, Department of Animal Science",
+          "title": "Brazilian Tables for Poultry and Swine — Composition of Feedstuffs and Nutritional Requirements",
+          "year": 2024,
+          "url": "https://editorascienza.com.br/pdfs/UFV/poultry_swine_en_chapter_1.pdf",
+          "priority": "primary",
+          "basis": "Dry-matter basis; Brazilian Tables 2024 Table 1.09 crystalline amino acids"
+        },
+        "nutrientSources": {},
+        "notes": [
+          "Legacy PigFlow ID retained for compatibility where applicable.",
+          "Lysine concentration is derived only from Table 1.09 nitrogen values: Lysine-HCl N% divided by pure lysine N%; SID concentration then applies the published standardized digestibility."
+        ]
+      }
+    },
+    {
+      "id": "dl-methionine",
+      "name": "Methionine, crystalline",
+      "aliases": [
+        "feed-grade methionine",
+        "DL-Methionine"
+      ],
+      "category": "amino_acid",
+      "composition": {
+        "crudeProteinPct": 58.67,
+        "digestibleProteinPct": 58.3766
+      },
+      "energy": {
+        "digestibleKcalKg": 5656,
+        "standardizedMetabolizableKcalKg": 5477,
+        "netKcalKg": 4244
+      },
+      "aminoAcids": {
+        "totalPct": {},
+        "sidDigestibilityPct": {},
+        "sidPct": {
+          "methionine": 99.5
+        }
+      },
+      "macroMinerals": {},
+      "traceMineralsPpm": {},
+      "vitamins": {},
+      "constraints": {
+        "notes": [
+          "Brazilian Table 1.09 publishes standardized metabolizable energy (MESn35), not ordinary ME; PigFlow preserves it separately and does not relabel it as ME."
+        ]
+      },
+      "provenance": {
+        "sourceIngredientName": "Methionine",
+        "sourcePage": 222,
+        "sourceTable": "Table 1.09",
+        "source": {
+          "publisher": "Federal University of Viçosa, Department of Animal Science",
+          "title": "Brazilian Tables for Poultry and Swine — Composition of Feedstuffs and Nutritional Requirements",
+          "year": 2024,
+          "url": "https://editorascienza.com.br/pdfs/UFV/poultry_swine_en_chapter_1.pdf",
+          "priority": "primary",
+          "basis": "Dry-matter basis; Brazilian Tables 2024 Table 1.09 crystalline amino acids"
+        },
+        "nutrientSources": {},
+        "notes": [
+          "Legacy PigFlow ID retained for compatibility. The Brazilian source identifies the crystalline source only as Methionine and does not specify a DL product.",
+          "The named crystalline amino acid SID concentration is represented by the Table 1.09 standardized digestibility percentage on its dry-matter basis."
+        ]
+      }
+    },
+    {
+      "id": "l-threonine",
+      "name": "Threonine, crystalline",
+      "aliases": [
+        "feed-grade threonine",
+        "L-Threonine"
+      ],
+      "category": "amino_acid",
+      "composition": {
+        "crudeProteinPct": 73.49,
+        "digestibleProteinPct": 71.1383
+      },
+      "energy": {
+        "digestibleKcalKg": 4039,
+        "standardizedMetabolizableKcalKg": 3815,
+        "netKcalKg": 2957
+      },
+      "aminoAcids": {
+        "totalPct": {},
+        "sidDigestibilityPct": {},
+        "sidPct": {
+          "threonine": 96.8
+        }
+      },
+      "macroMinerals": {},
+      "traceMineralsPpm": {},
+      "vitamins": {},
+      "constraints": {
+        "notes": [
+          "Brazilian Table 1.09 publishes standardized metabolizable energy (MESn35), not ordinary ME; PigFlow preserves it separately and does not relabel it as ME."
+        ]
+      },
+      "provenance": {
+        "sourceIngredientName": "Threonine",
+        "sourcePage": 222,
+        "sourceTable": "Table 1.09",
+        "source": {
+          "publisher": "Federal University of Viçosa, Department of Animal Science",
+          "title": "Brazilian Tables for Poultry and Swine — Composition of Feedstuffs and Nutritional Requirements",
+          "year": 2024,
+          "url": "https://editorascienza.com.br/pdfs/UFV/poultry_swine_en_chapter_1.pdf",
+          "priority": "primary",
+          "basis": "Dry-matter basis; Brazilian Tables 2024 Table 1.09 crystalline amino acids"
+        },
+        "nutrientSources": {},
+        "notes": [
+          "Legacy PigFlow ID retained for compatibility where applicable.",
+          "The named crystalline amino acid SID concentration is represented by the Table 1.09 standardized digestibility percentage on its dry-matter basis."
+        ]
+      }
+    },
+    {
+      "id": "l-tryptophan",
+      "name": "Tryptophan, crystalline",
+      "aliases": [
+        "feed-grade tryptophan",
+        "L-Tryptophan"
+      ],
+      "category": "amino_acid",
+      "composition": {
+        "crudeProteinPct": 85.73,
+        "digestibleProteinPct": 84.8727
+      },
+      "energy": {
+        "digestibleKcalKg": 6441,
+        "standardizedMetabolizableKcalKg": 6179,
+        "netKcalKg": 4789
+      },
+      "aminoAcids": {
+        "totalPct": {},
+        "sidDigestibilityPct": {},
+        "sidPct": {
+          "tryptophan": 99
+        }
+      },
+      "macroMinerals": {},
+      "traceMineralsPpm": {},
+      "vitamins": {},
+      "constraints": {
+        "notes": [
+          "Brazilian Table 1.09 publishes standardized metabolizable energy (MESn35), not ordinary ME; PigFlow preserves it separately and does not relabel it as ME."
+        ]
+      },
+      "provenance": {
+        "sourceIngredientName": "Tryptophan",
+        "sourcePage": 222,
+        "sourceTable": "Table 1.09",
+        "source": {
+          "publisher": "Federal University of Viçosa, Department of Animal Science",
+          "title": "Brazilian Tables for Poultry and Swine — Composition of Feedstuffs and Nutritional Requirements",
+          "year": 2024,
+          "url": "https://editorascienza.com.br/pdfs/UFV/poultry_swine_en_chapter_1.pdf",
+          "priority": "primary",
+          "basis": "Dry-matter basis; Brazilian Tables 2024 Table 1.09 crystalline amino acids"
+        },
+        "nutrientSources": {},
+        "notes": [
+          "Legacy PigFlow ID retained for compatibility where applicable.",
+          "The named crystalline amino acid SID concentration is represented by the Table 1.09 standardized digestibility percentage on its dry-matter basis."
+        ]
+      }
+    },
+    {
+      "id": "l-valine",
+      "name": "Valine, crystalline",
+      "aliases": [
+        "feed-grade valine",
+        "valine",
+        "L-Valine"
+      ],
+      "category": "amino_acid",
+      "composition": {
+        "crudeProteinPct": 74.73,
+        "digestibleProteinPct": 71.3671
+      },
+      "energy": {
+        "digestibleKcalKg": 5755,
+        "standardizedMetabolizableKcalKg": 5527,
+        "netKcalKg": 4283
+      },
+      "aminoAcids": {
+        "totalPct": {},
+        "sidDigestibilityPct": {},
+        "sidPct": {
+          "valine": 95.5
+        }
+      },
+      "macroMinerals": {},
+      "traceMineralsPpm": {},
+      "vitamins": {},
+      "constraints": {
+        "notes": [
+          "Brazilian Table 1.09 publishes standardized metabolizable energy (MESn35), not ordinary ME; PigFlow preserves it separately and does not relabel it as ME."
+        ]
+      },
+      "provenance": {
+        "sourceIngredientName": "Valine",
+        "sourcePage": 222,
+        "sourceTable": "Table 1.09",
+        "source": {
+          "publisher": "Federal University of Viçosa, Department of Animal Science",
+          "title": "Brazilian Tables for Poultry and Swine — Composition of Feedstuffs and Nutritional Requirements",
+          "year": 2024,
+          "url": "https://editorascienza.com.br/pdfs/UFV/poultry_swine_en_chapter_1.pdf",
+          "priority": "primary",
+          "basis": "Dry-matter basis; Brazilian Tables 2024 Table 1.09 crystalline amino acids"
+        },
+        "nutrientSources": {},
+        "notes": [
+          "Legacy PigFlow ID retained for compatibility where applicable.",
+          "The named crystalline amino acid SID concentration is represented by the Table 1.09 standardized digestibility percentage on its dry-matter basis."
+        ]
+      }
+    },
+    {
+      "id": "l-isoleucine",
+      "name": "Isoleucine, crystalline",
+      "aliases": [
+        "feed-grade isoleucine",
+        "isoleucine",
+        "L-Isoleucine"
+      ],
+      "category": "amino_acid",
+      "composition": {
+        "crudeProteinPct": 66.74,
+        "digestibleProteinPct": 64.8045
+      },
+      "energy": {
+        "digestibleKcalKg": 6413,
+        "standardizedMetabolizableKcalKg": 6210,
+        "netKcalKg": 4813
+      },
+      "aminoAcids": {
+        "totalPct": {},
+        "sidDigestibilityPct": {},
+        "sidPct": {
+          "isoleucine": 97.1
+        }
+      },
+      "macroMinerals": {},
+      "traceMineralsPpm": {},
+      "vitamins": {},
+      "constraints": {
+        "notes": [
+          "Brazilian Table 1.09 publishes standardized metabolizable energy (MESn35), not ordinary ME; PigFlow preserves it separately and does not relabel it as ME."
+        ]
+      },
+      "provenance": {
+        "sourceIngredientName": "Isoleucine",
+        "sourcePage": 222,
+        "sourceTable": "Table 1.09",
+        "source": {
+          "publisher": "Federal University of Viçosa, Department of Animal Science",
+          "title": "Brazilian Tables for Poultry and Swine — Composition of Feedstuffs and Nutritional Requirements",
+          "year": 2024,
+          "url": "https://editorascienza.com.br/pdfs/UFV/poultry_swine_en_chapter_1.pdf",
+          "priority": "primary",
+          "basis": "Dry-matter basis; Brazilian Tables 2024 Table 1.09 crystalline amino acids"
+        },
+        "nutrientSources": {},
+        "notes": [
+          "Legacy PigFlow ID retained for compatibility where applicable.",
+          "The named crystalline amino acid SID concentration is represented by the Table 1.09 standardized digestibility percentage on its dry-matter basis."
+        ]
+      }
+    },
+    {
+      "id": "soybean-full-fat-extruded",
+      "name": "Soybean, Full-Fat Extruded",
+      "aliases": [
+        "extruded full-fat soybean",
+        "full-fat extruded soya",
+        "full-fat soybean"
+      ],
+      "category": "protein_meal",
+      "composition": {
+        "dryMatterPct": 92.6,
+        "crudeProteinPct": 37.3,
+        "digestibleProteinPct": 33,
+        "crudeFatPct": 18.6,
+        "crudeFibrePct": 5.55,
+        "ashPct": 4.66,
+        "starchPct": 6.7,
+        "neutralDetergentFibrePct": 14.4,
+        "acidDetergentFibrePct": 10.1,
+        "linoleicAcidPct": 9.45
+      },
+      "energy": {
+        "digestibleKcalKg": 4071,
+        "metabolizableKcalKg": 3956,
+        "netKcalKg": 2853
+      },
+      "aminoAcids": {
+        "totalPct": {
+          "lysine": 2.32,
+          "methionine": 0.5,
+          "methionineCysteine": 1.08,
+          "threonine": 1.44,
+          "tryptophan": 0.51,
+          "arginine": 2.67,
+          "valine": 1.77,
+          "isoleucine": 1.71,
+          "leucine": 2.86,
+          "histidine": 0.96,
+          "phenylalanine": 1.89,
+          "phenylalanineTyrosine": 3.15,
+          "cysteine": 0.58,
+          "tyrosine": 1.26
+        },
+        "sidDigestibilityPct": {
+          "lysine": 86.4,
+          "methionine": 91.1,
+          "methionineCysteine": 85.1,
+          "threonine": 86.2,
+          "tryptophan": 78.2,
+          "arginine": 92.6,
+          "valine": 85.1,
+          "isoleucine": 85.3,
+          "leucine": 85.2,
+          "histidine": 91.6,
+          "phenylalanine": 87,
+          "phenylalanineTyrosine": 87.4,
+          "cysteine": 80,
+          "tyrosine": 88
+        },
+        "sidPct": {
+          "lysine": 2,
+          "methionine": 0.46,
+          "methionineCysteine": 0.9,
+          "threonine": 1.24,
+          "tryptophan": 0.4,
+          "arginine": 2.47,
+          "valine": 1.51,
+          "isoleucine": 1.46,
+          "leucine": 2.44,
+          "histidine": 0.88,
+          "phenylalanine": 1.64,
+          "phenylalanineTyrosine": 2.75,
+          "cysteine": 0.46,
+          "tyrosine": 1.11
+        }
+      },
+      "macroMinerals": {
+        "calciumPct": 0.24,
+        "totalPhosphorusPct": 0.53,
+        "availablePhosphorusPct": 0.17,
+        "sttdPhosphorusPct": 0.2,
+        "sodiumPct": 0.03,
+        "chloridePct": 0.03,
+        "potassiumPct": 1.72,
+        "magnesiumPct": 0.32
+      },
+      "traceMineralsPpm": {
+        "manganese": 24.8,
+        "iron": 179,
+        "copper": 13.7,
+        "zinc": 41.6,
+        "selenium": 0.21
+      },
+      "vitamins": {},
+      "constraints": {
+        "notes": []
+      },
+      "provenance": {
+        "sourceIngredientName": "Soybean, Full-fat Extruded",
+        "sourcePage": 155,
+        "sourceTable": "Table 1.01",
+        "source": {
+          "publisher": "Federal University of Viçosa, Department of Animal Science",
+          "title": "Brazilian Tables for Poultry and Swine — Composition of Feedstuffs and Nutritional Requirements",
+          "year": 2024,
+          "url": "https://editorascienza.com.br/pdfs/UFV/poultry_swine_en_chapter_1.pdf",
+          "priority": "primary",
+          "basis": "As-fed; Brazilian Tables 2024 Table 1.01"
+        },
+        "nutrientSources": {},
+        "notes": [
+          "Nutrient values are transcribed from the Brazilian Tables 2024 Table 1.01 swine columns; source dashes remain missing rather than being converted to zero."
+        ]
+      }
+    },
+    {
+      "id": "rice-bran",
+      "name": "Rice, Bran",
+      "aliases": [
+        "rice bran"
+      ],
+      "category": "byproduct",
+      "composition": {
+        "dryMatterPct": 89.4,
+        "crudeProteinPct": 13.1,
+        "digestibleProteinPct": 9.4,
+        "crudeFatPct": 15.3,
+        "crudeFibrePct": 7.35,
+        "ashPct": 9.01,
+        "starchPct": 23.8,
+        "neutralDetergentFibrePct": 22.5,
+        "acidDetergentFibrePct": 12.3,
+        "linoleicAcidPct": 3.15
+      },
+      "energy": {
+        "digestibleKcalKg": 3110,
+        "metabolizableKcalKg": 3027,
+        "netKcalKg": 2339
+      },
+      "aminoAcids": {
+        "totalPct": {
+          "lysine": 0.63,
+          "methionine": 0.24,
+          "methionineCysteine": 0.47,
+          "threonine": 0.55,
+          "tryptophan": 0.15,
+          "arginine": 1.05,
+          "valine": 0.76,
+          "isoleucine": 0.46,
+          "leucine": 0.92,
+          "histidine": 0.37,
+          "phenylalanine": 0.58,
+          "phenylalanineTyrosine": 1.02,
+          "cysteine": 0.23,
+          "tyrosine": 0.44
+        },
+        "sidDigestibilityPct": {
+          "lysine": 74.8,
+          "methionine": 73.7,
+          "methionineCysteine": 71.4,
+          "threonine": 74.2,
+          "tryptophan": 72,
+          "arginine": 86.2,
+          "valine": 73,
+          "isoleucine": 72,
+          "leucine": 72,
+          "histidine": 83.3,
+          "phenylalanine": 72.8,
+          "phenylalanineTyrosine": 76.3,
+          "cysteine": 70.5,
+          "tyrosine": 81
+        },
+        "sidPct": {
+          "lysine": 0.47,
+          "methionine": 0.18,
+          "methionineCysteine": 0.34,
+          "threonine": 0.41,
+          "tryptophan": 0.11,
+          "arginine": 0.9,
+          "valine": 0.55,
+          "isoleucine": 0.33,
+          "leucine": 0.66,
+          "histidine": 0.31,
+          "phenylalanine": 0.42,
+          "phenylalanineTyrosine": 0.78,
+          "cysteine": 0.16,
+          "tyrosine": 0.36
+        }
+      },
+      "macroMinerals": {
+        "calciumPct": 0.07,
+        "totalPhosphorusPct": 2,
+        "availablePhosphorusPct": 0.63,
+        "sttdPhosphorusPct": 0.56,
+        "sodiumPct": 0.04,
+        "chloridePct": 0.07,
+        "potassiumPct": 1.41,
+        "magnesiumPct": 1
+      },
+      "traceMineralsPpm": {
+        "manganese": 194.5,
+        "iron": 98.2,
+        "copper": 28.2,
+        "zinc": 54.9,
+        "selenium": 0.35
+      },
+      "vitamins": {},
+      "constraints": {
+        "notes": []
+      },
+      "provenance": {
+        "sourceIngredientName": "Rice, Bran",
+        "sourcePage": 137,
+        "sourceTable": "Table 1.01",
+        "source": {
+          "publisher": "Federal University of Viçosa, Department of Animal Science",
+          "title": "Brazilian Tables for Poultry and Swine — Composition of Feedstuffs and Nutritional Requirements",
+          "year": 2024,
+          "url": "https://editorascienza.com.br/pdfs/UFV/poultry_swine_en_chapter_1.pdf",
+          "priority": "primary",
+          "basis": "As-fed; Brazilian Tables 2024 Table 1.01"
+        },
+        "nutrientSources": {},
+        "notes": [
+          "Nutrient values are transcribed from the Brazilian Tables 2024 Table 1.01 swine columns; source dashes remain missing rather than being converted to zero."
+        ]
+      }
+    },
+    {
+      "id": "cassava-whole",
+      "name": "Cassava, Whole",
+      "aliases": [
+        "cassava",
+        "whole cassava"
+      ],
+      "category": "cereal",
+      "composition": {
+        "dryMatterPct": 87.7,
+        "crudeProteinPct": 2.64,
+        "digestibleProteinPct": 2.18,
+        "crudeFatPct": 0.52,
+        "crudeFibrePct": 4.21,
+        "ashPct": 3.44,
+        "starchPct": 73.7,
+        "neutralDetergentFibrePct": 13.2,
+        "acidDetergentFibrePct": 5.73,
+        "linoleicAcidPct": 0.08
+      },
+      "energy": {
+        "digestibleKcalKg": 3048,
+        "metabolizableKcalKg": 3020,
+        "netKcalKg": 2426
+      },
+      "aminoAcids": {
+        "totalPct": {
+          "lysine": 0.1,
+          "methionine": 0.03,
+          "methionineCysteine": 0.07,
+          "threonine": 0.07,
+          "tryptophan": 0.02,
+          "arginine": 0.16,
+          "valine": 0.12,
+          "isoleucine": 0.1,
+          "leucine": 0.13,
+          "histidine": 0.09,
+          "phenylalanine": 0.09,
+          "phenylalanineTyrosine": 0.17,
+          "cysteine": 0.04,
+          "tyrosine": 0.08
+        },
+        "sidDigestibilityPct": {
+          "lysine": 71,
+          "methionine": 84,
+          "methionineCysteine": 79.4,
+          "threonine": 73,
+          "tryptophan": 77,
+          "arginine": 90,
+          "valine": 76,
+          "isoleucine": 81,
+          "leucine": 79,
+          "histidine": 80,
+          "phenylalanine": 80,
+          "phenylalanineTyrosine": 73.4,
+          "cysteine": 76,
+          "tyrosine": 66
+        },
+        "sidPct": {
+          "lysine": 0.07,
+          "methionine": 0.03,
+          "methionineCysteine": 0.06,
+          "threonine": 0.05,
+          "tryptophan": 0.02,
+          "arginine": 0.14,
+          "valine": 0.09,
+          "isoleucine": 0.08,
+          "leucine": 0.1,
+          "histidine": 0.07,
+          "phenylalanine": 0.07,
+          "phenylalanineTyrosine": 0.12,
+          "cysteine": 0.03,
+          "tyrosine": 0.05
+        }
+      },
+      "macroMinerals": {
+        "calciumPct": 0.21,
+        "totalPhosphorusPct": 0.08,
+        "availablePhosphorusPct": 0.02,
+        "sttdPhosphorusPct": 0.03,
+        "sodiumPct": 0.02,
+        "chloridePct": 0.05,
+        "potassiumPct": 0.35,
+        "magnesiumPct": 0.05
+      },
+      "traceMineralsPpm": {
+        "manganese": 23.9,
+        "iron": 92.6,
+        "copper": 4.5,
+        "zinc": 11.1,
+        "selenium": 0.15
+      },
+      "vitamins": {},
+      "constraints": {
+        "notes": []
+      },
+      "provenance": {
+        "sourceIngredientName": "Cassava, Whole",
+        "sourcePage": 49,
+        "sourceTable": "Table 1.01",
+        "source": {
+          "publisher": "Federal University of Viçosa, Department of Animal Science",
+          "title": "Brazilian Tables for Poultry and Swine — Composition of Feedstuffs and Nutritional Requirements",
+          "year": 2024,
+          "url": "https://editorascienza.com.br/pdfs/UFV/poultry_swine_en_chapter_1.pdf",
+          "priority": "primary",
+          "basis": "As-fed; Brazilian Tables 2024 Table 1.01"
+        },
+        "nutrientSources": {},
+        "notes": [
+          "Nutrient values are transcribed from the Brazilian Tables 2024 Table 1.01 swine columns; source dashes remain missing rather than being converted to zero."
+        ]
+      }
+    },
+    {
+      "id": "cottonseed-meal-38",
+      "name": "Cottonseed, Meal 38% CP",
+      "aliases": [
+        "cottonseed meal 38%",
+        "cotton meal 38%"
+      ],
+      "category": "protein_meal",
+      "composition": {
+        "dryMatterPct": 90,
+        "crudeProteinPct": 38.1,
+        "digestibleProteinPct": 29.7,
+        "crudeFatPct": 2.65,
+        "crudeFibrePct": 15.4,
+        "ashPct": 6.1,
+        "starchPct": 3.96,
+        "neutralDetergentFibrePct": 29.6,
+        "acidDetergentFibrePct": 17.4,
+        "linoleicAcidPct": 0.84
+      },
+      "energy": {
+        "digestibleKcalKg": 2634,
+        "metabolizableKcalKg": 2432,
+        "netKcalKg": 1425
+      },
+      "aminoAcids": {
+        "totalPct": {
+          "lysine": 1.57,
+          "methionine": 0.58,
+          "methionineCysteine": 1.22,
+          "threonine": 1.26,
+          "tryptophan": 0.51,
+          "arginine": 4.14,
+          "valine": 1.71,
+          "isoleucine": 1.21,
+          "leucine": 2.19,
+          "histidine": 1.08,
+          "phenylalanine": 2,
+          "phenylalanineTyrosine": 3.03,
+          "cysteine": 0.64,
+          "tyrosine": 1.03
+        },
+        "sidDigestibilityPct": {
+          "lysine": 62.1,
+          "methionine": 72.8,
+          "methionineCysteine": 73.7,
+          "threonine": 68.5,
+          "tryptophan": 68.1,
+          "arginine": 88.8,
+          "valine": 73.1,
+          "isoleucine": 71.1,
+          "leucine": 73.5,
+          "histidine": 75.1,
+          "phenylalanine": 81.3,
+          "phenylalanineTyrosine": 79.8,
+          "cysteine": 74.5,
+          "tyrosine": 77
+        },
+        "sidPct": {
+          "lysine": 0.97,
+          "methionine": 0.42,
+          "methionineCysteine": 0.9,
+          "threonine": 0.86,
+          "tryptophan": 0.35,
+          "arginine": 3.68,
+          "valine": 1.25,
+          "isoleucine": 0.86,
+          "leucine": 1.61,
+          "histidine": 0.81,
+          "phenylalanine": 1.62,
+          "phenylalanineTyrosine": 2.42,
+          "cysteine": 0.48,
+          "tyrosine": 0.79
+        }
+      },
+      "macroMinerals": {
+        "calciumPct": 0.3,
+        "totalPhosphorusPct": 1.03,
+        "availablePhosphorusPct": 0.38,
+        "sttdPhosphorusPct": 0.42,
+        "sodiumPct": 0.09,
+        "chloridePct": 0.05,
+        "potassiumPct": 1.41,
+        "magnesiumPct": 0.53
+      },
+      "traceMineralsPpm": {
+        "manganese": 14.3,
+        "iron": 157.9,
+        "copper": 10.5,
+        "zinc": 56.7,
+        "selenium": 0.58
+      },
+      "vitamins": {},
+      "constraints": {
+        "notes": []
+      },
+      "provenance": {
+        "sourceIngredientName": "Cottonseed, Meal 38% CP",
+        "sourcePage": 87,
+        "sourceTable": "Table 1.01",
+        "source": {
+          "publisher": "Federal University of Viçosa, Department of Animal Science",
+          "title": "Brazilian Tables for Poultry and Swine — Composition of Feedstuffs and Nutritional Requirements",
+          "year": 2024,
+          "url": "https://editorascienza.com.br/pdfs/UFV/poultry_swine_en_chapter_1.pdf",
+          "priority": "primary",
+          "basis": "As-fed; Brazilian Tables 2024 Table 1.01"
+        },
+        "nutrientSources": {},
+        "notes": [
+          "Nutrient values are transcribed from the Brazilian Tables 2024 Table 1.01 swine columns; source dashes remain missing rather than being converted to zero."
+        ]
+      }
+    },
+    {
+      "id": "fish-meal-54",
+      "name": "Fish, Meal 54% CP",
+      "aliases": [
+        "fish meal 54%",
+        "fishmeal 54%"
+      ],
+      "category": "protein_meal",
+      "composition": {
+        "dryMatterPct": 92.2,
+        "crudeProteinPct": 54.9,
+        "digestibleProteinPct": 41.7,
+        "crudeFatPct": 8.06,
+        "ashPct": 21.7,
+        "linoleicAcidPct": 0.11
+      },
+      "energy": {
+        "digestibleKcalKg": 3050,
+        "metabolizableKcalKg": 2740,
+        "netKcalKg": 1738
+      },
+      "aminoAcids": {
+        "totalPct": {
+          "lysine": 3.33,
+          "methionine": 1.29,
+          "methionineCysteine": 2.25,
+          "threonine": 2.2,
+          "tryptophan": 0.44,
+          "arginine": 3.25,
+          "valine": 2.59,
+          "isoleucine": 2.08,
+          "leucine": 3.52,
+          "histidine": 1.03,
+          "phenylalanine": 2.05,
+          "phenylalanineTyrosine": 3.58,
+          "cysteine": 0.96,
+          "tyrosine": 1.53
+        },
+        "sidDigestibilityPct": {
+          "lysine": 77.1,
+          "methionine": 74.3,
+          "methionineCysteine": 64.4,
+          "threonine": 67.6,
+          "tryptophan": 73.5,
+          "arginine": 83.1,
+          "valine": 70.1,
+          "isoleucine": 76.5,
+          "leucine": 73.1,
+          "histidine": 73.2,
+          "phenylalanine": 73.7,
+          "phenylalanineTyrosine": 78.3,
+          "cysteine": 51,
+          "tyrosine": 84.4
+        },
+        "sidPct": {
+          "lysine": 2.57,
+          "methionine": 0.96,
+          "methionineCysteine": 1.45,
+          "threonine": 1.49,
+          "tryptophan": 0.32,
+          "arginine": 2.7,
+          "valine": 1.82,
+          "isoleucine": 1.59,
+          "leucine": 2.57,
+          "histidine": 0.75,
+          "phenylalanine": 1.51,
+          "phenylalanineTyrosine": 2.8,
+          "cysteine": 0.49,
+          "tyrosine": 1.29
+        }
+      },
+      "macroMinerals": {
+        "calciumPct": 5.72,
+        "totalPhosphorusPct": 2.92,
+        "availablePhosphorusPct": 2.92,
+        "sttdPhosphorusPct": 2.36,
+        "sodiumPct": 0.86,
+        "chloridePct": 0.9,
+        "potassiumPct": 0.68,
+        "magnesiumPct": 0.16
+      },
+      "traceMineralsPpm": {
+        "manganese": 41.4,
+        "iron": 444,
+        "copper": 12,
+        "zinc": 84.3,
+        "selenium": 0.79
+      },
+      "vitamins": {},
+      "constraints": {
+        "notes": []
+      },
+      "provenance": {
+        "sourceIngredientName": "Fish, Meal 54% CP",
+        "sourcePage": 97,
+        "sourceTable": "Table 1.01",
+        "source": {
+          "publisher": "Federal University of Viçosa, Department of Animal Science",
+          "title": "Brazilian Tables for Poultry and Swine — Composition of Feedstuffs and Nutritional Requirements",
+          "year": 2024,
+          "url": "https://editorascienza.com.br/pdfs/UFV/poultry_swine_en_chapter_1.pdf",
+          "priority": "primary",
+          "basis": "As-fed; Brazilian Tables 2024 Table 1.01"
+        },
+        "nutrientSources": {},
+        "notes": [
+          "Nutrient values are transcribed from the Brazilian Tables 2024 Table 1.01 swine columns; source dashes remain missing rather than being converted to zero."
+        ]
+      }
+    }
+  ]
+}

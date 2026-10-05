@@ -1,0 +1,334 @@
+{
+  "schemaVersion": 1,
+  "id": "brazilian-2024-swine-supplementation",
+  "sourceId": "brazilian-tables-2024",
+  "growing": {
+    "vitaminSourceTable": "7.05",
+    "traceMineralSourceTable": "7.06",
+    "vitaminPrintedPage": 473,
+    "traceMineralPrintedPage": 474,
+    "phases": [
+      {
+        "ageDays": {
+          "min": 21,
+          "max": 35
+        },
+        "weightKg": {
+          "min": 6.2,
+          "max": 8.4
+        },
+        "vitamins": {
+          "vitaminAIuKg": 11387,
+          "vitaminDIuKg": 2786,
+          "vitaminEIuKg": 74.4,
+          "vitaminKMgKg": 5.42,
+          "vitaminB1MgKg": 1.808,
+          "riboflavinMgKg": 6.9,
+          "vitaminB6MgKg": 3.61,
+          "vitaminB12McgKg": 41,
+          "pantothenicAcidMgKg": 27.1,
+          "niacinMgKg": 51.8,
+          "folicAcidMgKg": 0.592,
+          "biotinMgKg": 0.196,
+          "totalCholineMgKg": 361.4
+        },
+        "inorganic": {
+          "copperPpm": 18.32,
+          "ironPpm": 116.3,
+          "manganesePpm": 55.7,
+          "seleniumPpm": 0.502,
+          "zincPpm": 165.6,
+          "iodinePpm": 1.378
+        },
+        "organic": {
+          "copperPpm": 8.24,
+          "ironPpm": 52.3,
+          "manganesePpm": 25.09,
+          "seleniumPpm": 0.226,
+          "zincPpm": 74.5
+        }
+      },
+      {
+        "ageDays": {
+          "min": 35,
+          "max": 49
+        },
+        "weightKg": {
+          "min": 8.4,
+          "max": 17.9
+        },
+        "vitamins": {
+          "vitaminAIuKg": 10288,
+          "vitaminDIuKg": 2517,
+          "vitaminEIuKg": 67.2,
+          "vitaminKMgKg": 4.89,
+          "vitaminB1MgKg": 1.633,
+          "riboflavinMgKg": 6.23,
+          "vitaminB6MgKg": 3.26,
+          "vitaminB12McgKg": 37,
+          "pantothenicAcidMgKg": 24.5,
+          "niacinMgKg": 46.8,
+          "folicAcidMgKg": 0.535,
+          "biotinMgKg": 0.178,
+          "totalCholineMgKg": 326.5
+        },
+        "inorganic": {
+          "copperPpm": 16.55,
+          "ironPpm": 105,
+          "manganesePpm": 50.4,
+          "seleniumPpm": 0.453,
+          "zincPpm": 149.7,
+          "iodinePpm": 1.245
+        },
+        "organic": {
+          "copperPpm": 7.45,
+          "ironPpm": 47.3,
+          "manganesePpm": 22.66,
+          "seleniumPpm": 0.204,
+          "zincPpm": 67.3
+        }
+      },
+      {
+        "ageDays": {
+          "min": 49,
+          "max": 63
+        },
+        "weightKg": {
+          "min": 16,
+          "max": 26
+        },
+        "vitamins": {
+          "vitaminAIuKg": 8588,
+          "vitaminDIuKg": 2101,
+          "vitaminEIuKg": 56.1,
+          "vitaminKMgKg": 4.09,
+          "vitaminB1MgKg": 1.364,
+          "riboflavinMgKg": 5.2,
+          "vitaminB6MgKg": 2.73,
+          "vitaminB12McgKg": 31,
+          "pantothenicAcidMgKg": 20.4,
+          "niacinMgKg": 39,
+          "folicAcidMgKg": 0.446,
+          "biotinMgKg": 0.148,
+          "totalCholineMgKg": 272.6
+        },
+        "inorganic": {
+          "copperPpm": 13.81,
+          "ironPpm": 87.7,
+          "manganesePpm": 42,
+          "seleniumPpm": 0.378,
+          "zincPpm": 124.9,
+          "iodinePpm": 1.039
+        },
+        "organic": {
+          "copperPpm": 6.22,
+          "ironPpm": 39.5,
+          "manganesePpm": 18.92,
+          "seleniumPpm": 0.17,
+          "zincPpm": 56.2
+        }
+      },
+      {
+        "ageDays": {
+          "min": 63,
+          "max": 91
+        },
+        "weightKg": {
+          "min": 26,
+          "max": 47
+        },
+        "vitamins": {
+          "vitaminAIuKg": 7264,
+          "vitaminDIuKg": 1777,
+          "vitaminEIuKg": 47.4,
+          "vitaminKMgKg": 3.46,
+          "vitaminB1MgKg": 1.153,
+          "riboflavinMgKg": 4.4,
+          "vitaminB6MgKg": 2.3,
+          "vitaminB12McgKg": 26,
+          "pantothenicAcidMgKg": 17.3,
+          "niacinMgKg": 33,
+          "folicAcidMgKg": 0.378,
+          "biotinMgKg": 0.125,
+          "totalCholineMgKg": 230.5
+        },
+        "inorganic": {
+          "copperPpm": 11.68,
+          "ironPpm": 74.2,
+          "manganesePpm": 35.6,
+          "seleniumPpm": 0.32,
+          "zincPpm": 105.7,
+          "iodinePpm": 0.879
+        },
+        "organic": {
+          "copperPpm": 5.26,
+          "ironPpm": 33.4,
+          "manganesePpm": 16,
+          "seleniumPpm": 0.144,
+          "zincPpm": 47.5
+        }
+      },
+      {
+        "ageDays": {
+          "min": 91,
+          "max": 119
+        },
+        "weightKg": {
+          "min": 47,
+          "max": 74
+        },
+        "vitamins": {
+          "vitaminAIuKg": 5846,
+          "vitaminDIuKg": 1430,
+          "vitaminEIuKg": 38.2,
+          "vitaminKMgKg": 2.78,
+          "vitaminB1MgKg": 0.928,
+          "riboflavinMgKg": 3.54,
+          "vitaminB6MgKg": 1.85,
+          "vitaminB12McgKg": 21,
+          "pantothenicAcidMgKg": 13.9,
+          "niacinMgKg": 26.6,
+          "folicAcidMgKg": 0.304,
+          "biotinMgKg": 0.101,
+          "totalCholineMgKg": 185.5
+        },
+        "inorganic": {
+          "copperPpm": 9.4,
+          "ironPpm": 59.7,
+          "manganesePpm": 28.6,
+          "seleniumPpm": 0.258,
+          "zincPpm": 85,
+          "iodinePpm": 0.707
+        },
+        "organic": {
+          "copperPpm": 4.23,
+          "ironPpm": 26.9,
+          "manganesePpm": 12.88,
+          "seleniumPpm": 0.116,
+          "zincPpm": 38.3
+        }
+      },
+      {
+        "ageDays": {
+          "min": 119,
+          "max": 147
+        },
+        "weightKg": {
+          "min": 74,
+          "max": 103
+        },
+        "vitamins": {
+          "vitaminAIuKg": 4869,
+          "vitaminDIuKg": 1191,
+          "vitaminEIuKg": 31.8,
+          "vitaminKMgKg": 2.32,
+          "vitaminB1MgKg": 0.773,
+          "riboflavinMgKg": 2.95,
+          "vitaminB6MgKg": 1.54,
+          "vitaminB12McgKg": 17,
+          "pantothenicAcidMgKg": 11.6,
+          "niacinMgKg": 22.1,
+          "folicAcidMgKg": 0.253,
+          "biotinMgKg": 0.084,
+          "totalCholineMgKg": 154.5
+        },
+        "inorganic": {
+          "copperPpm": 7.83,
+          "ironPpm": 49.7,
+          "manganesePpm": 23.8,
+          "seleniumPpm": 0.215,
+          "zincPpm": 70.8,
+          "iodinePpm": 0.589
+        },
+        "organic": {
+          "copperPpm": 3.52,
+          "ironPpm": 22.4,
+          "manganesePpm": 10.73,
+          "seleniumPpm": 0.097,
+          "zincPpm": 31.9
+        }
+      },
+      {
+        "ageDays": {
+          "min": 147,
+          "max": 175
+        },
+        "weightKg": {
+          "min": 103,
+          "max": 131
+        },
+        "vitamins": {
+          "vitaminAIuKg": 4195,
+          "vitaminDIuKg": 1026,
+          "vitaminEIuKg": 27.4,
+          "vitaminKMgKg": 1.99,
+          "vitaminB1MgKg": 0.666,
+          "riboflavinMgKg": 2.54,
+          "vitaminB6MgKg": 1.33,
+          "vitaminB12McgKg": 15,
+          "pantothenicAcidMgKg": 10,
+          "niacinMgKg": 19.1,
+          "folicAcidMgKg": 0.218,
+          "biotinMgKg": 0.072,
+          "totalCholineMgKg": 133.2
+        },
+        "inorganic": {
+          "copperPpm": 6.75,
+          "ironPpm": 42.8,
+          "manganesePpm": 20.5,
+          "seleniumPpm": 0.185,
+          "zincPpm": 61,
+          "iodinePpm": 0.508
+        },
+        "organic": {
+          "copperPpm": 3.04,
+          "ironPpm": 19.3,
+          "manganesePpm": 9.24,
+          "seleniumPpm": 0.083,
+          "zincPpm": 27.5
+        }
+      }
+    ]
+  },
+  "breeders": {
+    "sourceTable": "7.07",
+    "printedPage": 475,
+    "vitamins": {
+      "vitaminAIuKg": 9927,
+      "vitaminDIuKg": 1660,
+      "vitaminEIuKg": 61.5,
+      "vitaminKMgKg": 2.7,
+      "vitaminB1MgKg": 1.38,
+      "riboflavinMgKg": 5.5,
+      "vitaminB6MgKg": 2.1,
+      "vitaminB12McgKg": 28,
+      "pantothenicAcidMgKg": 21.8,
+      "niacinMgKg": 31.2,
+      "folicAcidMgKg": 1.36,
+      "biotinMgKg": 0.34,
+      "totalCholineMgKg": 750
+    },
+    "traceMinerals": {
+      "inorganic": {
+        "copperPpm": 15.2,
+        "ironPpm": 96.4,
+        "manganesePpm": 46.2,
+        "seleniumPpm": 0.416,
+        "zincPpm": 137.4,
+        "iodinePpm": 1.142
+      },
+      "organic": {
+        "copperPpm": 6.84,
+        "ironPpm": 43.4,
+        "manganesePpm": 20.8,
+        "seleniumPpm": 0.187,
+        "zincPpm": 61.8
+      }
+    }
+  },
+  "notes": [
+    "Chapter 7 publishes suggested supplementation levels, not total nutritional requirements.",
+    "Vitamin B12 is normalized from mg/kg in the source to micrograms/kg in this file.",
+    "Growing trace-mineral targets retain separate inorganic and organic source recommendations; iodine is published only in the inorganic set."
+  ]
+}
