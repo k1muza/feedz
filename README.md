@@ -36,8 +36,7 @@ This project is built with a modern, robust, and scalable technology stack:
 
 - **Framework**: [Next.js 15](https://nextjs.org/) (App Router)
 - **UI Library**: [React 18](https://react.dev/)
-- **AI/ML**: [Google's Genkit](https://firebase.google.com/docs/genkit)
-- **Database**: [Firestore](https://firebase.google.com/docs/firestore) & [Firebase Realtime Database](https://firebase.google.com/docs/database) for chat.
+- **AI/ML**: [Google's Genkit](https://genkit.dev/)
 - **Styling**: [Tailwind CSS](https://tailwindcss.com/)
 - **UI Components**: [ShadCN UI](https://ui.shadcn.com/)
 - **Language**: [TypeScript](https://www.typescriptlang.org/)
@@ -102,13 +101,10 @@ Here is a high-level overview of the project's structure:
 │   ├── ai/                 # Genkit AI flows and configuration
 │   ├── components/         # Reusable React components
 │   ├── data/               # Static data sources (nutrients, etc.)
-│   ├── lib/                # Utility functions (Firebase, etc.)
+│   ├── lib/                # Utility functions
 │   ├── types/              # TypeScript type definitions
 │   └── hooks/              # Custom React hooks
 ├── public/                 # Static assets (images, fonts)
 └── tailwind.config.ts      # Tailwind CSS configuration
 ```
 
----
-
-This project was bootstrapped with Firebase Studio.
