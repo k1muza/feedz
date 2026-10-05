@@ -1,7 +1,7 @@
 import type { Cell, Row, Workbook, Worksheet } from "exceljs";
 
 /**
- * How a PigFlow spreadsheet looks, in one place.
+ * How a FeedSport spreadsheet looks, in one place.
  *
  * These began as private helpers of the funding workbook. The report centre
  * writes four more workbooks from the same plan, and a lender who is sent all
@@ -184,7 +184,7 @@ export async function newWorkbook(properties: {
   const excelModule = await import("exceljs");
   const Workbook = excelModule.Workbook ?? excelModule.default.Workbook;
   const workbook = new Workbook();
-  workbook.creator = "PigFlow";
+  workbook.creator = "FeedSport";
   workbook.title = properties.title;
   workbook.subject = properties.subject;
   workbook.description = properties.description;
