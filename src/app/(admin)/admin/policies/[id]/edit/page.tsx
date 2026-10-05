@@ -3,12 +3,13 @@
 
 import { PolicyForm } from '@/components/admin/PolicyForm';
 import { getPolicyById } from '@/app/actions';
-import { notFound } from 'next/navigation';
+import { notFound, useParams } from 'next/navigation';
 import React, { useEffect, useState } from 'react';
 import { Policy } from '@/types';
 import { Loader2 } from 'lucide-react';
 
-export default function EditPolicyPage({ params }: { params: { id: string } }) {
+export default function EditPolicyPage() {
+  const params = useParams<{ id: string }>();
   const { id } = params;
   const [policy, setPolicy] = useState<Policy | null>(null);
   const [loading, setLoading] = useState(true);

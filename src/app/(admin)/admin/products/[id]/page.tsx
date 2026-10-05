@@ -2,7 +2,7 @@
 'use client';
 
 import { getProductById } from '@/app/actions';
-import { notFound } from 'next/navigation';
+import { notFound, useParams } from 'next/navigation';
 import Image from 'next/image';
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
@@ -11,7 +11,8 @@ import { Product } from '@/types';
 import { useEffect, useState } from 'react';
 import { NutrientCompositionManager } from '@/components/admin/NutrientCompositionManager';
 
-export default function ProductViewPage({ params }: { params: { id: string } }) {
+export default function ProductViewPage() {
+  const params = useParams<{ id: string }>();
   const [product, setProduct] = useState<Product | null>(null);
 
   const fetchProduct = async () => {

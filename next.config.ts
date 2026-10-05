@@ -5,9 +5,8 @@ const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
+  // Load GLPK from node_modules at runtime so its Node build can find glpk.wasm.
+  serverExternalPackages: ['glpk.js'],
   images: {
     remotePatterns: [
       {

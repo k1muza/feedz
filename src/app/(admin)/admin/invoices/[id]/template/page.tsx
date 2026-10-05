@@ -2,13 +2,14 @@
 'use client';
 
 import { getInvoiceById } from '@/app/actions';
-import { notFound, useRouter } from 'next/navigation';
+import { notFound, useRouter, useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Invoice } from '@/types';
 import { Loader2 } from 'lucide-react';
 import InvoiceTemplateOptimized from '@/components/invoice/InvoiceTemplate';
 
-export default function InvoiceTemplatePage({ params }: { params: { id: string } }) {
+export default function InvoiceTemplatePage() {
+  const params = useParams<{ id: string }>();
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [loading, setLoading] = useState(true);
 

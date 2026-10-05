@@ -3,12 +3,13 @@
 
 import { InvoiceForm } from '@/components/admin/InvoiceForm';
 import { getInvoiceById } from '@/app/actions';
-import { notFound } from 'next/navigation';
+import { notFound, useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Invoice } from '@/types';
 import { Loader2 } from 'lucide-react';
 
-export default function EditInvoicePage({ params }: { params: { id: string } }) {
+export default function EditInvoicePage() {
+  const params = useParams<{ id: string }>();
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [loading, setLoading] = useState(true);
 

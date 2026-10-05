@@ -2,11 +2,12 @@
 
 import { ProductForm } from '@/components/admin/ProductForm';
 import { getProductById } from '@/app/actions';
-import { notFound } from 'next/navigation';
+import { notFound, useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Product } from '@/types';
 
-export default function EditProductPage({ params }: { params: { id: string } }) {
+export default function EditProductPage() {
+  const params = useParams<{ id: string }>();
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
 

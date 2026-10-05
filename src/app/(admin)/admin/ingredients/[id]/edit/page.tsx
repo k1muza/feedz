@@ -3,11 +3,12 @@
 import { IngredientForm } from '@/components/admin/IngredientForm';
 import { NutrientCompositionManager } from '@/components/admin/NutrientCompositionManager';
 import { getIngredientById } from '@/app/actions';
-import { notFound } from 'next/navigation';
+import { notFound, useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Ingredient } from '@/types';
 
-export default function EditIngredientPage({ params }: { params: { id: string } }) {
+export default function EditIngredientPage() {
+  const params = useParams<{ id: string }>();
   const [ingredient, setIngredient] = useState<Ingredient | null>(null);
   const [loading, setLoading] = useState(true);
 
