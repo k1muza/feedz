@@ -235,7 +235,7 @@ export async function formulateLeastCostDiet(
         missingData,
         unsupportedRequirements,
         message:
-          "Some selected ingredients are missing nutrient values required by the strict formulation model. PigFlow will not assume those values are zero.",
+          "Some selected ingredients are missing nutrient values required by the strict formulation model. FeedSport will not assume those values are zero.",
       };
     }
 
@@ -825,7 +825,7 @@ async function solveStrict(
   } = glpk;
 
   const lp = {
-    name: "PigFlowLeastCostDiet",
+    name: "FeedSportLeastCostDiet",
     objective: {
       direction: GLP_MIN,
       name: "cost_per_kg",
@@ -902,7 +902,7 @@ async function solveAlternativeObjective(
   } = glpk;
 
   const lp = {
-    name: `PigFlowAlternative_${objective.name}`,
+    name: `FeedSportAlternative_${objective.name}`,
     objective: {
       direction: GLP_MIN,
       name: objective.name,
@@ -1301,7 +1301,7 @@ async function solveDiagnostic(
   });
 
   const lp = {
-    name: "PigFlowFormulationDiagnostic",
+    name: "FeedSportFormulationDiagnostic",
     objective: {
       direction: GLP_MIN,
       name: "relative_nutrient_deviation",
