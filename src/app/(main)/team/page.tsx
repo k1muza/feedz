@@ -1,76 +1,27 @@
-
 import { Metadata } from 'next';
-import Image from 'next/image';
-import { FaEnvelope, FaLinkedinIn, FaUsers } from 'react-icons/fa6';
-import SecondaryHero from '@/components/common/SecondaryHero';
-import { getAllTeamMembers } from '@/app/actions';
+import DesignPlaceholder from '@/components/common/DesignPlaceholder';
 
 export const metadata: Metadata = {
-  title: 'Our Team',
-  description: 'Meet the dedicated team of nutritionists, scientists, and professionals behind FeedSport International.',
-  alternates: {
-    canonical: '/team',
-  },
+  title: 'Our team',
+  description: 'Meet the people behind FeedSport.',
+  alternates: { canonical: '/team' },
 };
 
-export default async function TeamPage() {
-  const teamMembers = await getAllTeamMembers();
+const team = [
+  { name: 'Nutrition & formulation', role: 'Technical team', bio: 'Practical ingredient selection, nutrient targets and formulation support for livestock producers.' },
+  { name: 'Ingredient supply', role: 'Procurement team', bio: 'Supplier coordination, batch specifications, stock planning and product quality checks.' },
+  { name: 'Customer support', role: 'Sales & logistics', bio: 'Quotations, order coordination and delivery support across Zimbabwe.' },
+];
 
+export default function TeamPage() {
   return (
-    <>
-      <SecondaryHero
-        title="Meet Our Experts"
-        subtitle="A dedicated team of scientists, nutritionists, and logistics professionals committed to your success."
-      />
-
-      <main className="bg-gray-50 py-16">
-        <div className="container mx-auto px-4 max-w-7xl">
-          {teamMembers.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {teamMembers.map((member, index) => (
-                <div
-                  key={index}
-                  className="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden text-center group transform hover:-translate-y-2 transition-transform duration-300"
-                >
-                  <div className="relative h-56 bg-gray-100">
-                    <Image
-                      src={member.image}
-                      alt={`Portrait of ${member.name}`}
-                      fill
-                      className="object-cover"
-                    />
-                  </div>
-                  <div className="p-6">
-                    <h3 className="text-xl font-bold text-gray-900">{member.name}</h3>
-                    <p className="text-green-600 font-medium mb-3">{member.role}</p>
-                    <p className="text-gray-600 text-sm mb-4 min-h-[100px]">{member.bio}</p>
-                    <div className="flex justify-center space-x-4">
-                      {member.social?.linkedin && (
-                           <a href={member.social.linkedin} target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-blue-700 transition-colors">
-                            <FaLinkedinIn className="w-5 h-5" />
-                          </a>
-                      )}
-                     {member.social?.email && (
-                       <a href={`mailto:${member.social.email}`} className="text-gray-400 hover:text-green-600 transition-colors">
-                        <FaEnvelope className="w-5 h-5" />
-                      </a>
-                     )}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-20 bg-white rounded-xl shadow-md border border-gray-100">
-              <FaUsers className="mx-auto w-16 h-16 text-gray-400 mb-4" />
-              <h2 className="text-2xl font-semibold text-gray-800">Our Team is Growing!</h2>
-              <p className="text-gray-500 mt-2 max-w-md mx-auto">
-                We're currently updating our team profiles. Please check back soon to meet the experts behind FeedSport.
-              </p>
-            </div>
-          )}
-        </div>
-      </main>
-    </>
+    <main className="fs-page bg-[#f3f0e8] text-[#191b18] [container-type:inline-size]">
+      <p className="fs-label mb-2.5 text-[#4f524b]">Company</p>
+      <h1 className="fs-page-title">The people behind FeedSport</h1>
+      <p className="mb-8 mt-4 max-w-[720px] text-[17px] leading-[1.55] text-[#3d403a]">A practical team focused on ingredient quality, useful nutrition advice and dependable supply.</p>
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,280px),1fr))] gap-4">
+        {team.map((member) => <article key={member.name} className="fs-card flex flex-col"><DesignPlaceholder label="team portrait — placeholder" className="aspect-[4/3] rounded-none" /><div className="p-5"><span className="fs-label text-[#4f524b]">{member.role}</span><h2 className="mb-2 mt-1 text-[22px] font-bold">{member.name}</h2><p className="m-0 text-[15px] leading-[1.55] text-[#4f524b]">{member.bio}</p></div></article>)}
+      </div>
+    </main>
   );
 }

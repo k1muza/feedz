@@ -1,4 +1,3 @@
-import { getAllPolicies } from '@/app/actions';
 import SecondaryHero from '@/components/common/SecondaryHero';
 import {
   Accordion,
@@ -18,6 +17,23 @@ export const metadata: Metadata = {
     canonical: '/policies',
   },
 };
+
+const policies = [
+  {
+    id: 'privacy',
+    title: 'Privacy policy',
+    lastUpdated: '2026-10-05',
+    effectiveDate: '2026-10-05',
+    content: '## Information we collect\n\nWe only use the contact details you choose to send by email, phone or WhatsApp to respond to your enquiry and fulfil an order.\n\n## How we use it\n\nWe use enquiry details for quotations, product support, delivery coordination and customer service. We do not sell personal information.\n\n## Contact\n\nEmail [sales@feedsport.co.zw](mailto:sales@feedsport.co.zw) if you want us to correct or remove information you have sent us.',
+  },
+  {
+    id: 'supply',
+    title: 'Supply and product information',
+    lastUpdated: '2026-10-05',
+    effectiveDate: '2026-10-05',
+    content: '## Specifications\n\nPublished nutrient values are typical values unless a batch specification says otherwise. Confirm the current specification before formulation or purchase.\n\n## Availability\n\nStock status, minimum order quantities, packaging and lead times are confirmed when FeedSport issues a quotation.\n\n## Nutrition guidance\n\nWebsite formulation results are illustrative and should be reviewed for your animals, ingredients and production system.',
+  },
+];
 
 // Custom markdown components that integrate with your design system
 const MarkdownComponents = {
@@ -122,9 +138,7 @@ const MarkdownComponents = {
   ),
 };
 
-export default async function PoliciesPage() {
-  const policies = await getAllPolicies();
-
+export default function PoliciesPage() {
   return (
     <>
       <SecondaryHero

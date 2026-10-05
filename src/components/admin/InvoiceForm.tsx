@@ -17,7 +17,6 @@ import { Calendar as CalendarIcon } from "lucide-react"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { cn } from '@/lib/utils';
-import { Timestamp } from 'firebase/firestore';
 
 
 const InvoiceItemSchema = z.object({
@@ -120,8 +119,8 @@ export const InvoiceForm = ({ invoice }: { invoice?: Invoice }) => {
       ...data,
       totalAmount,
       taxRate: data.taxRate / 100, // convert percentage to decimal
-      date: Timestamp.fromDate(data.date),
-      dueDate: Timestamp.fromDate(data.dueDate),
+      date: data.date.toISOString(),
+      dueDate: data.dueDate.toISOString(),
       bank: invoice?.bank || { // Use existing or default
           name: 'NMB Bank',
           accountName: 'FeedSport Enterprises',

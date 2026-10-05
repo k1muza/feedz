@@ -31,13 +31,12 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { ReactNode, useState, useEffect } from 'react';
+import { ReactNode, useState } from 'react';
 import { Toaster } from 'react-hot-toast';
 import { useAuth } from '@/context/AuthContext';
 import withAuth from '@/components/auth/withAuth';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { cn } from '@/lib/utils';
-import { requestNotificationPermission } from '@/lib/firebase-messaging-client';
 import { AuthProvider } from '@/context/AuthContext';
 
 const navSections = [
@@ -92,12 +91,6 @@ function DashboardLayout({ children }: { children: ReactNode }) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const { user, logout } = useAuth();
   
-  useEffect(() => {
-    if (user) {
-      requestNotificationPermission(user.uid);
-    }
-  }, [user]);
-
   const isLinkActive = (path: string) => pathname.startsWith(path);
 
   const toggleSidebar = () => setSidebarCollapsed(!sidebarCollapsed);

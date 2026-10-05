@@ -13,8 +13,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { saveBlogPost, getBlogCategories, getAllUsers, createAudioGenerationTask } from '@/app/actions';
 import { useToast } from '../ui/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
-import { doc, onSnapshot } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
 
 
 interface BlogPostFormProps {
@@ -69,23 +67,6 @@ export const BlogPostForm = ({ post }: BlogPostFormProps) => {
   const featuredImage = watch('image');
   const audioUrl = watch('audioUrl');
   
-  useEffect(() => {
-    if (!post?.id) return;
-    
-    // Listen for real-time updates on the blog post, specifically for the audioUrl
-    const unsub = onSnapshot(doc(db, "blogPosts", post.id), (doc) => {
-        const data = doc.data() as BlogPost;
-        if (data && data.audioUrl && data.audioUrl !== getValues('audioUrl')) {
-            setValue('audioUrl', data.audioUrl, { shouldValidate: true, shouldDirty: true });
-            setIsGeneratingAudio(false);
-            toast({ title: "Audio Ready!", description: "The audio for your post has been generated and saved." });
-        }
-    });
-
-    return () => unsub();
-
-  }, [post?.id, setValue, getValues, toast]);
-
   useEffect(() => {
     async function fetchData() {
       const [fetchedCategories, fetchedUsers] = await Promise.all([
