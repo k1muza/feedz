@@ -1482,6 +1482,9 @@ function validateOptions(
 }
 
 async function loadGlpk(): Promise<GLPK> {
-  const module = await import("glpk.js");
+  // Formulation runs exclusively in server-side API routes. Use glpk.js' Node
+  // entrypoint so Next.js does not bundle the browser build and rewrite the
+  // relative glpk.wasm path.
+  const module = await import("glpk.js/node");
   return module.default();
 }
