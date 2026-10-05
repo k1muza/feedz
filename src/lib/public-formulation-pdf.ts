@@ -152,6 +152,7 @@ export async function renderPublicFormulationPdf(input: PublicFormulationPdfInpu
   const ingredientMap = new Map(ingredientLibrary.ingredients.map((ingredient) => [ingredient.id, ingredient]));
   const totalInclusion = input.formula.ingredients.reduce((sum, ingredient) => sum + ingredient.inclusionPct, 0);
   const passed = input.nutrientProfile.filter((nutrient) => nutrient.margin >= -1e-6).length;
+  const generalNutrientProfile = input.nutrientProfile.filter((nutrient) => !nutrient.id.startsWith('supplement-'));
 
   let page: PDFPage = pdf.addPage([W, H]);
   let y = H;
@@ -332,8 +333,8 @@ export async function renderPublicFormulationPdf(input: PublicFormulationPdfInpu
     formulaRows,
   );
 
-  sectionHeading('Nutrient compliance', `${input.nutrientProfile.length} modeled constraints`);
-  paragraph('The public screen shows six core checks. This table contains every complete nutrient and practical constraint used by the formulation engine for the selected phase, including supplementation targets.', 8);
+  sectionHeading('Nutrient compliance', `${generalNutrientProfile.length} nutrient and practical constraints`);
+  paragraph('The public screen shows six core checks. This table contains the remaining general nutrient and practical constraints used by the formulation engine. Vitamin and trace-mineral supplementation is presented separately below.', 8);
   drawTable(
     [
       { label: 'Requirement', width: 198 },
@@ -343,7 +344,7 @@ export async function renderPublicFormulationPdf(input: PublicFormulationPdfInpu
       { label: 'Margin', width: 66, align: 'right' },
       { label: 'Status', width: 58, align: 'right' },
     ],
-    input.nutrientProfile.map((nutrient) => [
+    generalNutrientProfile.map((nutrient) => [
       `${nutrient.label} (${nutrient.unit})`,
       nutrient.relation === 'min' ? 'MIN' : 'MAX',
       compactNumber(nutrient.requirement),
