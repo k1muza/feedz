@@ -302,7 +302,7 @@ export default function ProductSpecification({
       <footer className="flex flex-wrap items-center justify-between gap-4 border-t border-[#d9d4c7] bg-[#f3f0e8] px-6 py-4">
         <p className="fs-mono m-0 max-w-[760px] text-[11px] leading-[1.7] text-[#4f524b]">{source ? `${source.ingredientName} · ${source.title}, ${source.edition}th Edition (${source.year}) · ${source.basis}. ` : ''}CP crude protein · ME metabolisable energy · DM dry matter · NFE nitrogen-free extract, calculated by difference. Confirm published reference values against the current FeedSport batch analysis.</p>
         <div className="flex flex-wrap gap-2">
-          <button type="button" className="h-10 rounded-[4px] border-[1.5px] border-[#191b18] bg-[#fbfaf6] px-3.5 text-[14px] font-semibold">Spec sheet (PDF)</button>
+          <a href={`/api/products/${product.id}/spec-sheet`} target="_blank" rel="noopener" className="inline-flex h-10 items-center rounded-[4px] border-[1.5px] border-[#191b18] bg-[#fbfaf6] px-3.5 text-[14px] font-semibold text-[#191b18] no-underline">Download spec sheet</a>
           <a href={certificateUrl} className="inline-flex h-10 items-center rounded-[4px] border-[1.5px] border-[#191b18] bg-transparent px-3.5 text-[14px] font-semibold text-[#191b18] no-underline">Request certificate of analysis</a>
         </div>
       </footer>

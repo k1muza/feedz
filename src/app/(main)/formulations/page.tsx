@@ -1,10 +1,11 @@
-import FormulationsClient from './FormulationsClient';
 import type { Metadata } from 'next';
+
+import FormulationsClient from './FormulationsClient';
 import { createPageMetadata } from '@/lib/seo';
 
 export const metadata: Metadata = createPageMetadata({
-  title: 'Livestock Feed Formulation Tool',
-  description: 'Check pig, poultry and cattle feed ingredient inclusion rates against practical nutrient targets with FeedSport’s formulation tool.',
+  title: 'Pig Feed Nutrient Calculator',
+  description: 'Check pig feed ingredient inclusion rates against source-backed Brazilian Tables 2024 nutrient requirements.',
   path: '/formulations',
 });
 

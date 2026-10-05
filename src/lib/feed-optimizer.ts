@@ -166,6 +166,33 @@ export type FormulationIngredientSuggestionResult =
       message: string;
     };
 
+export type FormulationEvaluation = {
+  analysis: DietAnalysis;
+  nutrientProfile: FormulationNutrientComparison[];
+  unsupportedRequirements: FormulationUnsupportedRequirement[];
+};
+
+/**
+ * Re-evaluate an existing formula against the same constraints used by the
+ * optimizer. Reports use this server-side so their nutrient results never
+ * depend on values supplied by the browser.
+ */
+export function evaluateFormulation(
+  phase: NutritionPhase,
+  energySystem: EnergySystem,
+  formula: DietFormula,
+  library: IngredientLibrary = INGREDIENT_LIBRARY,
+  settings: FormulationSettings = {},
+): FormulationEvaluation {
+  const constraints = buildConstraintSpecs(phase, energySystem, settings);
+  const analysis = analyzeDiet(formula, [], library);
+  return {
+    analysis,
+    nutrientProfile: buildNutrientProfile(analysis, constraints),
+    unsupportedRequirements: unsupportedRequirementsForPhase(phase, settings),
+  };
+}
+
 type ConstraintSpec = {
   id: string;
   label: string;

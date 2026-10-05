@@ -7,6 +7,10 @@ const nextConfig: NextConfig = {
   },
   // Load GLPK from node_modules at runtime so its Node build can find glpk.wasm.
   serverExternalPackages: ['glpk.js'],
+  // The spec-sheet PDF reads its embedded fonts from disk at request time.
+  outputFileTracingIncludes: {
+    '/api/products/[id]/spec-sheet': ['./src/assets/fonts/pdf/**'],
+  },
   images: {
     remotePatterns: [
       {
