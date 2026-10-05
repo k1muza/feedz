@@ -93,7 +93,7 @@ export function feedRecipeReportFilename(input: {
   recipeLabel: string;
 }): string {
   return (
-    "pigflow-" +
+    "feedsport-" +
     safeFilenamePart(input.phaseLabel) +
     "-" +
     safeFilenamePart(input.recipeLabel) +
@@ -249,7 +249,7 @@ function addRecipeSheet(
   sheet.getRow(noteRow).height = 28;
 
   applyBase(sheet);
-  sheet.headerFooter.oddFooter = "&LPigFlow feed recipe&RPage &P of &N";
+  sheet.headerFooter.oddFooter = "&LFeedSport feed recipe&RPage &P of &N";
 }
 
 function addNutritionSheet(
@@ -336,7 +336,7 @@ function addNutritionSheet(
   });
 
   applyBase(sheet);
-  sheet.headerFooter.oddFooter = "&LPigFlow nutritional profile&RPage &P of &N";
+  sheet.headerFooter.oddFooter = "&LFeedSport nutritional profile&RPage &P of &N";
 }
 
 export async function buildFeedRecipeReport(
@@ -346,8 +346,8 @@ export async function buildFeedRecipeReport(
     title: input.recipeLabel + " feed recipe",
     subject: input.programmeName + " — " + input.phaseLabel,
     description:
-      "PigFlow feed formulation recipe, ingredient economics and nutritional compliance report.",
-    company: "PigFlow",
+      "FeedSport feed formulation recipe, ingredient economics and nutritional compliance report.",
+    company: "FeedSport",
     created: input.generatedAt,
   });
 
