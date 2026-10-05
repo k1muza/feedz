@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "id": "brazilian-2024-inorganic-mineral-sources",
+  "sourceId": "brazilian-tables-2024",
+  "sourceTable": "1.10",
+  "printedPage": 223,
+  "basis": "as-fed",
+  "ingredients": [
+    {
+      "id": "monocalcium-phosphate",
+      "name": "Monocalcium Phosphate",
+      "pigflowIngredientId": "monocalcium-phosphate",
+      "calciumPct": 18.9,
+      "totalPhosphorusPct": 21.4,
+      "availablePhosphorusPct": 22,
+      "digestiblePhosphorusSwinePct": 16.4,
+      "digestiblePhosphorusSwineCoefficientPct": 78.2,
+      "fluorinePct": 0.25
+    },
+    {
+      "id": "dicalcium-phosphate",
+      "name": "Dicalcium Phosphate",
+      "pigflowIngredientId": "dicalcium-phosphate",
+      "calciumPct": 24,
+      "totalPhosphorusPct": 18.5,
+      "availablePhosphorusPct": 18.5,
+      "digestiblePhosphorusSwinePct": 13.9,
+      "digestiblePhosphorusSwineCoefficientPct": 75,
+      "fluorinePct": 0.14
+    },
+    {
+      "id": "calcium-carbonate",
+      "name": "Calcium Carbonate",
+      "pigflowIngredientId": "calcium-carbonate",
+      "calciumPct": 43.3
+    },
+    {
+      "id": "limestone",
+      "name": "Limestone",
+      "pigflowIngredientId": "limestone-ground",
+      "mappingNote": "Brazilian table provides generic limestone; PigFlow's existing record is ground limestone.",
+      "calciumPct": 37.5,
+      "magnesiumPct": 0.27
+    },
+    {
+      "id": "salt",
+      "name": "Salt",
+      "pigflowIngredientId": "sodium-chloride",
+      "sodiumPct": 39.7,
+      "chloridePct": 59.6
+    }
+  ]
+}
