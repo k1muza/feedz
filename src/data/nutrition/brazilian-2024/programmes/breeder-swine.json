@@ -1,0 +1,972 @@
+{
+  "schemaVersion": 1,
+  "id": "brazilian-2024-breeder-swine",
+  "sourceId": "brazilian-tables-2024",
+  "chapter": 6,
+  "title": "Nutritional Requirements of Swine Breeders — Gestation and Lactation",
+  "gestation": {
+    "sourceTable": "6.08",
+    "printedPages": [
+      448,
+      449
+    ],
+    "aminoAcidRatios": {
+      "sourceTable": "6.04",
+      "printedPage": 443,
+      "basis": "ratio to lysine (%)",
+      "phases": {
+        "early": {
+          "gestationDays": {
+            "min": 0,
+            "max": 85
+          },
+          "sid": {
+            "lysine": 100,
+            "methionine": 34,
+            "methionineCysteine": 68,
+            "threonine": 77,
+            "tryptophan": 20,
+            "arginine": 100,
+            "valine": 73,
+            "isoleucine": 60,
+            "leucine": 100,
+            "histidine": 35,
+            "phenylalanine": 55,
+            "phenylalanineTyrosine": 110
+          }
+        },
+        "late": {
+          "gestationDays": {
+            "min": 86,
+            "max": 115
+          },
+          "sid": {
+            "lysine": 100,
+            "methionine": 35,
+            "methionineCysteine": 70,
+            "threonine": 80,
+            "tryptophan": 20,
+            "arginine": 113,
+            "valine": 77,
+            "isoleucine": 60,
+            "leucine": 100,
+            "histidine": 35,
+            "phenylalanine": 56,
+            "phenylalanineTyrosine": 112
+          }
+        }
+      }
+    },
+    "phases": [
+      {
+        "id": "nulliparous-0-85d",
+        "stage": "gestation",
+        "sourcePage": 448,
+        "parity": "nulliparous",
+        "diet": {
+          "metabolizableEnergyKcalKg": 3100,
+          "netEnergyKcalKg": 2400
+        },
+        "daily": {
+          "metabolizableEnergyKcal": 6772,
+          "feedIntakeKgDay": 2.184
+        },
+        "nutrientsPct": {
+          "calcium": 0.778,
+          "availablePhosphorus": 0.408,
+          "digestiblePhosphorus": 0.366,
+          "potassium": 0.339,
+          "sodium": 0.169,
+          "chloride": 0.133,
+          "digestibleProtein": 11.07,
+          "crudeProtein": 12.29
+        },
+        "sidAminoAcidsPct": {
+          "lysine": 0.583,
+          "methionine": 0.198,
+          "methionineCysteine": 0.396,
+          "threonine": 0.449,
+          "tryptophan": 0.117,
+          "arginine": 0.583,
+          "valine": 0.426,
+          "isoleucine": 0.35,
+          "leucine": 0.583,
+          "histidine": 0.204,
+          "phenylalanine": 0.321,
+          "phenylalanineTyrosine": 0.641
+        },
+        "gestationDays": {
+          "min": 0,
+          "max": 85
+        },
+        "averageBodyWeightKg": 150,
+        "maternalWeightGainKgDay": 0.311,
+        "reproductiveWeightGainKgDay": 0.146
+      },
+      {
+        "id": "nulliparous-86-115d",
+        "stage": "gestation",
+        "sourcePage": 448,
+        "parity": "nulliparous",
+        "diet": {
+          "metabolizableEnergyKcalKg": 3100,
+          "netEnergyKcalKg": 2400
+        },
+        "daily": {
+          "metabolizableEnergyKcal": 7323,
+          "feedIntakeKgDay": 2.362
+        },
+        "nutrientsPct": {
+          "calcium": 0.783,
+          "availablePhosphorus": 0.411,
+          "digestiblePhosphorus": 0.368,
+          "potassium": 0.339,
+          "sodium": 0.165,
+          "chloride": 0.127,
+          "digestibleProtein": 15.85,
+          "crudeProtein": 17.48
+        },
+        "sidAminoAcidsPct": {
+          "lysine": 0.796,
+          "methionine": 0.279,
+          "methionineCysteine": 0.557,
+          "threonine": 0.637,
+          "tryptophan": 0.159,
+          "arginine": 0.899,
+          "valine": 0.613,
+          "isoleucine": 0.478,
+          "leucine": 0.796,
+          "histidine": 0.279,
+          "phenylalanine": 0.446,
+          "phenylalanineTyrosine": 0.892
+        },
+        "gestationDays": {
+          "min": 86,
+          "max": 115
+        },
+        "averageBodyWeightKg": 189,
+        "maternalWeightGainKgDay": 0.119,
+        "reproductiveWeightGainKgDay": 0.592
+      },
+      {
+        "id": "po1-0-85d",
+        "stage": "gestation",
+        "sourcePage": 448,
+        "parity": "PO1",
+        "diet": {
+          "metabolizableEnergyKcalKg": 3100,
+          "netEnergyKcalKg": 2400
+        },
+        "daily": {
+          "metabolizableEnergyKcal": 6676,
+          "feedIntakeKgDay": 2.153
+        },
+        "nutrientsPct": {
+          "calcium": 0.813,
+          "availablePhosphorus": 0.428,
+          "digestiblePhosphorus": 0.386,
+          "potassium": 0.395,
+          "sodium": 0.195,
+          "chloride": 0.149,
+          "digestibleProtein": 9.55,
+          "crudeProtein": 10.61
+        },
+        "sidAminoAcidsPct": {
+          "lysine": 0.503,
+          "methionine": 0.171,
+          "methionineCysteine": 0.342,
+          "threonine": 0.387,
+          "tryptophan": 0.101,
+          "arginine": 0.503,
+          "valine": 0.367,
+          "isoleucine": 0.302,
+          "leucine": 0.503,
+          "histidine": 0.176,
+          "phenylalanine": 0.277,
+          "phenylalanineTyrosine": 0.553
+        },
+        "gestationDays": {
+          "min": 0,
+          "max": 85
+        },
+        "averageBodyWeightKg": 172,
+        "maternalWeightGainKgDay": 0.207,
+        "reproductiveWeightGainKgDay": 0.157
+      },
+      {
+        "id": "po1-86-115d",
+        "stage": "gestation",
+        "sourcePage": 448,
+        "parity": "PO1",
+        "diet": {
+          "metabolizableEnergyKcalKg": 3100,
+          "netEnergyKcalKg": 2400
+        },
+        "daily": {
+          "metabolizableEnergyKcal": 7634,
+          "feedIntakeKgDay": 2.461
+        },
+        "nutrientsPct": {
+          "calcium": 0.772,
+          "availablePhosphorus": 0.406,
+          "digestiblePhosphorus": 0.366,
+          "potassium": 0.37,
+          "sodium": 0.179,
+          "chloride": 0.138,
+          "digestibleProtein": 15.43,
+          "crudeProtein": 16.43
+        },
+        "sidAminoAcidsPct": {
+          "lysine": 0.775,
+          "methionine": 0.271,
+          "methionineCysteine": 0.543,
+          "threonine": 0.62,
+          "tryptophan": 0.155,
+          "arginine": 0.876,
+          "valine": 0.597,
+          "isoleucine": 0.465,
+          "leucine": 0.775,
+          "histidine": 0.271,
+          "phenylalanine": 0.434,
+          "phenylalanineTyrosine": 0.868
+        },
+        "gestationDays": {
+          "min": 86,
+          "max": 115
+        },
+        "averageBodyWeightKg": 203,
+        "maternalWeightGainKgDay": 0.08,
+        "reproductiveWeightGainKgDay": 0.634
+      },
+      {
+        "id": "po2-0-85d",
+        "stage": "gestation",
+        "sourcePage": 449,
+        "parity": "PO2",
+        "diet": {
+          "metabolizableEnergyKcalKg": 3100,
+          "netEnergyKcalKg": 2400
+        },
+        "daily": {
+          "metabolizableEnergyKcal": 6706,
+          "feedIntakeKgDay": 2.163
+        },
+        "nutrientsPct": {
+          "calcium": 0.832,
+          "availablePhosphorus": 0.439,
+          "digestiblePhosphorus": 0.393,
+          "potassium": 0.402,
+          "sodium": 0.208,
+          "chloride": 0.153,
+          "digestibleProtein": 8.6,
+          "crudeProtein": 9.57
+        },
+        "sidAminoAcidsPct": {
+          "lysine": 0.453,
+          "methionine": 0.154,
+          "methionineCysteine": 0.308,
+          "threonine": 0.349,
+          "tryptophan": 0.091,
+          "arginine": 0.453,
+          "valine": 0.331,
+          "isoleucine": 0.272,
+          "leucine": 0.453,
+          "histidine": 0.159,
+          "phenylalanine": 0.249,
+          "phenylalanineTyrosine": 0.498
+        },
+        "gestationDays": {
+          "min": 0,
+          "max": 85
+        },
+        "averageBodyWeightKg": 188,
+        "maternalWeightGainKgDay": 0.155,
+        "reproductiveWeightGainKgDay": 0.157
+      },
+      {
+        "id": "po2-86-115d",
+        "stage": "gestation",
+        "sourcePage": 449,
+        "parity": "PO2",
+        "diet": {
+          "metabolizableEnergyKcalKg": 3100,
+          "netEnergyKcalKg": 2400
+        },
+        "daily": {
+          "metabolizableEnergyKcal": 7849,
+          "feedIntakeKgDay": 2.532
+        },
+        "nutrientsPct": {
+          "calcium": 0.77,
+          "availablePhosphorus": 0.407,
+          "digestiblePhosphorus": 0.363,
+          "potassium": 0.367,
+          "sodium": 0.186,
+          "chloride": 0.138,
+          "digestibleProtein": 14.76,
+          "crudeProtein": 16.53
+        },
+        "sidAminoAcidsPct": {
+          "lysine": 0.742,
+          "methionine": 0.26,
+          "methionineCysteine": 0.519,
+          "threonine": 0.594,
+          "tryptophan": 0.148,
+          "arginine": 0.838,
+          "valine": 0.571,
+          "isoleucine": 0.445,
+          "leucine": 0.742,
+          "histidine": 0.26,
+          "phenylalanine": 0.416,
+          "phenylalanineTyrosine": 0.831
+        },
+        "gestationDays": {
+          "min": 86,
+          "max": 115
+        },
+        "averageBodyWeightKg": 214,
+        "maternalWeightGainKgDay": 0.06,
+        "reproductiveWeightGainKgDay": 0.634
+      },
+      {
+        "id": "po3plus-0-85d",
+        "stage": "gestation",
+        "sourcePage": 449,
+        "parity": "PO3+",
+        "diet": {
+          "metabolizableEnergyKcalKg": 3100,
+          "netEnergyKcalKg": 2400
+        },
+        "daily": {
+          "metabolizableEnergyKcal": 7247,
+          "feedIntakeKgDay": 2.338
+        },
+        "nutrientsPct": {
+          "calcium": 0.77,
+          "availablePhosphorus": 0.406,
+          "digestiblePhosphorus": 0.364,
+          "potassium": 0.372,
+          "sodium": 0.192,
+          "chloride": 0.141,
+          "digestibleProtein": 7.82,
+          "crudeProtein": 8.7
+        },
+        "sidAminoAcidsPct": {
+          "lysine": 0.412,
+          "methionine": 0.14,
+          "methionineCysteine": 0.28,
+          "threonine": 0.317,
+          "tryptophan": 0.082,
+          "arginine": 0.412,
+          "valine": 0.301,
+          "isoleucine": 0.247,
+          "leucine": 0.412,
+          "histidine": 0.144,
+          "phenylalanine": 0.227,
+          "phenylalanineTyrosine": 0.453
+        },
+        "gestationDays": {
+          "min": 0,
+          "max": 85
+        },
+        "averageBodyWeightKg": 219,
+        "maternalWeightGainKgDay": 0.104,
+        "reproductiveWeightGainKgDay": 0.157
+      },
+      {
+        "id": "po3plus-86-115d",
+        "stage": "gestation",
+        "sourcePage": 449,
+        "parity": "PO3+",
+        "diet": {
+          "metabolizableEnergyKcalKg": 3100,
+          "netEnergyKcalKg": 2400
+        },
+        "daily": {
+          "metabolizableEnergyKcal": 8484,
+          "feedIntakeKgDay": 2.737
+        },
+        "nutrientsPct": {
+          "calcium": 0.712,
+          "availablePhosphorus": 0.376,
+          "digestiblePhosphorus": 0.336,
+          "potassium": 0.34,
+          "sodium": 0.172,
+          "chloride": 0.128,
+          "digestibleProtein": 13.76,
+          "crudeProtein": 14.65
+        },
+        "sidAminoAcidsPct": {
+          "lysine": 0.692,
+          "methionine": 0.242,
+          "methionineCysteine": 0.484,
+          "threonine": 0.554,
+          "tryptophan": 0.138,
+          "arginine": 0.782,
+          "valine": 0.533,
+          "isoleucine": 0.415,
+          "leucine": 0.692,
+          "histidine": 0.242,
+          "phenylalanine": 0.388,
+          "phenylalanineTyrosine": 0.775
+        },
+        "gestationDays": {
+          "min": 86,
+          "max": 115
+        },
+        "averageBodyWeightKg": 242,
+        "maternalWeightGainKgDay": 0.04,
+        "reproductiveWeightGainKgDay": 0.634
+      }
+    ]
+  },
+  "lactation": {
+    "sourceTable": "6.15",
+    "printedPages": [
+      460,
+      461
+    ],
+    "aminoAcidRatios": {
+      "sourceTable": "6.11",
+      "printedPage": 455,
+      "basis": "ratio to lysine (%)",
+      "sid": {
+        "lysine": 100,
+        "methionine": 28,
+        "methionineCysteine": 56,
+        "threonine": 65,
+        "tryptophan": 22,
+        "arginine": 100,
+        "valine": 83,
+        "isoleucine": 60,
+        "leucine": 115,
+        "histidine": 40,
+        "phenylalanine": 58,
+        "phenylalanineTyrosine": 116
+      }
+    },
+    "phases": [
+      {
+        "id": "po1-2.63kg-lwg",
+        "stage": "lactation",
+        "sourcePage": 460,
+        "parity": "PO1",
+        "diet": {
+          "metabolizableEnergyKcalKg": 3400,
+          "netEnergyKcalKg": 2540
+        },
+        "daily": {
+          "metabolizableEnergyKcal": 19125,
+          "feedIntakeKgDay": 5.625
+        },
+        "nutrientsPct": {
+          "calcium": 0.836,
+          "availablePhosphorus": 0.462,
+          "digestiblePhosphorus": 0.409,
+          "potassium": 0.311,
+          "sodium": 0.213,
+          "chloride": 0.196,
+          "digestibleProtein": 18.62,
+          "crudeProtein": 21
+        },
+        "sidAminoAcidsPct": {
+          "lysine": 1.066,
+          "methionine": 0.298,
+          "methionineCysteine": 0.597,
+          "threonine": 0.693,
+          "tryptophan": 0.235,
+          "arginine": 1.066,
+          "valine": 0.885,
+          "isoleucine": 0.64,
+          "leucine": 1.226,
+          "histidine": 0.426,
+          "phenylalanine": 0.618,
+          "phenylalanineTyrosine": 1.237
+        },
+        "litterWeightGainKgDay": 2.63,
+        "femaleWeightPostpartumKg": 185,
+        "femaleWeightLossKgDay": 0.563
+      },
+      {
+        "id": "po1-2.90kg-lwg",
+        "stage": "lactation",
+        "sourcePage": 460,
+        "parity": "PO1",
+        "diet": {
+          "metabolizableEnergyKcalKg": 3400,
+          "netEnergyKcalKg": 2540
+        },
+        "daily": {
+          "metabolizableEnergyKcal": 20764,
+          "feedIntakeKgDay": 6.107
+        },
+        "nutrientsPct": {
+          "calcium": 0.77,
+          "availablePhosphorus": 0.458,
+          "digestiblePhosphorus": 0.377,
+          "potassium": 0.287,
+          "sodium": 0.196,
+          "chloride": 0.18,
+          "digestibleProtein": 18.93,
+          "crudeProtein": 21.37
+        },
+        "sidAminoAcidsPct": {
+          "lysine": 1.084,
+          "methionine": 0.304,
+          "methionineCysteine": 0.607,
+          "threonine": 0.705,
+          "tryptophan": 0.238,
+          "arginine": 1.084,
+          "valine": 0.9,
+          "isoleucine": 0.65,
+          "leucine": 1.247,
+          "histidine": 0.434,
+          "phenylalanine": 0.629,
+          "phenylalanineTyrosine": 1.257
+        },
+        "litterWeightGainKgDay": 2.9,
+        "femaleWeightPostpartumKg": 185,
+        "femaleWeightLossKgDay": 0.563
+      },
+      {
+        "id": "po2-2.82kg-lwg",
+        "stage": "lactation",
+        "sourcePage": 461,
+        "parity": "PO2",
+        "diet": {
+          "metabolizableEnergyKcalKg": 3400,
+          "netEnergyKcalKg": 2540
+        },
+        "daily": {
+          "metabolizableEnergyKcal": 20476,
+          "feedIntakeKgDay": 6.022
+        },
+        "nutrientsPct": {
+          "calcium": 0.864,
+          "availablePhosphorus": 0.465,
+          "digestiblePhosphorus": 0.415,
+          "potassium": 0.332,
+          "sodium": 0.216,
+          "chloride": 0.199,
+          "digestibleProtein": 18.58,
+          "crudeProtein": 20.97
+        },
+        "sidAminoAcidsPct": {
+          "lysine": 1.064,
+          "methionine": 0.298,
+          "methionineCysteine": 0.596,
+          "threonine": 0.692,
+          "tryptophan": 0.234,
+          "arginine": 1.064,
+          "valine": 0.883,
+          "isoleucine": 0.638,
+          "leucine": 1.224,
+          "histidine": 0.426,
+          "phenylalanine": 0.617,
+          "phenylalanineTyrosine": 1.234
+        },
+        "litterWeightGainKgDay": 2.82,
+        "femaleWeightPostpartumKg": 210,
+        "femaleWeightLossKgDay": 0.639
+      },
+      {
+        "id": "po2-3.10kg-lwg",
+        "stage": "lactation",
+        "sourcePage": 461,
+        "parity": "PO2",
+        "diet": {
+          "metabolizableEnergyKcalKg": 3400,
+          "netEnergyKcalKg": 2540
+        },
+        "daily": {
+          "metabolizableEnergyKcal": 22233,
+          "feedIntakeKgDay": 6.539
+        },
+        "nutrientsPct": {
+          "calcium": 0.795,
+          "availablePhosphorus": 0.428,
+          "digestiblePhosphorus": 0.382,
+          "potassium": 0.306,
+          "sodium": 0.199,
+          "chloride": 0.184,
+          "digestibleProtein": 18.88,
+          "crudeProtein": 21.3
+        },
+        "sidAminoAcidsPct": {
+          "lysine": 1.081,
+          "methionine": 0.303,
+          "methionineCysteine": 0.605,
+          "threonine": 0.703,
+          "tryptophan": 0.238,
+          "arginine": 1.081,
+          "valine": 0.897,
+          "isoleucine": 0.649,
+          "leucine": 1.243,
+          "histidine": 0.432,
+          "phenylalanine": 0.627,
+          "phenylalanineTyrosine": 1.254
+        },
+        "litterWeightGainKgDay": 3.1,
+        "femaleWeightPostpartumKg": 210,
+        "femaleWeightLossKgDay": 0.639
+      },
+      {
+        "id": "po3plus-2.82kg-lwg",
+        "stage": "lactation",
+        "sourcePage": 461,
+        "parity": "PO3+",
+        "diet": {
+          "metabolizableEnergyKcalKg": 3400,
+          "netEnergyKcalKg": 2540
+        },
+        "daily": {
+          "metabolizableEnergyKcal": 19712,
+          "feedIntakeKgDay": 5.798
+        },
+        "nutrientsPct": {
+          "calcium": 0.862,
+          "availablePhosphorus": 0.466,
+          "digestiblePhosphorus": 0.431,
+          "potassium": 0.328,
+          "sodium": 0.224,
+          "chloride": 0.207,
+          "digestibleProtein": 18.72,
+          "crudeProtein": 21.13
+        },
+        "sidAminoAcidsPct": {
+          "lysine": 1.072,
+          "methionine": 0.3,
+          "methionineCysteine": 0.6,
+          "threonine": 0.697,
+          "tryptophan": 0.236,
+          "arginine": 1.072,
+          "valine": 0.89,
+          "isoleucine": 0.643,
+          "leucine": 1.233,
+          "histidine": 0.429,
+          "phenylalanine": 0.622,
+          "phenylalanineTyrosine": 1.244
+        },
+        "litterWeightGainKgDay": 2.82,
+        "femaleWeightPostpartumKg": 240,
+        "femaleWeightLossKgDay": 0.939
+      },
+      {
+        "id": "po3plus-3.10kg-lwg",
+        "stage": "lactation",
+        "sourcePage": 461,
+        "parity": "PO3+",
+        "diet": {
+          "metabolizableEnergyKcalKg": 3400,
+          "netEnergyKcalKg": 2540
+        },
+        "daily": {
+          "metabolizableEnergyKcal": 21469,
+          "feedIntakeKgDay": 6.314
+        },
+        "nutrientsPct": {
+          "calcium": 0.792,
+          "availablePhosphorus": 0.428,
+          "digestiblePhosphorus": 0.396,
+          "potassium": 0.301,
+          "sodium": 0.206,
+          "chloride": 0.19,
+          "digestibleProtein": 19.04,
+          "crudeProtein": 21.48
+        },
+        "sidAminoAcidsPct": {
+          "lysine": 1.09,
+          "methionine": 0.305,
+          "methionineCysteine": 0.61,
+          "threonine": 0.709,
+          "tryptophan": 0.24,
+          "arginine": 1.09,
+          "valine": 0.905,
+          "isoleucine": 0.654,
+          "leucine": 1.254,
+          "histidine": 0.436,
+          "phenylalanine": 0.632,
+          "phenylalanineTyrosine": 1.264
+        },
+        "litterWeightGainKgDay": 3.1,
+        "femaleWeightPostpartumKg": 240,
+        "femaleWeightLossKgDay": 0.939
+      }
+    ]
+  },
+  "lactation25C": {
+    "sourceTable": "6.16",
+    "printedPages": [
+      462,
+      463
+    ],
+    "averageTemperatureC": 25,
+    "aminoAcidRatios": {
+      "sourceTable": "6.11",
+      "printedPage": 455,
+      "basis": "ratio to lysine (%)",
+      "sid": {
+        "lysine": 100,
+        "methionine": 28,
+        "methionineCysteine": 56,
+        "threonine": 65,
+        "tryptophan": 22,
+        "arginine": 100,
+        "valine": 83,
+        "isoleucine": 60,
+        "leucine": 115,
+        "histidine": 40,
+        "phenylalanine": 58,
+        "phenylalanineTyrosine": 116
+      }
+    },
+    "phases": [
+      {
+        "id": "po1-2.63kg-lwg-25c",
+        "stage": "lactation",
+        "sourcePage": 462,
+        "parity": "PO1",
+        "litterWeightGainKgDay": 2.63,
+        "femaleWeightPostpartumKg": 185,
+        "femaleWeightLossKgDay": 0.565,
+        "diet": {
+          "metabolizableEnergyKcalKg": 3400,
+          "netEnergyKcalKg": 2540
+        },
+        "daily": {
+          "metabolizableEnergyKcal": 18523,
+          "feedIntakeKgDay": 5.448
+        },
+        "nutrientsPct": {
+          "calcium": 0.862,
+          "availablePhosphorus": 0.477,
+          "digestiblePhosphorus": 0.422,
+          "potassium": 0.321,
+          "sodium": 0.22,
+          "chloride": 0.202,
+          "digestibleProtein": 19.23,
+          "crudeProtein": 21.7
+        },
+        "sidAminoAcidsPct": {
+          "lysine": 1.101,
+          "methionine": 0.308,
+          "methionineCysteine": 0.617,
+          "threonine": 0.716,
+          "tryptophan": 0.242,
+          "arginine": 1.101,
+          "valine": 0.914,
+          "isoleucine": 0.661,
+          "leucine": 1.266,
+          "histidine": 0.44,
+          "phenylalanine": 0.639,
+          "phenylalanineTyrosine": 1.277
+        }
+      },
+      {
+        "id": "po1-2.90kg-lwg-25c",
+        "stage": "lactation",
+        "sourcePage": 462,
+        "parity": "PO1",
+        "litterWeightGainKgDay": 2.9,
+        "femaleWeightPostpartumKg": 185,
+        "femaleWeightLossKgDay": 0.565,
+        "diet": {
+          "metabolizableEnergyKcalKg": 3400,
+          "netEnergyKcalKg": 2540
+        },
+        "daily": {
+          "metabolizableEnergyKcal": 20162,
+          "feedIntakeKgDay": 5.93
+        },
+        "nutrientsPct": {
+          "calcium": 0.792,
+          "availablePhosphorus": 0.472,
+          "digestiblePhosphorus": 0.388,
+          "potassium": 0.295,
+          "sodium": 0.202,
+          "chloride": 0.185,
+          "digestibleProtein": 19.49,
+          "crudeProtein": 22
+        },
+        "sidAminoAcidsPct": {
+          "lysine": 1.116,
+          "methionine": 0.312,
+          "methionineCysteine": 0.625,
+          "threonine": 0.725,
+          "tryptophan": 0.246,
+          "arginine": 1.116,
+          "valine": 0.926,
+          "isoleucine": 0.67,
+          "leucine": 1.284,
+          "histidine": 0.447,
+          "phenylalanine": 0.647,
+          "phenylalanineTyrosine": 1.295
+        }
+      },
+      {
+        "id": "po2-2.82kg-lwg-25c",
+        "stage": "lactation",
+        "sourcePage": 463,
+        "parity": "PO2",
+        "litterWeightGainKgDay": 2.82,
+        "femaleWeightPostpartumKg": 210,
+        "femaleWeightLossKgDay": 0.652,
+        "diet": {
+          "metabolizableEnergyKcalKg": 3400,
+          "netEnergyKcalKg": 2540
+        },
+        "daily": {
+          "metabolizableEnergyKcal": 19814,
+          "feedIntakeKgDay": 5.828
+        },
+        "nutrientsPct": {
+          "calcium": 0.892,
+          "availablePhosphorus": 0.48,
+          "digestiblePhosphorus": 0.429,
+          "potassium": 0.343,
+          "sodium": 0.223,
+          "chloride": 0.189,
+          "digestibleProtein": 19.2,
+          "crudeProtein": 21.66
+        },
+        "sidAminoAcidsPct": {
+          "lysine": 1.099,
+          "methionine": 0.308,
+          "methionineCysteine": 0.615,
+          "threonine": 0.714,
+          "tryptophan": 0.242,
+          "arginine": 1.099,
+          "valine": 0.912,
+          "isoleucine": 0.659,
+          "leucine": 1.264,
+          "histidine": 0.44,
+          "phenylalanine": 0.637,
+          "phenylalanineTyrosine": 1.275
+        }
+      },
+      {
+        "id": "po2-3.10kg-lwg-25c",
+        "stage": "lactation",
+        "sourcePage": 463,
+        "parity": "PO2",
+        "litterWeightGainKgDay": 3.1,
+        "femaleWeightPostpartumKg": 210,
+        "femaleWeightLossKgDay": 0.652,
+        "diet": {
+          "metabolizableEnergyKcalKg": 3400,
+          "netEnergyKcalKg": 2540
+        },
+        "daily": {
+          "metabolizableEnergyKcal": 21571,
+          "feedIntakeKgDay": 6.344
+        },
+        "nutrientsPct": {
+          "calcium": 0.82,
+          "availablePhosphorus": 0.442,
+          "digestiblePhosphorus": 0.394,
+          "potassium": 0.315,
+          "sodium": 0.205,
+          "chloride": 0.173,
+          "digestibleProtein": 19.47,
+          "crudeProtein": 21.98
+        },
+        "sidAminoAcidsPct": {
+          "lysine": 1.115,
+          "methionine": 0.312,
+          "methionineCysteine": 0.624,
+          "threonine": 0.725,
+          "tryptophan": 0.245,
+          "arginine": 1.115,
+          "valine": 0.925,
+          "isoleucine": 0.669,
+          "leucine": 1.282,
+          "histidine": 0.446,
+          "phenylalanine": 0.647,
+          "phenylalanineTyrosine": 1.293
+        }
+      },
+      {
+        "id": "po3plus-2.82kg-lwg-25c",
+        "stage": "lactation",
+        "sourcePage": 463,
+        "parity": "PO3+",
+        "litterWeightGainKgDay": 2.82,
+        "femaleWeightPostpartumKg": 240,
+        "femaleWeightLossKgDay": 0.939,
+        "diet": {
+          "metabolizableEnergyKcalKg": 3400,
+          "netEnergyKcalKg": 2540
+        },
+        "daily": {
+          "metabolizableEnergyKcal": 18890,
+          "feedIntakeKgDay": 5.582
+        },
+        "nutrientsPct": {
+          "calcium": 0.896,
+          "availablePhosphorus": 0.484,
+          "digestiblePhosphorus": 0.448,
+          "potassium": 0.34,
+          "sodium": 0.233,
+          "chloride": 0.197,
+          "digestibleProtein": 19.54,
+          "crudeProtein": 22.05
+        },
+        "sidAminoAcidsPct": {
+          "lysine": 1.119,
+          "methionine": 0.313,
+          "methionineCysteine": 0.627,
+          "threonine": 0.727,
+          "tryptophan": 0.246,
+          "arginine": 1.119,
+          "valine": 0.929,
+          "isoleucine": 0.671,
+          "leucine": 1.287,
+          "histidine": 0.448,
+          "phenylalanine": 0.649,
+          "phenylalanineTyrosine": 1.298
+        }
+      },
+      {
+        "id": "po3plus-3.10kg-lwg-25c",
+        "stage": "lactation",
+        "sourcePage": 463,
+        "parity": "PO3+",
+        "litterWeightGainKgDay": 3.1,
+        "femaleWeightPostpartumKg": 240,
+        "femaleWeightLossKgDay": 0.939,
+        "diet": {
+          "metabolizableEnergyKcalKg": 3400,
+          "netEnergyKcalKg": 2540
+        },
+        "daily": {
+          "metabolizableEnergyKcal": 20737,
+          "feedIntakeKgDay": 6.099
+        },
+        "nutrientsPct": {
+          "calcium": 0.82,
+          "availablePhosphorus": 0.443,
+          "digestiblePhosphorus": 0.41,
+          "potassium": 0.311,
+          "sodium": 0.213,
+          "chloride": 0.18,
+          "digestibleProtein": 19.7,
+          "crudeProtein": 22.24
+        },
+        "sidAminoAcidsPct": {
+          "lysine": 1.128,
+          "methionine": 0.316,
+          "methionineCysteine": 0.632,
+          "threonine": 0.733,
+          "tryptophan": 0.248,
+          "arginine": 1.128,
+          "valine": 0.936,
+          "isoleucine": 0.677,
+          "leucine": 1.297,
+          "histidine": 0.451,
+          "phenylalanine": 0.654,
+          "phenylalanineTyrosine": 1.308
+        }
+      }
+    ]
+  }
+}
