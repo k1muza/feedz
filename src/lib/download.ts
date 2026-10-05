@@ -20,7 +20,10 @@ export function downloadFile(
   const anchor = document.createElement("a");
   anchor.href = url;
   anchor.download = filename;
+  anchor.style.display = "none";
+  document.body.appendChild(anchor);
   anchor.click();
+  anchor.remove();
   // Let the click be dispatched before the URL stops meaning anything.
   window.setTimeout(() => URL.revokeObjectURL(url), 0);
 }
