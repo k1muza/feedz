@@ -1,13 +1,13 @@
 
 'use client';
 
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { onAuthStateChanged, User as FirebaseUser, signOut, signInAnonymously } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
+import { createContext, useContext, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 
+type AppUser = { uid: string; email: string | null; displayName: string | null };
+
 interface AuthContextType {
-  user: FirebaseUser | null;
+  user: AppUser | null;
   loading: boolean;
   logout: () => void;
 }
@@ -15,38 +15,13 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<FirebaseUser | null>(null);
-  const [loading, setLoading] = useState(true);
   const router = useRouter();
 
-  useEffect(() => {
-    // This listener is for the main app authentication (admin users)
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      // We only care about non-anonymous users for the main app context
-      if (user && !user.isAnonymous) {
-        setUser(user);
-      } else {
-        setUser(null);
-      }
-      setLoading(false);
-    });
-
-    return () => unsubscribe();
-  }, []);
-
-  const logout = async () => {
-    const wasAnonymous = auth.currentUser?.isAnonymous;
-    await signOut(auth);
-    // After logging out, if the user was anonymous, we sign them back in
-    // so the chat widget session persists. Otherwise, send to login page.
-    if (!wasAnonymous) {
-        router.push('/login');
-    } else {
-        await signInAnonymously(auth);
-    }
+  const logout = () => {
+    router.push('/');
   };
 
-  const value = { user, loading, logout };
+  const value = { user: null, loading: false, logout };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

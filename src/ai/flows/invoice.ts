@@ -8,7 +8,6 @@
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { getAllProducts, createInvoice } from '@/app/actions';
-import { Timestamp } from 'firebase/firestore';
 import { ClientInfo } from '@/types';
 
 // Define schemas for Zod
@@ -89,8 +88,8 @@ const createInvoiceTool = ai.defineTool(
       client: input.client,
       items: invoiceItems,
       totalAmount,
-      date: Timestamp.fromDate(issueDate),
-      dueDate: Timestamp.fromDate(dueDate),
+      date: issueDate.toISOString(),
+      dueDate: dueDate.toISOString(),
       status: 'draft',
       taxRate: 0.15, // Default tax rate
       notes: 'Thank you for your business!',

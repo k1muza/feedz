@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Conversation, Message } from '@/types/chat';
+import { Conversation } from '@/types/chat';
 import { format, formatDistanceToNow } from 'date-fns';
 import { Bot, User, PowerOff, Send, Loader2, MailWarning, MailCheck, Archive, Wifi, WifiOff } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -10,8 +10,6 @@ import ReactMarkdown from 'react-markdown';
 import { Switch } from '../ui/switch';
 import { useToast } from '../ui/use-toast';
 import { setAiSuspension, addAdminMessage, markConversationAsRead, getAppSettings, getConversations } from '@/app/actions';
-import { rtdb } from '@/lib/firebase';
-import { ref, onValue } from 'firebase/database';
 import type { AppSettings } from '@/types';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -42,71 +40,7 @@ export const ConversationsManagement = ({ initialConversations }: { initialConve
 
   useEffect(() => {
     getAppSettings().then(setAppSettings);
-
-    const chatsRef = ref(rtdb, 'chats');
-    const statusRef = ref(rtdb, 'status');
-
-    const handleDataUpdate = (allChats: any, allStatuses: any) => {
-        if (!allChats) {
-            setConversations([]);
-            return;
-        }
-
-        const updatedConversations: ConvoWithPresence[] = Object.keys(allChats)
-            .map(uid => {
-                const chatData = allChats[uid];
-                if (!chatData.messages) return null; // Don't show empty conversations
-                
-                const messages = Object.values(chatData.messages) as Message[];
-                return {
-                    id: uid,
-                    startTime: chatData.startTime,
-                    messages: messages,
-                    lastMessage: chatData.lastMessage,
-                    aiSuspended: chatData.aiSuspended || false,
-                    adminHasUnreadMessages: chatData.adminHasUnreadMessages || false,
-                    isOnline: allStatuses?.[uid]?.isOnline || false,
-                };
-            })
-            .filter(Boolean) as ConvoWithPresence[];
-
-        updatedConversations.sort((a, b) => (b.lastMessage?.timestamp || 0) - (a.lastMessage?.timestamp || 0));
-        setConversations(updatedConversations);
-
-        setSelectedConversation(prev => {
-            if (!prev) return null;
-            const updated = allChats[prev.id];
-            if (!updated) return null;
-            const updatedMessages = updated.messages ? Object.values(updated.messages) as Message[] : [];
-            updatedMessages.sort((a, b) => a.timestamp - b.timestamp);
-            return {
-                ...prev,
-                messages: updatedMessages,
-                lastMessage: updated.lastMessage,
-                aiSuspended: updated.aiSuspended || false,
-                adminHasUnreadMessages: updated.adminHasUnreadMessages || false,
-                isOnline: allStatuses?.[prev.id]?.isOnline || false,
-            };
-        });
-    };
-
-    let chatsData: any = null;
-    let statusesData: any = null;
-
-    const unsubscribeChats = onValue(chatsRef, (snapshot) => {
-        chatsData = snapshot.val();
-        handleDataUpdate(chatsData, statusesData);
-    });
-
-    const unsubscribeStatus = onValue(statusRef, (snapshot) => {
-        statusesData = snapshot.val();
-        handleDataUpdate(chatsData, statusesData);
-    });
-    
-    return () => {
-        unsubscribeChats();
-        unsubscribeStatus();
-    };
+    getConversations().then((items) => setConversations(items.map((item) => ({ ...item, isOnline: false }))));
   }, []);
 
   useEffect(() => {

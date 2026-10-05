@@ -4,9 +4,8 @@
 
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { FiSend, FiUser, FiMail, FiMessageSquare, FiCheckCircle, FiAlertCircle, FiPhone } from 'react-icons/fi';
+import { FiSend, FiUser, FiMail, FiMessageSquare, FiCheckCircle, FiPhone } from 'react-icons/fi';
 import SecondaryHero from '@/components/common/SecondaryHero';
-import { saveContactInquiry } from '@/app/actions';
 
 
 export default function ContactPageClient() {
@@ -17,7 +16,7 @@ export default function ContactPageClient() {
     phone: '',
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submissionStatus, setSubmissionStatus] = useState<'success' | 'error' | null>(null);
+  const [submissionStatus, setSubmissionStatus] = useState<'success' | null>(null);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -26,21 +25,15 @@ export default function ContactPageClient() {
     setFormData(prev => ({ ...prev, [id]: value }));
   };
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsSubmitting(true);
     setSubmissionStatus(null);
-    
-    const result = await saveContactInquiry(formData);
-
+    const message = [`FeedSport website enquiry`, `Name: ${formData.name}`, `Email: ${formData.email}`, formData.phone ? `Phone: ${formData.phone}` : '', '', formData.message].filter(Boolean).join('\n');
+    window.open(`https://wa.me/263774684534?text=${encodeURIComponent(message)}`, '_blank', 'noopener,noreferrer');
     setIsSubmitting(false);
-
-    if (result.success) {
-      setSubmissionStatus('success');
-      setFormData({ name: '', email: '', message: '', phone: '' });
-    } else {
-      setSubmissionStatus('error');
-    }
+    setSubmissionStatus('success');
+    setFormData({ name: '', email: '', message: '', phone: '' });
   };
 
   return (
@@ -128,13 +121,7 @@ export default function ContactPageClient() {
                 {submissionStatus === 'success' && (
                   <div className="flex items-center gap-3 p-3 bg-green-50 text-green-700 border border-green-200 rounded-lg">
                     <FiCheckCircle className="w-5 h-5" />
-                    <p>Thank you for your message! We'll be in touch soon.</p>
-                  </div>
-                )}
-                 {submissionStatus === 'error' && (
-                  <div className="flex items-center gap-3 p-3 bg-red-50 text-red-700 border border-red-200 rounded-lg">
-                    <FiAlertCircle className="w-5 h-5" />
-                    <p>Something went wrong. Please try again later.</p>
+                    <p>Your message is ready in WhatsApp.</p>
                   </div>
                 )}
 
@@ -146,7 +133,7 @@ export default function ContactPageClient() {
                   className="w-full bg-gradient-to-r from-green-600 to-green-700 text-white font-medium py-3 px-6 rounded-lg flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <FiSend />
-                  <span>{isSubmitting ? 'Sending...' : 'Send Message'}</span>
+                  <span>{isSubmitting ? 'Opening...' : 'Continue on WhatsApp'}</span>
                 </motion.button>
               </div>
             </motion.form>

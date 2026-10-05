@@ -1,14 +1,7 @@
-import { getAllProducts } from '@/app/actions';
-import ProductCard from './ProductCard';
+import { feedProducts } from '@/data/feedProducts';
+import FeedProductCard from './FeedProductCard';
 
-async function getRelatedProducts(category: string, excludeId: string) {
-  const products = await getAllProducts();
-  return products.filter(
-    product => product.ingredient?.category === category && product.id !== excludeId
-  ).slice(0, 4);
-}
-
-export default async function RelatedProducts({ 
+export default function RelatedProducts({ 
   currentProductId, 
   category 
 }: { 
@@ -18,7 +11,9 @@ export default async function RelatedProducts({
 
   if (!category) return null;
   
-  const relatedProducts = await getRelatedProducts(category, currentProductId);
+  const relatedProducts = feedProducts.filter(
+    (product) => (product.category === category || product.categorySlug === category) && product.id !== currentProductId
+  ).slice(0, 4);
 
   if (relatedProducts.length === 0) return null;
 
@@ -27,7 +22,7 @@ export default async function RelatedProducts({
       <h2 className="text-2xl font-bold text-gray-900 mb-8">Related Products</h2>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {relatedProducts.map(product => (
-          <ProductCard key={product.id} product={product} />
+          <FeedProductCard key={product.id} product={product} />
         ))}
       </div>
     </div>
