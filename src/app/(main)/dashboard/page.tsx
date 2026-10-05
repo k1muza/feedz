@@ -23,7 +23,7 @@ import { feedFormulationHref } from "@/lib/formulation-routes";
 export const metadata: Metadata = {
   title: "Feed Formulation",
   description: "Build least-cost livestock feed formulations from source-backed nutrient requirements and ingredient composition.",
-  alternates: { canonical: "/formulations" },
+  alternates: { canonical: "/dashboard" },
 };
 
 export default function FeedFormulationDashboard() {
