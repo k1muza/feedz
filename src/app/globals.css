@@ -77,6 +77,34 @@
 }
 
 @layer base {
+  /* Admin colours match the login page. Set on :root so dialogs and menus portalled to <body> pick them up. */
+  :root:has(.admin-theme) {
+    color-scheme: dark;
+    --background: 100 5.9% 10%;
+    --foreground: 44 31.4% 93.1%;
+    --card: 90 4.7% 16.9%;
+    --card-foreground: 44 31.4% 93.1%;
+    --popover: 90 4.7% 16.9%;
+    --popover-foreground: 44 31.4% 93.1%;
+    --primary: 38 69.6% 51%;
+    --primary-foreground: 100 5.9% 10%;
+    --secondary: 75 6% 26.3%;
+    --secondary-foreground: 44 31.4% 93.1%;
+    --muted: 90 5.9% 13.3%;
+    --muted-foreground: 47 9.1% 69.8%;
+    --accent: 75 6% 26.3%;
+    --accent-foreground: 44 31.4% 93.1%;
+    --destructive: 11 64.1% 45.9%;
+    --destructive-foreground: 44 31.4% 93.1%;
+    --border: 75 6% 26.3%;
+    --input: 75 6% 26.3%;
+    --ring: 38 69.6% 51%;
+    --radius: 0.5rem;
+    background: #191b18;
+  }
+}
+
+@layer base {
   * {
     @apply border-border;
   }

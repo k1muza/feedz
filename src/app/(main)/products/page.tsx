@@ -4,8 +4,8 @@ import { feedProducts } from '@/data/feedProductNutrition';
 import { absoluteUrl, createPageMetadata, serializeJsonLd } from '@/lib/seo';
 
 export const metadata: Metadata = createPageMetadata({
-  title: 'Feed ingredients',
-  description: 'Compare livestock feed ingredients in Zimbabwe by category, animal, nutrient specification, packaging and availability.',
+  title: 'Animal Feed Ingredients in Zimbabwe',
+  description: 'Compare livestock feed ingredients available in Zimbabwe: soybean meal, sorghum, wheat bran, sunflower meal, fish meal, amino acids, minerals and premixes. Specifications, packaging and minimum orders.',
   path: '/products',
 });
 

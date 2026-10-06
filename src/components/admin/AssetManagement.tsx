@@ -84,13 +84,13 @@ export const AssetManagement = ({ initialAssets }: { initialAssets: S3Asset[] })
       <div className="space-y-6">
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <h2 className="text-2xl font-bold text-white">
+          <h2 className="text-2xl font-bold text-ash-100">
             Asset Library (S3)
           </h2>
           <div className="flex space-x-3">
             <button
               onClick={() => setIsModalOpen(true)}
-              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg flex items-center space-x-2 transition-colors"
+              className="px-4 py-2 bg-harvest-600 hover:bg-harvest-500 text-ash-950 rounded-lg flex items-center space-x-2 transition-colors"
             >
               <Plus className="w-4 h-4" />
               <span>Add Image</span>
@@ -101,11 +101,11 @@ export const AssetManagement = ({ initialAssets }: { initialAssets: S3Asset[] })
         {/* Filters and Search */}
         <div className="flex flex-col md:flex-row gap-4">
           <div className="relative flex-1">
-            <Search className="absolute top-1/2 left-3 -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <Search className="absolute top-1/2 left-3 -translate-y-1/2 w-5 h-5 text-ash-400" />
             <input
               type="text"
               placeholder="Search by asset name..."
-              className="w-full pl-10 pr-4 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+              className="w-full pl-10 pr-4 py-2 bg-ash-800 border border-ash-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-harvest-500/50"
             />
           </div>
         </div>
@@ -113,7 +113,7 @@ export const AssetManagement = ({ initialAssets }: { initialAssets: S3Asset[] })
         {/* Assets Grid */}
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
           {assets.map((asset) => (
-            <div key={asset.key} className="relative group bg-gray-800/50 border border-gray-700 rounded-lg overflow-hidden aspect-square">
+            <div key={asset.key} className="relative group bg-ash-800/50 border border-ash-700 rounded-lg overflow-hidden aspect-square">
               <Image
                 src={asset.url}
                 alt={asset.key}
@@ -124,21 +124,21 @@ export const AssetManagement = ({ initialAssets }: { initialAssets: S3Asset[] })
               <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center p-2 gap-2">
                 <button
                   onClick={() => copyToClipboard(asset.url)}
-                  className="p-2 w-10 h-10 bg-indigo-600 text-white rounded-full hover:bg-indigo-500 transition-colors flex items-center justify-center"
+                  className="p-2 w-10 h-10 bg-harvest-600 text-ash-950 rounded-full hover:bg-harvest-500 transition-colors flex items-center justify-center"
                   title="Copy CloudFront URL"
                 >
                   <Copy className="w-4 h-4" />
                 </button>
                 <button
                   onClick={() => confirmDelete(asset)}
-                  className="p-2 w-10 h-10 bg-red-600 text-white rounded-full hover:bg-red-500 transition-colors flex items-center justify-center"
+                  className="p-2 w-10 h-10 bg-red-600 text-ash-100 rounded-full hover:bg-red-500 transition-colors flex items-center justify-center"
                   title="Delete from S3"
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
               </div>
               <div className="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/80 to-transparent">
-                <p className="text-xs text-white truncate">{asset.key}</p>
+                <p className="text-xs text-ash-100 truncate">{asset.key}</p>
               </div>
             </div>
           ))}
@@ -155,7 +155,7 @@ export const AssetManagement = ({ initialAssets }: { initialAssets: S3Asset[] })
             <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
             <AlertDialogDescription>
               This action cannot be undone. This will permanently delete the asset
-              <code className="font-mono bg-gray-700 rounded-sm px-1 mx-1">{assetToDelete?.key}</code> from your S3 bucket.
+              <code className="font-mono bg-ash-700 rounded-sm px-1 mx-1">{assetToDelete?.key}</code> from your S3 bucket.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

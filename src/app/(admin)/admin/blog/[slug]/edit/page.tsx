@@ -1,37 +1,12 @@
-'use client';
-
+import { notFound } from 'next/navigation';
+import { getArticleForAdmin } from '@/app/actions';
 import { BlogPostForm } from '@/components/admin/BlogPostForm';
-import { getPostBySlug } from '@/app/actions';
-import { notFound, useParams } from 'next/navigation';
-import React, { useEffect, useState } from 'react';
-import { BlogPost } from '@/types';
 
-export default function EditBlogPostPage() {
-  const params = useParams<{ slug: string }>();
-  const { slug } = params;
-  const [post, setPost] = useState<BlogPost | null>(null);
-  const [loading, setLoading] = useState(true);
+export const dynamic = 'force-dynamic';
 
-  useEffect(() => {
-    async function fetchPost() {
-      const fetchedPost = await getPostBySlug(slug);
-      if (!fetchedPost) {
-        notFound();
-      }
-      setPost(fetchedPost);
-      setLoading(false);
-    }
-    fetchPost();
-  }, [slug]);
-
-
-  if (loading) {
-    return <div>Loading...</div>; // Or a skeleton loader
-  }
-
-  return (
-    <div>
-      {post && <BlogPostForm post={post} />}
-    </div>
-  );
+export default async function EditBlogPostPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+  const article = await getArticleForAdmin(slug);
+  if (!article) notFound();
+  return <BlogPostForm key={article.id} article={article} />;
 }

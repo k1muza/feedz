@@ -171,10 +171,11 @@ export type Policy = {
 }
 
 export type InvoiceItem = {
-    id: string; // Changed from productId to a unique id for the line item itself
-    description: string; // was productName
+    id: string;
+    productId?: string;
+    description: string;
     quantity: number;
-    price: number; // was unitPrice
+    price: number;
 };
 
 export type ClientInfo = {
@@ -207,6 +208,8 @@ export type Invoice = {
     bank: BankInfo; // New field
     totalAmount: number;
     status: 'draft' | 'sent' | 'paid' | 'void';
+    createdAt?: string;
+    updatedAt?: string;
 };
 
 

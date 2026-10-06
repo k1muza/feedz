@@ -122,21 +122,21 @@ export const ConversationsManagement = ({ initialConversations }: { initialConve
   };
 
   return (
-    <div className="flex h-[calc(100vh-150px)] bg-gray-900 border border-gray-700 rounded-xl overflow-hidden">
+    <div className="flex h-[calc(100vh-150px)] bg-ash-900 border border-ash-700 rounded-lg overflow-hidden">
       {/* Conversations sidebar */}
-      <div className="w-1/3 border-r border-gray-700 flex flex-col bg-gray-900">
-        <div className="p-4 border-b border-gray-700 bg-gray-900 sticky top-0 z-10">
-          <h2 className="text-xl font-bold text-white mb-4">Conversations</h2>
+      <div className="w-1/3 border-r border-ash-700 flex flex-col bg-ash-900">
+        <div className="p-4 border-b border-ash-700 bg-ash-900 sticky top-0 z-10">
+          <h2 className="text-xl font-bold text-ash-100 mb-4">Conversations</h2>
           <div className="relative mb-4">
             <input
               type="text"
               placeholder="Search conversations..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full p-2 pl-10 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full p-2 pl-10 bg-ash-800 border border-ash-700 rounded-lg text-ash-100 placeholder-ash-400 focus:outline-none focus:ring-2 focus:ring-harvest-500"
             />
             <svg 
-              className="absolute left-3 top-2.5 w-5 h-5 text-gray-400" 
+              className="absolute left-3 top-2.5 w-5 h-5 text-ash-400" 
               fill="none" 
               stroke="currentColor" 
               viewBox="0 0 24 24"
@@ -144,15 +144,15 @@ export const ConversationsManagement = ({ initialConversations }: { initialConve
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
           </div>
-          <div className="flex bg-gray-800 p-1 rounded-lg">
+          <div className="flex bg-ash-800 p-1 rounded-lg">
             <button
                 onClick={() => setFilter('online')}
-                className={cn('w-1/2 py-1 text-sm rounded-md transition-colors', filter === 'online' ? 'bg-indigo-600 text-white' : 'text-gray-400 hover:bg-gray-700')}>
+                className={cn('w-1/2 py-1 text-sm rounded-md transition-colors', filter === 'online' ? 'bg-harvest-600 text-ash-950' : 'text-ash-400 hover:bg-ash-700')}>
                 Online
             </button>
             <button
                 onClick={() => setFilter('all')}
-                className={cn('w-1/2 py-1 text-sm rounded-md transition-colors', filter === 'all' ? 'bg-indigo-600 text-white' : 'text-gray-400 hover:bg-gray-700')}>
+                className={cn('w-1/2 py-1 text-sm rounded-md transition-colors', filter === 'all' ? 'bg-harvest-600 text-ash-950' : 'text-ash-400 hover:bg-ash-700')}>
                 All
             </button>
           </div>
@@ -170,7 +170,7 @@ export const ConversationsManagement = ({ initialConversations }: { initialConve
                     exit={{ opacity: 0, height: 0 }}
                     transition={{ duration: 0.3 }}
                 >
-                  <div className="absolute inset-y-0 right-0 bg-red-600 flex items-center justify-center w-20 text-white">
+                  <div className="absolute inset-y-0 right-0 bg-red-600 flex items-center justify-center w-20 text-ash-100">
                       <Archive className="w-6 h-6"/>
                   </div>
                   <motion.div
@@ -181,14 +181,14 @@ export const ConversationsManagement = ({ initialConversations }: { initialConve
                             archiveConversation(convo.id);
                         }
                     }}
-                    className="relative z-10 bg-gray-900"
+                    className="relative z-10 bg-ash-900"
                   >
                     <button
                         onClick={() => handleSelectConversation(convo)}
                         className={cn(
-                        "w-full text-left p-4 border-b border-gray-800 hover:bg-gray-800 transition-colors duration-150 flex justify-between items-start",
+                        "w-full text-left p-4 border-b border-ash-800 hover:bg-ash-800 transition-colors duration-150 flex justify-between items-start",
                         selectedConversation?.id === convo.id 
-                            ? "bg-indigo-900/30 border-l-4 border-l-indigo-400" 
+                            ? "bg-harvest-900/30 border-l-4 border-l-harvest-400" 
                             : ""
                         )}
                     >
@@ -196,19 +196,19 @@ export const ConversationsManagement = ({ initialConversations }: { initialConve
                         <div className="flex items-center gap-2 mb-1">
                             <div className={cn(
                             "w-2 h-2 rounded-full flex-shrink-0",
-                            convo.isOnline ? "bg-green-400" : "bg-gray-600"
+                            convo.isOnline ? "bg-green-400" : "bg-ash-600"
                             )} title={convo.isOnline ? "Online" : "Offline"} />
-                            <p className="font-medium text-white truncate">
+                            <p className="font-medium text-ash-100 truncate">
                             {convo.lastMessage?.content || 'New Conversation'}
                             </p>
                             {convo.adminHasUnreadMessages && (
-                                <div className="w-2.5 h-2.5 rounded-full bg-indigo-400 flex-shrink-0" title="Unread messages"/>
+                                <div className="w-2.5 h-2.5 rounded-full bg-harvest-400 flex-shrink-0" title="Unread messages"/>
                             )}
                         </div>
                         
-                        <div className="flex items-center gap-2 text-xs text-gray-400 mt-1">
+                        <div className="flex items-center gap-2 text-xs text-ash-400 mt-1">
                             <span className="truncate">ID: {convo.id}</span>
-                            <span className="text-gray-600">•</span>
+                            <span className="text-ash-600">•</span>
                             <span>
                             {formatDistanceToNow(
                                 getTimestamp(convo.lastMessage?.timestamp || convo.startTime), 
@@ -224,7 +224,7 @@ export const ConversationsManagement = ({ initialConversations }: { initialConve
                             <PowerOff className="w-4 h-4 text-amber-400" />
                             </span>
                         ) : (
-                            <Bot className="w-4 h-4 text-indigo-400" />
+                            <Bot className="w-4 h-4 text-harvest-400" />
                         )}
                         </div>
                     </button>
@@ -232,13 +232,13 @@ export const ConversationsManagement = ({ initialConversations }: { initialConve
                 </motion.div>
             ))
           ) : (
-            <div className="flex flex-col items-center justify-center h-full p-8 text-center text-gray-500">
-              <MailWarning className="w-12 h-12 mb-4 text-gray-600" />
+            <div className="flex flex-col items-center justify-center h-full p-8 text-center text-ash-500">
+              <MailWarning className="w-12 h-12 mb-4 text-ash-600" />
               <p>No {filter === 'online' ? 'online' : ''} conversations found</p>
               {searchTerm && (
                 <button 
                   onClick={() => setSearchTerm('')}
-                  className="mt-2 text-indigo-400 hover:text-indigo-300"
+                  className="mt-2 text-harvest-400 hover:text-harvest-300"
                 >
                   Clear search
                 </button>
@@ -250,22 +250,22 @@ export const ConversationsManagement = ({ initialConversations }: { initialConve
       </div>
 
       {/* Chat panel */}
-      <div className="w-2/3 flex flex-col bg-gray-900/50">
+      <div className="w-2/3 flex flex-col bg-ash-900/50">
         {selectedConversation ? (
           <>
             {/* Chat header */}
-            <div className="p-4 border-b border-gray-800 flex justify-between items-center bg-gray-900 sticky top-0 z-10">
+            <div className="p-4 border-b border-ash-800 flex justify-between items-center bg-ash-900 sticky top-0 z-10">
               <div>
                 <div className="flex items-center gap-3">
-                  <h3 className="font-semibold text-white">
+                  <h3 className="font-semibold text-ash-100">
                     Conversation with {selectedConversation.id}
                   </h3>
                    <div className={cn(
                       "w-2.5 h-2.5 rounded-full flex-shrink-0",
-                      selectedConversation.isOnline ? "bg-green-400" : "bg-gray-600"
+                      selectedConversation.isOnline ? "bg-green-400" : "bg-ash-600"
                     )} title={selectedConversation.isOnline ? "Online" : "Offline"} />
                 </div>
-                <p className="text-sm text-gray-400 mt-1">
+                <p className="text-sm text-ash-400 mt-1">
                   Started {format(getTimestamp(selectedConversation.startTime), "PPP 'at' p")}
                 </p>
               </div>
@@ -276,12 +276,12 @@ export const ConversationsManagement = ({ initialConversations }: { initialConve
                     htmlFor="ai-toggle" 
                     className={cn(
                         "text-sm font-medium",
-                        !appSettings?.aiChatEnabled ? "text-gray-500" : "text-gray-300"
+                        !appSettings?.aiChatEnabled ? "text-ash-500" : "text-ash-300"
                     )}
                   >
                     AI Assistant
                   </label>
-                  <span className="text-xs text-gray-500">
+                  <span className="text-xs text-ash-500">
                     {selectedConversation.aiSuspended ? 'Suspended' : 'Active'}
                   </span>
                 </div>
@@ -290,7 +290,7 @@ export const ConversationsManagement = ({ initialConversations }: { initialConve
                   checked={!selectedConversation.aiSuspended}
                   onCheckedChange={(checked) => handleAiToggle(!checked)}
                   disabled={!appSettings?.aiChatEnabled}
-                  className="data-[state=checked]:bg-indigo-500"
+                  className="data-[state=checked]:bg-harvest-500"
                 />
               </div>
             </div>
@@ -307,24 +307,24 @@ export const ConversationsManagement = ({ initialConversations }: { initialConve
                     )}
                   >
                     {message.role === 'model' && (
-                      <div className="flex-shrink-0 w-10 h-10 rounded-full bg-indigo-500/20 flex items-center justify-center">
-                        <Bot className="w-5 h-5 text-indigo-400" />
+                      <div className="flex-shrink-0 w-10 h-10 rounded-full bg-harvest-500/20 flex items-center justify-center">
+                        <Bot className="w-5 h-5 text-harvest-400" />
                       </div>
                     )}
                     
                     <div className="max-w-[80%]">
                       <div className={cn(
-                        "p-4 rounded-2xl",
+                        "p-4 rounded-lg",
                         message.role === 'user' 
-                          ? 'bg-gray-800 rounded-tr-none' 
-                          : 'bg-gray-800/70 rounded-tl-none'
+                          ? 'bg-ash-800 rounded-tr-none' 
+                          : 'bg-ash-800/70 rounded-tl-none'
                       )}>
                         <ReactMarkdown className="prose prose-invert prose-sm break-words">
                           {message.content}
                         </ReactMarkdown>
                       </div>
                       <div className={cn(
-                        "mt-1.5 text-xs text-gray-500 px-1",
+                        "mt-1.5 text-xs text-ash-500 px-1",
                         message.role === 'user' ? 'text-right' : 'text-left'
                       )}>
                         {format(getTimestamp(message.timestamp), 'h:mm a')}
@@ -332,16 +332,16 @@ export const ConversationsManagement = ({ initialConversations }: { initialConve
                     </div>
                     
                     {message.role === 'user' && (
-                      <div className="flex-shrink-0 w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center">
-                        <User className="w-5 h-5 text-gray-300" />
+                      <div className="flex-shrink-0 w-10 h-10 rounded-full bg-ash-700 flex items-center justify-center">
+                        <User className="w-5 h-5 text-ash-300" />
                       </div>
                     )}
                   </div>
                 ))
               ) : (
-                <div className="flex flex-col items-center justify-center h-full text-center p-8 text-gray-500">
-                  <MailCheck className="w-16 h-16 mb-4 text-gray-700" />
-                  <h3 className="text-lg font-medium text-gray-300 mb-2">No messages yet</h3>
+                <div className="flex flex-col items-center justify-center h-full text-center p-8 text-ash-500">
+                  <MailCheck className="w-16 h-16 mb-4 text-ash-700" />
+                  <h3 className="text-lg font-medium text-ash-300 mb-2">No messages yet</h3>
                   <p className="max-w-md">Start the conversation by sending a message below</p>
                 </div>
               )}
@@ -351,7 +351,7 @@ export const ConversationsManagement = ({ initialConversations }: { initialConve
             {/* Input area */}
             <form 
               onSubmit={handleAdminSubmit}
-              className="p-4 border-t border-gray-800 bg-gray-900/80 sticky bottom-0"
+              className="p-4 border-t border-ash-800 bg-ash-900/80 sticky bottom-0"
             >
               <div className="relative">
                 <input
@@ -359,7 +359,7 @@ export const ConversationsManagement = ({ initialConversations }: { initialConve
                   value={newMessage}
                   onChange={(e) => setNewMessage(e.target.value)}
                   placeholder="Type your message..."
-                  className="w-full pr-12 p-3 border border-gray-700 rounded-xl bg-gray-800 text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent focus:outline-none"
+                  className="w-full pr-12 p-3 border border-ash-700 rounded-lg bg-ash-800 text-ash-100 focus:ring-2 focus:ring-harvest-500 focus:border-transparent focus:outline-none"
                   disabled={isSending}
                 />
                 <button
@@ -368,8 +368,8 @@ export const ConversationsManagement = ({ initialConversations }: { initialConve
                   className={cn(
                     "absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-full transition-colors",
                     !isSending && newMessage.trim()
-                      ? "bg-indigo-600 hover:bg-indigo-500 text-white"
-                      : "bg-gray-700 text-gray-500 cursor-not-allowed"
+                      ? "bg-harvest-600 hover:bg-harvest-500 text-ash-950"
+                      : "bg-ash-700 text-ash-500 cursor-not-allowed"
                   )}
                 >
                   {isSending ? (
@@ -383,15 +383,15 @@ export const ConversationsManagement = ({ initialConversations }: { initialConve
           </>
         ) : (
           <div className="flex flex-col items-center justify-center h-full p-8 text-center">
-            <div className="bg-gray-800/50 border-2 border-dashed border-gray-700 rounded-2xl p-12 max-w-md">
-              <Bot className="w-16 h-16 mx-auto mb-6 text-gray-500" />
-              <h3 className="text-xl font-semibold text-gray-300 mb-2">No conversation selected</h3>
-              <p className="text-gray-500 mb-6">
+            <div className="bg-ash-800/50 border-2 border-dashed border-ash-700 rounded-lg p-12 max-w-md">
+              <Bot className="w-16 h-16 mx-auto mb-6 text-ash-500" />
+              <h3 className="text-xl font-semibold text-ash-300 mb-2">No conversation selected</h3>
+              <p className="text-ash-500 mb-6">
                 Select a conversation from the list to view messages and interact with the user
               </p>
-              <div className="bg-gray-800 border border-gray-700 rounded-lg p-4 text-sm text-gray-400">
+              <div className="bg-ash-800 border border-ash-700 rounded-lg p-4 text-sm text-ash-400">
                 <p className="font-medium mb-1">Tip:</p>
-                <p>Unread conversations have a <span className="inline-block w-2 h-2 bg-indigo-400 rounded-full"></span> indicator</p>
+                <p>Unread conversations have a <span className="inline-block w-2 h-2 bg-harvest-400 rounded-full"></span> indicator</p>
               </div>
             </div>
           </div>

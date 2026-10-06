@@ -47,26 +47,26 @@ export const Settings = () => {
   }
 
   return (
-    <div className="bg-gray-900/80 border border-gray-700 rounded-xl p-6 backdrop-blur-lg">
+    <div className="bg-ash-900/80 border border-ash-700 rounded-lg p-6 backdrop-blur-lg">
       {/* Header */}
       <div className="flex items-center space-x-3 mb-8">
-        <SettingsIcon className="w-6 h-6 text-indigo-400" />
-        <h2 className="text-2xl font-bold bg-gradient-to-r from-indigo-400 to-cyan-400 bg-clip-text text-transparent">
+        <SettingsIcon className="w-6 h-6 text-harvest-400" />
+        <h2 className="text-2xl font-bold text-ash-100">
           Application Settings
         </h2>
       </div>
 
-      <div className="space-y-8 divide-y divide-gray-700">
+      <div className="space-y-8 divide-y divide-ash-700">
         {/* User Management */}
         <div className="pt-8 first:pt-0">
           <h3 className="text-lg font-medium flex items-center space-x-2 mb-4">
-            <User className="w-5 h-5 text-indigo-400" />
+            <User className="w-5 h-5 text-harvest-400" />
             <span>User Settings</span>
           </h3>
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-white">Allow New User Registrations</p>
-              <p className="text-sm text-gray-400">
+              <p className="text-ash-100">Allow New User Registrations</p>
+              <p className="text-sm text-ash-400">
                 If disabled, only existing users can log in.
               </p>
             </div>
@@ -81,14 +81,14 @@ export const Settings = () => {
         {/* AI Settings */}
         <div className="pt-8">
             <h3 className="text-lg font-medium flex items-center space-x-2 mb-4">
-                <Bot className="w-5 h-5 text-indigo-400" />
+                <Bot className="w-5 h-5 text-harvest-400" />
                 <span>AI & Chatbot Settings</span>
             </h3>
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                   <div>
-                  <p className="text-white">Enable AI Chat Assistant ("Feedy")</p>
-                  <p className="text-sm text-gray-400">
+                  <p className="text-ash-100">Enable AI Chat Assistant ("Feedy")</p>
+                  <p className="text-sm text-ash-400">
                       If disabled, the AI will not respond to new messages.
                   </p>
                   </div>
@@ -100,8 +100,8 @@ export const Settings = () => {
               </div>
                <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-white">Show Chat Widget on Website</p>
-                  <p className="text-sm text-gray-400">
+                  <p className="text-ash-100">Show Chat Widget on Website</p>
+                  <p className="text-sm text-ash-400">
                     Turn the chat bubble on or off for all public visitors.
                   </p>
                 </div>
@@ -119,7 +119,7 @@ export const Settings = () => {
           <button 
             onClick={handleSaveChanges}
             disabled={isSaving}
-            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg flex items-center space-x-2 transition-colors disabled:bg-gray-500"
+            className="px-4 py-2 bg-harvest-600 hover:bg-harvest-500 text-ash-950 rounded-lg flex items-center space-x-2 transition-colors disabled:bg-ash-500"
           >
             {isSaving ? <Loader2 className="w-4 h-4 animate-spin"/> : <Save className="w-4 h-4" />}
             <span>Save Settings</span>

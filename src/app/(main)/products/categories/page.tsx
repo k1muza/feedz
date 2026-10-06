@@ -7,7 +7,7 @@ import { feedProducts } from '@/data/feedProductNutrition';
 import { absoluteUrl, createPageMetadata, serializeJsonLd } from '@/lib/seo';
 
 export const metadata: Metadata = createPageMetadata({
-  title: 'Feed Ingredient Categories',
+  title: 'Feed Ingredient Categories: Protein, Energy, Minerals & More',
   description: 'Browse FeedSport ingredients by nutritional role, including protein feeds, energy feeds, minerals, amino acids and premixes.',
   path: '/products/categories',
 });

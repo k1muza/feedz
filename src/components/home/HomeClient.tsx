@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { FormEvent, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import DesignPlaceholder from '@/components/common/DesignPlaceholder';
-import { animalImages, categoryImages, knowledgeImages, productImages, siteImages } from '@/data/unsplashImages';
+import { animalImages, categoryImages, productImages, siteImages, type UnsplashImage } from '@/data/unsplashImages';
 
 type DisplayProduct = {
   id: string;
@@ -40,13 +40,9 @@ const animals = [
   { id: 'other', name: 'Other livestock', stages: ['Goats & sheep', 'Rabbits'], imageLabel: 'goats and sheep — on farm', ingredients: ['Wheat bran', 'Sunflower meal', 'Sorghum', 'Feed limestone'] },
 ];
 
-const knowledge = [
-  { topic: 'Pig nutrition', title: 'Feeding growers: protein, energy and lysine in practice', imageLabel: 'pigs at the trough' },
-  { topic: 'Feed ingredients', title: 'How to read a feed ingredient specification', imageLabel: 'spec sheet on a bag' },
-  { topic: 'Feed formulation', title: 'Using wheat bran in sow diets', imageLabel: 'wheat bran in hand' },
-];
+export type HomeArticle = { slug: string; title: string; topic: string; image: UnsplashImage };
 
-export default function HomeClient() {
+export default function HomeClient({ articles }: { articles: HomeArticle[] }) {
   const router = useRouter();
   const [query, setQuery] = useState('');
   const [activeAnimal, setActiveAnimal] = useState(animals[0]);
@@ -63,9 +59,9 @@ export default function HomeClient() {
         <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,460px),1fr))] gap-[clamp(28px,4cqi,56px)]">
           <div className="flex flex-col justify-between gap-10">
             <div className="flex flex-col gap-6">
-              <p className="fs-mono m-0 text-[12px] uppercase tracking-[.08em] text-[#4f524b]">Feed ingredients · Animal nutrition · Formulation</p>
+              <p className="fs-mono m-0 text-[12px] uppercase tracking-[.08em] text-[#4f524b]">Feed ingredients · Animal nutrition · Harare, Zimbabwe</p>
               <h1 className="m-0 text-balance text-[clamp(44px,6.6cqi,96px)] font-bold leading-[.96] tracking-[-.035em]">Better feed starts with better ingredients.</h1>
-              <p className="m-0 max-w-[520px] text-pretty text-[clamp(17px,1.5cqi,20px)] leading-[1.5] text-[#3d403a]">Quality feed ingredients and practical nutrition solutions for livestock producers and feed manufacturers.</p>
+              <p className="m-0 max-w-[520px] text-pretty text-[clamp(17px,1.5cqi,20px)] leading-[1.5] text-[#3d403a]">Quality feed ingredients and practical nutrition solutions for livestock producers and feed manufacturers across Zimbabwe.</p>
               <div className="flex flex-wrap gap-3">
                 <Link href="/products" className="fs-button-primary inline-flex items-center gap-2.5 no-underline">Browse ingredients <span>→</span></Link>
                 <Link href="#animals" className="fs-button-secondary inline-flex items-center no-underline">Find a feed solution</Link>
@@ -132,7 +128,7 @@ export default function HomeClient() {
 
       <section className="mt-[clamp(56px,7cqi,96px)] bg-[#1d3a2a] text-white"><div className="fs-frame grid grid-cols-[repeat(auto-fit,minmax(min(100%,400px),1fr))] items-center gap-[clamp(32px,5cqi,72px)] py-[clamp(48px,6cqi,88px)]"><div className="flex flex-col gap-5"><span className="fs-mono text-[12px] uppercase tracking-[.08em] text-[#c9d4c8]">Formulation</span><h2 className="m-0 text-[clamp(36px,4.6cqi,68px)] font-bold leading-[.98] tracking-[-.03em]">Know what goes into your feed.</h2><p className="m-0 max-w-[460px] text-[18px] leading-[1.5] text-[#dfe6dc]">Build or evaluate feed formulations against nutritional requirements.</p><div><Link href="/formulations" className="inline-flex h-[54px] items-center rounded-[4px] bg-[#fbfaf6] px-[26px] text-[16px] font-semibold text-[#1d3a2a] no-underline">Explore formulation →</Link></div></div><div className="rounded-[8px] bg-[#fbfaf6] p-[clamp(18px,2.4cqi,28px)] text-[#191b18] shadow-[0_24px_60px_rgb(0_0_0/.25)]"><div className="flex items-baseline justify-between gap-3 border-b border-[#d9d4c7] pb-3"><b className="text-[17px]">Pig grower diet</b><span className="fs-mono text-[12px] text-[#4f524b]">4 of 6 within target</span></div><div className="my-4 flex h-7 overflow-hidden rounded-[3px]"><i className="w-[70%] bg-[#d99a2b]"/><i className="w-[20%] bg-[#1d3a2a]"/><i className="w-[6%] bg-[#8a9a6b]"/><i className="w-[4%] bg-[#bdb7a9]"/></div>{[['Crude protein', '16.7', '%', 'Within'], ['ME pigs', '3,254', 'kcal/kg', 'Within'], ['Lysine', '0.94', '%', 'Below'], ['Calcium', '0.68', '%', 'Within']].map(([label, value, unit, status]) => <div key={label} className="grid gap-2 border-b border-[#e6e1d5] py-3"><div className="flex items-baseline justify-between gap-3"><b className="text-[14px]">{label}</b><span className="flex items-baseline gap-2.5"><span className="text-[18px] font-semibold tabular-nums">{value}<small className="ml-1 text-[12px] font-normal text-[#4f524b]">{unit}</small></span><span className={`min-w-14 rounded-[3px] px-2 py-[3px] text-center text-[12px] font-bold ${status === 'Below' ? 'bg-[#f6e0d9] text-[#8f3420]' : 'bg-[#e3eadf] text-[#1f5c38]'}`}>{status}</span></span></div><div className="relative h-1.5 rounded-[3px] bg-[#e7e2d6]"><i className="absolute inset-y-0 left-[38%] w-[32%] rounded-sm bg-[#b9cdb5]"/><i className={`absolute -bottom-1 -top-1 w-1 rounded-sm ${status === 'Below' ? 'left-[29%] bg-[#b5452c]' : 'left-[54%] bg-[#2e7d4f]'}`}/></div></div>)}<p className="fs-mono mb-0 mt-3 text-[11px] text-[#4f524b]">Illustrative targets · sample nutrient data</p></div></div></section>
 
-      <section className="fs-frame fs-section pb-[clamp(56px,7cqi,96px)]"><div className="mb-6 flex items-end justify-between gap-4"><h2 className="fs-h2">Knowledge Centre</h2><Link href="/knowledge" className="border-b-[1.5px] border-[#191b18] pb-0.5 font-semibold text-[#191b18] no-underline">All articles →</Link></div><div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,300px),1fr))] gap-4">{knowledge.map((article) => <Link href="/knowledge" key={article.title} className="flex flex-col gap-3.5 text-[#191b18] no-underline"><DesignPlaceholder label={article.imageLabel} image={knowledgeImages[article.imageLabel]} sizes="(min-width: 1024px) 33vw, 100vw" className="aspect-[3/2] rounded-[6px]"/><span className="fs-label font-semibold text-[#1d3a2a]">{article.topic}</span><h3 className="m-0 text-[21px] font-bold leading-[1.2]">{article.title}</h3></Link>)}</div></section>
+      <section className="fs-frame fs-section pb-[clamp(56px,7cqi,96px)]"><div className="mb-6 flex items-end justify-between gap-4"><h2 className="fs-h2">Knowledge Centre</h2><Link href="/knowledge" className="border-b-[1.5px] border-[#191b18] pb-0.5 font-semibold text-[#191b18] no-underline">All articles →</Link></div><div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,300px),1fr))] gap-4">{articles.map((article) => <Link href={`/knowledge/${article.slug}`} key={article.slug} className="flex flex-col gap-3.5 text-[#191b18] no-underline"><DesignPlaceholder label={article.image.alt} image={article.image} sizes="(min-width: 1024px) 33vw, 100vw" className="aspect-[3/2] rounded-[6px]"/><span className="fs-label font-semibold text-[#1d3a2a]">{article.topic}</span><h3 className="m-0 text-[21px] font-bold leading-[1.2]">{article.title}</h3></Link>)}</div></section>
     </main>
   );
 }

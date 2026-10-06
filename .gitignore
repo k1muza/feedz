@@ -44,3 +44,4 @@ next-env.d.ts
 # Google credentials
 google-credentials.json
 *.json
+!.env.example

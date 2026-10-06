@@ -33,7 +33,7 @@ export default function EditIngredientPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-bold text-white mb-6">Edit Ingredient</h1>
+        <h1 className="text-2xl font-bold text-ash-100 mb-6">Edit Ingredient</h1>
         {ingredient && <IngredientForm ingredient={ingredient} />}
       </div>
       

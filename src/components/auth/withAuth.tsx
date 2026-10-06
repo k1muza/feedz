@@ -20,9 +20,9 @@ const withAuth = <P extends object>(Component: React.ComponentType<P>) => {
 
     if (loading || !user) {
       return (
-        <div className="flex items-center justify-center min-h-screen bg-gray-950">
-          <Loader2 className="w-8 h-8 text-white animate-spin" />
-          <p className="ml-2 text-white">Authenticating...</p>
+        <div className="flex items-center justify-center min-h-screen bg-ash-950">
+          <Loader2 className="w-8 h-8 text-ash-100 animate-spin" />
+          <p className="ml-2 text-ash-100">Authenticating...</p>
         </div>
       );
     }

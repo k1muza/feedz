@@ -19,7 +19,7 @@ export default function TermsOfServicePage() {
       />
       <main className="container mx-auto px-4 py-12 max-w-4xl">
         <div className="bg-white p-8 rounded-xl shadow-md border border-gray-100 prose prose-lg max-w-none">
-          <p className="text-sm text-gray-500">Last updated: {new Date().toLocaleDateString()}</p>
+          <p className="text-sm text-gray-500">Last updated: 5 October 2026</p>
           
           <h2>1. Acceptance of Terms</h2>
           <p>
@@ -63,7 +63,7 @@ export default function TermsOfServicePage() {
           
           <h2>8. Contact Us</h2>
           <p>
-            If you have any questions about these Terms, please contact us at legal@feedsport.co.zw.
+            If you have any questions about these Terms, please contact us at sales@feedsport.co.zw.
           </p>
         </div>
       </main>

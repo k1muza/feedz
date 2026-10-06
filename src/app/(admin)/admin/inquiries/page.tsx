@@ -3,6 +3,8 @@ import { getContactInquiries } from '@/app/actions';
 import { InquiryManagement } from '@/components/admin/InquiryManagement';
 import { ContactInquiry } from '@/types';
 
+export const dynamic = 'force-dynamic';
+
 export default async function InquiriesPage() {
   const inquiries: ContactInquiry[] = await getContactInquiries();
 

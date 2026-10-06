@@ -72,17 +72,17 @@ export const AssetSelectionModal = ({ isOpen, onClose, onSelect, multiple = true
 
   return (
     <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-      <div className="bg-gray-800 border border-gray-700 rounded-xl w-full max-w-4xl h-[80vh] flex flex-col">
+      <div className="bg-ash-800 border border-ash-700 rounded-lg w-full max-w-4xl h-[80vh] flex flex-col">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col h-full">
-            <div className="p-4 border-b border-gray-700 flex justify-between items-center flex-shrink-0">
+            <div className="p-4 border-b border-ash-700 flex justify-between items-center flex-shrink-0">
                 <div>
-                    <h3 className="text-lg font-medium text-white">Select an Asset</h3>
+                    <h3 className="text-lg font-medium text-ash-100">Select an Asset</h3>
                     <TabsList className="mt-2">
                         <TabsTrigger value="choose">Choose Existing</TabsTrigger>
                         <TabsTrigger value="upload">Upload New</TabsTrigger>
                     </TabsList>
                 </div>
-                <button onClick={onClose} className="text-gray-400 hover:text-gray-200">
+                <button onClick={onClose} className="text-ash-400 hover:text-ash-200">
                     <X className="w-5 h-5" />
                 </button>
             </div>
@@ -90,17 +90,17 @@ export const AssetSelectionModal = ({ isOpen, onClose, onSelect, multiple = true
             <div className="flex-grow overflow-y-auto">
                 <TabsContent value="choose" className="p-4 h-full">
                     <div className="relative mb-4">
-                        <Search className="absolute top-1/2 left-3 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                        <Search className="absolute top-1/2 left-3 -translate-y-1/2 w-5 h-5 text-ash-400" />
                         <input
                             type="text"
                             placeholder="Search assets..."
-                            className="w-full pl-10 pr-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+                            className="w-full pl-10 pr-4 py-2 bg-ash-700 border border-ash-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-harvest-500/50"
                         />
                     </div>
                     {loading ? (
                         <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-4">
                             {[...Array(12)].map((_, i) => (
-                                <div key={i} className="aspect-square bg-gray-700 rounded-lg animate-pulse" />
+                                <div key={i} className="aspect-square bg-ash-700 rounded-lg animate-pulse" />
                             ))}
                         </div>
                     ) : (
@@ -109,12 +109,12 @@ export const AssetSelectionModal = ({ isOpen, onClose, onSelect, multiple = true
                                 <button 
                                     key={asset.key} 
                                     onClick={() => handleToggleSelection(asset.url)}
-                                    className={`relative group bg-gray-900 rounded-lg overflow-hidden aspect-square border-2 ${selectedAssets.includes(asset.url) ? 'border-indigo-500' : 'border-transparent'}`}
+                                    className={`relative group bg-ash-900 rounded-lg overflow-hidden aspect-square border-2 ${selectedAssets.includes(asset.url) ? 'border-harvest-500' : 'border-transparent'}`}
                                 >
                                     <Image src={asset.url} alt={asset.key} fill className="object-cover" sizes="(max-width: 768px) 33vw, 15vw"/>
                                     {selectedAssets.includes(asset.url) && (
                                         <div className="absolute inset-0 bg-black/70 flex items-center justify-center">
-                                            <CheckCircle className="w-8 h-8 text-indigo-400" />
+                                            <CheckCircle className="w-8 h-8 text-harvest-400" />
                                         </div>
                                     )}
                                 </button>
@@ -127,8 +127,8 @@ export const AssetSelectionModal = ({ isOpen, onClose, onSelect, multiple = true
                 </TabsContent>
             </div>
 
-            <div className="p-4 border-t border-gray-700 flex justify-between items-center flex-shrink-0">
-                <span className="text-sm text-gray-400">
+            <div className="p-4 border-t border-ash-700 flex justify-between items-center flex-shrink-0">
+                <span className="text-sm text-ash-400">
                     {selectedAssets.length} image{selectedAssets.length !== 1 ? 's' : ''} selected
                 </span>
                 <div className="flex space-x-3">

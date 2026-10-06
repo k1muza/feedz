@@ -4,8 +4,8 @@ import FormulationsClient from './FormulationsClient';
 import { createPageMetadata } from '@/lib/seo';
 
 export const metadata: Metadata = createPageMetadata({
-  title: 'Pig Feed Nutrient Calculator',
-  description: 'Check pig feed ingredient inclusion rates against source-backed Brazilian Tables 2024 nutrient requirements.',
+  title: 'Free Pig Feed Formulation Calculator',
+  description: 'Free online pig feed calculator. Check ingredient inclusion rates for energy, lysine, calcium and phosphorus against Brazilian Tables 2024 nutrient requirements for each growth stage.',
   path: '/formulations',
 });
 

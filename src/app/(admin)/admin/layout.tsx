@@ -5,7 +5,6 @@ import {
   AlertCircle,
   Cat,
   Database as DatabaseIcon,
-  Droplet,
   FileText,
   Home,
   Image as ImageIcon,
@@ -96,26 +95,24 @@ function DashboardLayout({ children }: { children: ReactNode }) {
   const toggleSidebar = () => setSidebarCollapsed(!sidebarCollapsed);
 
   return (
-    <div className="flex h-screen bg-gray-950 text-gray-100">
+    <div className="admin-theme flex h-screen bg-ash-950 text-ash-100">
       {/* Sidebar */}
       <aside className={`
         ${sidebarCollapsed ? 'w-16' : 'w-60'} 
-        bg-gray-900/90 backdrop-blur-lg border-r border-gray-800 
+        bg-ash-900 border-r border-ash-700 
         flex flex-col z-10 transition-all duration-300 ease-in-out
       `}>
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-gray-800">
+        <div className="flex items-center justify-between p-4 border-b border-ash-700">
           {!sidebarCollapsed && (
-            <div className="flex items-center space-x-2">
-              <Droplet className="w-6 h-6 text-indigo-400" />
-              <h1 className="text-xl font-bold bg-gradient-to-r from-indigo-400 to-cyan-400 bg-clip-text text-transparent">
-                FeedSport
-              </h1>
+            <div>
+              <p className="fs-label text-ash-400">FeedSport admin</p>
+              <h1 className="m-0 text-xl font-bold tracking-[-.03em] text-ash-100">FeedSport</h1>
             </div>
           )}
           <button 
             onClick={toggleSidebar}
-            className="p-1.5 rounded-md hover:bg-gray-800 text-gray-400 hover:text-gray-200 transition-colors"
+            className="p-1.5 rounded-md hover:bg-ash-800 text-ash-400 hover:text-ash-200 transition-colors"
           >
             {sidebarCollapsed ? <Menu className="w-5 h-5" /> : <X className="w-5 h-5" />}
           </button>
@@ -129,8 +126,8 @@ function DashboardLayout({ children }: { children: ReactNode }) {
               className={`
                 flex items-center w-full p-3 rounded-lg transition-all group relative
                 ${pathname === '/admin' 
-                  ? 'bg-indigo-500/15 text-indigo-400' 
-                  : 'text-gray-400 hover:bg-gray-800/50 hover:text-gray-200'
+                  ? 'bg-harvest-500/15 text-harvest-400' 
+                  : 'text-ash-400 hover:bg-ash-800/50 hover:text-ash-200'
                 }
                 ${sidebarCollapsed ? 'justify-center' : ''}
               `}
@@ -139,7 +136,7 @@ function DashboardLayout({ children }: { children: ReactNode }) {
               <Home className="w-5 h-5" />
               {!sidebarCollapsed && <span className="font-medium ml-3">Analytics</span>}
               {sidebarCollapsed && (
-                <div className="absolute left-full ml-3 px-3 py-2 bg-gray-800 text-white text-sm rounded-md shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
+                <div className="absolute left-full ml-3 px-3 py-2 bg-ash-800 text-ash-100 text-sm rounded-md shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
                   Analytics
                 </div>
               )}
@@ -152,7 +149,7 @@ function DashboardLayout({ children }: { children: ReactNode }) {
               >
                 <CollapsibleTrigger 
                   className={cn(
-                    "flex items-center w-full p-3 rounded-lg text-gray-400 hover:bg-gray-800/50 group/trigger transition-colors",
+                    "flex items-center w-full p-3 rounded-lg text-ash-400 hover:bg-ash-800/50 group/trigger transition-colors",
                     sidebarCollapsed ? "justify-center" : "justify-between"
                   )}
                 >
@@ -170,7 +167,7 @@ function DashboardLayout({ children }: { children: ReactNode }) {
                   )}
                   
                   {sidebarCollapsed && (
-                    <div className="absolute left-full ml-3 px-3 py-2 bg-gray-800 text-white text-sm rounded-md shadow-lg opacity-0 group-hover/trigger:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
+                    <div className="absolute left-full ml-3 px-3 py-2 bg-ash-800 text-ash-100 text-sm rounded-md shadow-lg opacity-0 group-hover/trigger:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
                       {section.title}
                     </div>
                   )}
@@ -184,8 +181,8 @@ function DashboardLayout({ children }: { children: ReactNode }) {
                       className={`
                         flex items-center w-full py-2.5 rounded-lg transition-all group relative
                         ${isLinkActive(path)
-                          ? 'bg-indigo-500/15 text-indigo-400' 
-                          : 'text-gray-400 hover:bg-gray-800/50 hover:text-gray-200'
+                          ? 'bg-harvest-500/15 text-harvest-400' 
+                          : 'text-ash-400 hover:bg-ash-800/50 hover:text-ash-200'
                         }
                         ${sidebarCollapsed ? 'justify-center px-4' : 'px-4 pl-8'}
                       `}
@@ -194,7 +191,7 @@ function DashboardLayout({ children }: { children: ReactNode }) {
                       <Icon className="w-4 h-4" />
                       {!sidebarCollapsed && <span className="font-medium ml-3 text-sm">{label}</span>}
                       {sidebarCollapsed && (
-                        <div className="absolute left-full ml-3 px-3 py-2 bg-gray-800 text-white text-sm rounded-md shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
+                        <div className="absolute left-full ml-3 px-3 py-2 bg-ash-800 text-ash-100 text-sm rounded-md shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
                           {label}
                         </div>
                       )}
@@ -207,23 +204,23 @@ function DashboardLayout({ children }: { children: ReactNode }) {
         </nav>
         
         {/* User Profile */}
-        <div className="p-4 border-t border-gray-800">
+        <div className="p-4 border-t border-ash-700">
           <div className={`flex items-center group ${sidebarCollapsed ? 'justify-center' : 'space-x-3'}`}>
-            <div className="w-8 h-8 rounded-full bg-indigo-500/20 flex items-center justify-center shrink-0">
-              <User className="w-4 h-4 text-indigo-400" />
+            <div className="w-8 h-8 rounded-full bg-harvest-500/20 flex items-center justify-center shrink-0">
+              <User className="w-4 h-4 text-harvest-400" />
             </div>
             
             {!sidebarCollapsed && (
               <div className="min-w-0">
                 <p className="text-sm font-medium truncate">{user?.displayName || 'Admin'}</p>
-                <p className="text-xs text-gray-500 truncate">{user?.email}</p>
+                <p className="text-xs text-ash-500 truncate">{user?.email}</p>
               </div>
             )}
             
             {sidebarCollapsed && (
-              <div className="absolute left-full ml-3 px-3 py-2 bg-gray-800 text-white text-sm rounded-md shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none w-48">
+              <div className="absolute left-full ml-3 px-3 py-2 bg-ash-800 text-ash-100 text-sm rounded-md shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none w-48">
                 <p className="font-medium truncate">{user?.displayName || 'Admin'}</p>
-                <p className="text-gray-300 text-xs truncate mt-1">{user?.email}</p>
+                <p className="text-ash-300 text-xs truncate mt-1">{user?.email}</p>
               </div>
             )}
           </div>
@@ -232,22 +229,22 @@ function DashboardLayout({ children }: { children: ReactNode }) {
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        <header className="flex items-center justify-between px-6 py-4 bg-gray-900/80 backdrop-blur-lg border-b border-gray-800 z-10">
+        <header className="flex items-center justify-between px-6 py-4 bg-ash-900 border-b border-ash-700 z-10">
           <div className="flex items-center">
             <button 
               onClick={toggleSidebar}
-              className="mr-4 p-1.5 rounded-md hover:bg-gray-800 text-gray-400 hover:text-gray-200 transition-colors md:hidden"
+              className="mr-4 p-1.5 rounded-md hover:bg-ash-800 text-ash-400 hover:text-ash-200 transition-colors md:hidden"
             >
               <Menu className="w-5 h-5" />
             </button>
-            <h2 className="text-lg font-semibold text-gray-100">
+            <h2 className="text-lg font-semibold text-ash-100">
               {navSections.flatMap(s => s.links).find(item => isLinkActive(item.path))?.label || 'Analytics'}
             </h2>
           </div>
           
           <button 
             onClick={logout}
-            className="flex items-center space-x-2 bg-gray-800 hover:bg-red-900/50 px-3 py-2 rounded-lg transition-colors text-red-400"
+            className="flex items-center space-x-2 border border-ash-700 px-3 py-2 rounded-[4px] transition-colors text-ash-300 hover:border-[#8f3420] hover:bg-[#3a1d16] hover:text-[#f6e0d9]"
           >
             <LogOut className="w-4 h-4" />
             <span className="text-sm">Logout</span>
@@ -255,15 +252,11 @@ function DashboardLayout({ children }: { children: ReactNode }) {
         </header>
 
         <main className="flex-1 p-6 overflow-auto relative">
-          <div className="absolute inset-0 -z-10 opacity-10 pointer-events-none">
-            <div className="absolute inset-0 bg-[radial-gradient(#2e2e2e_1px,transparent_1px)] [background-size:16px_16px]"></div>
-          </div>
-          
           {children}
         </main>
       </div>
 
-      <Toaster position="top-right" />
+      <Toaster position="top-right" toastOptions={{ style: { background: '#2b2d29', color: '#f3f0e8', border: '1px solid #45473f', borderRadius: '4px' } }} />
     </div>
   );
 }

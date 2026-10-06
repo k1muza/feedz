@@ -1,91 +1,44 @@
-
 'use client';
 
 import { useState } from 'react';
-import { FiMail } from 'react-icons/fi';
 import { saveNewsletterSubscription } from '@/app/actions';
+import { isSupabaseConfigured } from '@/lib/supabase/config';
 
-export default function NewsletterSignup() {
+export default function NewsletterSignup({ className = '' }: { className?: string }) {
   const [email, setEmail] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isSuccess, setIsSuccess] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [status, setStatus] = useState<{ ok: boolean; message: string } | null>(null);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  if (!isSupabaseConfigured) return null;
+
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
     setIsSubmitting(true);
-    setIsSuccess(false);
-    setError(null);
-
+    setStatus(null);
     const result = await saveNewsletterSubscription(email);
-    
     setIsSubmitting(false);
-
     if (result.success) {
-      setIsSuccess(true);
       setEmail('');
-      setTimeout(() => setIsSuccess(false), 5000);
+      setStatus({ ok: true, message: 'Thanks. We’ll email you when we publish a new guide.' });
     } else {
-      setError(result.error || 'An unexpected error occurred.');
-      setTimeout(() => setError(null), 5000);
+      setStatus({ ok: false, message: result.error || 'Something went wrong. Please try again.' });
     }
   };
 
   return (
-    <div className="bg-green-50 border border-green-100 rounded-xl p-6">
-      <div className="flex items-center gap-3 mb-4">
-        <div className="bg-green-100 p-2 rounded-full">
-          <FiMail className="text-green-600 text-xl" />
-        </div>
-        <h3 className="font-bold text-lg">Stay Updated</h3>
+    <section className={`grid grid-cols-[repeat(auto-fit,minmax(min(100%,320px),1fr))] items-center gap-5 rounded-[6px] border border-[#d9d4c7] bg-[#fbfaf6] p-[clamp(20px,3cqi,32px)] ${className}`}>
+      <div>
+        <h2 className="m-0 text-[22px] font-bold">Get new guides by email</h2>
+        <p className="mb-0 mt-1.5 text-[15px] leading-[1.5] text-[#4f524b]">Practical feed and nutrition articles, about once a month. Unsubscribe any time.</p>
       </div>
-      
-      <p className="text-gray-600 mb-4">
-        Get the latest articles and industry insights delivered to your inbox
-      </p>
-      
-      <form onSubmit={handleSubmit} className="space-y-3">
-        <div>
+      <form onSubmit={handleSubmit} className="flex flex-col gap-2">
+        <div className="flex gap-2">
           <label htmlFor="newsletter-email" className="sr-only">Email address</label>
-          <input
-            type="email"
-            id="newsletter-email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            placeholder="Your email address"
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-          />
+          <input id="newsletter-email" type="email" required autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@farm.co.zw" className="h-[46px] min-w-0 flex-1 rounded-[4px] border border-[#d9d4c7] bg-white px-3.5 text-[16px] outline-none focus:border-[#1d3a2a]" />
+          <button type="submit" disabled={isSubmitting} className="h-[46px] shrink-0 rounded-[4px] bg-[#1d3a2a] px-4 text-[15px] font-semibold text-white disabled:opacity-60">{isSubmitting ? 'Subscribing…' : 'Subscribe'}</button>
         </div>
-        
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className={`w-full py-2 px-4 rounded-lg font-medium transition-colors ${
-            isSubmitting
-              ? 'bg-green-300 cursor-not-allowed'
-              : 'bg-green-600 hover:bg-green-700 text-white'
-          }`}
-        >
-          {isSubmitting ? 'Subscribing...' : 'Subscribe'}
-        </button>
-        
-        {isSuccess && (
-          <div className="p-3 bg-green-100 text-green-700 rounded-lg text-sm">
-            Thank you for subscribing!
-          </div>
-        )}
-
-        {error && (
-          <div className="p-3 bg-red-100 text-red-700 rounded-lg text-sm">
-            {error}
-          </div>
-        )}
+        {status && <p role="status" className={`m-0 text-[14px] ${status.ok ? 'text-[#1f5c38]' : 'text-[#8f3420]'}`}>{status.message}</p>}
       </form>
-      
-      <p className="text-xs text-gray-500 mt-3">
-        We respect your privacy. Unsubscribe at any time.
-      </p>
-    </div>
+    </section>
   );
 }

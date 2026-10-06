@@ -3,6 +3,8 @@ import { getAllPolicies } from '@/app/actions';
 import { PolicyManagement } from '@/components/admin/PolicyManagement';
 import { Policy } from '@/types';
 
+export const dynamic = 'force-dynamic';
+
 export default async function PoliciesAdminPage() {
   const policies: Policy[] = await getAllPolicies();
   return (

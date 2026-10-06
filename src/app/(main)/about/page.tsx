@@ -5,7 +5,7 @@ import { siteImages } from '@/data/unsplashImages';
 import { createPageMetadata } from '@/lib/seo';
 
 export const metadata: Metadata = createPageMetadata({
-  title: 'About FeedSport',
+  title: 'About Us: Feed Ingredients and Nutrition Support in Harare',
   description: 'FeedSport combines dependable feed ingredients with practical animal nutrition support for farmers and feed manufacturers in Zimbabwe.',
   path: '/about',
 });

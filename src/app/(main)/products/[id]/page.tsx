@@ -7,7 +7,9 @@ import FeedProductCard from '@/components/products/FeedProductCard';
 import ProductSpecification from '@/components/products/ProductSpecification';
 import { animalNames } from '@/data/feedProducts';
 import { feedProducts, getFeedProduct } from '@/data/feedProductNutrition';
-import { absoluteUrl, breadcrumbJsonLd, createPageMetadata, serializeJsonLd } from '@/lib/seo';
+import { articlesForIngredient } from '@/data/knowledgeArticles';
+import { getPublishedArticles } from '@/lib/content';
+import { absoluteUrl, breadcrumbJsonLd, createPageMetadata, serializeJsonLd, siteConfig } from '@/lib/seo';
 
 type Props = { params: Promise<{ id: string }> };
 
@@ -15,12 +17,18 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
   const product = getFeedProduct(id);
   if (!product) return { title: 'Product not found', robots: { index: false } };
+  const image = productImages[product.id];
   return createPageMetadata({
-    title: `${product.name} Specifications & Nutrition`,
-    description: `${product.description} View typical specifications, packaging, availability and minimum order information from FeedSport.`,
+    title: `${product.name} Supplier in Zimbabwe | Specs & Nutrition | FeedSport`,
+    absoluteTitle: true,
+    description: `${product.description} Typical nutrient specification, ${product.packaging.toLowerCase()}, minimum order ${product.moq}. Quotes from FeedSport, Harare.`,
     path: `/products/${product.id}`,
+    keywords: [`${product.name} Zimbabwe`, `${product.name} for animal feed`, `${product.name} supplier Harare`, product.category.toLowerCase()],
+    image: image ? { url: `${image.src}?w=1200&h=630&fit=crop&q=80`, width: 1200, height: 630, alt: image.alt } : undefined,
   });
 }
+
+export const revalidate = 3600;
 
 export function generateStaticParams() {
   return feedProducts.map((product) => ({ id: product.id }));
@@ -31,6 +39,7 @@ export default async function ProductPage({ params }: Props) {
   const product = getFeedProduct(id);
   if (!product) notFound();
 
+  const guides = articlesForIngredient(await getPublishedArticles(), product.id).slice(0, 3);
   const related = feedProducts.filter((item) => item.id !== product.id && (item.category === product.category || item.animals.some((animal) => product.animals.includes(animal)))).slice(0, 4);
   const quoteText = encodeURIComponent(`Please quote ${product.name} — minimum order ${product.moq}`);
   const certificateText = encodeURIComponent(`Please send me the latest certificate of analysis for ${product.name}.`);
@@ -45,6 +54,9 @@ export default async function ProductPage({ params }: Props) {
         description: product.description,
         sku: product.id,
         category: product.category,
+        ...(productImages[product.id] ? { image: productImages[product.id].src } : {}),
+        brand: { '@type': 'Brand', name: siteConfig.shortName },
+        seller: { '@id': `${siteConfig.url}/#organization` },
         url: absoluteUrl(`/products/${product.id}`),
         additionalProperty: product.specs.map((spec) => ({
           '@type': 'PropertyValue',
@@ -92,6 +104,8 @@ export default async function ProductPage({ params }: Props) {
       <ProductSpecification product={product} comparisonProducts={feedProducts} certificateUrl={`https://wa.me/263774684534?text=${certificateText}`} />
 
       <section className="mt-10 flex flex-wrap items-center gap-2.5 border-y border-[#d9d4c7] py-[18px]"><span className="fs-label mr-2 text-[#4f524b]">Used in feed for</span>{product.animals.map((animal) => <Link key={animal} href={`/products?animal=${animal}`} className="inline-flex h-[34px] items-center rounded-full bg-[#e3eadf] px-3.5 text-[14px] font-semibold text-[#1d3a2a] no-underline">{animalNames[animal]}</Link>)}<span className="flex-1" /><Link href="/formulations" className="text-[15px] font-semibold text-[#1d3a2a] no-underline">Use in a formulation →</Link></section>
+
+      {guides.length > 0 && <section className="mt-[clamp(48px,6cqi,72px)]"><div className="mb-5 flex flex-wrap items-end justify-between gap-4"><h2 className="m-0 text-[clamp(26px,2.6cqi,36px)] font-bold tracking-[-.02em]">Guides that use {product.name.toLowerCase()}</h2><Link href="/knowledge" className="border-b-[1.5px] border-[#191b18] pb-0.5 font-semibold text-[#191b18] no-underline">All guides →</Link></div><div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,300px),1fr))] gap-4">{guides.map((guide) => <Link key={guide.slug} href={`/knowledge/${guide.slug}`} className="flex flex-col gap-1.5 rounded-[6px] border border-[#d9d4c7] bg-[#fbfaf6] px-[18px] py-4 text-[#191b18] no-underline"><span className="fs-label font-semibold text-[#1d3a2a]">{guide.topic}</span><b className="text-[18px] leading-[1.25]">{guide.title}</b><span className="text-[14px] leading-[1.45] text-[#4f524b]">{guide.description}</span></Link>)}</div></section>}
 
       {related.length > 0 && <section className="mt-[clamp(48px,6cqi,72px)]"><h2 className="mb-5 mt-0 text-[clamp(26px,2.6cqi,36px)] font-bold tracking-[-.02em]">Related ingredients</h2><div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,270px),1fr))] gap-4">{related.map((item) => <FeedProductCard key={item.id} product={item} showDescription={false} />)}</div></section>}
     </main>

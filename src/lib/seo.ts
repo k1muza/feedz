@@ -30,31 +30,50 @@ type PageMetadataOptions = {
   title: string;
   description: string;
   path: string;
+  // Bypass the "| FeedSport International" title template, for titles that already name the brand.
+  absoluteTitle?: boolean;
+  image?: { url: string; alt: string; width?: number; height?: number };
+  keywords?: string[];
+  noIndex?: boolean;
+  article?: {
+    publishedTime: string;
+    modifiedTime: string;
+    authors: string[];
+    section: string;
+    tags: string[];
+  };
 };
 
 export function createPageMetadata({
   title,
   description,
   path,
+  absoluteTitle = false,
+  image = socialImage,
+  keywords,
+  noIndex = false,
+  article,
 }: PageMetadataOptions): Metadata {
   return {
-    title,
+    title: absoluteTitle ? { absolute: title } : title,
     description,
+    keywords,
     alternates: { canonical: path },
+    robots: noIndex ? { index: false, follow: true } : undefined,
     openGraph: {
       title,
       description,
       url: path,
       siteName: siteConfig.name,
       locale: 'en_ZW',
-      type: 'website',
-      images: [socialImage],
+      images: [image],
+      ...(article ? { type: 'article', ...article } : { type: 'website' }),
     },
     twitter: {
       card: 'summary_large_image',
       title,
       description,
-      images: [socialImage.url],
+      images: [image.url],
     },
   };
 }

@@ -1,12 +1,12 @@
 
-'use client';
-
 import { InvoiceForm } from '@/components/admin/InvoiceForm';
+import { getAllProducts } from '@/app/actions';
 
-export default function CreateInvoicePage() {
+export default async function CreateInvoicePage() {
+  const products = await getAllProducts();
   return (
     <div>
-      <InvoiceForm />
+      <InvoiceForm products={products} />
     </div>
   );
 }

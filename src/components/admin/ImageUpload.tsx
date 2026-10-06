@@ -97,20 +97,20 @@ export const ImageUpload = ({ onUploadSuccess }: ImageUploadProps) => {
       <div
         {...getRootProps()}
         className={`w-full flex flex-col items-center justify-center p-8 border-2 border-dashed rounded-lg cursor-pointer transition-colors
-          ${isDragActive ? 'border-indigo-400 bg-gray-700/50' : 'border-gray-600 hover:border-indigo-500'}`}
+          ${isDragActive ? 'border-harvest-400 bg-ash-700/50' : 'border-ash-600 hover:border-harvest-500'}`}
       >
         <input {...getInputProps()} />
-        <UploadCloud className="w-12 h-12 text-gray-400 mb-2" />
-        <p className="text-gray-300">
+        <UploadCloud className="w-12 h-12 text-ash-400 mb-2" />
+        <p className="text-ash-300">
           {isDragActive ? 'Drop the image here...' : 'Drag & drop an image here, or click to select'}
         </p>
-        <p className="text-xs text-gray-500 mt-1">PNG, JPG, GIF up to 10MB</p>
+        <p className="text-xs text-ash-500 mt-1">PNG, JPG, GIF up to 10MB</p>
       </div>
 
       {error && <p className="text-sm text-red-400 text-center">{error}</p>}
 
       {file && !isSuccess && (
-        <div className="bg-gray-700/50 p-4 rounded-lg space-y-3 w-full max-w-sm">
+        <div className="bg-ash-700/50 p-4 rounded-lg space-y-3 w-full max-w-sm">
           <div className="flex items-center gap-3">
             <div className="flex-shrink-0">
               <Image 
@@ -122,10 +122,10 @@ export const ImageUpload = ({ onUploadSuccess }: ImageUploadProps) => {
               />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-white truncate">{file.name}</p>
-              <p className="text-xs text-gray-400">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
+              <p className="text-sm font-medium text-ash-100 truncate">{file.name}</p>
+              <p className="text-xs text-ash-400">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
             </div>
-             <button onClick={() => setFile(null)} className="text-gray-400 hover:text-white">
+             <button onClick={() => setFile(null)} className="text-ash-400 hover:text-ash-100">
               <X className="w-4 h-4" />
             </button>
           </div>
@@ -145,7 +145,7 @@ export const ImageUpload = ({ onUploadSuccess }: ImageUploadProps) => {
        <Button
         onClick={handleUpload}
         disabled={!file || isUploading || isSuccess}
-        className="mt-4 bg-indigo-600 hover:bg-indigo-500 text-white disabled:bg-gray-600 disabled:cursor-not-allowed"
+        className="mt-4 bg-harvest-600 hover:bg-harvest-500 text-ash-950 disabled:bg-ash-600 disabled:cursor-not-allowed"
       >
         {isUploading ? `Uploading ${uploadProgress}%...` : 'Upload to S3'}
       </Button>

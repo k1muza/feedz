@@ -110,30 +110,30 @@ export const NutrientCompositionManager = ({
   }
 
   return (
-    <div className="bg-gray-800/50 border border-gray-700 rounded-xl p-6">
-      <h3 className="text-lg font-semibold text-white mb-4">Manage Nutrient Composition</h3>
+    <div className="bg-ash-800/50 border border-ash-700 rounded-lg p-6">
+      <h3 className="text-lg font-semibold text-ash-100 mb-4">Manage Nutrient Composition</h3>
       
-      <div className="max-h-96 overflow-y-auto mb-6 border border-gray-700 rounded-lg">
-        <table className="min-w-full divide-y divide-gray-700">
-            <thead className="bg-gray-800 sticky top-0">
+      <div className="max-h-96 overflow-y-auto mb-6 border border-ash-700 rounded-lg">
+        <table className="min-w-full divide-y divide-ash-700">
+            <thead className="bg-ash-800 sticky top-0">
                 <tr>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-400 uppercase">Nutrient</th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-400 uppercase">Value</th>
-                    <th className="px-4 py-2 text-right text-xs font-medium text-gray-400 uppercase">Actions</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-ash-400 uppercase">Nutrient</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-ash-400 uppercase">Value</th>
+                    <th className="px-4 py-2 text-right text-xs font-medium text-ash-400 uppercase">Actions</th>
                 </tr>
             </thead>
-            <tbody className="divide-y divide-gray-700">
+            <tbody className="divide-y divide-ash-700">
                 {compositions.map((comp) => (
-                    <tr key={comp.nutrientId} className="hover:bg-gray-700/50">
-                        <td className="px-4 py-2 text-sm text-white">{comp.nutrient?.name || 'Unknown Nutrient'}</td>
-                        <td className="px-4 py-2 text-sm text-gray-400">
+                    <tr key={comp.nutrientId} className="hover:bg-ash-700/50">
+                        <td className="px-4 py-2 text-sm text-ash-100">{comp.nutrient?.name || 'Unknown Nutrient'}</td>
+                        <td className="px-4 py-2 text-sm text-ash-400">
                           {editingRow?.id === comp.nutrientId ? (
                              <input 
                                 type="number"
                                 step="any"
                                 value={editingRow.value}
                                 onChange={(e) => handleEditValueChange(e.target.value)}
-                                className="w-24 bg-gray-600 border-gray-500 rounded-md p-1"
+                                className="w-24 bg-ash-600 border-ash-500 rounded-md p-1"
                                 autoFocus
                               />
                           ) : (
@@ -146,7 +146,7 @@ export const NutrientCompositionManager = ({
                                     <Check className="w-4 h-4" />
                                 </button>
                             ) : (
-                                <button onClick={() => setEditingRow({id: comp.nutrientId, value: comp.value})} className="text-indigo-400 hover:text-indigo-300 p-1 rounded-md mr-2">
+                                <button onClick={() => setEditingRow({id: comp.nutrientId, value: comp.value})} className="text-harvest-400 hover:text-harvest-300 p-1 rounded-md mr-2">
                                     <Edit className="w-4 h-4" />
                                 </button>
                             )}
@@ -158,7 +158,7 @@ export const NutrientCompositionManager = ({
                 ))}
                  {compositions.length === 0 && (
                     <tr>
-                        <td colSpan={3} className="text-center py-4 text-gray-500">No compositions added yet.</td>
+                        <td colSpan={3} className="text-center py-4 text-ash-500">No compositions added yet.</td>
                     </tr>
                 )}
             </tbody>
@@ -172,7 +172,7 @@ export const NutrientCompositionManager = ({
                 <Button
                   variant="outline"
                   role="combobox"
-                  className="w-full justify-between bg-gray-700 border-gray-600 hover:bg-gray-600"
+                  className="w-full justify-between bg-ash-700 border-ash-600 hover:bg-ash-600"
                 >
                   {form.watch('nutrientId')
                     ? allNutrients.find((n) => n.id === form.watch('nutrientId'))?.name
@@ -211,11 +211,11 @@ export const NutrientCompositionManager = ({
             step="any"
             placeholder="Value"
             {...form.register('value')}
-            className="w-full bg-gray-700 border-gray-600 rounded-md p-2"
+            className="w-full bg-ash-700 border-ash-600 rounded-md p-2"
           />
           {form.formState.errors.value && <p className="text-red-500 text-xs mt-1">{form.formState.errors.value.message}</p>}
         </div>
-        <Button type="submit" disabled={isSubmitting} className="bg-indigo-600 hover:bg-indigo-500 w-full md:w-auto">
+        <Button type="submit" disabled={isSubmitting} className="bg-harvest-600 hover:bg-harvest-500 w-full md:w-auto">
           {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin"/> : <Plus className="w-4 h-4" />}
           <span className="ml-2">Add</span>
         </Button>

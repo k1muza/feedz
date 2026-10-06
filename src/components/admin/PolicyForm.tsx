@@ -69,21 +69,21 @@ export const PolicyForm = ({ policy }: PolicyFormProps) => {
     <>
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
         <div className="flex mb-4 justify-between items-center">
-            <h1 className="text-2xl font-bold text-white">
+            <h1 className="text-2xl font-bold text-ash-100">
                 {policy ? 'Edit Policy' : 'Create New Policy'}
             </h1>
             <div className="flex justify-end space-x-3">
             <button
                 type="button"
                 onClick={() => router.back()}
-                className="px-4 py-2 border border-gray-600 hover:bg-gray-700 rounded-lg transition-colors"
+                className="px-4 py-2 border border-ash-600 hover:bg-ash-700 rounded-lg transition-colors"
             >
                 Cancel
             </button>
             <button
                 type="submit"
                 disabled={isSubmitting}
-                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg flex items-center space-x-2 transition-colors disabled:bg-gray-500 disabled:cursor-not-allowed"
+                className="px-4 py-2 bg-harvest-600 hover:bg-harvest-500 text-ash-950 rounded-lg flex items-center space-x-2 transition-colors disabled:bg-ash-500 disabled:cursor-not-allowed"
             >
                 <Save className="w-4 h-4" />
                 <span>{isSubmitting ? 'Saving...' : (policy ? 'Save Changes' : 'Publish Policy')}</span>
@@ -99,28 +99,28 @@ export const PolicyForm = ({ policy }: PolicyFormProps) => {
           </Alert>
         )}
         
-        <div className="space-y-6 bg-gray-800/50 border border-gray-700 rounded-xl p-6">
+        <div className="space-y-6 bg-ash-800/50 border border-ash-700 rounded-lg p-6">
             <div>
-            <label htmlFor="title" className="block text-sm font-medium text-gray-300">
+            <label htmlFor="title" className="block text-sm font-medium text-ash-300">
                 Policy Title
             </label>
             <input
                 id="title"
                 type="text"
                 {...register('title')}
-                className="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm p-2"
+                className="mt-1 block w-full bg-ash-700 border-ash-600 rounded-md shadow-sm focus:ring-harvest-500 focus:border-harvest-500 sm:text-sm p-2"
             />
             {errors.title && <p className="text-red-500 text-xs mt-1">{errors.title.message}</p>}
             </div>
             <div>
-            <label htmlFor="content" className="block text-sm font-medium text-gray-300 mb-2">
+            <label htmlFor="content" className="block text-sm font-medium text-ash-300 mb-2">
                 Policy Content (Markdown)
             </label>
             <textarea
                 id="content"
                 rows={15}
                 {...register('content')}
-                className="mt-1 block w-full bg-gray-900 border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm p-2 font-mono"
+                className="mt-1 block w-full bg-ash-900 border-ash-600 rounded-md shadow-sm focus:ring-harvest-500 focus:border-harvest-500 sm:text-sm p-2 font-mono"
                 placeholder="Write your policy content using Markdown..."
             />
             {errors.content && <p className="text-red-500 text-xs mt-1">{errors.content.message}</p>}
@@ -128,7 +128,7 @@ export const PolicyForm = ({ policy }: PolicyFormProps) => {
                 href="https://www.markdownguide.org/basic-syntax/"
                 target="_blank"
                 rel="noreferrer"
-                className="text-xs text-gray-400 hover:text-indigo-400 mt-2 inline-block"
+                className="text-xs text-ash-400 hover:text-harvest-400 mt-2 inline-block"
             >
                 Markdown syntax guide
             </a>

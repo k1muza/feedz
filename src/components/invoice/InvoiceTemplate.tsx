@@ -21,7 +21,7 @@ interface ClientInfo {
 }
 
 interface InvoiceItem {
-    id: number;
+    id: string | number;
     description: string;
     quantity: number;
     price: number;
@@ -63,7 +63,7 @@ const InvoiceTemplateOptimized: React.FC<InvoiceTemplateProps> = ({ invoiceData 
             city: 'Harare',
             phone: '(+263) 774 684 534',
             email: 'accounts@feedsport.co.zw',
-            taxId: 'TAX-123-456-789',
+            taxId: '',
             logo: '/fav.webp'
         },
         client: {
@@ -77,10 +77,10 @@ const InvoiceTemplateOptimized: React.FC<InvoiceTemplateProps> = ({ invoiceData 
             { id: Date.now(), description: '', quantity: 1, price: 0 }
         ],
         bank: {
-            name: 'NMB Bank',
-            accountName: 'FeedSport Enterprises',
-            accountNumber: '0123456789',
-            branch: 'Borrowdale Branch'
+            name: '',
+            accountName: '',
+            accountNumber: '',
+            branch: ''
         },
         taxRate: 0.1,
         notes: 'Thank you for your business! Payment due within 7 days.',
@@ -91,9 +91,9 @@ const InvoiceTemplateOptimized: React.FC<InvoiceTemplateProps> = ({ invoiceData 
     const [data, setData] = useState<InvoiceData>(() => ({
         ...defaultData,
         ...invoiceData,
-        invoiceNumber: `INV-${new Date().getTime()}`,
-        date: new Date().toISOString().split('T')[0],
-        dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        invoiceNumber: invoiceData?.invoiceNumber || `INV-${new Date().getTime()}`,
+        date: invoiceData?.date || new Date().toISOString().split('T')[0],
+        dueDate: invoiceData?.dueDate || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
         items: invoiceData?.items?.length ? (invoiceData.items as InvoiceItem[]) : defaultData.items
     }));
 
@@ -195,10 +195,6 @@ const InvoiceTemplateOptimized: React.FC<InvoiceTemplateProps> = ({ invoiceData 
             box-shadow: none !important;
             border: none !important;
           }
-          . {
-            -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
-          }
         }
       `}</style>
 
@@ -293,7 +289,7 @@ const InvoiceTemplateOptimized: React.FC<InvoiceTemplateProps> = ({ invoiceData 
                         <h3 className="font-semibold text-lg mb-2 print:text-base">Company Info</h3>
                         <p className="text-sm text-gray-600 print:text-xs">Phone: {data.company.phone}</p>
                         <p className="text-sm text-gray-600 print:text-xs">Email: {data.company.email}</p>
-                        <p className="text-sm text-gray-600 print:text-xs">Tax ID: {data.company.taxId}</p>
+                        {data.company.taxId && <p className="text-sm text-gray-600 print:text-xs">Tax ID: {data.company.taxId}</p>}
                     </div>
                 </section>
 

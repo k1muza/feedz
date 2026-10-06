@@ -29,7 +29,7 @@ export default function DesignPlaceholder({
   return (
     <div className={`fs-placeholder ${strong ? 'fs-placeholder--strong' : ''} ${compact ? 'fs-placeholder--compact' : ''} ${className}`}>
       {image ? (
-        <Image src={image.src} alt={image.alt} title={`Photo: ${image.photographer} on Unsplash`} fill sizes={sizes} priority={priority} className="object-cover" />
+        <Image src={image.src} alt={image.alt} title={image.photographer ? `Photo: ${image.photographer}` : undefined} fill sizes={sizes} priority={priority} className="object-cover" />
       ) : (
         <span className={`fs-placeholder__label ${labelPosition === 'top' ? 'fs-placeholder__label--top' : ''}`}>{label}</span>
       )}

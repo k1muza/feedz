@@ -73,7 +73,8 @@ const createInvoiceTool = ai.defineTool(
       const itemTotal = item.quantity * product.price;
       totalAmount += itemTotal;
       return {
-        id: product.id,
+        id: crypto.randomUUID(),
+        productId: product.id,
         description: item.productName,
         quantity: item.quantity,
         price: product.price,
@@ -95,10 +96,10 @@ const createInvoiceTool = ai.defineTool(
       notes: 'Thank you for your business!',
       paymentTerms: 'Payment due within 30 days.',
       bank: {
-          name: 'NMB Bank',
-          accountName: 'FeedSport Enterprises',
-          accountNumber: '0123456789',
-          branch: 'Borrowdale Branch'
+          name: '',
+          accountName: '',
+          accountNumber: '',
+          branch: ''
       },
     });
 
@@ -142,7 +143,6 @@ export const invoiceFlow = ai.defineFlow(
         content: [{ text: msg.content }],
       })),
       tools: [getProductInfoTool, createInvoiceTool],
-      cache: { enabled: false },
     });
     return text;
   }

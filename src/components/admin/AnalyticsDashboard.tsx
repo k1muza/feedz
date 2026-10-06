@@ -32,10 +32,10 @@ interface Country {
 
 const DeviceIcon = ({ name }: { name: string }) => {
     switch (name.toLowerCase()) {
-        case 'desktop': return <Laptop className="w-5 h-5 text-indigo-400" />;
-        case 'mobile': return <Smartphone className="w-5 h-5 text-indigo-400" />;
-        case 'tablet': return <Tablet className="w-5 h-5 text-indigo-400" />;
-        default: return <Monitor className="w-5 h-5 text-indigo-400" />;
+        case 'desktop': return <Laptop className="w-5 h-5 text-harvest-400" />;
+        case 'mobile': return <Smartphone className="w-5 h-5 text-harvest-400" />;
+        case 'tablet': return <Tablet className="w-5 h-5 text-harvest-400" />;
+        default: return <Monitor className="w-5 h-5 text-harvest-400" />;
     }
 }
 
@@ -43,8 +43,8 @@ const DeviceIcon = ({ name }: { name: string }) => {
 const CustomTooltip = ({ active, payload }: TooltipProps<number, string>) => {
   if (active && payload && payload.length) {
     return (
-      <div className="bg-gray-800 p-2 border border-gray-700 rounded-lg shadow-lg">
-        <p className="text-gray-200">{`${payload[0].name} : ${payload[0].value}`}</p>
+      <div className="bg-ash-800 p-2 border border-ash-700 rounded-lg shadow-lg">
+        <p className="text-ash-200">{`${payload[0].name} : ${payload[0].value}`}</p>
       </div>
     );
   }
@@ -186,17 +186,17 @@ export const AnalyticsDashboard = () => {
   };
   
   const tooltipStyle = {
-    backgroundColor: '#1f2937', 
-    border: '1px solid #374151', 
+    backgroundColor: '#2b2d29', 
+    border: '1px solid #45473f', 
     borderRadius: '0.5rem',
   };
 
   if (loading) {
     return (
       <div className="space-y-8 mb-8">
-        <h2 className="text-2xl font-bold text-white">Analytics Overview</h2>
+        <h2 className="text-2xl font-bold text-ash-100">Analytics Overview</h2>
         <div className="flex items-center justify-center h-64">
-          <div className="text-gray-400">Loading analytics data...</div>
+          <div className="text-ash-400">Loading analytics data...</div>
         </div>
       </div>
     );
@@ -205,8 +205,8 @@ export const AnalyticsDashboard = () => {
   if (error && !realtimeData) {
     return (
       <div className="space-y-8 mb-8">
-        <h2 className="text-2xl font-bold text-white">Analytics Overview</h2>
-        <div className="bg-red-900/20 border border-red-700 rounded-xl p-5">
+        <h2 className="text-2xl font-bold text-ash-100">Analytics Overview</h2>
+        <div className="bg-red-900/20 border border-red-700 rounded-lg p-5">
           <p className="text-red-400">Error loading analytics: {error}</p>
           <button 
             onClick={() => window.location.reload()} 
@@ -225,7 +225,7 @@ export const AnalyticsDashboard = () => {
     <>
     <div className="space-y-8 mb-8">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-white">Analytics Overview</h2>
+        <h2 className="text-2xl font-bold text-ash-100">Analytics Overview</h2>
         <div className="flex items-center gap-3 text-sm">
           <div className="flex items-center gap-2">
             {connectionStatus === 'connected' ? (
@@ -244,7 +244,7 @@ export const AnalyticsDashboard = () => {
             </span>
           </div>
           {lastUpdate && (
-            <span className="text-gray-400">Last update: {lastUpdate}</span>
+            <span className="text-ash-400">Last update: {lastUpdate}</span>
           )}
         </div>
       </div>
@@ -252,10 +252,10 @@ export const AnalyticsDashboard = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
         
         {/* Real-time Users */}
-        <div className="bg-gradient-to-br from-gray-800/50 to-gray-900/50 border border-gray-700 rounded-xl p-5 xl:col-span-1">
-          <h3 className="text-lg font-semibold text-white flex items-center gap-2 mb-4">
+        <div className="bg-gradient-to-br from-ash-800/50 to-ash-900/50 border border-ash-700 rounded-lg p-5 xl:col-span-1">
+          <h3 className="text-lg font-semibold text-ash-100 flex items-center gap-2 mb-4">
             <div className={`w-2 h-2 rounded-full ${
-              connectionStatus === 'connected' ? 'bg-green-400 animate-ping' : 'bg-gray-400'
+              connectionStatus === 'connected' ? 'bg-green-400 animate-ping' : 'bg-ash-400'
             }`}></div> 
             Real-time
           </h3>
@@ -263,28 +263,28 @@ export const AnalyticsDashboard = () => {
             <p className="text-5xl font-bold text-green-400">
               {realtimeData?.activeUsers || 0}
             </p>
-            <p className="text-gray-400">active users</p>
+            <p className="text-ash-400">active users</p>
           </div>
           <div className="mt-4 space-y-2 text-sm">
-            <p className="font-semibold text-gray-300">Top Active Pages:</p>
+            <p className="font-semibold text-ash-300">Top Active Pages:</p>
             {realtimeData?.topPages?.slice(0, 4).map((page, index) => (
-              <div key={index} className="flex justify-between items-center text-gray-400">
+              <div key={index} className="flex justify-between items-center text-ash-400">
                 <span className="truncate" title={page.page}>
                   {page.page.length > 25 ? page.page.substring(0, 25) + '...' : page.page}
                 </span>
-                <span className="font-medium text-white">{page.users}</span>
+                <span className="font-medium text-ash-100">{page.users}</span>
               </div>
             ))}
             {(!realtimeData?.topPages || realtimeData.topPages.length === 0) && (
-              <div className="text-gray-500">No active users on pages</div>
+              <div className="text-ash-500">No active users on pages</div>
             )}
           </div>
         </div>
 
         {/* Traffic Sources */}
-        <div className="bg-gradient-to-br from-gray-800/50 to-gray-900/50 border border-gray-700 rounded-xl p-5">
-            <h3 className="text-lg font-semibold text-white flex items-center gap-2 mb-4">
-              <TrafficCone className="w-5 h-5 text-indigo-400"/> Traffic Sources
+        <div className="bg-gradient-to-br from-ash-800/50 to-ash-900/50 border border-ash-700 rounded-lg p-5">
+            <h3 className="text-lg font-semibold text-ash-100 flex items-center gap-2 mb-4">
+              <TrafficCone className="w-5 h-5 text-harvest-400"/> Traffic Sources
             </h3>
             <div className="h-48">
               {trafficSources.length > 0 ? (
@@ -298,7 +298,7 @@ export const AnalyticsDashboard = () => {
                       cy="50%" 
                       innerRadius={40} 
                       outerRadius={60} 
-                      fill="#8884d8" 
+                      fill="#d99a2b" 
                       paddingAngle={5}
                     >
                       {trafficSources.map((entry, index) => (
@@ -309,7 +309,7 @@ export const AnalyticsDashboard = () => {
                   </PieChart>
                 </ResponsiveContainer>
               ) : (
-                <div className="flex items-center justify-center h-full text-gray-500">
+                <div className="flex items-center justify-center h-full text-ash-500">
                   No traffic source data
                 </div>
               )}
@@ -317,35 +317,35 @@ export const AnalyticsDashboard = () => {
         </div>
         
         {/* Top Pages */}
-        <div className="bg-gradient-to-br from-gray-800/50 to-gray-900/50 border border-gray-700 rounded-xl p-5">
-            <h3 className="text-lg font-semibold text-white flex items-center gap-2 mb-4">
-              <File className="w-5 h-5 text-indigo-400"/> Top Pages (Last 7 Days)
+        <div className="bg-gradient-to-br from-ash-800/50 to-ash-900/50 border border-ash-700 rounded-lg p-5">
+            <h3 className="text-lg font-semibold text-ash-100 flex items-center gap-2 mb-4">
+              <File className="w-5 h-5 text-harvest-400"/> Top Pages (Last 7 Days)
             </h3>
             <div className="space-y-1 text-sm">
-              <div className="flex justify-between text-gray-400 font-medium">
+              <div className="flex justify-between text-ash-400 font-medium">
                 <p>Page</p><p>Views</p>
               </div>
               {topPages.slice(0, 6).map((page, index) => (
                 <button 
                   key={index} 
                   onClick={() => handlePageClick(page)}
-                  className="w-full flex justify-between items-center text-gray-400 hover:bg-gray-800 p-1 rounded-md text-left"
+                  className="w-full flex justify-between items-center text-ash-400 hover:bg-ash-800 p-1 rounded-md text-left"
                 >
                   <span className="truncate" title={page.page}>
                     {page.page.length > 20 ? page.page.substring(0, 20) + '...' : page.page}
                   </span>
-                  <span className="font-medium text-white">{page.views.toLocaleString()}</span>
+                  <span className="font-medium text-ash-100">{page.views.toLocaleString()}</span>
                 </button>
               ))}
               {topPages.length === 0 && (
-                <div className="text-gray-500 pt-4">No page data available</div>
+                <div className="text-ash-500 pt-4">No page data available</div>
               )}
             </div>
         </div>
       
         {/* Views by Device */}
-        <div className="bg-gradient-to-br from-gray-800/50 to-gray-900/50 border border-gray-700 rounded-xl p-5">
-            <h3 className="text-lg font-semibold text-white flex items-center gap-2 mb-4">
+        <div className="bg-gradient-to-br from-ash-800/50 to-ash-900/50 border border-ash-700 rounded-lg p-5">
+            <h3 className="text-lg font-semibold text-ash-100 flex items-center gap-2 mb-4">
               <DeviceIcon name="Device" /> Views by Device
             </h3>
             <div className="h-48">
@@ -360,7 +360,7 @@ export const AnalyticsDashboard = () => {
                       cy="50%" 
                       innerRadius={40} 
                       outerRadius={60} 
-                      fill="#8884d8" 
+                      fill="#d99a2b" 
                       paddingAngle={5}
                     >
                       {deviceData.map((entry, index) => (
@@ -371,7 +371,7 @@ export const AnalyticsDashboard = () => {
                   </PieChart>
                 </ResponsiveContainer>
               ) : (
-                <div className="flex items-center justify-center h-full text-gray-500">
+                <div className="flex items-center justify-center h-full text-ash-500">
                   No device data
                 </div>
               )}
@@ -379,9 +379,9 @@ export const AnalyticsDashboard = () => {
         </div>
 
         {/* Views by OS */}
-        <div className="bg-gradient-to-br from-gray-800/50 to-gray-900/50 border border-gray-700 rounded-xl p-5">
-            <h3 className="text-lg font-semibold text-white flex items-center gap-2 mb-4">
-              <Monitor className="w-5 h-5 text-indigo-400"/> Views by OS
+        <div className="bg-gradient-to-br from-ash-800/50 to-ash-900/50 border border-ash-700 rounded-lg p-5">
+            <h3 className="text-lg font-semibold text-ash-100 flex items-center gap-2 mb-4">
+              <Monitor className="w-5 h-5 text-harvest-400"/> Views by OS
             </h3>
             <div className="h-48">
               {osData.length > 0 ? (
@@ -395,7 +395,7 @@ export const AnalyticsDashboard = () => {
                       cy="50%" 
                       innerRadius={40} 
                       outerRadius={60} 
-                      fill="#8884d8" 
+                      fill="#d99a2b" 
                       paddingAngle={5}
                     >
                       {osData.map((entry, index) => (
@@ -406,7 +406,7 @@ export const AnalyticsDashboard = () => {
                   </PieChart>
                 </ResponsiveContainer>
               ) : (
-                <div className="flex items-center justify-center h-full text-gray-500">
+                <div className="flex items-center justify-center h-full text-ash-500">
                   No OS data
                 </div>
               )}
@@ -414,9 +414,9 @@ export const AnalyticsDashboard = () => {
         </div>
 
         {/* Views by Browser */}
-        <div className="bg-gradient-to-br from-gray-800/50 to-gray-900/50 border border-gray-700 rounded-xl p-5">
-            <h3 className="text-lg font-semibold text-white flex items-center gap-2 mb-4">
-              <Chrome className="w-5 h-5 text-indigo-400"/> Views by Browser
+        <div className="bg-gradient-to-br from-ash-800/50 to-ash-900/50 border border-ash-700 rounded-lg p-5">
+            <h3 className="text-lg font-semibold text-ash-100 flex items-center gap-2 mb-4">
+              <Chrome className="w-5 h-5 text-harvest-400"/> Views by Browser
             </h3>
             <div className="h-48">
               {browserData.length > 0 ? (
@@ -430,7 +430,7 @@ export const AnalyticsDashboard = () => {
                       cy="50%" 
                       innerRadius={40} 
                       outerRadius={60} 
-                      fill="#8884d8" 
+                      fill="#d99a2b" 
                       paddingAngle={5}
                     >
                       {browserData.map((entry, index) => (
@@ -441,7 +441,7 @@ export const AnalyticsDashboard = () => {
                   </PieChart>
                 </ResponsiveContainer>
               ) : (
-                <div className="flex items-center justify-center h-full text-gray-500">
+                <div className="flex items-center justify-center h-full text-ash-500">
                   No browser data
                 </div>
               )}
@@ -450,9 +450,9 @@ export const AnalyticsDashboard = () => {
       </div>
 
       {/* Users by Country */}
-      <div className="bg-gradient-to-br from-gray-800/50 to-gray-900/50 border border-gray-700 rounded-xl p-5">
-        <h3 className="text-lg font-semibold text-white flex items-center gap-2 mb-4">
-          <Globe className="w-5 h-5 text-indigo-400"/> Users by Country
+      <div className="bg-gradient-to-br from-ash-800/50 to-ash-900/50 border border-ash-700 rounded-lg p-5">
+        <h3 className="text-lg font-semibold text-ash-100 flex items-center gap-2 mb-4">
+          <Globe className="w-5 h-5 text-harvest-400"/> Users by Country
         </h3>
         <div className="h-72">
           {countries.length > 0 ? (
@@ -462,21 +462,21 @@ export const AnalyticsDashboard = () => {
                 layout="vertical" 
                 margin={{ top: 5, right: 20, left: 20, bottom: 5 }}
               >
-                <CartesianGrid strokeDasharray="3 3" stroke="#444" horizontal={false} />
-                <XAxis type="number" tick={{ fill: '#ccc', fontSize: 12 }} />
+                <CartesianGrid strokeDasharray="3 3" stroke="#45473f" horizontal={false} />
+                <XAxis type="number" tick={{ fill: '#b9b6ab', fontSize: 12 }} />
                 <YAxis 
                   type="category" 
                   dataKey="country" 
-                  tick={{ fill: '#ccc', fontSize: 12 }} 
+                  tick={{ fill: '#b9b6ab', fontSize: 12 }} 
                   width={80} 
                 />
                 <Tooltip 
                   contentStyle={tooltipStyle}
-                  cursor={{ fill: 'rgba(129, 140, 248, 0.1)' }}
+                  cursor={{ fill: 'rgba(217, 154, 43, 0.1)' }}
                 />
-                <Bar dataKey="users" fill="#8884d8" barSize={20}>
+                <Bar dataKey="users" fill="#d99a2b" barSize={20}>
                   {countries.slice(0, 6).map((entry, index) => {
-                    const colors = ['#8884d8', '#82ca9d', '#ffc658', '#ff8042', '#0088fe', '#00c49f'];
+                    const colors = ['#d99a2b', '#8fae6e', '#c96a3d', '#6f9bab', '#e8c77a', '#a58a6b'];
                     return (
                       <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />
                     );
@@ -485,7 +485,7 @@ export const AnalyticsDashboard = () => {
               </BarChart>
             </ResponsiveContainer>
           ) : (
-            <div className="flex items-center justify-center h-full text-gray-500">
+            <div className="flex items-center justify-center h-full text-ash-500">
               No country data available
             </div>
           )}
@@ -494,23 +494,23 @@ export const AnalyticsDashboard = () => {
     </div>
     
     <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-      <DialogContent className="bg-gray-800/95 border-gray-700 text-white">
+      <DialogContent className="bg-ash-800/95 border-ash-700 text-ash-100">
         <DialogHeader>
-          <DialogTitle className="text-xl text-white">Page Insights</DialogTitle>
-          <DialogDescription className="text-gray-400 break-all">
+          <DialogTitle className="text-xl text-ash-100">Page Insights</DialogTitle>
+          <DialogDescription className="text-ash-400 break-all">
             {selectedPage?.page}
           </DialogDescription>
         </DialogHeader>
         <div className="mt-4 space-y-4">
-          <div className="flex justify-between items-center bg-gray-700/50 p-4 rounded-lg">
-            <span className="font-medium text-gray-300">Live Users on this Page</span>
+          <div className="flex justify-between items-center bg-ash-700/50 p-4 rounded-lg">
+            <span className="font-medium text-ash-300">Live Users on this Page</span>
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 rounded-full bg-green-400 animate-ping"></div>
               <span className="text-2xl font-bold text-green-400">{liveUsersOnSelectedPage}</span>
             </div>
           </div>
-          <div className="flex justify-between items-center bg-gray-700/50 p-4 rounded-lg">
-            <span className="font-medium text-gray-300">Total Views (Last 7 Days)</span>
+          <div className="flex justify-between items-center bg-ash-700/50 p-4 rounded-lg">
+            <span className="font-medium text-ash-300">Total Views (Last 7 Days)</span>
             <span className="text-2xl font-bold">{selectedPage?.views.toLocaleString()}</span>
           </div>
         </div>

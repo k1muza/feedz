@@ -88,54 +88,54 @@ export const TeamManagement = ({ initialMembers }: { initialMembers: TeamMember[
     <>
       <div className="space-y-6">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <h2 className="text-2xl font-bold text-white flex items-center gap-2">
+          <h2 className="text-2xl font-bold text-ash-100 flex items-center gap-2">
               <Users />
               Team Management
           </h2>
           <div className="flex space-x-3">
             <button 
               onClick={() => setIsModalOpen(true)}
-              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg flex items-center space-x-2 transition-colors">
+              className="px-4 py-2 bg-harvest-600 hover:bg-harvest-500 text-ash-950 rounded-lg flex items-center space-x-2 transition-colors">
               <Plus className="w-4 h-4" />
               <span>Add Member</span>
             </button>
           </div>
         </div>
 
-        <div className="bg-gray-800/50 border border-gray-700 rounded-xl overflow-hidden">
+        <div className="bg-ash-800/50 border border-ash-700 rounded-lg overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-700">
-              <thead className="bg-gray-800">
+            <table className="min-w-full divide-y divide-ash-700">
+              <thead className="bg-ash-800">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Member</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Role</th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">Actions</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-ash-400 uppercase tracking-wider">Member</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-ash-400 uppercase tracking-wider">Role</th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-ash-400 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-700">
+              <tbody className="divide-y divide-ash-700">
                 {members.map((member) => (
-                  <tr key={member.id} className="hover:bg-gray-700/50 transition-colors">
+                  <tr key={member.id} className="hover:bg-ash-700/50 transition-colors">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
                         <div className="flex-shrink-0 h-10 w-10">
                           <Image className="h-10 w-10 rounded-full object-cover" src={member.image} alt={member.name} width={40} height={40} />
                         </div>
                         <div className="ml-4">
-                          <div className="text-sm font-medium text-white">{member.name}</div>
+                          <div className="text-sm font-medium text-ash-100">{member.name}</div>
                         </div>
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                       <div className="text-sm text-gray-400">{member.role}</div>
+                       <div className="text-sm text-ash-400">{member.role}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <button className="p-2 rounded-full hover:bg-gray-700">
+                          <button className="p-2 rounded-full hover:bg-ash-700">
                             <MoreHorizontal className="w-5 h-5" />
                           </button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="bg-gray-800 border-gray-700 text-white">
+                        <DropdownMenuContent align="end" className="bg-ash-800 border-ash-700 text-ash-100">
                           <DropdownMenuItem onClick={() => handleEdit(member)} className="flex items-center gap-2 cursor-pointer">
                             <Edit className="w-4 h-4" /> Edit
                           </DropdownMenuItem>
@@ -166,7 +166,7 @@ export const TeamManagement = ({ initialMembers }: { initialMembers: TeamMember[
             <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
             <AlertDialogDescription>
               This action cannot be undone. This will permanently delete the team member: 
-              <span className="font-bold text-white mx-1">{memberToDelete?.name}</span>.
+              <span className="font-bold text-ash-100 mx-1">{memberToDelete?.name}</span>.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

@@ -100,12 +100,12 @@ export const UserFormModal = ({ isOpen, onClose, onSave, user }: UserFormModalPr
   return (
     <>
     <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-      <div className="bg-gray-800 border border-gray-700 rounded-xl w-full max-w-lg flex flex-col max-h-[90vh]">
+      <div className="bg-ash-800 border border-ash-700 rounded-lg w-full max-w-lg flex flex-col max-h-[90vh]">
         <form onSubmit={handleSubmit(onSubmit)}>
           {/* Header */}
-          <div className="p-4 border-b border-gray-700 flex justify-between items-center flex-shrink-0">
-            <h3 className="text-lg font-medium text-white">{user ? 'Edit User' : 'Add New User'}</h3>
-            <button type="button" onClick={onClose} className="text-gray-400 hover:text-gray-200">
+          <div className="p-4 border-b border-ash-700 flex justify-between items-center flex-shrink-0">
+            <h3 className="text-lg font-medium text-ash-100">{user ? 'Edit User' : 'Add New User'}</h3>
+            <button type="button" onClick={onClose} className="text-ash-400 hover:text-ash-200">
               <X className="w-5 h-5" />
             </button>
           </div>
@@ -121,16 +121,16 @@ export const UserFormModal = ({ isOpen, onClose, onSave, user }: UserFormModalPr
             )}
 
             <div>
-              <label className="block text-sm font-medium text-gray-300">Avatar Image</label>
+              <label className="block text-sm font-medium text-ash-300">Avatar Image</label>
                <div className="mt-2 flex items-center gap-4">
-                  <div className="relative h-16 w-16 rounded-full overflow-hidden bg-gray-700">
+                  <div className="relative h-16 w-16 rounded-full overflow-hidden bg-ash-700">
                     {avatarImage ? (
                         <Image src={avatarImage} alt="Avatar" fill className="object-cover" />
                     ) : (
-                        <ImageIcon className="h-8 w-8 text-gray-500 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
+                        <ImageIcon className="h-8 w-8 text-ash-500 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
                     )}
                   </div>
-                  <button type="button" onClick={() => setIsAssetModalOpen(true)} className="px-3 py-1.5 border border-gray-600 rounded-lg hover:bg-gray-700 text-sm">
+                  <button type="button" onClick={() => setIsAssetModalOpen(true)} className="px-3 py-1.5 border border-ash-600 rounded-lg hover:bg-ash-700 text-sm">
                       {avatarImage ? 'Change' : 'Select'} Image
                   </button>
                </div>
@@ -138,20 +138,20 @@ export const UserFormModal = ({ isOpen, onClose, onSave, user }: UserFormModalPr
             </div>
 
             <div>
-              <label htmlFor="name" className="block text-sm font-medium text-gray-300">Full Name</label>
-              <input id="name" {...register('name')} className="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md p-2" />
+              <label htmlFor="name" className="block text-sm font-medium text-ash-300">Full Name</label>
+              <input id="name" {...register('name')} className="mt-1 block w-full bg-ash-700 border-ash-600 rounded-md p-2" />
               {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name.message}</p>}
             </div>
 
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-300">Email</label>
-              <input id="email" type="email" {...register('email')} className="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md p-2" />
+              <label htmlFor="email" className="block text-sm font-medium text-ash-300">Email</label>
+              <input id="email" type="email" {...register('email')} className="mt-1 block w-full bg-ash-700 border-ash-600 rounded-md p-2" />
               {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email.message}</p>}
             </div>
 
             <div>
-              <label htmlFor="role" className="block text-sm font-medium text-gray-300">Role</label>
-              <select id="role" {...register('role')} className="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md p-2">
+              <label htmlFor="role" className="block text-sm font-medium text-ash-300">Role</label>
+              <select id="role" {...register('role')} className="mt-1 block w-full bg-ash-700 border-ash-600 rounded-md p-2">
                 <option value="Administrator">Administrator</option>
                 <option value="Editor">Editor</option>
                 <option value="Viewer">Viewer</option>
@@ -160,12 +160,12 @@ export const UserFormModal = ({ isOpen, onClose, onSave, user }: UserFormModalPr
             </div>
 
              <div>
-                <label htmlFor="bio" className="block text-sm font-medium text-gray-300">Bio</label>
+                <label htmlFor="bio" className="block text-sm font-medium text-ash-300">Bio</label>
                 <textarea
                     id="bio"
                     rows={3}
                     {...register('bio')}
-                    className="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md p-2"
+                    className="mt-1 block w-full bg-ash-700 border-ash-600 rounded-md p-2"
                     placeholder="A short biography of the user..."
                 />
                 {errors.bio && <p className="text-red-500 text-xs mt-1">{errors.bio.message}</p>}
@@ -174,12 +174,12 @@ export const UserFormModal = ({ isOpen, onClose, onSave, user }: UserFormModalPr
           </div>
 
           {/* Footer */}
-          <div className="p-4 border-t border-gray-700 flex justify-end space-x-3 flex-shrink-0">
-            <button type="button" onClick={onClose} className="px-4 py-2 border border-gray-600 rounded-lg hover:bg-gray-700">Cancel</button>
+          <div className="p-4 border-t border-ash-700 flex justify-end space-x-3 flex-shrink-0">
+            <button type="button" onClick={onClose} className="px-4 py-2 border border-ash-600 rounded-lg hover:bg-ash-700">Cancel</button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg flex items-center space-x-2 disabled:bg-gray-500"
+              className="px-4 py-2 bg-harvest-600 hover:bg-harvest-500 text-ash-950 rounded-lg flex items-center space-x-2 disabled:bg-ash-500"
             >
               {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
               <span>{isSubmitting ? 'Saving...' : 'Save User'}</span>

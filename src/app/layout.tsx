@@ -36,7 +36,7 @@ export const metadata: Metadata = {
   creator: siteConfig.name,
   publisher: siteConfig.name,
   category: 'Animal nutrition',
-  keywords: ['animal feed Zimbabwe', 'feed ingredients Zimbabwe', 'livestock nutrition', 'poultry feed ingredients', 'pig feed ingredients', 'cattle feed', 'feed formulation', 'FeedSport'],
+  keywords: ['animal feed Zimbabwe', 'feed ingredients Zimbabwe', 'feed ingredients Harare', 'livestock nutrition', 'poultry feed ingredients', 'pig feed ingredients', 'cattle feed', 'feed formulation', 'soybean meal Zimbabwe', 'FeedSport'],
   openGraph: {
     title: 'FeedSport International | Feed Ingredients Zimbabwe',
     description: siteConfig.description,
@@ -74,11 +74,16 @@ const organizationJsonLd = {
   '@context': 'https://schema.org',
   '@graph': [
     {
-      '@type': 'Organization',
+      '@type': ['Organization', 'LocalBusiness'],
       '@id': `${siteConfig.url}/#organization`,
       name: siteConfig.name,
+      alternateName: siteConfig.shortName,
+      description: siteConfig.description,
       url: siteConfig.url,
       logo: absoluteUrl('/favicon.webp'),
+      image: absoluteUrl(socialImage.url),
+      areaServed: { '@type': 'Country', name: 'Zimbabwe' },
+      knowsAbout: ['Animal nutrition', 'Feed formulation', 'Feed ingredients', 'Pig nutrition', 'Poultry nutrition', 'Cattle nutrition'],
       email: siteConfig.email,
       telephone: siteConfig.phone,
       address: {
@@ -111,7 +116,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en-ZW" suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: dashboardThemeScript }} />
       </head>

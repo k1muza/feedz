@@ -1,366 +1,203 @@
-
 'use client';
 
-import { BlogCategory, BlogPost, User } from '@/types';
-import { Save, ImageIcon, AlertCircle, Loader2, Volume2 } from 'lucide-react';
-import { useRouter } from 'next/navigation';
-import { useState, useEffect } from 'react';
-import { useForm, SubmitHandler } from 'react-hook-form';
-import { AssetSelectionModal } from './AssetSelectionModal';
+import { AlertCircle, ImageIcon, Save } from 'lucide-react';
 import Image from 'next/image';
-import { z } from 'zod';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { saveBlogPost, getBlogCategories, getAllUsers, createAudioGenerationTask } from '@/app/actions';
+import { useRouter } from 'next/navigation';
+import { useState } from 'react';
+import { useForm, type SubmitHandler } from 'react-hook-form';
+import { saveArticle, type ArticleFormValues } from '@/app/actions';
+import { feedProductCatalog } from '@/data/feedProducts';
+import { knowledgeTopics, type KnowledgeArticle } from '@/data/knowledgeArticles';
 import { useToast } from '../ui/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 
+type FormValues = Omit<ArticleFormValues, 'ingredients'> & { ingredients: string[] };
 
-interface BlogPostFormProps {
-  post?: BlogPost;
-}
+const slugify = (value: string) => value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 
-const BlogFormSchema = z.object({
-  title: z.string().min(1, 'Title is required'),
-  category: z.string().min(1, 'Category is required'),
-  excerpt: z.string().min(1, 'Excerpt is required'),
-  content: z.string().min(1, 'Content is required'),
-  image: z.string().url('A valid featured image URL is required'),
-  tags: z.string().optional(),
-  authorId: z.string().min(1, 'Author is required'),
-  audioUrl: z.string().url().optional(),
-});
+const inputClass = 'mt-1 block w-full rounded-md border-ash-600 bg-ash-700 p-2 text-sm text-ash-100 shadow-sm focus:border-harvest-500 focus:ring-harvest-500';
+const labelClass = 'block text-sm font-medium text-ash-300';
+const hintClass = 'mt-1 text-xs text-ash-400';
+const panelClass = 'rounded-lg border border-ash-700 bg-ash-800/50 p-6';
 
-type FormValues = z.infer<typeof BlogFormSchema>;
-
-export const BlogPostForm = ({ post }: BlogPostFormProps) => {
+export const BlogPostForm = ({ article }: { article?: KnowledgeArticle }) => {
   const router = useRouter();
   const { toast } = useToast();
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isGeneratingAudio, setIsGeneratingAudio] = useState(false);
-  const [categories, setCategories] = useState<BlogCategory[]>([]);
-  const [users, setUsers] = useState<User[]>([]);
+  const [slugEdited, setSlugEdited] = useState(Boolean(article));
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-    setValue,
-    getValues,
-    watch,
-    reset,
-  } = useForm<FormValues>({
-    resolver: zodResolver(BlogFormSchema),
-    defaultValues: post ? {
-        title: post.title,
-        category: post.category,
-        excerpt: post.excerpt,
-        content: post.content,
-        image: post.image,
-        tags: post.tags?.join(', '),
-        authorId: '', // Will be set in useEffect
-        audioUrl: post.audioUrl,
-    } : {},
+  const { register, handleSubmit, watch, setValue, formState: { isSubmitting } } = useForm<FormValues>({
+    defaultValues: {
+      title: article?.title ?? '',
+      slug: article?.slug ?? '',
+      seoTitle: article?.seoTitle ?? '',
+      description: article?.description ?? '',
+      topic: article?.topic ?? '',
+      imageUrl: article?.image.src ?? '',
+      imageAlt: article?.image.alt ?? '',
+      imageCredit: article?.image.photographer ?? '',
+      ingredients: article?.ingredients ?? [],
+      keywords: article?.keywords.join(', ') ?? '',
+      keyPoints: article?.keyPoints.join('\n') ?? '',
+      body: article?.body.trim() ?? '',
+      status: article?.status ?? 'draft',
+      publishedAt: article?.published ?? new Date().toISOString().slice(0, 10),
+    },
   });
 
-  const featuredImage = watch('image');
-  const audioUrl = watch('audioUrl');
-  
-  useEffect(() => {
-    async function fetchData() {
-      const [fetchedCategories, fetchedUsers] = await Promise.all([
-        getBlogCategories(),
-        getAllUsers(),
-      ]);
-      setCategories(fetchedCategories);
-      setUsers(fetchedUsers);
-    }
-    fetchData();
-  }, []);
+  const imageUrl = watch('imageUrl');
+  const description = watch('description') ?? '';
+  const seoTitle = watch('seoTitle') ?? '';
+  const status = watch('status');
 
-  useEffect(() => {
-    if (post && users.length > 0) {
-      const author = users.find(u => u.name === post.author.name);
-      reset({
-        title: post.title,
-        category: post.category,
-        excerpt: post.excerpt,
-        content: post.content,
-        image: post.image,
-        tags: post.tags?.join(', '),
-        authorId: author?.id || '',
-        audioUrl: post.audioUrl,
-      });
-    }
-  }, [post, users, reset]);
+  const titleField = register('title', {
+    onChange: (event) => {
+      if (!slugEdited) setValue('slug', slugify(event.target.value));
+    },
+  });
 
-  const handleGenerateAudio = async () => {
-    if (!post?.id) {
-        toast({ title: "Save Required", description: "Please save the post before generating audio.", variant: "destructive" });
-        return;
-    }
-
-    const title = getValues('title');
-    const content = getValues('content');
-
-    if (!title || !content) {
-        toast({ title: "Content required", description: "Please enter a title and content before generating audio.", variant: "destructive" });
-        return;
-    }
-
-    setIsGeneratingAudio(true);
-    try {
-        const result = await createAudioGenerationTask(post.id, `${title}. ${content}`);
-        if(result.success){
-            toast({ title: "Processing Audio", description: "Audio generation has started. You will be notified when it's complete." });
-        } else {
-             throw new Error(result.error);
-        }
-    } catch (error) {
-        toast({ title: "Error", description: (error as Error).message || "Failed to start audio generation.", variant: "destructive" });
-        setIsGeneratingAudio(false);
-    }
-  };
-
-
-  const onSubmit: SubmitHandler<FormValues> = async (data) => {
-    setIsSubmitting(true);
+  const onSubmit: SubmitHandler<FormValues> = async (values) => {
     setServerError(null);
-
-    const result = await saveBlogPost(data, post?.id);
-
-    setIsSubmitting(false);
-
-    if (result.success) {
-      toast({
-        title: 'Success!',
-        description: `Post has been ${post ? 'updated' : 'published'}.`,
-      });
-      if (!post) {
-        // If it's a new post, we need to redirect to the edit page to get the ID for audio generation
-        router.push('/admin/blog'); 
-      }
-      router.refresh();
-    } else {
-      if (result.errors) {
-        setServerError(Object.values(result.errors).flat().join(', '));
-      } else {
-         setServerError('An unknown error occurred.');
-      }
+    const result = await saveArticle(values, article?.id);
+    if (!result.success) {
+      setServerError(result.error ?? 'An unknown error occurred.');
+      return;
     }
-  };
-
-  const handleImageSelect = (imageSrc: string[]) => {
-    if (imageSrc.length > 0) {
-        setValue('image', imageSrc[0], { shouldDirty: true, shouldValidate: true });
+    toast({ title: 'Saved', description: values.status === 'published' ? 'The article is live.' : 'Saved as a draft.' });
+    if (!article || result.slug !== article.slug) {
+      router.push(`/admin/blog/${result.slug}/edit`);
     }
-    setIsModalOpen(false);
+    router.refresh();
   };
 
   return (
-    <>
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
-        <div className="flex mb-4 justify-between items-center">
-            <h1 className="text-2xl font-bold text-white">
-                {post ? 'Edit Blog Post' : 'Create New Blog Post'}
-            </h1>
-            <div className="flex justify-end space-x-3">
-            <button
-                type="button"
-                onClick={() => router.back()}
-                className="px-4 py-2 border border-gray-600 hover:bg-gray-700 rounded-lg transition-colors"
-            >
-                Cancel
-            </button>
-            <button
-                type="submit"
-                disabled={isSubmitting}
-                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg flex items-center space-x-2 transition-colors disabled:bg-gray-500 disabled:cursor-not-allowed"
-            >
-                <Save className="w-4 h-4" />
-                <span>{isSubmitting ? 'Saving...' : (post ? 'Save Changes' : 'Publish Post')}</span>
-            </button>
-            </div>
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <h1 className="text-2xl font-bold text-ash-100">{article ? 'Edit article' : 'New article'}</h1>
+        <div className="flex gap-3">
+          <button type="button" onClick={() => router.push('/admin/blog')} className="rounded-lg border border-ash-600 px-4 py-2 transition-colors hover:bg-ash-700">Back</button>
+          {article?.status === 'published' && <a href={`/knowledge/${article.slug}`} target="_blank" rel="noreferrer" className="rounded-lg border border-ash-600 px-4 py-2 transition-colors hover:bg-ash-700">View live</a>}
+          <button type="submit" disabled={isSubmitting} className="flex items-center gap-2 rounded-lg bg-harvest-600 px-4 py-2 text-ash-950 transition-colors hover:bg-harvest-500 disabled:cursor-not-allowed disabled:bg-ash-500">
+            <Save className="h-4 w-4" />
+            <span>{isSubmitting ? 'Saving...' : status === 'published' ? 'Save and publish' : 'Save draft'}</span>
+          </button>
         </div>
+      </div>
 
-        {serverError && (
-          <Alert variant="destructive">
-            <AlertCircle className="h-4 w-4" />
-            <AlertTitle>Server Error</AlertTitle>
-            <AlertDescription>{serverError}</AlertDescription>
-          </Alert>
-        )}
-        
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Left Column: Main Content */}
-          <div className="lg:col-span-2 space-y-6">
-            <div className="bg-gray-800/50 border border-gray-700 rounded-xl p-6">
-              <div>
-                <label htmlFor="title" className="block text-sm font-medium text-gray-300">
-                  Post Title
-                </label>
-                <input
-                  id="title"
-                  type="text"
-                  {...register('title')}
-                  className="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm p-2"
-                />
-                {errors.title && <p className="text-red-500 text-xs mt-1">{errors.title.message}</p>}
-              </div>
+      {serverError && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Could not save</AlertTitle>
+          <AlertDescription>{serverError}</AlertDescription>
+        </Alert>
+      )}
+
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
+        <div className="space-y-6 lg:col-span-2">
+          <div className={`${panelClass} space-y-5`}>
+            <div>
+              <label htmlFor="title" className={labelClass}>Title</label>
+              <input id="title" required {...titleField} className={inputClass} />
             </div>
-            <div className="bg-gray-800/50 border border-gray-700 rounded-xl p-6">
-              <label htmlFor="content" className="block text-sm font-medium text-gray-300 mb-2">
-                Post Content (Markdown)
-              </label>
-              <textarea
-                id="content"
-                rows={15}
-                {...register('content')}
-                className="mt-1 block w-full bg-gray-900 border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm p-2 font-mono"
-                placeholder="Write your blog post content using Markdown..."
-              />
-              {errors.content && <p className="text-red-500 text-xs mt-1">{errors.content.message}</p>}
-              <a
-                href="https://www.markdownguide.org/basic-syntax/"
-                target="_blank"
-                rel="noreferrer"
-                className="text-xs text-gray-400 hover:text-indigo-400 mt-2 inline-block"
-              >
-                Markdown syntax guide
-              </a>
+            <div>
+              <label htmlFor="slug" className={labelClass}>URL slug</label>
+              <div className="mt-1 flex items-center gap-1 font-mono text-sm text-ash-400">
+                /knowledge/
+                <input id="slug" required pattern="[a-z0-9]+(-[a-z0-9]+)*" {...register('slug', { onChange: () => setSlugEdited(true) })} className={`${inputClass} mt-0 font-mono`} />
+              </div>
+              {article && <p className={hintClass}>Changing the slug of a published article breaks existing links to it.</p>}
+            </div>
+            <div>
+              <label htmlFor="description" className={labelClass}>Description</label>
+              <textarea id="description" required rows={3} maxLength={400} {...register('description')} className={inputClass} />
+              <p className={hintClass}>Shown on cards and as the search result snippet. Aim for 120–160 characters ({description.length} now).</p>
+            </div>
+            <div>
+              <label htmlFor="keyPoints" className={labelClass}>Key points</label>
+              <textarea id="keyPoints" rows={4} {...register('keyPoints')} className={inputClass} placeholder="One point per line" />
+              <p className={hintClass}>One per line. Shown in a box at the top of the article.</p>
             </div>
           </div>
 
-          {/* Right Column: Meta */}
-          <div className="lg:col-span-1 space-y-6">
-            <div className="bg-gray-800/50 border border-gray-700 rounded-xl p-6">
-              <div>
-                <label htmlFor="authorId" className="block text-sm font-medium text-gray-300">
-                  Author
-                </label>
-                <select
-                  id="authorId"
-                  {...register('authorId')}
-                  className="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm p-2"
-                >
-                  <option value="">Select an author</option>
-                  {users.map((user) => (
-                    <option key={user.id} value={user.id}>{user.name}</option>
-                  ))}
-                </select>
-                {errors.authorId && (
-                  <p className="text-red-500 text-xs mt-1">{errors.authorId.message}</p>
-                )}
-              </div>
-              <div className="mt-6">
-                <label htmlFor="category" className="block text-sm font-medium text-gray-300">
-                  Category
-                </label>
-                <select
-                  id="category"
-                  {...register('category')}
-                  className="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm p-2"
-                >
-                  <option value="">Select a category</option>
-                  {categories.map((cat) => (
-                    <option key={cat.id} value={cat.name}>{cat.name}</option>
-                  ))}
-                </select>
-                {errors.category && (
-                  <p className="text-red-500 text-xs mt-1">{errors.category.message}</p>
-                )}
-              </div>
-              <div className="mt-6">
-                <label htmlFor="excerpt" className="block text-sm font-medium text-gray-300">
-                  Excerpt
-                </label>
-                <textarea
-                  id="excerpt"
-                  rows={3}
-                  {...register('excerpt')}
-                  className="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm p-2"
-                />
-                {errors.excerpt && (
-                  <p className="text-red-500 text-xs mt-1">{errors.excerpt.message}</p>
-                )}
-              </div>
-              <div className="mt-6">
-                  <label htmlFor="tags" className="block text-sm font-medium text-gray-300">
-                      Tags
+          <div className={panelClass}>
+            <label htmlFor="body" className={`${labelClass} mb-2`}>Content (Markdown)</label>
+            <textarea id="body" required rows={28} {...register('body')} className={`${inputClass} bg-ash-900 font-mono`} placeholder="Start sections with ## headings. The title is added automatically." />
+            <p className={hintClass}>Use ## for section headings (they build the &quot;On this page&quot; list), | tables |, and links like [soybean meal](/products/soybean-meal).</p>
+          </div>
+        </div>
+
+        <div className="space-y-6">
+          <div className={`${panelClass} space-y-5`}>
+            <div>
+              <span className={labelClass}>Status</span>
+              <div className="mt-2 flex gap-2">
+                {(['draft', 'published'] as const).map((value) => (
+                  <label key={value} className={`flex-1 cursor-pointer rounded-md border px-3 py-2 text-center text-sm capitalize ${status === value ? 'border-harvest-500 bg-harvest-500/20 text-ash-100' : 'border-ash-600 text-ash-300'}`}>
+                    <input type="radio" value={value} {...register('status')} className="sr-only" />
+                    {value}
                   </label>
-                  <input
-                      id="tags"
-                      type="text"
-                      {...register('tags')}
-                      className="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm p-2"
-                      placeholder="e.g. poultry, lysine, cost-saving"
-                  />
-                  <p className="text-xs text-gray-400 mt-1">
-                      Separate tags with a comma.
-                  </p>
-                  {errors.tags && <p className="text-red-500 text-xs mt-1">{errors.tags.message}</p>}
+                ))}
               </div>
             </div>
-            <div className="bg-gray-800/50 border border-gray-700 rounded-xl p-6">
-              <label className="block text-sm font-medium text-gray-300">Featured Image</label>
-              <div className="mt-2">
-                {featuredImage ? (
-                  <div className="relative aspect-video w-full rounded-md overflow-hidden border-2 border-dashed border-gray-600">
-                    <Image src={featuredImage} alt="Featured Image" fill className="object-cover" />
-                  </div>
-                ) : (
-                  <div className="flex justify-center items-center aspect-video w-full border-2 border-gray-600 border-dashed rounded-md">
-                    <ImageIcon className="h-12 w-12 text-gray-500" />
-                  </div>
-                )}
-                <button
-                  type="button"
-                  onClick={() => setIsModalOpen(true)}
-                  className="mt-2 w-full px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg flex items-center justify-center space-x-2 transition-colors"
-                >
-                  <ImageIcon className="w-4 h-4" />
-                  <span>{featuredImage ? 'Change' : 'Select'} Image</span>
-                </button>
-                 {errors.image && <p className="text-red-500 text-xs mt-1">{errors.image.message}</p>}
-              </div>
+            <div>
+              <label htmlFor="publishedAt" className={labelClass}>Publish date</label>
+              <input id="publishedAt" type="date" required {...register('publishedAt')} className={inputClass} />
             </div>
-             <div className="bg-gray-800/50 border border-gray-700 rounded-xl p-6">
-                <label className="block text-sm font-medium text-gray-300">Text-to-Speech Audio</label>
-                {audioUrl && (
-                    <div className="mt-2">
-                        <audio controls src={audioUrl} className="w-full">
-                            Your browser does not support the audio element.
-                        </audio>
-                        <p className="text-xs text-gray-400 mt-1 truncate">URL: {audioUrl}</p>
-                    </div>
-                )}
-                 <button
-                    type="button"
-                    onClick={handleGenerateAudio}
-                    disabled={isGeneratingAudio || !post?.id}
-                    className="mt-2 w-full px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white rounded-lg flex items-center justify-center space-x-2 transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
-                    title={!post?.id ? "Save the post first to enable audio generation" : ""}
-                >
-                    {isGeneratingAudio ? (
-                        <Loader2 className="w-4 h-4 animate-spin"/>
-                    ) : (
-                        <Volume2 className="w-4 h-4"/>
-                    )}
-                    <span>{isGeneratingAudio ? 'Generating...' : (audioUrl ? 'Regenerate Audio' : 'Generate Audio')}</span>
-                </button>
-                <input type="hidden" {...register('audioUrl')} />
-             </div>
+            <div>
+              <label htmlFor="topic" className={labelClass}>Topic</label>
+              <select id="topic" required {...register('topic')} className={inputClass}>
+                <option value="">Select a topic</option>
+                {knowledgeTopics.map((topic) => <option key={topic} value={topic}>{topic}</option>)}
+              </select>
+            </div>
+          </div>
+
+          <div className={`${panelClass} space-y-4`}>
+            <span className={labelClass}>Featured image</span>
+            <div className="relative aspect-video w-full overflow-hidden rounded-md border-2 border-dashed border-ash-600">
+              {imageUrl && /^https:\/\//.test(imageUrl) ? <Image src={imageUrl} alt="" fill sizes="400px" className="object-cover" unoptimized /> : <div className="flex h-full items-center justify-center"><ImageIcon className="h-10 w-10 text-ash-500" /></div>}
+            </div>
+            <div>
+              <label htmlFor="imageUrl" className={labelClass}>Image URL</label>
+              <input id="imageUrl" type="url" required {...register('imageUrl')} className={inputClass} placeholder="https://images.unsplash.com/photo-..." />
+              <p className={hintClass}>Unsplash or your Supabase Storage bucket.</p>
+            </div>
+            <div>
+              <label htmlFor="imageAlt" className={labelClass}>Image description (alt text)</label>
+              <input id="imageAlt" required {...register('imageAlt')} className={inputClass} />
+            </div>
+            <div>
+              <label htmlFor="imageCredit" className={labelClass}>Photo credit</label>
+              <input id="imageCredit" {...register('imageCredit')} className={inputClass} placeholder="Photographer on Unsplash" />
+            </div>
+          </div>
+
+          <div className={`${panelClass} space-y-5`}>
+            <div>
+              <label htmlFor="seoTitle" className={labelClass}>Search title (optional)</label>
+              <input id="seoTitle" maxLength={200} {...register('seoTitle')} className={inputClass} />
+              <p className={hintClass}>Overrides the title in Google results. Keep under 60 characters ({seoTitle.length} now).</p>
+            </div>
+            <div>
+              <label htmlFor="keywords" className={labelClass}>Keywords</label>
+              <input id="keywords" {...register('keywords')} className={inputClass} placeholder="pig feed formulation, lysine for pigs" />
+              <p className={hintClass}>Separate with commas.</p>
+            </div>
+            <fieldset>
+              <legend className={labelClass}>Ingredients mentioned</legend>
+              <p className={hintClass}>Linked from the article and shown on these product pages.</p>
+              <div className="mt-2 grid grid-cols-1 gap-1.5">
+                {feedProductCatalog.map((product) => (
+                  <label key={product.id} className="flex items-center gap-2 text-sm text-ash-200">
+                    <input type="checkbox" value={product.id} {...register('ingredients')} className="rounded border-ash-600 bg-ash-700" />
+                    {product.name}
+                  </label>
+                ))}
+              </div>
+            </fieldset>
           </div>
         </div>
-      </form>
-
-      <AssetSelectionModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onSelect={handleImageSelect}
-        multiple={false}
-      />
-    </>
+      </div>
+    </form>
   );
 };

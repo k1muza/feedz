@@ -14,8 +14,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!category) return { title: 'Category not found', robots: { index: false } };
 
   return createPageMetadata({
-    title: `${category.name}: Feed Ingredients`,
-    description: `Compare ${category.name.toLowerCase()} supplied by FeedSport, including nutrient specifications, packaging and minimum order quantities.`,
+    title: `${category.name} for Animal Feed in Zimbabwe`,
+    description: `Compare ${category.name.toLowerCase()} for livestock feed supplied by FeedSport in Harare: ${feedProducts.filter((product) => product.categorySlug === category.slug).map((product) => product.name.toLowerCase()).join(', ')}. Nutrient specifications, packaging and minimum orders.`,
     path: `/products/categories/${category.slug}`,
   });
 }

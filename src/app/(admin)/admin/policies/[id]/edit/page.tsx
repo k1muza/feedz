@@ -32,7 +32,7 @@ export default function EditPolicyPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-white mb-6">Edit Policy</h1>
+      <h1 className="text-2xl font-bold text-ash-100 mb-6">Edit Policy</h1>
       {policy && <PolicyForm policy={policy} />}
     </div>
   );

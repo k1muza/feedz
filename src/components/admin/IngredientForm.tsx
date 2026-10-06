@@ -110,7 +110,7 @@ export const IngredientForm = ({ ingredient }: IngredientFormProps) => {
 
   return (
     <>
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 bg-gray-800/50 border border-gray-700 rounded-xl p-6">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 bg-ash-800/50 border border-ash-700 rounded-lg p-6">
         {serverError && (
           <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
@@ -120,14 +120,14 @@ export const IngredientForm = ({ ingredient }: IngredientFormProps) => {
         )}
         
         <div>
-          <label htmlFor="name" className="block text-sm font-medium text-gray-300">Ingredient Name</label>
+          <label htmlFor="name" className="block text-sm font-medium text-ash-300">Ingredient Name</label>
           <div className="flex items-center gap-2 mt-1">
-            <input id="name" {...register('name')} className="block w-full bg-gray-700 border-gray-600 rounded-md p-2"/>
+            <input id="name" {...register('name')} className="block w-full bg-ash-700 border-ash-600 rounded-md p-2"/>
             <button 
               type="button" 
               onClick={handleAiGeneration}
               disabled={isGenerating}
-              className="px-3 py-2 bg-teal-600 hover:bg-teal-500 text-white rounded-lg flex items-center space-x-2 transition-colors disabled:bg-gray-500 disabled:cursor-not-allowed"
+              className="px-3 py-2 bg-teal-600 hover:bg-teal-500 text-ash-100 rounded-lg flex items-center space-x-2 transition-colors disabled:bg-ash-500 disabled:cursor-not-allowed"
             >
               {isGenerating ? <Loader2 className="w-4 h-4 animate-spin"/> : <Sparkles className="w-4 h-4" />}
               <span>Generate</span>
@@ -137,14 +137,14 @@ export const IngredientForm = ({ ingredient }: IngredientFormProps) => {
         </div>
 
         <div>
-          <label htmlFor="description" className="block text-sm font-medium text-gray-300">Description</label>
-          <textarea id="description" rows={4} {...register('description')} className="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md p-2"/>
+          <label htmlFor="description" className="block text-sm font-medium text-ash-300">Description</label>
+          <textarea id="description" rows={4} {...register('description')} className="mt-1 block w-full bg-ash-700 border-ash-600 rounded-md p-2"/>
           {errors.description && <p className="text-red-500 text-xs mt-1">{errors.description.message}</p>}
         </div>
         
         <div>
-          <label htmlFor="category" className="block text-sm font-medium text-gray-300">Category</label>
-          <select id="category" {...register('category')} className="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md p-2">
+          <label htmlFor="category" className="block text-sm font-medium text-ash-300">Category</label>
+          <select id="category" {...register('category')} className="mt-1 block w-full bg-ash-700 border-ash-600 rounded-md p-2">
               <option value="">Select a category</option>
               {categories.map((cat) => (
                 <option key={cat.id} value={cat.slug}>{cat.name}</option>
@@ -154,29 +154,29 @@ export const IngredientForm = ({ ingredient }: IngredientFormProps) => {
         </div>
 
          <div>
-          <label htmlFor="key_benefits" className="block text-sm font-medium text-gray-300">Key Benefits</label>
-          <input id="key_benefits" {...register('key_benefits')} placeholder="Benefit 1, Benefit 2,..." className="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md p-2"/>
-          <p className="text-xs text-gray-400 mt-1">Comma-separated values.</p>
+          <label htmlFor="key_benefits" className="block text-sm font-medium text-ash-300">Key Benefits</label>
+          <input id="key_benefits" {...register('key_benefits')} placeholder="Benefit 1, Benefit 2,..." className="mt-1 block w-full bg-ash-700 border-ash-600 rounded-md p-2"/>
+          <p className="text-xs text-ash-400 mt-1">Comma-separated values.</p>
         </div>
         
         <div>
-            <label htmlFor="applications" className="block text-sm font-medium text-gray-300">Applications</label>
-            <input id="applications" {...register('applications')} placeholder="Poultry, Swine,..." className="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md p-2"/>
-            <p className="text-xs text-gray-400 mt-1">Comma-separated values.</p>
+            <label htmlFor="applications" className="block text-sm font-medium text-ash-300">Applications</label>
+            <input id="applications" {...register('applications')} placeholder="Poultry, Swine,..." className="mt-1 block w-full bg-ash-700 border-ash-600 rounded-md p-2"/>
+            <p className="text-xs text-ash-400 mt-1">Comma-separated values.</p>
        </div>
 
        <div className="flex justify-end space-x-3">
         <button
             type="button"
             onClick={() => router.back()}
-            className="px-4 py-2 border border-gray-600 hover:bg-gray-700 rounded-lg transition-colors"
+            className="px-4 py-2 border border-ash-600 hover:bg-ash-700 rounded-lg transition-colors"
         >
             Cancel
         </button>
         <button
             type="submit"
             disabled={isSubmitting}
-            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg flex items-center space-x-2 transition-colors disabled:bg-gray-500 disabled:cursor-not-allowed"
+            className="px-4 py-2 bg-harvest-600 hover:bg-harvest-500 text-ash-950 rounded-lg flex items-center space-x-2 transition-colors disabled:bg-ash-500 disabled:cursor-not-allowed"
         >
             <Save className="w-4 h-4" />
             <span>{isSubmitting ? 'Saving...' : (ingredient ? 'Save Changes' : 'Create Ingredient')}</span>

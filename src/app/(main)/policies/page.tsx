@@ -9,30 +9,16 @@ import { Metadata } from 'next';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { FileText, Clock, AlertCircle } from 'lucide-react';
+import { getPolicies } from '@/lib/content';
 import { createPageMetadata } from '@/lib/seo';
 
 export const metadata: Metadata = createPageMetadata({
   title: 'Company Policies',
-  description: 'Read the official policies of FeedSport International regarding privacy, returns, and terms of service.',
+  description: 'Read FeedSport International policies on privacy, product specifications, availability and nutrition guidance.',
   path: '/policies',
 });
 
-const policies = [
-  {
-    id: 'privacy',
-    title: 'Privacy policy',
-    lastUpdated: '2026-10-05',
-    effectiveDate: '2026-10-05',
-    content: '## Information we collect\n\nWe only use the contact details you choose to send by email, phone or WhatsApp to respond to your enquiry and fulfil an order.\n\n## How we use it\n\nWe use enquiry details for quotations, product support, delivery coordination and customer service. We do not sell personal information.\n\n## Contact\n\nEmail [sales@feedsport.co.zw](mailto:sales@feedsport.co.zw) if you want us to correct or remove information you have sent us.',
-  },
-  {
-    id: 'supply',
-    title: 'Supply and product information',
-    lastUpdated: '2026-10-05',
-    effectiveDate: '2026-10-05',
-    content: '## Specifications\n\nPublished nutrient values are typical values unless a batch specification says otherwise. Confirm the current specification before formulation or purchase.\n\n## Availability\n\nStock status, minimum order quantities, packaging and lead times are confirmed when FeedSport issues a quotation.\n\n## Nutrition guidance\n\nWebsite formulation results are illustrative and should be reviewed for your animals, ingredients and production system.',
-  },
-];
+export const revalidate = 3600;
 
 // Custom markdown components that integrate with your design system
 const MarkdownComponents = {
@@ -137,7 +123,8 @@ const MarkdownComponents = {
   ),
 };
 
-export default function PoliciesPage() {
+export default async function PoliciesPage() {
+  const policies = await getPolicies();
   return (
     <>
       <SecondaryHero
@@ -263,10 +250,10 @@ export default function PoliciesPage() {
                 Contact Support
               </a>
               <a 
-                href="mailto:legal@feedsport.com" 
+                href="mailto:sales@feedsport.co.zw" 
                 className="inline-flex items-center px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
               >
-                Email Legal Team
+                Email us
               </a>
             </div>
           </div>

@@ -4,6 +4,8 @@ import { getAllTeamMembers } from '@/app/actions';
 import { TeamManagement } from '@/components/admin/TeamManagement';
 import { TeamMember } from '@/types';
 
+export const dynamic = 'force-dynamic';
+
 export default async function TeamPage() {
   const members: TeamMember[] = await getAllTeamMembers();
   return (
