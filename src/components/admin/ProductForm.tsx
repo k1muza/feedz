@@ -66,7 +66,7 @@ export const ProductForm = ({ product, categories, nutritionIngredients }: Produ
           name: product?.ingredient?.name || '',
           categoryId: product?.categoryId || '',
           description: product?.ingredient?.description || '',
-          status: product?.status || 'On request',
+          status: product?.status || 'Available to order',
           animals: product?.animals || [],
           gradeFallback: product?.gradeFallback || '',
           imageLabel: product?.imageLabel || '',

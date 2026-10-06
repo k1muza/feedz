@@ -3,7 +3,7 @@ import DesignPlaceholder from '@/components/common/DesignPlaceholder';
 import { productImages } from '@/data/unsplashImages';
 import type { FeedProduct } from '@/data/feedProducts';
 
-const statusColour = { 'In stock': 'bg-[#2e7d4f]', 'Readily available': 'bg-[#5b8f6a]', Limited: 'bg-[#b7791f]', 'On request': 'bg-[#6b6f66]' };
+const statusColour = { 'In stock': 'bg-[#2e7d4f]', 'Readily available': 'bg-[#5b8f6a]', Limited: 'bg-[#b7791f]', 'Available to order': 'bg-[#6b6f66]' };
 
 export default function FeedProductCard({ product, showDescription = true }: { product: FeedProduct; showDescription?: boolean }) {
   const image = product.images?.[0]
