@@ -13,7 +13,10 @@ import type {
   NutritionIngredientOption,
   TeamMember,
   User,
+  Supplier,
+  Lead,
 } from '@/types';
+import { LEAD_STATUSES } from '@/types';
 import type { Conversation } from '@/types/chat';
 import { revalidatePath } from 'next/cache';
 import { after } from 'next/server';
@@ -780,6 +783,206 @@ export async function deleteTeamMember(memberId: string) {
   if (error) return { success: false, error: 'Failed to delete team member.' };
   revalidatePath('/admin/team');
   revalidatePath('/team');
+  return { success: true };
+}
+
+// Suppliers ---------------------------------------------------------------------
+
+const optionalEmail = z.string().trim().max(254).email('Enter a valid email').or(z.literal('')).default('');
+
+const SupplierFormSchema = z.object({
+  company: z.string().trim().min(1, 'Company is required').max(160),
+  contactName: z.string().trim().max(120).default(''),
+  phone: z.string().trim().max(60).default(''),
+  email: optionalEmail,
+  location: z.string().trim().max(160).default(''),
+  supplies: z.string().max(2000).default(''),
+  notes: z.string().trim().max(5000).default(''),
+  active: z.boolean().default(true),
+});
+
+export type SupplierFormValues = z.input<typeof SupplierFormSchema>;
+
+type SupplierRow = {
+  id: string;
+  company: string;
+  contact_name: string;
+  phone: string;
+  email: string;
+  location: string;
+  supplies: string[] | null;
+  notes: string;
+  active: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+function rowToSupplier(row: SupplierRow): Supplier {
+  return {
+    id: row.id,
+    company: row.company,
+    contactName: row.contact_name,
+    phone: row.phone,
+    email: row.email,
+    location: row.location,
+    supplies: row.supplies || [],
+    notes: row.notes,
+    active: row.active,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+export async function getAllSuppliers(): Promise<Supplier[]> {
+  const admin = await requireAdmin();
+  if ('error' in admin) return [];
+  const { data, error } = await admin.supabase.from('suppliers').select('*').order('company');
+  if (error) {
+    console.error('Error loading suppliers:', error.message);
+    return [];
+  }
+  return (data as SupplierRow[]).map(rowToSupplier);
+}
+
+export async function saveSupplier(values: SupplierFormValues, supplierId?: string) {
+  if (supplierId && !z.string().uuid().safeParse(supplierId).success) return { success: false, error: 'Invalid supplier ID.' };
+  const validation = SupplierFormSchema.safeParse(values);
+  if (!validation.success) return { success: false, error: invoiceValidationError(validation.error) };
+  const admin = await requireAdmin();
+  if ('error' in admin) return { success: false, error: admin.error };
+
+  const { contactName, supplies, ...rest } = validation.data;
+  const row = { ...rest, contact_name: contactName, supplies: commaList(supplies) };
+  const { error } = supplierId
+    ? await admin.supabase.from('suppliers').update(row).eq('id', supplierId)
+    : await admin.supabase.from('suppliers').insert(row);
+  if (error) {
+    console.error('Error saving supplier:', error.message);
+    return { success: false, error: 'Failed to save the supplier.' };
+  }
+  revalidatePath('/admin/suppliers');
+  return { success: true };
+}
+
+export async function deleteSupplier(supplierId: string) {
+  if (!z.string().uuid().safeParse(supplierId).success) return { success: false, error: 'Invalid supplier ID.' };
+  const admin = await requireAdmin();
+  if ('error' in admin) return { success: false, error: admin.error };
+  const { error } = await admin.supabase.from('suppliers').delete().eq('id', supplierId);
+  if (error) {
+    console.error('Error deleting supplier:', error.message);
+    return { success: false, error: 'Failed to delete the supplier.' };
+  }
+  revalidatePath('/admin/suppliers');
+  return { success: true };
+}
+
+// Leads -------------------------------------------------------------------------
+
+const LeadFormSchema = z.object({
+  name: z.string().trim().min(1, 'Name is required').max(120),
+  company: z.string().trim().max(160).default(''),
+  phone: z.string().trim().max(60).default(''),
+  email: optionalEmail,
+  location: z.string().trim().max(160).default(''),
+  interest: z.string().trim().max(500).default(''),
+  source: z.string().trim().max(60).default(''),
+  status: z.enum(LEAD_STATUSES).default('new'),
+  followUpOn: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Enter a valid follow-up date').or(z.literal('')).nullish(),
+  notes: z.string().trim().max(5000).default(''),
+});
+
+export type LeadFormValues = z.input<typeof LeadFormSchema>;
+
+type LeadRow = {
+  id: string;
+  name: string;
+  company: string;
+  phone: string;
+  email: string;
+  location: string;
+  interest: string;
+  source: string;
+  status: Lead['status'];
+  follow_up_on: string | null;
+  notes: string;
+  created_at: string;
+  updated_at: string;
+};
+
+function rowToLead(row: LeadRow): Lead {
+  return {
+    id: row.id,
+    name: row.name,
+    company: row.company,
+    phone: row.phone,
+    email: row.email,
+    location: row.location,
+    interest: row.interest,
+    source: row.source,
+    status: row.status,
+    followUpOn: row.follow_up_on,
+    notes: row.notes,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+export async function getAllLeads(): Promise<Lead[]> {
+  const admin = await requireAdmin();
+  if ('error' in admin) return [];
+  const { data, error } = await admin.supabase.from('leads').select('*').order('created_at', { ascending: false });
+  if (error) {
+    console.error('Error loading leads:', error.message);
+    return [];
+  }
+  return (data as LeadRow[]).map(rowToLead);
+}
+
+export async function saveLead(values: LeadFormValues, leadId?: string) {
+  if (leadId && !z.string().uuid().safeParse(leadId).success) return { success: false, error: 'Invalid lead ID.' };
+  const validation = LeadFormSchema.safeParse(values);
+  if (!validation.success) return { success: false, error: invoiceValidationError(validation.error) };
+  const admin = await requireAdmin();
+  if ('error' in admin) return { success: false, error: admin.error };
+
+  const { followUpOn, ...rest } = validation.data;
+  const row = { ...rest, follow_up_on: followUpOn || null };
+  const { error } = leadId
+    ? await admin.supabase.from('leads').update(row).eq('id', leadId)
+    : await admin.supabase.from('leads').insert(row);
+  if (error) {
+    console.error('Error saving lead:', error.message);
+    return { success: false, error: 'Failed to save the lead.' };
+  }
+  revalidatePath('/admin/leads');
+  return { success: true };
+}
+
+export async function setLeadStatus(leadId: string, status: Lead['status']) {
+  if (!z.string().uuid().safeParse(leadId).success) return { success: false, error: 'Invalid lead ID.' };
+  if (!z.enum(LEAD_STATUSES).safeParse(status).success) return { success: false, error: 'Invalid status.' };
+  const admin = await requireAdmin();
+  if ('error' in admin) return { success: false, error: admin.error };
+  const { error } = await admin.supabase.from('leads').update({ status }).eq('id', leadId);
+  if (error) {
+    console.error('Error updating lead status:', error.message);
+    return { success: false, error: 'Failed to update the lead.' };
+  }
+  revalidatePath('/admin/leads');
+  return { success: true };
+}
+
+export async function deleteLead(leadId: string) {
+  if (!z.string().uuid().safeParse(leadId).success) return { success: false, error: 'Invalid lead ID.' };
+  const admin = await requireAdmin();
+  if ('error' in admin) return { success: false, error: admin.error };
+  const { error } = await admin.supabase.from('leads').delete().eq('id', leadId);
+  if (error) {
+    console.error('Error deleting lead:', error.message);
+    return { success: false, error: 'Failed to delete the lead.' };
+  }
+  revalidatePath('/admin/leads');
   return { success: true };
 }
 

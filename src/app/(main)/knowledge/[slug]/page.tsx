@@ -111,9 +111,12 @@ export default async function KnowledgeArticlePage({ params }: Props) {
       <nav aria-label="Breadcrumb" className="mb-5 flex flex-wrap gap-2 text-[13px] text-[#4f524b]"><Link href="/knowledge" className="text-[#4f524b] underline underline-offset-[3px]">Knowledge Centre</Link><span>/</span><Link href={`/knowledge?topic=${encodeURIComponent(article.topic)}`} className="text-[#4f524b] underline underline-offset-[3px]">{article.topic}</Link></nav>
 
       <article>
-        <header className="max-w-[860px]">
+        <header>
           <p className="fs-mono mb-3 mt-0 text-[12px] font-semibold uppercase tracking-[.08em] text-[#1d3a2a]">{article.topic}</p>
-          <h1 className="m-0 text-balance text-[clamp(34px,4.6cqi,60px)] font-bold leading-[1.02] tracking-[-.03em]">{article.title}</h1>
+          <div className="flex flex-col items-start gap-4 min-[720px]:flex-row min-[720px]:justify-between min-[720px]:gap-8">
+            <h1 className="m-0 max-w-[860px] text-balance text-[clamp(34px,4.6cqi,60px)] font-bold leading-[1.02] tracking-[-.03em]">{article.title}</h1>
+            <a href={`/api/knowledge/${article.slug}/pdf`} target="_blank" rel="noopener" className="inline-flex h-10 shrink-0 items-center rounded-[4px] border-[1.5px] border-[#191b18] bg-[#fbfaf6] px-3.5 text-[14px] font-semibold text-[#191b18] no-underline min-[720px]:mt-2">Download PDF</a>
+          </div>
           <p className="mb-5 mt-4 max-w-[720px] text-pretty text-[19px] leading-[1.5] text-[#3d403a]">{article.description}</p>
           <p className="fs-mono m-0 flex flex-wrap gap-x-4 gap-y-1 text-[12px] text-[#4f524b]"><span>By {articleAuthor}</span><span>Published <time dateTime={article.published}>{formatDate(article.published)}</time></span>{article.updated !== article.published && <span>Updated <time dateTime={article.updated}>{formatDate(article.updated)}</time></span>}<span>{minutes} min read</span></p>
         </header>

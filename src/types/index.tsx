@@ -340,3 +340,36 @@ export interface TopRankedNutrient {
   diff: number;
   avg: number;
 }
+
+export type Supplier = {
+  id: string;
+  company: string;
+  contactName: string;
+  phone: string;
+  email: string;
+  location: string;
+  supplies: string[];
+  notes: string;
+  active: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export const LEAD_STATUSES = ['new', 'contacted', 'qualified', 'won', 'lost'] as const;
+export type LeadStatus = (typeof LEAD_STATUSES)[number];
+
+export type Lead = {
+  id: string;
+  name: string;
+  company: string;
+  phone: string;
+  email: string;
+  location: string;
+  interest: string;
+  source: string;
+  status: LeadStatus;
+  followUpOn: string | null;
+  notes: string;
+  createdAt: string;
+  updatedAt: string;
+}

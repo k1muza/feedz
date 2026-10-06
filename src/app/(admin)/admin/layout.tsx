@@ -27,6 +27,8 @@ import {
   Receipt,
   ChevronDown,
   LayoutGrid,
+  Truck,
+  Target,
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -46,12 +48,14 @@ const navSections = [
         { path: '/admin/products', label: 'Products', icon: Package },
         { path: '/admin/ingredients', label: 'Ingredients', icon: FlaskConical },
         { path: '/admin/stock', label: 'Stock Management', icon: Package },
+        { path: '/admin/suppliers', label: 'Suppliers', icon: Truck },
       ],
     },
     {
       title: 'Sales',
       icon: ShoppingCart,
       links: [
+        { path: '/admin/leads', label: 'Leads', icon: Target },
         { path: '/admin/invoices', label: 'Invoices', icon: Receipt },
       ],
     },
