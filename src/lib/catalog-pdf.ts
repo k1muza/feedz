@@ -5,7 +5,7 @@ import fontkit from '@pdf-lib/fontkit';
 import { PDFDocument, rgb, type PDFFont, type PDFPage, type RGB } from 'pdf-lib';
 
 import { animalNames, type FeedProduct } from '@/data/feedProducts';
-import { packLabel, pricePerTonne } from '@/lib/product-units';
+import { formatKg, packLabel } from '@/lib/product-units';
 import { siteConfig } from '@/lib/seo';
 
 const W = 595.28;
@@ -62,15 +62,19 @@ function loadFontBytes() {
 
 const money = (currency: string, value: number) => `${currency} ${value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
-/** Price per pack as sold (e.g. USD 15.94 / 50 kg); bulk-capable products also get a per-tonne price. */
+/**
+ * Price per pack as sold (e.g. USD 15.94 / 50 kg). When the MOQ is more than one pack,
+ * also the value of the MOQ in whole packs (e.g. 20 × 50 kg → USD 318.80 / 1 tonne).
+ */
 function priceQuote(product: FeedProduct) {
   if (!product.price || product.price <= 0) return undefined;
   const currency = product.currency || 'USD';
   const packSizeKg = product.packSizeKg ?? 1000;
-  const bulk = packSizeKg < 1000 && /\bbulk\b/i.test(product.packaging)
-    ? `${money(currency, pricePerTonne(product.price, packSizeKg))} / tonne`
+  const moqKg = product.moqKg ?? 0;
+  const moqValue = moqKg > packSizeKg
+    ? `${money(currency, Math.ceil(moqKg / packSizeKg) * product.price)} / ${formatKg(moqKg)}`
     : undefined;
-  return { amount: money(currency, product.price), per: `/ ${packLabel(packSizeKg)}`, bulk };
+  return { amount: money(currency, product.price), per: `/ ${packLabel(packSizeKg)}`, moqValue };
 }
 
 export type CatalogPdfOptions = {
@@ -199,7 +203,7 @@ export async function renderCatalogPdf(products: FeedProduct[], options: Catalog
     const details: [string, string[]][] = ([
       ['MOQ', product.moq],
       ['Packaging', product.packaging],
-      ['Bulk price', priceQuote(product)?.bulk ?? ''],
+      ['MOQ value', priceQuote(product)?.moqValue ?? ''],
       ['Origin', product.origin],
       ['Suitable for', product.animals.map((animal) => animalNames[animal] ?? animal).join(', ')],
       ['Quality', product.certifications],
@@ -286,7 +290,7 @@ export async function renderCatalogPdf(products: FeedProduct[], options: Catalog
   const source = products.find((product) => product.nutritionSource)?.nutritionSource;
   const notes = [
     'Ordering. Request a quotation or place an order by phone or email; minimum order quantities apply per product. Delivery can be arranged around Harare.',
-    'Prices. Indicative prices in US dollars per bag as packed, with bulk prices per tonne where bulk supply is available, excluding delivery. Prices and availability change with the market and are confirmed on the proforma invoice.',
+    'Prices. In US dollars per pack as sold, with the MOQ value (the price of the minimum order quantity) where it is more than one pack, excluding delivery. Prices shown are current indicative prices and may change without notice. Final price and availability are confirmed on quotation/proforma invoice.',
     `Specifications. Typical values${source ? ` from ${source.title.split(' — ')[0]}, ${source.edition}th edition (${source.year})` : ''}, or the supplier specification where no published analysis applies. A full specification sheet for each product is available at ${siteConfig.url.replace('https://', '')}/products.`,
   ];
   const noteLines = notes.map((note) => wrap(note, 'regular', 8, CW - 28));

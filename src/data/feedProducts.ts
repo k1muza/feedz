@@ -45,6 +45,7 @@ export type FeedProduct = {
   currency?: string;
   /** Smallest quantity sold, in kg (50 for a 50 kg bag, 1000 for bulk per tonne). */
   packSizeKg?: number;
+  moqKg?: number;
   stock?: number;
   images?: string[];
   shipping?: string;

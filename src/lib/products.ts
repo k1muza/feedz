@@ -81,6 +81,7 @@ export const getPublishedProducts = cache(async (): Promise<FeedProduct[]> => {
         price: Number(row.price),
         currency: row.currency,
         packSizeKg: Number(row.pack_size_kg),
+        moqKg: Number(row.moq_kg),
         stock: Number(row.stock),
         images: row.images ?? [],
         shipping: row.shipping || undefined,
