@@ -300,7 +300,7 @@ export const ProductForm = ({ product, categories, nutritionIngredients }: Produ
               <div className="bg-ash-800/50 border border-ash-700 rounded-lg p-6">
                    <div className="mt-4">
                       <label htmlFor="certifications" className="block text-sm font-medium text-ash-300">Certifications</label>
-                      <input id="certifications" {...register('certifications')} placeholder="ISO 9001, Non-GMO" className="mt-1 block w-full bg-ash-700 border-ash-600 rounded-md p-2"/>
+                      <input id="certifications" {...register('certifications')} placeholder="Feed grade certificate, Non-GMO" className="mt-1 block w-full bg-ash-700 border-ash-600 rounded-md p-2"/>
                        <p className="text-xs text-ash-400 mt-1">Comma-separated values.</p>
                   </div>
                    <div className="flex items-center space-x-2 mt-4">

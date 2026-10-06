@@ -26,6 +26,7 @@ import { createPublicClient, getAdminClient } from '@/lib/supabase/server';
 import { sendInquiryNotification } from '@/lib/email';
 import { INGREDIENT_LIBRARY, type IngredientNutrientRecord } from '@/lib/ingredient-nutrients';
 import { PUBLIC_PREMIX_ID, PUBLIC_PREMIX_NAME } from '@/lib/public-feed-premix';
+import { siteConfig } from '@/lib/seo';
 
 const staticModeError = 'This operation is unavailable while FeedSport is running in static mode.';
 const unavailable = () => ({ success: false, error: staticModeError });
@@ -77,7 +78,7 @@ export async function getAppSettings(): Promise<AppSettings> { return { registra
 export async function updateAppSettings(_settings: Partial<AppSettings>) { return unavailable(); }
 export async function createUserProfile(..._args: any[]) { return unavailable(); }
 export async function getBusinessDetails(): Promise<string> {
-  return 'FeedSport supplies feed ingredients and practical animal nutrition support in Zimbabwe. Phone or WhatsApp +263 77 468 4534.';
+  return `FeedSport supplies feed ingredients and practical animal nutrition support in Zimbabwe. Address: ${siteConfig.addressLines.join(', ')}. Phone or WhatsApp +263 77 468 4534. Email ${siteConfig.email}.`;
 }
 
 // ---------------------------------------------------------------------------

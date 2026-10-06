@@ -36,8 +36,7 @@ const C = {
 };
 
 const statusColour: Record<FeedProduct['status'], RGB> = {
-  'In stock': hex('#2e7d4f'),
-  'Readily available': hex('#5b8f6a'),
+  'Readily available': hex('#2e7d4f'),
   Limited: hex('#b7791f'),
   'Available to order': hex('#6b6f66'),
 };

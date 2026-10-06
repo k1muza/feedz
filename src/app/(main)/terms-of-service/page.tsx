@@ -28,7 +28,7 @@ export default function TermsOfServicePage() {
           
           <h2>2. Description of Service</h2>
           <p>
-            Our Service provides information about our products, AI-driven recommendations, and a platform for communication. The Service is provided "as is" and we assume no responsibility for the timeliness, deletion, mis-delivery or failure to store any user communications or personalization settings.
+            Our Service provides information about our products, feed formulation tools, an automated chat assistant, and a platform for communication. The Service is provided "as is" and we assume no responsibility for the timeliness, deletion, mis-delivery or failure to store any user communications or personalization settings.
           </p>
 
           <h2>3. Use of Our Services</h2>

@@ -175,7 +175,7 @@ export const ProductsManagement = ({ initialProducts }: { initialProducts: Produ
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap text-sm text-ash-400">{product.price > 0 ? `$${product.price.toFixed(2)} / ${packLabel(product.packSizeKg)}` : 'On request'}</td>
                   <td className="hidden sm:table-cell px-4 py-3 whitespace-nowrap">
-                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${product.status === 'In stock' ? 'bg-green-900/30 text-green-400' : product.status === 'Readily available' ? 'bg-emerald-900/30 text-emerald-300' : product.status === 'Limited' ? 'bg-yellow-900/30 text-yellow-300' : 'bg-ash-700 text-ash-300'}`}>
+                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${product.status === 'Readily available' ? 'bg-green-900/30 text-green-400' : product.status === 'Limited' ? 'bg-yellow-900/30 text-yellow-300' : 'bg-ash-700 text-ash-300'}`}>
                       {product.status}
                     </span>
                   </td>

@@ -15,6 +15,7 @@ import {
 
 import { saveContactInquiry } from '@/app/actions';
 import SecondaryHero from '@/components/common/SecondaryHero';
+import { siteConfig } from '@/lib/seo';
 
 const contactMethods = [
   {
@@ -147,7 +148,7 @@ export default function ContactPageClient() {
                   <h3 className="fs-label m-0">Visit us</h3>
                 </div>
                 <address className="m-0 max-w-[260px] text-[15px] not-italic leading-[1.55] text-[#3d403a]">
-                  2 William Pollet Road<br />Borrowdale, Harare<br />Zimbabwe
+                  {siteConfig.addressLines.map((line, index) => <span key={line}>{index > 0 && <br />}{line}</span>)}
                 </address>
               </div>
 

@@ -1,14 +1,16 @@
 import Link from 'next/link';
 import DesignPlaceholder from '@/components/common/DesignPlaceholder';
-import { productImages } from '@/data/unsplashImages';
+import { productImages, type UnsplashImage } from '@/data/unsplashImages';
 import type { FeedProduct } from '@/data/feedProducts';
 
-const statusColour = { 'In stock': 'bg-[#2e7d4f]', 'Readily available': 'bg-[#5b8f6a]', Limited: 'bg-[#b7791f]', 'Available to order': 'bg-[#6b6f66]' };
+const statusColour = { 'Readily available': 'bg-[#2e7d4f]', Limited: 'bg-[#b7791f]', 'Available to order': 'bg-[#6b6f66]' };
 
-export default function FeedProductCard({ product, showDescription = true }: { product: FeedProduct; showDescription?: boolean }) {
-  const image = product.images?.[0]
+type FeedProductCardProps = { product: FeedProduct; showDescription?: boolean; image?: UnsplashImage };
+
+export default function FeedProductCard({ product, showDescription = true, image: imageOverride }: FeedProductCardProps) {
+  const image = imageOverride ?? (product.images?.[0]
     ? { id: product.id, src: product.images[0], alt: product.name, photographer: '' }
-    : productImages[product.id];
+    : productImages[product.id]);
   return (
     <article className="fs-card flex h-full flex-col">
       <Link href={`/products/${product.id}`} aria-label={`View ${product.name}`} className="relative block aspect-[16/10] text-[#191b18] no-underline">

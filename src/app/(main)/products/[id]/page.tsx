@@ -52,7 +52,7 @@ export default async function ProductPage({ params }: Props) {
   const related = products.filter((item) => item.id !== product.id && (item.category === product.category || item.animals.some((animal) => product.animals.includes(animal)))).slice(0, 4);
   const quoteText = encodeURIComponent(`Please quote ${product.name} — minimum order ${product.moq}`);
   const certificateText = encodeURIComponent(`Please send me the latest certificate of analysis for ${product.name}.`);
-  const statusColour = product.status === 'In stock' ? 'bg-[#2e7d4f]' : product.status === 'Readily available' ? 'bg-[#5b8f6a]' : product.status === 'Limited' ? 'bg-[#b7791f]' : 'bg-[#6b6f66]';
+  const statusColour = product.status === 'Readily available' ? 'bg-[#2e7d4f]' : product.status === 'Limited' ? 'bg-[#b7791f]' : 'bg-[#6b6f66]';
   const jsonLd = {
     '@context': 'https://schema.org',
     '@graph': [

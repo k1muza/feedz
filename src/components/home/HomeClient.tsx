@@ -4,33 +4,17 @@ import Link from 'next/link';
 import { FormEvent, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import DesignPlaceholder from '@/components/common/DesignPlaceholder';
+import FeedProductCard from '@/components/products/FeedProductCard';
+import type { FeedProduct } from '@/data/feedProducts';
 import { animalImages, categoryImages, productImages, siteImages, type UnsplashImage } from '@/data/unsplashImages';
 
-type DisplayProduct = {
-  id: string;
-  name: string;
-  category: string;
-  grade: string;
-  description: string;
-  stock: number;
-  moq: string;
-  specs: { label: string; value: string; unit: string }[];
-};
-
-const fallbackProducts: DisplayProduct[] = [
-  { id: 'soybean-meal', name: 'Soybean meal', category: 'Protein feeds', grade: 'Hi-Pro, 46% CP', description: 'Solvent-extracted soybean meal, the main protein source in most pig and poultry diets.', stock: 18, moq: '1 tonne', specs: [{ label: 'Protein', value: '46', unit: '%' }, { label: 'ME poultry', value: '2,450', unit: 'kcal/kg' }, { label: 'Fibre', value: '6.0', unit: '%' }] },
-  { id: 'sorghum', name: 'Sorghum', category: 'Energy feeds', grade: 'Whole or hammer-milled', description: 'A versatile energy grain for pig, poultry and cattle diets. Supplied whole or milled.', stock: 24, moq: '5 tonnes', specs: [{ label: 'Protein', value: '10.5', unit: '%' }, { label: 'ME poultry', value: '3,250', unit: 'kcal/kg' }, { label: 'Fat', value: '3.2', unit: '%' }] },
-  { id: 'wheat-bran', name: 'Wheat bran', category: 'Fibre products', grade: 'Coarse', description: 'Milling by-product with moderate protein and high fibre. Common in sow, ruminant and layer rations.', stock: 5, moq: '1 tonne', specs: [{ label: 'Protein', value: '15.5', unit: '%' }, { label: 'Fibre', value: '10.0', unit: '%' }, { label: 'ME poultry', value: '1,300', unit: 'kcal/kg' }] },
-  { id: 'lysine', name: 'L-Lysine HCl', category: 'Amino acids', grade: 'Feed grade, 98.5%', description: 'Synthetic lysine to meet amino acid targets with less soybean meal.', stock: 12, moq: '25 kg', specs: [{ label: 'Lysine', value: '78.8', unit: '%' }, { label: 'Purity', value: '98.5', unit: '%' }] },
-];
-
 const categories = [
-  { name: 'Protein feeds', slug: 'protein-feeds', count: 3, imageLabel: 'soybean / fish meal', examples: 'Soybean meal, fish meal, sunflower meal' },
-  { name: 'Energy feeds', slug: 'energy-feeds', count: 1, imageLabel: 'sorghum', examples: 'Sorghum and energy concentrates' },
-  { name: 'Fibre products', slug: 'fiber-products', count: 1, imageLabel: 'wheat bran', examples: 'Wheat bran and high-fibre ingredients' },
-  { name: 'Minerals', slug: 'minerals', count: 2, imageLabel: 'DCP / limestone', examples: 'DCP, limestone and bone meal' },
-  { name: 'Amino acids', slug: 'amino-acids', count: 2, imageLabel: 'lysine granules', examples: 'Lysine, methionine and threonine' },
-  { name: 'Premixes & additives', slug: 'premixes-additives', count: 1, imageLabel: 'premix bags', examples: 'Species and stage-specific premixes' },
+  { name: 'Protein feeds', slug: 'protein-feeds', imageLabel: 'soybean / fish meal', examples: 'Soybean meal, fish meal, sunflower meal' },
+  { name: 'Energy feeds', slug: 'energy-feeds', imageLabel: 'sorghum', examples: 'Sorghum, whole or milled' },
+  { name: 'Fibre products', slug: 'fiber-products', imageLabel: 'wheat bran', examples: 'Wheat bran' },
+  { name: 'Minerals', slug: 'minerals', imageLabel: 'DCP / limestone', examples: 'Dicalcium phosphate and feed limestone' },
+  { name: 'Amino acids', slug: 'amino-acids', imageLabel: 'lysine granules', examples: 'Lysine and methionine' },
+  { name: 'Premixes & additives', slug: 'premixes-additives', imageLabel: 'premix bags', examples: 'Species and stage-specific premixes' },
 ];
 
 const animals = [
@@ -42,11 +26,13 @@ const animals = [
 
 export type HomeArticle = { slug: string; title: string; topic: string; image: UnsplashImage };
 
-export default function HomeClient({ articles }: { articles: HomeArticle[] }) {
+type HomeClientProps = { articles: HomeArticle[]; featuredProducts: FeedProduct[]; categoryCounts: Record<string, number> };
+
+export default function HomeClient({ articles, featuredProducts, categoryCounts }: HomeClientProps) {
   const router = useRouter();
   const [query, setQuery] = useState('');
   const [activeAnimal, setActiveAnimal] = useState(animals[0]);
-  const products = fallbackProducts;
+  const [heroProduct] = featuredProducts;
 
   const submitSearch = (event: FormEvent) => {
     event.preventDefault();
@@ -77,14 +63,14 @@ export default function HomeClient({ articles }: { articles: HomeArticle[] }) {
           </div>
 
           <DesignPlaceholder label="hero photograph — feed ingredients at the store: bagged soybean meal, open sorghum, wheat bran" labelPosition="top" strong image={siteImages.hero} sizes="(min-width: 1024px) 50vw, 100vw" priority className="min-h-[clamp(420px,46cqi,620px)] rounded-[8px]">
-            <div className="absolute bottom-[clamp(14px,2.4cqi,28px)] left-[clamp(14px,2.4cqi,28px)] right-[clamp(14px,2.4cqi,28px)] max-w-[380px] overflow-hidden rounded-[6px] bg-[#fbfaf6] shadow-[0_16px_48px_rgb(25_27_24/.2)]">
-              <div className="flex items-center justify-between border-b border-[#d9d4c7] px-4 py-3"><span className="fs-label text-[#4f524b]">Featured product</span><span className="inline-flex items-center gap-1.5 text-[12px] font-semibold"><i className="h-[7px] w-[7px] rounded-full bg-[#2e7d4f]" />In stock</span></div>
-              <div className="px-4 pb-3 pt-3.5"><div className="text-[22px] font-bold">Soybean meal</div><div className="mt-0.5 text-[13px] text-[#4f524b]">Hi-Pro, 46% CP · 50 kg bags or bulk</div></div>
+            {heroProduct && <div className="absolute bottom-[clamp(14px,2.4cqi,28px)] left-[clamp(14px,2.4cqi,28px)] right-[clamp(14px,2.4cqi,28px)] max-w-[380px] overflow-hidden rounded-[6px] bg-[#fbfaf6] shadow-[0_16px_48px_rgb(25_27_24/.2)]">
+              <div className="flex items-center justify-between border-b border-[#d9d4c7] px-4 py-3"><span className="fs-label text-[#4f524b]">Featured product</span><span className="text-[12px] font-semibold">{heroProduct.status}</span></div>
+              <div className="px-4 pb-3 pt-3.5"><div className="text-[22px] font-bold">{heroProduct.name}</div><div className="mt-0.5 text-[13px] text-[#4f524b]">{heroProduct.grade} · {heroProduct.packaging}</div></div>
               <div className="grid grid-cols-3 border-t border-[#d9d4c7]">
-                {[['Protein', '46', '%'], ['ME', '2,450', 'kcal'], ['MOQ', '1', 't']].map(([label, value, unit], index) => <div key={label} className={`px-4 py-2.5 ${index < 2 ? 'border-r border-[#d9d4c7]' : ''}`}><div className="fs-label text-[10px] text-[#4f524b]">{label}</div><div className="text-[22px] font-semibold tabular-nums">{value}<span className="ml-0.5 text-[11px] font-normal text-[#4f524b]">{unit}</span></div></div>)}
+                {[...heroProduct.specs.slice(0, 2), { label: 'MOQ', value: heroProduct.moq, unit: '' }].map((spec, index) => <div key={spec.label} className={`px-4 py-2.5 ${index < 2 ? 'border-r border-[#d9d4c7]' : ''}`}><div className="fs-label text-[10px] text-[#4f524b]">{spec.label}</div><div className="text-[22px] font-semibold tabular-nums">{spec.value}<span className="ml-0.5 text-[11px] font-normal text-[#4f524b]">{spec.unit}</span></div></div>)}
               </div>
-              <Link href="/products/soybean-meal" className="flex w-full justify-between bg-[#1d3a2a] px-4 py-[13px] text-[14px] font-semibold text-white no-underline">View full specification <span>→</span></Link>
-            </div>
+              <Link href={`/products/${heroProduct.id}`} className="flex w-full justify-between bg-[#1d3a2a] px-4 py-[13px] text-[14px] font-semibold text-white no-underline">View full specification <span>→</span></Link>
+            </div>}
           </DesignPlaceholder>
         </div>
       </section>
@@ -100,7 +86,7 @@ export default function HomeClient({ articles }: { articles: HomeArticle[] }) {
       <section className="fs-frame fs-section">
         <div className="mb-6 flex flex-wrap items-end justify-between gap-4"><h2 className="fs-h2">Browse by category</h2><Link href="/products" className="border-b-[1.5px] border-[#191b18] pb-0.5 font-semibold text-[#191b18] no-underline">All ingredients →</Link></div>
         <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,200px),1fr))] gap-3">
-          {categories.map((category) => <Link key={category.name} href={`/products/categories/${category.slug}`} className="fs-card flex flex-col text-[#191b18] no-underline"><DesignPlaceholder label={category.imageLabel} image={categoryImages[category.slug]} sizes="(min-width: 1024px) 17vw, (min-width: 640px) 33vw, 100vw" className="block aspect-video rounded-none"/><span className="flex flex-col gap-1 px-3.5 pb-4 pt-3.5"><span className="flex items-baseline justify-between gap-2"><b className="text-[17px]">{category.name}</b><span className="fs-mono text-[12px] text-[#4f524b]">{category.count}</span></span><span className="text-[13px] leading-[1.4] text-[#4f524b]">{category.examples}</span></span></Link>)}
+          {categories.map((category) => <Link key={category.name} href={`/products/categories/${category.slug}`} className="fs-card flex flex-col text-[#191b18] no-underline"><DesignPlaceholder label={category.imageLabel} image={categoryImages[category.slug]} sizes="(min-width: 1024px) 17vw, (min-width: 640px) 33vw, 100vw" className="block aspect-video rounded-none"/><span className="flex flex-col gap-1 px-3.5 pb-4 pt-3.5"><span className="flex items-baseline justify-between gap-2"><b className="text-[17px]">{category.name}</b><span className="fs-mono text-[12px] text-[#4f524b]">{categoryCounts[category.slug] ?? 0}</span></span><span className="text-[13px] leading-[1.4] text-[#4f524b]">{category.examples}</span></span></Link>)}
         </div>
       </section>
 
@@ -112,8 +98,8 @@ export default function HomeClient({ articles }: { articles: HomeArticle[] }) {
       </section>
 
       <section className="fs-frame fs-section">
-        <div className="mb-6 flex flex-wrap items-end justify-between gap-4"><div className="flex flex-col gap-2"><h2 className="fs-h2">Available now</h2><p className="m-0 text-[16px] text-[#4f524b]">Key specs and minimum order on every card.</p></div><Link href="/products" className="border-b-[1.5px] border-[#191b18] pb-0.5 font-semibold text-[#191b18] no-underline">See all ingredients →</Link></div>
-        <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,270px),1fr))] gap-4">{products.map((product) => <article key={product.id} className="fs-card flex h-full flex-col"><Link href={`/products/${product.id}`} className="relative block aspect-[16/10]"><DesignPlaceholder label={`${product.name.toLowerCase()} — macro, top-down`} image={productImages[product.id]} sizes="(min-width: 1024px) 25vw, (min-width: 640px) 50vw, 100vw" className="h-full w-full rounded-none"/><span className="absolute left-3 top-3 inline-flex h-6 items-center gap-1.5 rounded-[3px] bg-[#fbfaf6] px-[9px] text-[12px] font-semibold text-[#191b18]"><i className={`h-[7px] w-[7px] rounded-full ${product.stock > 5 ? 'bg-[#2e7d4f]' : 'bg-[#b7791f]'}`} />{product.stock > 5 ? 'In stock' : 'Limited'}</span></Link><div className="flex flex-col gap-1 px-4 pt-4"><span className="fs-label text-[#4f524b]">{product.category}</span><h3 className="m-0 text-[19px] font-bold leading-[1.2] tracking-[-.01em]">{product.name}</h3><span className="text-[13px] text-[#4f524b]">{product.grade}</span></div><p className="mx-4 mb-0 mt-2.5 text-[14px] leading-[1.45] text-[#4f524b]">{product.description}</p><dl className="mx-4 mb-0 mt-3.5 flex flex-wrap justify-between gap-x-5 border-y border-[#d9d4c7]">{product.specs.map((spec) => <div key={spec.label} className="whitespace-nowrap py-2.5"><dt className="fs-label text-[10px] text-[#4f524b]">{spec.label}</dt><dd className="m-0 mt-0.5 text-[20px] font-semibold leading-[1.1] tabular-nums">{spec.value}<span className="ml-1 text-[11px] font-medium text-[#4f524b]">{spec.unit}</span></dd></div>)}</dl><div className="mt-auto flex items-center justify-between gap-3 px-4 pb-4 pt-3.5"><div className="flex flex-col gap-0.5"><span className="fs-label text-[10px] text-[#4f524b]">MOQ</span><span className="text-[14px] font-semibold">{product.moq}</span></div><div className="flex gap-2"><Link href={`/products/${product.id}`} className="inline-flex h-[38px] items-center rounded-[4px] border-[1.5px] border-[#191b18] px-3.5 text-[14px] font-semibold text-[#191b18] no-underline">Specs</Link><a href={`https://wa.me/263774684534?text=${encodeURIComponent(`Please quote ${product.name}`)}`} className="inline-flex h-[38px] items-center rounded-[4px] bg-[#d99a2b] px-3.5 text-[14px] font-semibold text-[#191b18] no-underline">Quote</a></div></div></article>)}</div>
+        <div className="mb-6 flex flex-wrap items-end justify-between gap-4"><div className="flex flex-col gap-2"><h2 className="fs-h2">Featured ingredients</h2><p className="m-0 text-[16px] text-[#4f524b]">Key specs and minimum order on every card.</p></div><Link href="/products" className="border-b-[1.5px] border-[#191b18] pb-0.5 font-semibold text-[#191b18] no-underline">See all ingredients →</Link></div>
+        <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,270px),1fr))] gap-4">{featuredProducts.map((product) => <FeedProductCard key={product.id} product={product} image={productImages[product.id]} />)}</div>
       </section>
 
       <section className="fs-frame fs-section">

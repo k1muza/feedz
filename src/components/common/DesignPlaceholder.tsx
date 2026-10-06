@@ -2,6 +2,9 @@ import { ReactNode } from 'react';
 import Image from 'next/image';
 import type { UnsplashImage } from '@/data/unsplashImages';
 
+// Labels are notes for whoever sources the photo; they must never reach the public site.
+const showDesignLabels = process.env.NODE_ENV === 'development';
+
 type DesignPlaceholderProps = {
   label: string;
   className?: string;
@@ -30,7 +33,7 @@ export default function DesignPlaceholder({
     <div className={`fs-placeholder ${strong ? 'fs-placeholder--strong' : ''} ${compact ? 'fs-placeholder--compact' : ''} ${className}`}>
       {image ? (
         <Image src={image.src} alt={image.alt} title={image.photographer ? `Photo: ${image.photographer}` : undefined} fill sizes={sizes} priority={priority} className="object-cover" />
-      ) : (
+      ) : showDesignLabels && (
         <span className={`fs-placeholder__label ${labelPosition === 'top' ? 'fs-placeholder__label--top' : ''}`}>{label}</span>
       )}
       {children}

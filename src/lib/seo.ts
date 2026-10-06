@@ -9,10 +9,12 @@ export const siteConfig = {
   phone: '+263774684534',
   email: 'sales@feedsport.co.zw',
   address: {
-    streetAddress: '2 William Pollet Road, Borrowdale',
+    streetAddress: '4475 Southview',
     addressLocality: 'Harare',
     addressCountry: 'ZW',
   },
+  // The official postal wording; use this everywhere the address is shown.
+  addressLines: ['4475 Southview', 'Harare', 'Zimbabwe'],
 } as const;
 
 export const socialImage = {
