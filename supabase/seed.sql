@@ -5,7 +5,7 @@ insert into public.articles
   (slug, title, seo_title, description, topic, image_url, image_alt, image_credit, ingredients, keywords, key_points, body, status, published_at, created_at)
 values (
   'feeding-pigs-by-stage-phase-feeding', 'Feeding pigs by stage: a practical guide to phase feeding', 'Feeding Pigs by Stage: A Practical Guide to Phase Feeding', 'How to match feed to each stage of a pig''s life, from creep feed to finisher and the breeding herd, and how to use feed conversion ratio to check your feeding pays.', 'Pig nutrition',
-  'https://images.unsplash.com/photo-1697027948105-902321ea8e29', 'Grower pigs in a pen', 'Stefanie Poepken',
+  'https://images.unsplash.com/photo-1655307550020-3eb7efdef723', 'Litter of piglets suckling a sow', 'Veronica White',
   array['soybean-meal', 'sorghum', 'lysine', 'premix']::text[], array['phase feeding pigs', 'pig feeding stages', 'pig starter grower finisher feed', 'sow feeding', 'pig feed conversion ratio']::text[], array['Feed is usually 60–75% of the cost of raising a pig to market, so how you feed drives profit.', 'Step pigs down to lower-protein diets as they grow: pre-starter, starter, grower, then finisher.', 'Sows and boars need their own gestation, lactation and breeder feeds.', 'Track feed conversion ratio (FCR) per pen to see whether your feeding is paying off.']::text[],
   'Feed is the single biggest cost in pig production, usually around 60 to 75% of what it costs to raise a pig to market. That means the way you feed has more effect on your profit than almost any other decision on the farm.
 

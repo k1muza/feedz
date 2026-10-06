@@ -34,7 +34,7 @@ export const knowledgeArticles: KnowledgeArticle[] = [
     seoTitle: 'Feeding Pigs by Stage: A Practical Guide to Phase Feeding',
     description: 'How to match feed to each stage of a pig\'s life, from creep feed to finisher and the breeding herd, and how to use feed conversion ratio to check your feeding pays.',
     topic: 'Pig nutrition',
-    image: animalImages.pigs,
+    image: knowledgeImages['piglets suckling'],
     published: '2026-10-06',
     updated: '2026-10-06',
     ingredients: ['soybean-meal', 'sorghum', 'lysine', 'premix'],

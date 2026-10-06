@@ -59,4 +59,5 @@ export const knowledgeImages: Record<string, UnsplashImage> = {
   'farmer with records': photo('PDkRbepFs7I', 'photo-1680392407889-65688574ce96', 'Farmer taking notes beside cattle pens', 'Howard R Wheeler'),
   'on-farm mixer': photo('tX6RnbjvZoA', 'photo-1781711281462-ede4f05a6e70', 'Hand holding grain above a full mixing bin', 'Emma Renly'),
   'dairy cows feeding': photo('2Prc5cSgNJE', 'photo-1629313472434-cbbfdc2e1a5f', 'Dairy cows at a feed barrier', 'Austin Santaniello'),
+  'piglets suckling': photo('ZuixmDWAHq8', 'photo-1655307550020-3eb7efdef723', 'Litter of piglets suckling a sow', 'Veronica White'),
 };
