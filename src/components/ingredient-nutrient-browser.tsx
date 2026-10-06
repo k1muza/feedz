@@ -33,7 +33,11 @@ function sourceLabel(ingredient: (typeof library.ingredients)[number]): string {
     : ingredient.provenance.source?.publisher ?? library.source.publisher;
 }
 
-export function IngredientNutrientBrowser() {
+export function IngredientNutrientBrowser({
+  detailBasePath = "/dashboard/ingredients",
+}: {
+  detailBasePath?: string;
+}) {
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(1);
 
@@ -125,7 +129,9 @@ export function IngredientNutrientBrowser() {
                 <TableRow key={ingredient.id}>
                   <TableCell>
                     <Link
-                      href={feedIngredientHref(ingredient.id)}
+                      href={detailBasePath === "/dashboard/ingredients"
+                        ? feedIngredientHref(ingredient.id)
+                        : `${detailBasePath}/${ingredient.id}`}
                       className="font-medium text-ink underline-offset-4 hover:underline"
                     >
                       {ingredient.name}

@@ -5,12 +5,12 @@ import type {
   BlogCategory,
   BlogPost,
   ContactInquiry,
-  Ingredient,
   Invoice,
   NewsletterSubscription,
   Policy,
   Product,
   ProductCategory,
+  NutritionIngredientOption,
   TeamMember,
   User,
 } from '@/types';
@@ -18,12 +18,13 @@ import type { Conversation } from '@/types/chat';
 import { revalidatePath } from 'next/cache';
 import { after } from 'next/server';
 import { z } from 'zod';
-import { feedProductCatalog } from '@/data/feedProducts';
+import { feedProductCatalog, PRODUCT_STATUSES } from '@/data/feedProducts';
 import { knowledgeTopics, type KnowledgeArticle } from '@/data/knowledgeArticles';
 import { getPolicies, getTeamMembers, rowToArticle, type ArticleRow } from '@/lib/content';
 import { isSupabaseConfigured, supabaseNotConfiguredError, supabaseUrl } from '@/lib/supabase/config';
 import { createPublicClient, getAdminClient } from '@/lib/supabase/server';
 import { sendInquiryNotification } from '@/lib/email';
+import { INGREDIENT_LIBRARY, type IngredientNutrientRecord } from '@/lib/ingredient-nutrients';
 
 const staticModeError = 'This operation is unavailable while FeedSport is running in static mode.';
 const unavailable = () => ({ success: false, error: staticModeError });
@@ -59,15 +60,14 @@ export async function getAllUsers(): Promise<User[]> { return []; }
 export async function saveUser(..._args: any[]): Promise<any> { return unavailable(); }
 export async function deleteUser(_id: string): Promise<any> { return unavailable(); }
 
-export async function getProductCategories(): Promise<ProductCategory[]> { return []; }
-export async function addProductCategory(_name: string): Promise<any> { return unavailable(); }
-export async function updateProductCategory(_id: string, _name: string): Promise<any> { return unavailable(); }
-export async function deleteProductCategory(_id: string): Promise<any> { return unavailable(); }
-export async function getAllIngredients(): Promise<Ingredient[]> { return []; }
-export async function getIngredientById(_id: string): Promise<Ingredient | null> { return null; }
+export async function getAllIngredients(): Promise<IngredientNutrientRecord[]> {
+  return INGREDIENT_LIBRARY.ingredients;
+}
+export async function getIngredientById(id: string): Promise<IngredientNutrientRecord | null> {
+  return INGREDIENT_LIBRARY.ingredients.find((ingredient) => ingredient.id === id) ?? null;
+}
 export async function saveIngredient(..._args: any[]): Promise<any> { return unavailable(); }
 export async function deleteIngredient(_id: string): Promise<any> { return unavailable(); }
-export async function saveProduct(..._args: any[]): Promise<any> { return unavailable(); }
 export async function updateIngredientCompositions(..._args: any[]): Promise<any> { return unavailable(); }
 
 
@@ -98,44 +98,68 @@ const lineList = (value = '') => value.split('\n').map((item) => item.trim()).fi
 
 type ProductRow = {
   id: string;
+  nutrition_ingredient_id: string;
   name: string;
-  category: string;
+  category_id: string;
+  product_categories: { name: string; slug: string } | { name: string; slug: string }[];
   description: string;
+  status: Product['status'];
+  animals: Product['animals'] | null;
+  grade_fallback: string;
+  image_label: string;
+  origin: string;
   packaging: string;
   price: number | string;
-  moq: number | string;
+  currency: string;
+  pack_size_kg: number | string;
+  moq_kg: number | string;
   stock: number | string;
   certifications: string[] | null;
   images: string[] | null;
   shipping: string | null;
   featured: boolean;
+  active: boolean;
 };
 
 function rowToProduct(row: ProductRow): Product {
+  const category = Array.isArray(row.product_categories) ? row.product_categories[0] : row.product_categories;
   return {
     id: row.id,
-    ingredientId: row.id,
+    ingredientId: row.nutrition_ingredient_id,
     ingredient: {
-      id: row.id,
+      id: row.nutrition_ingredient_id,
       name: row.name,
       description: row.description,
-      category: row.category,
+      category: category?.name ?? '',
       compositions: [],
     },
+    categoryId: row.category_id,
+    status: row.status,
+    animals: row.animals ?? [],
+    gradeFallback: row.grade_fallback,
+    imageLabel: row.image_label,
+    origin: row.origin,
     packaging: row.packaging,
     price: Number(row.price),
-    moq: Number(row.moq),
+    currency: row.currency,
+    packSizeKg: Number(row.pack_size_kg),
+    moqKg: Number(row.moq_kg),
     stock: Number(row.stock),
     certifications: row.certifications ?? [],
-    images: row.images?.length ? row.images : ['/images/products/placeholder.png'],
+    images: row.images?.length ? row.images : ['/images/products/placeholder.webp'],
     shipping: row.shipping || undefined,
     featured: row.featured,
+    active: row.active,
   };
 }
 
+const productSelect = '*, product_categories!inner(name, slug)';
+
 export async function getAllProducts(): Promise<Product[]> {
   if (!isSupabaseConfigured) return [];
-  const { data, error } = await createPublicClient().from('products').select('*').order('name');
+  const admin = await getAdminClient();
+  if (!admin) return [];
+  const { data, error } = await admin.supabase.from('products').select(productSelect).order('name');
   if (error) {
     console.error('Error loading products:', error.message);
     return [];
@@ -145,16 +169,186 @@ export async function getAllProducts(): Promise<Product[]> {
 
 export async function getProductById(id: string): Promise<Product | null> {
   if (!isSupabaseConfigured || !z.string().trim().min(1).max(100).safeParse(id).success) return null;
-  const { data, error } = await createPublicClient().from('products').select('*').eq('id', id).maybeSingle();
+  const admin = await getAdminClient();
+  if (!admin) return null;
+  const { data, error } = await admin.supabase.from('products').select(productSelect).eq('id', id).maybeSingle();
   if (error) console.error('Error loading product:', error.message);
   return data ? rowToProduct(data as ProductRow) : null;
+}
+
+const ProductImageSchema = z.string().trim().refine(
+  (value) => value.startsWith('/') || z.string().url().safeParse(value).success,
+  'Images must use an absolute URL or a site-relative path.',
+);
+
+const ProductFormSchema = z.object({
+  nutritionIngredientId: z.string().trim().min(1, 'Choose a Brazilian Tables ingredient.').max(160),
+  name: z.string().trim().min(1, 'Product name is required.').max(160),
+  categoryId: z.string().trim().min(1, 'Category is required.').max(100),
+  description: z.string().trim().min(1, 'Description is required.').max(2000),
+  status: z.enum(PRODUCT_STATUSES),
+  animals: z.array(z.enum(['pigs', 'poultry', 'cattle', 'other'])).min(1, 'Choose at least one animal.'),
+  gradeFallback: z.string().trim().min(1, 'A fallback grade is required.').max(200),
+  imageLabel: z.string().trim().min(1, 'An image label is required.').max(200),
+  origin: z.string().trim().min(1, 'Origin or supplier is required.').max(200),
+  packaging: z.string().trim().min(1, 'Packaging information is required.').max(300),
+  packSizeKg: z.coerce.number().positive('Pack size must be greater than zero.').max(999999999),
+  price: z.coerce.number().min(0, 'Price cannot be negative.').max(999999999),
+  moqKg: z.coerce.number().positive('MOQ must be greater than zero.').max(999999999),
+  stock: z.coerce.number().min(0, 'Stock cannot be negative.').max(999999999),
+  images: z.array(ProductImageSchema).min(1, 'At least one image is required.').max(20),
+  certifications: z.string().trim().max(1000).optional(),
+  shipping: z.string().trim().max(1000).optional(),
+  featured: z.boolean().optional(),
+  active: z.boolean().optional(),
+});
+
+function slugify(value: string) {
+  return value.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+}
+
+function revalidateProductCategories() {
+  revalidatePath('/admin/products');
+  revalidatePath('/admin/products/create');
+  revalidatePath('/admin/ingredients');
+  revalidatePath('/admin/ingredients/create');
+  revalidatePath('/products');
+  revalidatePath('/products/categories');
+}
+
+export async function getProductCategories(): Promise<ProductCategory[]> {
+  if (!isSupabaseConfigured) return [];
+  const { data, error } = await createPublicClient().from('product_categories').select('id, name, slug, image_label').order('name');
+  if (error) {
+    console.error('Error loading product categories:', error.message);
+    return [];
+  }
+  return data.map((row) => ({ id: row.id, name: row.name, slug: row.slug, imageLabel: row.image_label }));
+}
+
+export async function getNutritionIngredientOptions(): Promise<NutritionIngredientOption[]> {
+  return INGREDIENT_LIBRARY.ingredients.map((ingredient) => ({
+    id: ingredient.id,
+    name: ingredient.name,
+    category: ingredient.category,
+    sourceTable: ingredient.provenance.sourceTable,
+  })).sort((a, b) => a.name.localeCompare(b.name));
+}
+
+export async function addProductCategory(name: string) {
+  const parsed = z.string().trim().min(1).max(100).safeParse(name);
+  if (!parsed.success) return { success: false, error: 'Category name is required.' };
+  const slug = slugify(parsed.data);
+  if (!slug) return { success: false, error: 'Category name must contain letters or numbers.' };
+  const admin = await requireAdmin();
+  if ('error' in admin) return { success: false, error: admin.error };
+  const { error } = await admin.supabase.from('product_categories').insert({ id: slug, name: parsed.data, slug });
+  if (error?.code === '23505') return { success: false, error: 'That category already exists.' };
+  if (error) return { success: false, error: 'Failed to add the category.' };
+  revalidateProductCategories();
+  return { success: true };
+}
+
+export async function updateProductCategory(id: string, name: string) {
+  const parsed = z.object({ id: z.string().trim().min(1).max(100), name: z.string().trim().min(1).max(100) }).safeParse({ id, name });
+  if (!parsed.success) return { success: false, error: 'Enter a valid category name.' };
+  const slug = slugify(parsed.data.name);
+  if (!slug) return { success: false, error: 'Category name must contain letters or numbers.' };
+  const admin = await requireAdmin();
+  if ('error' in admin) return { success: false, error: admin.error };
+
+  const { data: current } = await admin.supabase.from('product_categories').select('id').eq('id', parsed.data.id).maybeSingle();
+  if (!current) return { success: false, error: 'Category not found.' };
+  const { error } = await admin.supabase.from('product_categories').update({ id: slug, name: parsed.data.name, slug }).eq('id', parsed.data.id);
+  if (error?.code === '23505') return { success: false, error: 'That category already exists.' };
+  if (error) return { success: false, error: 'Failed to update the category.' };
+  revalidateProductCategories();
+  revalidateProducts();
+  return { success: true };
+}
+
+export async function deleteProductCategory(id: string) {
+  if (!z.string().trim().min(1).max(100).safeParse(id).success) return { success: false, error: 'Invalid category ID.' };
+  const admin = await requireAdmin();
+  if ('error' in admin) return { success: false, error: admin.error };
+  const { data: category } = await admin.supabase.from('product_categories').select('id').eq('id', id).maybeSingle();
+  if (!category) return { success: false, error: 'Category not found.' };
+  const { count } = await admin.supabase.from('products').select('id', { count: 'exact', head: true }).eq('category_id', category.id);
+  if ((count ?? 0) > 0) return { success: false, error: 'Move or delete the products in this category first.' };
+  const { error } = await admin.supabase.from('product_categories').delete().eq('id', id);
+  if (error) return { success: false, error: 'Failed to delete the category.' };
+  revalidateProductCategories();
+  return { success: true };
 }
 
 function revalidateProducts(id?: string) {
   revalidatePath('/admin/products');
   revalidatePath('/admin/stock');
   revalidatePath('/admin/invoices/create');
-  if (id) revalidatePath(`/admin/products/${id}`);
+  revalidatePath('/products');
+  if (id) {
+    revalidatePath(`/admin/products/${id}`);
+    revalidatePath(`/products/${id}`);
+  }
+}
+
+export async function saveProduct(productData: unknown, productId?: string) {
+  const validation = ProductFormSchema.safeParse(productData);
+  if (!validation.success) return { success: false, errors: validation.error.flatten().fieldErrors };
+  if (productId && !z.string().trim().min(1).max(100).safeParse(productId).success) {
+    return { success: false, errors: { _server: ['Invalid product ID.'] } };
+  }
+  const admin = await requireAdmin();
+  if ('error' in admin) return { success: false, errors: { _server: [admin.error] } };
+
+  const values = validation.data;
+  if (!INGREDIENT_LIBRARY.ingredients.some((ingredient) => ingredient.id === values.nutritionIngredientId)) {
+    return { success: false, errors: { nutritionIngredientId: ['Choose a valid ingredient from the JSON library.'] } };
+  }
+  const { data: category } = await admin.supabase.from('product_categories').select('id').eq('id', values.categoryId).maybeSingle();
+  if (!category) return { success: false, errors: { categoryId: ['Choose a valid product category.'] } };
+  const row = {
+    nutrition_ingredient_id: values.nutritionIngredientId,
+    name: values.name,
+    category_id: values.categoryId,
+    description: values.description,
+    status: values.status,
+    animals: values.animals,
+    grade_fallback: values.gradeFallback,
+    image_label: values.imageLabel,
+    origin: values.origin,
+    packaging: values.packaging,
+    pack_size_kg: values.packSizeKg,
+    price: values.price,
+    moq_kg: values.moqKg,
+    stock: values.stock,
+    certifications: commaList(values.certifications),
+    images: values.images,
+    shipping: values.shipping || '',
+    featured: values.featured ?? false,
+    active: values.active ?? true,
+  };
+
+  let savedId = productId;
+  if (productId) {
+    const { data, error } = await admin.supabase.from('products').update(row).eq('id', productId).select('id').maybeSingle();
+    if (error || !data) {
+      if (error) console.error('Error updating product:', error.message);
+      return { success: false, errors: { _server: ['Failed to update the product.'] } };
+    }
+  } else {
+    savedId = slugify(values.name);
+    if (!savedId) return { success: false, errors: { _server: ['Product name must contain letters or numbers.'] } };
+    const { error } = await admin.supabase.from('products').insert({ id: savedId, ...row });
+    if (error?.code === '23505') return { success: false, errors: { _server: ['A product with this name already exists.'] } };
+    if (error) {
+      console.error('Error creating product:', error.message);
+      return { success: false, errors: { _server: ['Failed to create the product.'] } };
+    }
+  }
+
+  revalidateProducts(savedId);
+  return { success: true, id: savedId };
 }
 
 export async function updateProductStock(id: string, stock: number) {
@@ -284,7 +478,6 @@ function revalidateInvoices(id?: string) {
   revalidatePath('/admin/invoices');
   if (id) {
     revalidatePath(`/admin/invoices/${id}`);
-    revalidatePath(`/admin/invoices/${id}/template`);
   }
 }
 

@@ -1,7 +1,7 @@
 import { Metadata } from 'next';
 import ProductsClient from './ProductsClient';
-import { feedProducts } from '@/data/feedProductNutrition';
 import { absoluteUrl, createPageMetadata, serializeJsonLd } from '@/lib/seo';
+import { getPublishedProductCategories, getPublishedProducts } from '@/lib/products';
 
 export const metadata: Metadata = createPageMetadata({
   title: 'Animal Feed Ingredients in Zimbabwe',
@@ -10,12 +10,16 @@ export const metadata: Metadata = createPageMetadata({
 });
 
 export default async function ProductsPage({ searchParams }: { searchParams: Promise<{ q?: string; animal?: string; category?: string }> }) {
-  const query = await searchParams;
+  const [query, products, categories] = await Promise.all([
+    searchParams,
+    getPublishedProducts(),
+    getPublishedProductCategories(),
+  ]);
   const itemListJsonLd = {
     '@context': 'https://schema.org',
     '@type': 'ItemList',
     name: 'FeedSport feed ingredients',
-    itemListElement: feedProducts.map((product, index) => ({
+    itemListElement: products.map((product, index) => ({
       '@type': 'ListItem',
       position: index + 1,
       name: product.name,
@@ -26,7 +30,7 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(itemListJsonLd) }} />
-      <ProductsClient products={feedProducts} initialQuery={query.q || ''} initialAnimal={query.animal || 'all'} initialCategory={query.category || 'All'} />
+      <ProductsClient products={products} categories={categories} initialQuery={query.q || ''} initialAnimal={query.animal || 'all'} initialCategory={query.category || 'All'} />
     </>
   );
 }

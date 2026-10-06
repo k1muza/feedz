@@ -25,12 +25,17 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import { ProductCategoryManagementModal } from "./ProductCategoryManagementModal";
+import { packLabel } from "@/lib/product-units";
 
 export const ProductsManagement = ({ initialProducts }: { initialProducts: Product[] }) => {
   const [products, setProducts] = useState<Product[]>(initialProducts);
   const [loading, setLoading] = useState(true);
   const [productToDelete, setProductToDelete] = useState<Product | null>(null);
   const [isAlertOpen, setIsAlertOpen] = useState(false);
+  const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
+  const [query, setQuery] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('all');
   const router = useRouter();
   const { toast } = useToast();
 
@@ -66,6 +71,16 @@ export const ProductsManagement = ({ initialProducts }: { initialProducts: Produ
     setProductToDelete(null);
   };
 
+  const categories = Array.from(new Set(products.map((product) => product.ingredient?.category).filter(Boolean) as string[])).sort();
+  const normalizedQuery = query.trim().toLowerCase();
+  const filteredProducts = products.filter((product) => {
+    const category = product.ingredient?.category || '';
+    const matchesCategory = categoryFilter === 'all' || category === categoryFilter;
+    const matchesQuery = !normalizedQuery || [product.id, product.ingredient?.name || '', category]
+      .some((value) => value.toLowerCase().includes(normalizedQuery));
+    return matchesCategory && matchesQuery;
+  });
+
   if (loading) {
     return <div className="text-center p-8"><Loader2 className="w-6 h-6 animate-spin inline-block"/> Loading products...</div>
   }
@@ -79,16 +94,25 @@ export const ProductsManagement = ({ initialProducts }: { initialProducts: Produ
           Products
         </h2>
         <div className="flex space-x-3">
+          <button onClick={() => setIsCategoryModalOpen(true)} className="px-4 py-2 border border-ash-600 hover:bg-ash-700 rounded-lg flex items-center space-x-2 transition-colors">
+            <FolderOpen className="w-4 h-4" />
+            <span>Categories</span>
+          </button>
           <Link href="/admin/products/create">
             <button className="px-4 py-2 bg-harvest-600 hover:bg-harvest-500 text-ash-950 rounded-lg flex items-center space-x-2 transition-colors">
               <Plus className="w-4 h-4" />
               <span>Add Product</span>
             </button>
           </Link>
-          <button className="px-4 py-2 border border-ash-600 hover:bg-ash-700 rounded-lg flex items-center space-x-2 transition-colors">
+          <a
+            href={`/api/products/catalog${categoryFilter === 'all' ? '' : `?category=${encodeURIComponent(categoryFilter)}`}`}
+            target="_blank"
+            rel="noopener"
+            className="px-4 py-2 border border-ash-600 hover:bg-ash-700 rounded-lg flex items-center space-x-2 transition-colors"
+          >
             <Download className="w-4 h-4" />
-            <span>Export</span>
-          </button>
+            <span>Catalogue</span>
+          </a>
         </div>
       </div>
 
@@ -99,13 +123,18 @@ export const ProductsManagement = ({ initialProducts }: { initialProducts: Produ
           <input
             type="text"
             placeholder="Search by product name or category..."
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
             className="w-full pl-10 pr-4 py-2 bg-ash-800 border border-ash-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-harvest-500/50"
           />
         </div>
-        <button className="px-4 py-2 bg-ash-800 border border-ash-700 rounded-lg flex items-center space-x-2 hover:bg-ash-700 transition-colors">
-          <Filter className="w-4 h-4" />
-          <span>Filter</span>
-        </button>
+        <div className="relative">
+          <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ash-400 pointer-events-none" />
+          <select value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value)} className="pl-9 pr-8 py-2 bg-ash-800 border border-ash-700 rounded-lg">
+            <option value="all">All categories</option>
+            {categories.map((category) => <option key={category} value={category}>{category}</option>)}
+          </select>
+        </div>
       </div>
 
       {/* Products Table */}
@@ -123,16 +152,16 @@ export const ProductsManagement = ({ initialProducts }: { initialProducts: Produ
               </tr>
             </thead>
             <tbody className="divide-y divide-ash-700">
-              {products.map((product) => (
+              {filteredProducts.map((product) => (
                 <tr key={product.id} className="hover:bg-ash-700/50 transition-colors">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
                       <div className="flex-shrink-0 h-10 w-10">
-                        <Image className="h-10 w-10 rounded-md object-cover" src={product.images[0]} alt={product.ingredient?.name || 'product'} width={40} height={40} />
+                        <Image className="h-10 w-10 rounded-md object-cover" src={product.images[0] || '/images/products/placeholder.webp'} alt={product.ingredient?.name || 'product'} width={40} height={40} />
                       </div>
                       <div className="ml-4">
                         <div className="text-sm font-medium text-ash-100">{product.ingredient?.name}</div>
-                        <div className="text-sm text-ash-400">{product.id}</div>
+                        <div className="text-sm text-ash-400">{product.id} · {product.ingredientId}</div>
                       </div>
                     </div>
                   </td>
@@ -142,10 +171,10 @@ export const ProductsManagement = ({ initialProducts }: { initialProducts: Produ
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-ash-400">{product.stock} tons</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-ash-400">${product.price.toLocaleString()}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-ash-400">{product.price > 0 ? `$${product.price.toFixed(2)} / ${packLabel(product.packSizeKg)}` : 'On request'}</td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${product.stock > product.moq ? 'bg-green-900/30 text-green-400' : 'bg-red-900/30 text-red-400'}`}>
-                      {product.stock > product.moq ? 'In Stock' : 'Low Stock'}
+                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${product.status === 'In stock' ? 'bg-green-900/30 text-green-400' : product.status === 'Readily available' ? 'bg-emerald-900/30 text-emerald-300' : product.status === 'Limited' ? 'bg-yellow-900/30 text-yellow-300' : 'bg-ash-700 text-ash-300'}`}>
+                      {product.status}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
@@ -174,6 +203,9 @@ export const ProductsManagement = ({ initialProducts }: { initialProducts: Produ
                   </td>
                 </tr>
               ))}
+              {filteredProducts.length === 0 && (
+                <tr><td colSpan={6} className="px-6 py-12 text-center text-sm text-ash-400">No products match the current filters.</td></tr>
+              )}
             </tbody>
           </table>
         </div>
@@ -196,6 +228,7 @@ export const ProductsManagement = ({ initialProducts }: { initialProducts: Produ
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      <ProductCategoryManagementModal isOpen={isCategoryModalOpen} onClose={() => setIsCategoryModalOpen(false)} />
     </>
   );
 };

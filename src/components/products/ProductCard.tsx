@@ -1,4 +1,5 @@
 import { Product } from '@/types';
+import { formatKg, packLabel } from '@/lib/product-units';
 import Image from 'next/image';
 import Link from 'next/link';
 import { FaCheck } from 'react-icons/fa';
@@ -44,10 +45,10 @@ export default function ProductCard({ product }: { product: Product }) {
         {/* Price */}
         <div className="mb-4">
           <span className="text-lg font-bold text-gray-900">
-            ${product.price.toLocaleString()}/ton
+            ${product.price.toLocaleString()} / {packLabel(product.packSizeKg)}
           </span>
-          {product.moq && (
-            <span className="text-xs text-gray-500 block">MOQ: {product.moq} tons</span>
+          {product.moqKg > 0 && (
+            <span className="text-xs text-gray-500 block">MOQ: {formatKg(product.moqKg)}</span>
           )}
         </div>
 

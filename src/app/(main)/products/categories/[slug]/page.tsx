@@ -2,14 +2,17 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import FeedProductCard from '@/components/products/FeedProductCard';
-import { productCategories } from '@/data/feedProducts';
-import { feedProducts } from '@/data/feedProductNutrition';
 import { absoluteUrl, breadcrumbJsonLd, createPageMetadata, serializeJsonLd } from '@/lib/seo';
+import { getPublishedProductCategories, getPublishedProducts } from '@/lib/products';
 
 type Props = { params: Promise<{ slug: string }> };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
+  const [productCategories, feedProducts] = await Promise.all([
+    getPublishedProductCategories(),
+    getPublishedProducts(),
+  ]);
   const category = productCategories.find((item) => item.slug === slug);
   if (!category) return { title: 'Category not found', robots: { index: false } };
 
@@ -20,12 +23,16 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   });
 }
 
-export function generateStaticParams() {
-  return productCategories.map(({ slug }) => ({ slug }));
+export async function generateStaticParams() {
+  return (await getPublishedProductCategories()).map(({ slug }) => ({ slug }));
 }
 
 export default async function CategoryPage({ params }: Props) {
   const { slug } = await params;
+  const [productCategories, feedProducts] = await Promise.all([
+    getPublishedProductCategories(),
+    getPublishedProducts(),
+  ]);
   const category = productCategories.find((item) => item.slug === slug);
   if (!category) notFound();
   const products = feedProducts.filter((product) => product.categorySlug === slug);

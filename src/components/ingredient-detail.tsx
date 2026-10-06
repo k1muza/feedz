@@ -46,7 +46,15 @@ function ValueRows({ rows }: { rows: Array<[string, string]> }) {
   );
 }
 
-export function IngredientDetail({ ingredientId }: { ingredientId: string }) {
+export function IngredientDetail({
+  ingredientId,
+  backHref = feedFormulationHref("ingredients"),
+  backLabel = "Ingredient database",
+}: {
+  ingredientId: string;
+  backHref?: string;
+  backLabel?: string;
+}) {
   const ingredient = INGREDIENT_LIBRARY.ingredients.find((row) => row.id === ingredientId);
   const defaultPrice = ingredientDefaultPrice(ingredientId);
   const planningPrice = ingredientDefaultPlanningPricePerTonne(ingredientId);
@@ -62,11 +70,11 @@ export function IngredientDetail({ ingredientId }: { ingredientId: string }) {
     return (
       <div className="space-y-4">
         <Link
-          href={feedFormulationHref("ingredients")}
+          href={backHref}
           className="inline-flex items-center gap-2 text-sm font-medium text-brand"
         >
           <ArrowLeft className="size-4" />
-          Ingredient database
+          {backLabel}
         </Link>
         <Card>
           <CardHeader>
@@ -84,11 +92,11 @@ export function IngredientDetail({ ingredientId }: { ingredientId: string }) {
     <div className="space-y-6">
       <div>
         <Link
-          href={feedFormulationHref("ingredients")}
+          href={backHref}
           className="mb-4 inline-flex items-center gap-2 text-sm font-medium text-brand hover:underline"
         >
           <ArrowLeft className="size-4" />
-          Ingredient database
+          {backLabel}
         </Link>
         <div className="flex flex-wrap items-center gap-2">
           <h1 className="text-2xl font-semibold tracking-tight text-ink">{ingredient.name}</h1>

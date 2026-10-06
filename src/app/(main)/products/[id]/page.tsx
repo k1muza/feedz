@@ -6,7 +6,7 @@ import { productImages } from '@/data/unsplashImages';
 import FeedProductCard from '@/components/products/FeedProductCard';
 import ProductSpecification from '@/components/products/ProductSpecification';
 import { animalNames } from '@/data/feedProducts';
-import { feedProducts, getFeedProduct } from '@/data/feedProductNutrition';
+import { getPublishedProduct, getPublishedProducts } from '@/lib/products';
 import { articlesForIngredient } from '@/data/knowledgeArticles';
 import { getPublishedArticles } from '@/lib/content';
 import { absoluteUrl, breadcrumbJsonLd, createPageMetadata, serializeJsonLd, siteConfig } from '@/lib/seo';
@@ -15,9 +15,11 @@ type Props = { params: Promise<{ id: string }> };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
-  const product = getFeedProduct(id);
+  const product = await getPublishedProduct(id);
   if (!product) return { title: 'Product not found', robots: { index: false } };
-  const image = productImages[product.id];
+  const image = product.images?.[0]
+    ? { id: product.id, src: product.images[0], alt: product.name, photographer: '' }
+    : productImages[product.id];
   return createPageMetadata({
     title: `${product.name} Supplier in Zimbabwe | Specs & Nutrition | FeedSport`,
     absoluteTitle: true,
@@ -30,20 +32,27 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export const revalidate = 3600;
 
-export function generateStaticParams() {
-  return feedProducts.map((product) => ({ id: product.id }));
+export async function generateStaticParams() {
+  return (await getPublishedProducts()).map((product) => ({ id: product.id }));
 }
 
 export default async function ProductPage({ params }: Props) {
   const { id } = await params;
-  const product = getFeedProduct(id);
+  const [product, products] = await Promise.all([
+    getPublishedProduct(id),
+    getPublishedProducts(),
+  ]);
   if (!product) notFound();
 
+  const productImage = product.images?.[0]
+    ? { id: product.id, src: product.images[0], alt: product.name, photographer: '' }
+    : productImages[product.id];
+
   const guides = articlesForIngredient(await getPublishedArticles(), product.id).slice(0, 3);
-  const related = feedProducts.filter((item) => item.id !== product.id && (item.category === product.category || item.animals.some((animal) => product.animals.includes(animal)))).slice(0, 4);
+  const related = products.filter((item) => item.id !== product.id && (item.category === product.category || item.animals.some((animal) => product.animals.includes(animal)))).slice(0, 4);
   const quoteText = encodeURIComponent(`Please quote ${product.name} — minimum order ${product.moq}`);
   const certificateText = encodeURIComponent(`Please send me the latest certificate of analysis for ${product.name}.`);
-  const statusColour = product.status === 'In stock' ? 'bg-[#2e7d4f]' : product.status === 'Limited' ? 'bg-[#b7791f]' : 'bg-[#6b6f66]';
+  const statusColour = product.status === 'In stock' ? 'bg-[#2e7d4f]' : product.status === 'Readily available' ? 'bg-[#5b8f6a]' : product.status === 'Limited' ? 'bg-[#b7791f]' : 'bg-[#6b6f66]';
   const jsonLd = {
     '@context': 'https://schema.org',
     '@graph': [
@@ -54,7 +63,7 @@ export default async function ProductPage({ params }: Props) {
         description: product.description,
         sku: product.id,
         category: product.category,
-        ...(productImages[product.id] ? { image: productImages[product.id].src } : {}),
+        ...(productImage ? { image: productImage.src } : {}),
         brand: { '@type': 'Brand', name: siteConfig.shortName },
         seller: { '@id': `${siteConfig.url}/#organization` },
         url: absoluteUrl(`/products/${product.id}`),
@@ -80,7 +89,7 @@ export default async function ProductPage({ params }: Props) {
 
       <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,440px),1fr))] items-stretch gap-[clamp(24px,4cqi,56px)]">
         <div className="flex min-h-[300px] flex-col gap-2.5">
-          <DesignPlaceholder strong label={`product photo — ${product.imageLabel}`} image={productImages[product.id]} sizes="(min-width: 1024px) 50vw, 100vw" priority className="min-h-[300px] flex-1 rounded-[6px] [&_.fs-placeholder__label]:bottom-[14px] [&_.fs-placeholder__label]:left-4 [&_.fs-placeholder__label]:text-[12px] [&_.fs-placeholder__label]:text-[#5d5e56]" />
+          <DesignPlaceholder strong label={`product photo — ${product.imageLabel}`} image={productImage} sizes="(min-width: 1024px) 50vw, 100vw" priority className="min-h-[300px] flex-1 rounded-[6px] [&_.fs-placeholder__label]:bottom-[14px] [&_.fs-placeholder__label]:left-4 [&_.fs-placeholder__label]:text-[12px] [&_.fs-placeholder__label]:text-[#5d5e56]" />
         </div>
 
         <div className="flex flex-col gap-[22px]">
@@ -101,7 +110,7 @@ export default async function ProductPage({ params }: Props) {
         </div>
       </div>
 
-      <ProductSpecification product={product} comparisonProducts={feedProducts} certificateUrl={`https://wa.me/263774684534?text=${certificateText}`} />
+      <ProductSpecification product={product} comparisonProducts={products} certificateUrl={`https://wa.me/263774684534?text=${certificateText}`} />
 
       <section className="mt-10 flex flex-wrap items-center gap-2.5 border-y border-[#d9d4c7] py-[18px]"><span className="fs-label mr-2 text-[#4f524b]">Used in feed for</span>{product.animals.map((animal) => <Link key={animal} href={`/products?animal=${animal}`} className="inline-flex h-[34px] items-center rounded-full bg-[#e3eadf] px-3.5 text-[14px] font-semibold text-[#1d3a2a] no-underline">{animalNames[animal]}</Link>)}<span className="flex-1" /><Link href="/formulations" className="text-[15px] font-semibold text-[#1d3a2a] no-underline">Use in a formulation →</Link></section>
 

@@ -14,12 +14,13 @@ import { ClientInfo } from '@/types';
 const ProductInfoSchema = z.object({
   id: z.string(),
   name: z.string(),
-  price: z.number(),
+  price: z.number().describe('Price of one pack of the product.'),
+  pack_size_kg: z.number().describe('Pack size in kg that the price is quoted for, e.g. 50 for a 50 kg bag.'),
 });
 
 const InvoiceLineItemSchema = z.object({
   productName: z.string().describe("The name of the product being ordered."),
-  quantity: z.number().describe("The quantity of the product being ordered."),
+  quantity: z.number().describe("The number of packs being ordered (see pack_size_kg), e.g. 20 for twenty 50 kg bags."),
 });
 
 const ClientInfoInputSchema = z.object({
@@ -48,6 +49,7 @@ const getProductInfoTool = ai.defineTool(
       id: p.id,
       name: p.ingredient?.name ?? 'Unknown',
       price: p.price,
+      pack_size_kg: p.packSizeKg,
     }));
   }
 );

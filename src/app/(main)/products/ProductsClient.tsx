@@ -4,15 +4,16 @@ import { useMemo, useState } from 'react';
 import { Search, X } from 'lucide-react';
 import Link from 'next/link';
 import FeedProductCard from '@/components/products/FeedProductCard';
-import { productCategories, type FeedProduct, type ProductStatus } from '@/data/feedProducts';
+import { PRODUCT_STATUSES, type FeedProduct, type ProductStatus } from '@/data/feedProducts';
+import type { ProductCategory } from '@/types';
 
 const chip = (active: boolean) => `inline-flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border px-3.5 text-[14px] font-medium ${active ? 'border-[#1d3a2a] bg-[#1d3a2a] text-white' : 'border-[#d9d4c7] bg-[#fbfaf6] text-[#191b18]'}`;
 const smallChip = (active: boolean) => `${chip(active)} h-8 text-[13px]`;
-const statuses: Array<'all' | ProductStatus> = ['all', 'In stock', 'Limited', 'On request'];
+const statuses: Array<'all' | ProductStatus> = ['all', ...PRODUCT_STATUSES];
 
-export default function ProductsClient({ products, initialQuery, initialAnimal, initialCategory }: { products: FeedProduct[]; initialQuery: string; initialAnimal: string; initialCategory: string }) {
+export default function ProductsClient({ products, categories, initialQuery, initialAnimal, initialCategory }: { products: FeedProduct[]; categories: ProductCategory[]; initialQuery: string; initialAnimal: string; initialCategory: string }) {
   const [query, setQuery] = useState(initialQuery);
-  const [category, setCategory] = useState(productCategories.some((item) => item.name === initialCategory) ? initialCategory : 'All');
+  const [category, setCategory] = useState(categories.some((item) => item.name === initialCategory) ? initialCategory : 'All');
   const [animal, setAnimal] = useState(initialAnimal);
   const [status, setStatus] = useState<'all' | ProductStatus>('all');
   const [view, setView] = useState<'grid' | 'table'>('grid');
@@ -35,7 +36,7 @@ export default function ProductsClient({ products, initialQuery, initialAnimal, 
 
       <div className="mb-3 flex gap-1.5 overflow-x-auto pb-1">
         <button onClick={() => setCategory('All')} className={chip(category === 'All')}>All <span className="fs-mono text-[11px] opacity-75">{products.length}</span></button>
-        {productCategories.map((item) => <button key={item.slug} onClick={() => setCategory(item.name)} className={chip(category === item.name)}>{item.name} <span className="fs-mono text-[11px] opacity-75">{products.filter((product) => product.category === item.name).length}</span></button>)}
+        {categories.map((item) => <button key={item.slug} onClick={() => setCategory(item.name)} className={chip(category === item.name)}>{item.name} <span className="fs-mono text-[11px] opacity-75">{products.filter((product) => product.category === item.name).length}</span></button>)}
       </div>
 
       <div className="mb-5 flex flex-wrap items-center gap-x-5 gap-y-3 border-y border-[#d9d4c7] py-3">

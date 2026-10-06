@@ -1,5 +1,6 @@
 
 import { Product } from '@/types';
+import { formatKg } from '@/lib/product-units';
 import Image from 'next/image';
 import Link from 'next/link';
 
@@ -37,7 +38,7 @@ export default function IngredientCard({ product }: { product: Product }) {
           </div>
           <div>
             <p className="text-sm text-gray-500">MOQ</p>
-            <p className="font-medium">{product.moq} {product.price > 1000 ? 'tons' : 'kg'}</p>
+            <p className="font-medium">{formatKg(product.moqKg)}</p>
           </div>
         </div>
 

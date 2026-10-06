@@ -1,13 +1,13 @@
 import { NextResponse } from 'next/server';
 
-import { getFeedProduct } from '@/data/feedProductNutrition';
+import { getPublishedProduct } from '@/lib/products';
 import { renderSpecSheet } from '@/lib/spec-sheet-pdf';
 
 export const runtime = 'nodejs';
 
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const product = getFeedProduct(id);
+  const product = await getPublishedProduct(id);
   if (!product) return NextResponse.json({ error: 'Product not found' }, { status: 404 });
 
   const bytes = await renderSpecSheet(product);

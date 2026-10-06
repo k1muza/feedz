@@ -1,11 +1,14 @@
-'use client';
-
+import { getNutritionIngredientOptions, getProductCategories } from '@/app/actions';
 import { ProductForm } from '@/components/admin/ProductForm';
 
-export default function CreateProductPage() {
+export default async function CreateProductPage() {
+  const [categories, nutritionIngredients] = await Promise.all([
+    getProductCategories(),
+    getNutritionIngredientOptions(),
+  ]);
   return (
     <div>
-      <ProductForm />
+      <ProductForm categories={categories} nutritionIngredients={nutritionIngredients} />
     </div>
   );
 }

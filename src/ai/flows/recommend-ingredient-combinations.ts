@@ -46,7 +46,7 @@ const recommendIngredientCombinationsFlow = ai.defineFlow(
     const allProducts = await getAllProducts();
 
     // 2. Filter for products that are in stock (stock > MOQ).
-    const inStockProducts = allProducts.filter(p => p.stock > p.moq);
+    const inStockProducts = allProducts.filter(p => p.stock > p.moqKg / 1000);
     const inStockProductNames = inStockProducts.map(p => p.ingredient?.name).filter(Boolean).join(', ');
 
     // 3. Define the dynamic prompt with the list of in-stock products.

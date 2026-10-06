@@ -1,7 +1,7 @@
 
 'use client';
 
-import { Plus, MoreHorizontal, Search, Edit, Trash2, Receipt, Eye, Loader2 } from "lucide-react";
+import { Plus, MoreHorizontal, Search, Edit, Trash2, Receipt, Download, Loader2 } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -164,9 +164,9 @@ export const InvoicesManagement = ({ initialInvoices }: { initialInvoices: Invoi
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="bg-ash-800 border-ash-700 text-ash-100">
                           <DropdownMenuItem asChild>
-                            <Link href={`/admin/invoices/${invoice.id}/template`} className="flex items-center gap-2 cursor-pointer">
-                              <Eye className="w-4 h-4" /> View
-                            </Link>
+                            <a href={`/api/invoices/${invoice.id}/pdf`} target="_blank" rel="noopener" className="flex items-center gap-2 cursor-pointer">
+                              <Download className="w-4 h-4" /> Download
+                            </a>
                           </DropdownMenuItem>
                            <DropdownMenuItem asChild>
                             <Link href={`/admin/invoices/${invoice.id}`} className="flex items-center gap-2 cursor-pointer">

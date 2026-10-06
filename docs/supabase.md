@@ -47,10 +47,17 @@ select id, email from auth.users where email = 'you@feedsport.co.zw';
 | `policies` | Admins (`/admin/policies`) | Everyone |
 | `contact_inquiries` | Visitors (contact form) | Admins (`/admin/inquiries`) |
 | `newsletter_subscriptions` | Visitors (Knowledge Centre) | Admins (`/admin/subscribers`) |
-| `products` | Admins | Everyone; invoice creation pulls the current catalogue price |
+| `product_categories` | Admins (`/admin/products`) | Everyone |
+| `products` | Admins | Everyone; public catalogue and invoice creation use its commercial data |
 | `invoices` | Admins (`/admin/invoices`) | Admins; line items retain product and price snapshots |
 | `admin_users` | SQL only | Admins |
 
 Row-level security enforces all of the above in the database; the publishable key is safe to expose.
 
 Public pages are static and refresh within an hour, or immediately when an admin saves.
+
+## Product data model
+
+Each `products` row links to one technical ingredient through `nutrition_ingredient_id`. That ID must exist in `src/data/nutrition/ingredients/ingredient-library.json`; the application joins the row to the JSON record to render Brazilian Tables nutrient values and provenance. Supabase stores the FeedZ-owned fields: category, display name, description, price, stock, MOQ, packaging, availability, animal tags, images and sales metadata.
+
+Do not copy nutrient values into `products`. Update the versioned nutrition JSON when the source data changes. Supplier-specific products such as premixes should only be created after a matching supplier-backed JSON ingredient profile exists.

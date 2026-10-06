@@ -6,6 +6,7 @@ import { notFound, useParams } from 'next/navigation';
 import Image from 'next/image';
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
+import { formatKg, packLabel } from '@/lib/product-units';
 import { ArrowLeft, Edit } from 'lucide-react';
 import { Product } from '@/types';
 import { useEffect, useState } from 'react';
@@ -74,7 +75,7 @@ export default function ProductViewPage() {
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
                     <div className="bg-ash-800 p-4 rounded-lg">
                         <p className="text-ash-500">Price</p>
-                        <p className="font-semibold text-ash-100 text-lg">${product.price.toLocaleString()}/ton</p>
+                        <p className="font-semibold text-ash-100 text-lg">${product.price.toLocaleString()} / {packLabel(product.packSizeKg)}</p>
                     </div>
                      <div className="bg-ash-800 p-4 rounded-lg">
                         <p className="text-ash-500">Stock</p>
@@ -82,7 +83,7 @@ export default function ProductViewPage() {
                     </div>
                      <div className="bg-ash-800 p-4 rounded-lg">
                         <p className="text-ash-500">Minimum Order</p>
-                        <p className="font-semibold text-ash-100 text-lg">{product.moq} tons</p>
+                        <p className="font-semibold text-ash-100 text-lg">{formatKg(product.moqKg)}</p>
                     </div>
                 </div>
 

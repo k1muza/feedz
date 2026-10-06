@@ -135,7 +135,7 @@ function nutritionSourceFor(ingredient: IngredientNutrientRecord) {
   };
 }
 
-function enrichProduct(item: FeedProductCatalogItem): FeedProduct {
+export function enrichProduct(item: FeedProductCatalogItem): FeedProduct {
   const { nutritionIngredientId, gradeFallback, ...catalogue } = item;
 
   if (!nutritionIngredientId) {

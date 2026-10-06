@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { Package, Plus, Download, Edit2, History, ChevronDown, ChevronUp, X, Check, Minus } from "lucide-react";
 import { Product } from "@/types";
+import { formatKg } from '@/lib/product-units';
 import { updateProductStock } from "@/app/actions";
 import { useRouter } from "next/navigation";
 
@@ -132,20 +133,20 @@ export const StockManagement = ({ initialProducts }: { initialProducts: Product[
                       <div 
                         className="h-1.5 rounded-full" 
                         style={{ 
-                          width: `${Math.min(100, (item.stock / item.moq) / 2 * 100)}%`, // Example calculation
-                          backgroundColor: item.stock > item.moq ? '#10B981' : '#EF4444'
+                          width: `${Math.min(100, (item.stock / (item.moqKg / 1000)) / 2 * 100)}%`, // Example calculation
+                          backgroundColor: item.stock > item.moqKg / 1000 ? '#10B981' : '#EF4444'
                         }}
                       ></div>
                     </div>
                     <div className="text-xs text-ash-500 mt-1">
-                      Min Order: {item.moq} tons
+                      Min Order: {formatKg(item.moqKg)}
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`px-2 py-1 rounded-full text-xs ${
-                      item.stock < item.moq ? 'bg-red-900/30 text-red-400' : 'bg-green-900/30 text-green-400'
+                      item.stock < item.moqKg / 1000 ? 'bg-red-900/30 text-red-400' : 'bg-green-900/30 text-green-400'
                     }`}>
-                      {item.stock < item.moq ? 'Low Stock' : 'In Stock'}
+                      {item.stock < item.moqKg / 1000 ? 'Low Stock' : 'In Stock'}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">

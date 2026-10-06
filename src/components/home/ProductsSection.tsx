@@ -1,6 +1,7 @@
 'use client';
 
 import Image from 'next/image';
+import { formatKg } from '@/lib/product-units';
 import Link from 'next/link';
 import { FaInfoCircle } from 'react-icons/fa';
 import { useState, useEffect } from 'react';
@@ -118,7 +119,7 @@ export default function ProductsSection({ products: allFeaturedProducts }: Produ
                 <div className="flex items-center justify-between mt-6">
                   <div>
                     <p className="text-xs text-gray-500">MOQ</p>
-                    <p className="font-medium">{product.moq} {product.moq > 1 ? 'tons' : 'ton'}</p>
+                    <p className="font-medium">{formatKg(product.moqKg)}</p>
                   </div>
                   <Link
                     href={`/products/${product.id}`}

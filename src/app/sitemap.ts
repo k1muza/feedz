@@ -1,13 +1,16 @@
 import { MetadataRoute } from 'next';
-import { productCategories } from '@/data/feedProducts';
-import { feedProducts } from '@/data/feedProductNutrition';
 import { getPublishedArticles } from '@/lib/content';
+import { getPublishedProductCategories, getPublishedProducts } from '@/lib/products';
 import { absoluteUrl } from '@/lib/seo';
 
 export const revalidate = 3600;
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const knowledgeArticles = await getPublishedArticles();
+  const [knowledgeArticles, feedProducts, productCategories] = await Promise.all([
+    getPublishedArticles(),
+    getPublishedProducts(),
+    getPublishedProductCategories(),
+  ]);
   const latestArticle = knowledgeArticles.map((article) => article.updated).sort().at(-1);
 
   const staticRoutes: MetadataRoute.Sitemap = [

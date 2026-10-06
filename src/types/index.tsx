@@ -1,6 +1,7 @@
 
 
 import { z } from "zod";
+import type { ProductStatus } from "@/data/feedProducts";
 
 export type TechnicalSpecs = {
   [key: string]: string;
@@ -64,6 +65,14 @@ export type ProductCategory = {
   id: string;
   name: string;
   slug: string;
+  imageLabel?: string;
+};
+
+export type NutritionIngredientOption = {
+  id: string;
+  name: string;
+  category: string;
+  sourceTable?: string;
 };
 
 export const BlogPostSchema = z.object({
@@ -129,14 +138,25 @@ export type Product = {
   id: string;
   ingredientId: string;
   ingredient?: Ingredient;
+  categoryId: string;
+  status: ProductStatus;
+  animals: Array<'pigs' | 'poultry' | 'cattle' | 'other'>;
+  gradeFallback: string;
+  imageLabel: string;
+  origin: string;
   packaging: string;
+  /** Price of one pack of `packSizeKg`. */
   price: number;
-  moq: number;
+  currency: string;
+  /** Smallest quantity sold, in kg (50 for a 50 kg bag, 1000 for bulk per tonne). */
+  packSizeKg: number;
+  moqKg: number;
   stock: number;
   certifications: string[];
   images: string[];
   shipping?: string;
   featured?: boolean;
+  active: boolean;
 };
 
 export type ContactInquiry = {

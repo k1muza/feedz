@@ -17,6 +17,7 @@ import { Calendar as CalendarIcon } from "lucide-react"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { cn } from '@/lib/utils';
+import { formatKg, packLabel } from '@/lib/product-units';
 
 
 const InvoiceItemSchema = z.object({
@@ -116,7 +117,7 @@ export const InvoiceForm = ({ invoice, products }: { invoice?: Invoice; products
     form.setValue(`items.${index}.productId`, productId, { shouldDirty: true });
     const product = products.find(p => p.id === productId);
     if(product) {
-        form.setValue(`items.${index}.description`, product.ingredient?.name || 'Product', { shouldValidate: true, shouldDirty: true });
+        form.setValue(`items.${index}.description`, `${product.ingredient?.name || 'Product'} (${formatKg(product.packSizeKg)})`, { shouldValidate: true, shouldDirty: true });
         form.setValue(`items.${index}.price`, product.price, { shouldValidate: true, shouldDirty: true });
     }
   };
@@ -275,7 +276,7 @@ export const InvoiceForm = ({ invoice, products }: { invoice?: Invoice; products
                             className="w-full bg-ash-700 border-ash-600 rounded-md p-2 mt-1"
                         >
                             <option value="">Custom item</option>
-                            {products.map(p => <option key={p.id} value={p.id}>{p.ingredient?.name} — ${p.price.toFixed(2)}/t</option>)}
+                            {products.map(p => <option key={p.id} value={p.id}>{p.ingredient?.name} — ${p.price.toFixed(2)} / {packLabel(p.packSizeKg)}</option>)}
                         </select>
                         <input type="hidden" {...form.register(`items.${index}.id`)} />
                       </div>

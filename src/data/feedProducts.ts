@@ -1,4 +1,5 @@
-export type ProductStatus = 'In stock' | 'Limited' | 'On request';
+export const PRODUCT_STATUSES = ['In stock', 'Readily available', 'Limited', 'On request'] as const;
+export type ProductStatus = (typeof PRODUCT_STATUSES)[number];
 
 export type ProductSpec = {
   label: string;
@@ -39,6 +40,14 @@ export type FeedProduct = {
   description: string;
   origin: string;
   certifications: string;
+  /** Price of one pack of `packSizeKg`. */
+  price?: number;
+  currency?: string;
+  /** Smallest quantity sold, in kg (50 for a 50 kg bag, 1000 for bulk per tonne). */
+  packSizeKg?: number;
+  stock?: number;
+  images?: string[];
+  shipping?: string;
   nutrientGroups?: NutrientGroup[];
   nutritionSource?: ProductNutritionSource;
 };
