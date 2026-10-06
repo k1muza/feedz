@@ -145,7 +145,6 @@ export const ProductsManagement = ({ initialProducts }: { initialProducts: Produ
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-ash-400 uppercase tracking-wider">Product</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-ash-400 uppercase tracking-wider">Category</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-ash-400 uppercase tracking-wider">Stock</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-ash-400 uppercase tracking-wider">Price</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-ash-400 uppercase tracking-wider">Status</th>
                 <th className="px-6 py-3 text-right text-xs font-medium text-ash-400 uppercase tracking-wider">Actions</th>
@@ -170,7 +169,6 @@ export const ProductsManagement = ({ initialProducts }: { initialProducts: Produ
                       {product.ingredient?.category?.replace('-', ' ')}
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-ash-400">{product.stock} tons</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-ash-400">{product.price > 0 ? `$${product.price.toFixed(2)} / ${packLabel(product.packSizeKg)}` : 'On request'}</td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${product.status === 'In stock' ? 'bg-green-900/30 text-green-400' : product.status === 'Readily available' ? 'bg-emerald-900/30 text-emerald-300' : product.status === 'Limited' ? 'bg-yellow-900/30 text-yellow-300' : 'bg-ash-700 text-ash-300'}`}>
@@ -204,7 +202,7 @@ export const ProductsManagement = ({ initialProducts }: { initialProducts: Produ
                 </tr>
               ))}
               {filteredProducts.length === 0 && (
-                <tr><td colSpan={6} className="px-6 py-12 text-center text-sm text-ash-400">No products match the current filters.</td></tr>
+                <tr><td colSpan={5} className="px-6 py-12 text-center text-sm text-ash-400">No products match the current filters.</td></tr>
               )}
             </tbody>
           </table>
