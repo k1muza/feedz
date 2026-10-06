@@ -4,6 +4,122 @@
 insert into public.articles
   (slug, title, seo_title, description, topic, image_url, image_alt, image_credit, ingredients, keywords, key_points, body, status, published_at, created_at)
 values (
+  'feeding-pigs-by-stage-phase-feeding', 'Feeding pigs by stage: a practical guide to phase feeding', 'Feeding Pigs by Stage: A Practical Guide to Phase Feeding', 'How to match feed to each stage of a pig''s life, from creep feed to finisher and the breeding herd, and how to use feed conversion ratio to check your feeding pays.', 'Pig nutrition',
+  'https://images.unsplash.com/photo-1697027948105-902321ea8e29', 'Grower pigs in a pen', 'Stefanie Poepken',
+  array['soybean-meal', 'sorghum', 'lysine', 'premix']::text[], array['phase feeding pigs', 'pig feeding stages', 'pig starter grower finisher feed', 'sow feeding', 'pig feed conversion ratio']::text[], array['Feed is usually 60–75% of the cost of raising a pig to market, so how you feed drives profit.', 'Step pigs down to lower-protein diets as they grow: pre-starter, starter, grower, then finisher.', 'Sows and boars need their own gestation, lactation and breeder feeds.', 'Track feed conversion ratio (FCR) per pen to see whether your feeding is paying off.']::text[],
+  'Feed is the single biggest cost in pig production, usually around 60 to 75% of what it costs to raise a pig to market. That means the way you feed has more effect on your profit than almost any other decision on the farm.
+
+Many smallholder and commercial farmers still give one feed to pigs of all ages. It seems simpler, but it wastes money in two directions. Young pigs get too little protein to grow well, while older pigs get more protein than they can use and simply excrete the expensive surplus.
+
+This article explains how to match feed to each stage of a pig''s life, a practice called phase feeding, and how to check whether your feeding is actually paying off.
+
+## What phase feeding is
+
+Phase feeding means changing the diet as the pig grows, so that what it eats matches what its body needs at that moment. A piglet and a finishing pig are almost different animals in terms of nutrition.
+
+The logic is simple. A young pig is building muscle and bone fast, so it needs a feed rich in protein, especially the amino acid [lysine](/products/lysine), and easy to digest. As the pig gets older, growth slows and more of what it eats goes to fat and maintenance. Its need for protein falls, while its appetite for energy stays high.
+
+Protein sources such as [soybean meal](/products/soybean-meal) and fishmeal are the most expensive ingredients in a pig diet. Energy sources such as maize are cheaper. So each time you step a pig down to a lower-protein diet at the right weight, you cut the cost per kilogram of feed without hurting growth.
+
+Most farms use four to five feeds for growing pigs, plus separate feeds for sows. The table below gives a general picture. Exact figures vary with breed, genetics and feed supplier, so treat these as approximate guides rather than fixed rules.
+
+| Stage | Typical live weight | Approximate crude protein | Main goal |
+| --- | --- | --- | --- |
+| Pre-starter (creep) | 2 to 8 kg | 20 to 22% | Get piglets eating solid feed before weaning |
+| Starter (weaner) | 8 to 25 kg | 18 to 20% | Keep pigs growing through the stress of weaning |
+| Grower | 25 to 60 kg | 16 to 18% | Build lean muscle efficiently |
+| Finisher | 60 kg to market | 14 to 16% | Reach market weight at the lowest feed cost |
+
+## Pre-starter and starter: getting weaners off to a strong start
+
+The first weeks of a pig''s life set the pace for everything that follows. A piglet that stalls after weaning often reaches market days or weeks later than its penmates, eating extra feed the whole way.
+
+Pre-starter (often called creep feed) is offered to piglets while they are still suckling, usually from about 7 to 10 days old. They eat very little of it at first. The point is to get their gut used to solid feed, so weaning is less of a shock.
+
+Weaning is stressful. The piglet loses its mother''s milk, is often moved and mixed with other litters, and its gut is still immature. It is common for weaners to eat little for the first day or two and lose condition. A good starter feed helps by being:
+
+- **Highly digestible**, with ingredients such as milk products, cooked cereals and quality protein that a young gut can handle
+- **Palatable**, so pigs start eating quickly
+- **Rich in lysine** and other amino acids for fast muscle growth
+- **Fresh**, offered little and often so it does not go stale in the feeder
+
+These diets cost more per bag than grower or finisher feed, but pigs eat only small amounts of them. Cutting corners here tends to cost more later in slow growth and scouring.
+
+Change from pre-starter to starter gradually over a few days by mixing the two feeds. Sudden changes upset the gut.
+
+## Grower: building lean muscle
+
+The grower phase runs from roughly 25 kg to 60 kg. This is when pigs convert feed into lean meat most efficiently, so it is the stage where good feeding pays off fastest.
+
+Growers should have feed available at all times, or be fed enough that a little is left in the feeder at each meal. Restricting feed at this stage usually slows growth more than it saves money.
+
+The diet can now rely more on locally available ingredients like maize and soybean meal, balanced with a vitamin and mineral [premix](/products/premix). Protein drops a little from the starter feed, but amino acid balance still matters. A grower feed short of lysine will produce a fatter, slower-growing pig even if the crude protein figure on the label looks fine. For more on this, see [feeding growers: protein, energy and lysine in practice](/knowledge/feeding-grower-pigs-protein-energy-lysine).
+
+Water is just as important as feed. A growing pig drinks roughly two to three litres of water for every kilogram of feed it eats, more in hot weather. If drinkers are blocked or the water is warm and dirty, feed intake and growth drop.
+
+## Finisher: reaching market weight at the lowest cost
+
+From about 60 kg until slaughter, pigs eat the largest amount of feed of their lives. A finisher can eat 2.5 to 3 kg a day, so even a small saving per kilogram of feed adds up quickly across a batch.
+
+At this stage the pig''s need for protein is at its lowest, while its appetite is at its highest. Feeding a grower diet to finishers is one of the most common and expensive mistakes on pig farms. The extra protein does not produce extra meat; the pig simply breaks it down and excretes it.
+
+The flip side is fat. If finishers get more energy than they need, they lay down excess back fat, and many abattoirs pay less for fat carcasses. Your target market matters here. Talk to your buyer about the carcass weight and grade they pay best for, and plan your finishing period around it.
+
+Keep pigs on finisher feed through to market rather than switching back to cheaper scraps or bran in the final weeks. Those last weeks are when the pig puts on weight that you are paid for.
+
+## Sows and boars: feeding the breeding herd
+
+Breeding animals need their own feeds because their goals are different. You are not trying to grow them as fast as possible; you are trying to keep them productive for many litters.
+
+**Gestation (pregnant sows).** A pregnant sow needs a moderate, controlled ration, typically around 2 to 2.5 kg a day of a gestation feed, adjusted to her body condition. Too much feed makes sows fat, which can lead to difficult farrowing and poor appetite later when she is feeding piglets. Too little leaves her thin and weakens the next litter. Many farmers raise the ration slightly in the last three to four weeks of pregnancy, when the piglets grow fastest.
+
+**Lactation (sows with piglets).** Once she farrows, the sow''s needs change sharply. Producing milk for a full litter takes a lot of energy and protein, so she should move onto a richer lactation feed and be fed generously. Build up her intake over the first few days after farrowing, then let her eat as much as she wants. A sow that loses too much condition while feeding a litter is slower to come back on heat and may have smaller litters next time.
+
+**Boars.** A working boar needs a balanced diet that keeps him fit and active without getting fat, often around 2 to 3 kg a day of a breeder feed, depending on his size and how often he is used.
+
+## Feed conversion ratio: measuring whether your feeding pays
+
+Feed conversion ratio (FCR) tells you how many kilograms of feed it takes to produce one kilogram of live weight gain. It is the most useful single number for judging your feeding.
+
+$$
+\text{FCR} = \frac{\text{feed eaten (kg)}}{\text{weight gained (kg)}}
+$$
+
+A lower FCR is better. For example, if a batch of pigs eats 1,500 kg of feed and gains a total of 500 kg, the FCR is 1,500 ÷ 500 = 3.0. Each kilogram of weight gain cost 3 kg of feed.
+
+To work it out on your farm:
+
+1. Weigh the pigs, or a sample of them, when they go into a pen. A weighband is a cheap option if you have no scale.
+2. Record every bag of feed that goes into that pen.
+3. Weigh the pigs again when they leave, or at the end of each feeding phase.
+4. Divide total feed used by total weight gained.
+
+As a rough guide, young weaners convert feed very efficiently, often at an FCR below 2, while finishers are closer to 3 or higher. Your overall figure from weaning to market depends on genetics, health and housing as well as feed.
+
+The real value comes from tracking FCR over time. If it suddenly worsens, look for causes such as feed wastage, disease, poor water supply, cold or overcrowded pens, or a change in feed quality. To turn FCR into money, see [feed cost per kg of gain](/knowledge/feed-cost-per-kg-gain).
+
+## Common feeding mistakes and how to avoid them
+
+- **One feed for all ages.** Young pigs grow slowly and older pigs waste protein. Use at least a starter, grower and finisher feed.
+- **Feed wastage.** Badly adjusted or overfilled feeders can waste 5 to 10% of feed or more. Set feeders so only a small amount of feed shows in the trough, and fix broken ones quickly.
+- **Diluting balanced feed.** Mixing a complete feed with extra maize, bran or kitchen waste upsets its balance. If you do mix your own feed, use a concentrate or premix designed for that purpose and follow the mixing guide.
+- **Poor storage.** Feed kept in damp or hot conditions can grow mould, which may produce toxins that cut growth and harm sow fertility. Store bags off the floor, away from walls, in a dry, cool place, and use older stock first.
+- **Sudden feed changes.** Switching diets overnight can cause scouring and a dip in intake. Mix old and new feed over three to five days.
+- **Ignoring water.** Pigs that cannot drink enough will not eat enough. Check drinkers daily.
+
+## Putting it into practice
+
+Phase feeding is not complicated. It comes down to giving each pig the feed that matches its age and weight, changing diets gradually, cutting wastage, and keeping records so you can see what is working.
+
+Start small if you need to. Even moving from one feed to separate grower and finisher feeds, and tracking FCR on a single pen, will show you where your money is going.
+
+If you are unsure which feed suits your pigs at each stage, or want help planning a feeding programme for your herd, [get in touch with the FeedSport team](/contact). We are happy to help you match the right feed to every stage.',
+  'published', '2026-10-06', now() - interval '0 seconds'
+) on conflict (slug) do nothing;
+
+insert into public.articles
+  (slug, title, seo_title, description, topic, image_url, image_alt, image_credit, ingredients, keywords, key_points, body, status, published_at, created_at)
+values (
   'how-to-formulate-pig-feed', 'How to formulate pig feed: a step-by-step guide', 'How to Formulate Pig Feed: Step-by-Step Guide for Farmers', 'A practical method for formulating pig feed from local ingredients: set nutrient targets, balance energy and lysine, add minerals and premix, then check the result.', 'Feed formulation',
   'https://images.unsplash.com/photo-1697027948105-902321ea8e29', 'Grower pigs in a pen', 'Stefanie Poepken',
   array['sorghum', 'soybean-meal', 'lysine', 'dcp', 'limestone', 'premix']::text[], array['pig feed formulation', 'how to make pig feed', 'pig feed formula Zimbabwe', 'Pearson square pig feed', 'grower pig diet']::text[], array['Formulate for one class of pig at a time: weaner, grower, finisher, dry sow or lactating sow.', 'Balance energy and digestible lysine first. Crude protein follows.', 'Reserve 3–4% of the mix for minerals, salt and premix before you balance the main ingredients.', 'Check the finished diet against every target, not only protein.']::text[],
@@ -73,7 +189,7 @@ Even a well-balanced formula fails if it is badly mixed. Small-inclusion items l
 ## When to ask for help
 
 Get a formulation reviewed if you are changing a main ingredient, feeding a new genetic line, or seeing poorer growth or feed conversion than expected. Send us your ingredient list and targets on WhatsApp and we will check it with you.',
-  'published', '2026-10-06', now() - interval '0 seconds'
+  'published', '2026-10-06', now() - interval '1 seconds'
 ) on conflict (slug) do nothing;
 
 insert into public.articles
@@ -135,7 +251,7 @@ Energy and lysine work together. If you raise energy without raising lysine, pig
 5. Recheck the full diet in the [formulation tool](/formulations) before mixing.
 
 For a full walk-through of building a diet, see [how to formulate pig feed](/knowledge/how-to-formulate-pig-feed).',
-  'published', '2026-10-06', now() - interval '1 seconds'
+  'published', '2026-10-06', now() - interval '2 seconds'
 ) on conflict (slug) do nothing;
 
 insert into public.articles
@@ -210,7 +326,7 @@ With illustrative prices, a 46% protein meal at US$0.60/kg costs about US$1.30 p
 5. Have mycotoxins (especially aflatoxin) been tested for grains and oilseed meals?
 
 We publish typical specifications for every ingredient we sell and can supply batch documentation on request.',
-  'published', '2026-10-06', now() - interval '2 seconds'
+  'published', '2026-10-06', now() - interval '3 seconds'
 ) on conflict (slug) do nothing;
 
 insert into public.articles
@@ -261,7 +377,7 @@ A lactating sow eats as much as she can and still often loses body condition, be
 ## Getting started
 
 Introduce bran gradually over a week and watch sow condition and dung consistency. Check the finished diet''s energy and calcium-to-phosphorus ratio in the [formulation tool](/formulations), or ask us for a sow diet review.',
-  'published', '2026-10-06', now() - interval '3 seconds'
+  'published', '2026-10-06', now() - interval '4 seconds'
 ) on conflict (slug) do nothing;
 
 insert into public.articles
@@ -325,7 +441,7 @@ If calcium, phosphorus and vitamin D3 are right and shells are still weak, look 
 3. Formulate on available phosphorus and reduce it as the flock ages.
 4. Use a pre-lay diet and do not feed layer feed to growing pullets.
 5. Confirm the premix supplies vitamin D3 at the right level.',
-  'published', '2026-10-06', now() - interval '4 seconds'
+  'published', '2026-10-06', now() - interval '5 seconds'
 ) on conflict (slug) do nothing;
 
 insert into public.articles
@@ -408,7 +524,7 @@ Feed B is 8% cheaper per bag but costs more per kilogram of pig produced. It als
 ## Using the number
 
 Track feed cost per kg of gain for every batch. When you change feed, an ingredient or a supplier, compare batches on this number. It is the clearest way to see whether a change paid off. You can test the cost of different ingredient combinations before you buy using our [formulation tool](/formulations).',
-  'published', '2026-10-06', now() - interval '5 seconds'
+  'published', '2026-10-06', now() - interval '6 seconds'
 ) on conflict (slug) do nothing;
 
 insert into public.articles
@@ -493,7 +609,7 @@ If you mix medicated feed, run a flush batch of plain grain afterwards or clean 
 ## Record keeping
 
 Write down each batch: date, formula, ingredient batches and weights. If performance drops, you can trace back to the feed. For help checking a formula before you mix, use our [formulation tool](/formulations).',
-  'published', '2026-10-06', now() - interval '6 seconds'
+  'published', '2026-10-06', now() - interval '7 seconds'
 ) on conflict (slug) do nothing;
 
 insert into public.articles
@@ -558,7 +674,7 @@ High-yielding cows in early lactation have very high protein requirements. They 
 Store sunflower meal dry and off the ground. Check for mould, which can carry mycotoxins harmful to cows and that may pass into milk.
 
 Ask us for a dairy concentrate review using your current forage, or check a draft in the [formulation tool](/formulations).',
-  'published', '2026-10-06', now() - interval '7 seconds'
+  'published', '2026-10-06', now() - interval '8 seconds'
 ) on conflict (slug) do nothing;
 
 insert into public.articles
@@ -622,7 +738,7 @@ We supply sorghum whole or hammer-milled.
 Sorghum is worth using when it costs less than maize per unit of energy, when maize supply is tight, or when you want to buy locally grown grain. Compare the two on cost per unit of energy, not price per tonne, and check the full diet in our [formulation tool](/formulations).
 
 To build a complete diet around sorghum, see [how to formulate pig feed](/knowledge/how-to-formulate-pig-feed).',
-  'published', '2026-10-06', now() - interval '8 seconds'
+  'published', '2026-10-06', now() - interval '9 seconds'
 ) on conflict (slug) do nothing;
 
 insert into public.articles
@@ -687,7 +803,7 @@ Calcium and phosphorus build the skeleton that carries a fast-growing bird. [Dic
 ## Measuring success
 
 Track average weight, uniformity, mortality and feed conversion ratio for every batch. See [working out the cost of feed per kilogram of gain](/knowledge/feed-cost-per-kg-gain) for a simple way to compare batches and feeds.',
-  'published', '2026-10-06', now() - interval '9 seconds'
+  'published', '2026-10-06', now() - interval '10 seconds'
 ) on conflict (slug) do nothing;
 
 insert into public.team_members (name, role, bio, image, sort_order)

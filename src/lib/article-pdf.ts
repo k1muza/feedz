@@ -5,6 +5,7 @@ import fontkit from '@pdf-lib/fontkit';
 import type { BlockContent, List, PhrasingContent, RootContent, Table } from 'mdast';
 import { PDFDocument, PDFString, rgb, type PDFFont, type PDFPage, type RGB } from 'pdf-lib';
 import remarkGfm from 'remark-gfm';
+import remarkMath from 'remark-math';
 import remarkParse from 'remark-parse';
 import { unified } from 'unified';
 
@@ -67,6 +68,7 @@ function inlineRuns(nodes: PhrasingContent[], style: Style): Run[] {
     switch (node.type) {
       case 'text': return [{ text: node.value, ...style }];
       case 'inlineCode': return [{ text: node.value, ...style, font: 'mono' }];
+      case 'inlineMath': return [{ text: latexToText(node.value), ...style }];
       case 'break': return [{ text: '\n', ...style }];
       case 'strong': return inlineRuns(node.children, { ...style, font: style.font === 'regular' ? 'semibold' : style.font });
       case 'link': return inlineRuns(node.children, { ...style, color: C.green, href: node.url.startsWith('/') ? absoluteUrl(node.url) : node.url });
@@ -75,6 +77,19 @@ function inlineRuns(nodes: PhrasingContent[], style: Style): Run[] {
       default: return 'value' in node && typeof node.value === 'string' ? [{ text: node.value, ...style }] : [];
     }
   });
+}
+
+// pdf-lib cannot typeset LaTeX, so print simple formulas as plain text: \frac{a}{b} becomes "a ÷ b".
+function latexToText(tex: string): string {
+  const out = tex
+    .replace(/\\(?:text|mathrm|textbf|mathbf)\{([^{}]*)\}/g, '$1')
+    .replace(/\\[dt]?frac\{([^{}]*)\}\{([^{}]*)\}/g, '$1 ÷ $2')
+    .replace(/\\times/g, '×')
+    .replace(/\\div/g, '÷')
+    .replace(/\\cdot/g, '·')
+    .replace(/\\(?:left|right)/g, '')
+    .replace(/\\[,;! ]/g, ' ');
+  return out === tex ? out : latexToText(out);
 }
 
 const plainText = (runs: Run[]) => runs.map((run) => run.text).join('');
@@ -403,6 +418,11 @@ export async function renderArticlePdf(article: KnowledgeArticle) {
         y -= 10;
         return;
       }
+      case 'math':
+        y -= 2;
+        paragraph([{ text: latexToText(node.value).replace(/\s+/g, ' ').trim(), font: 'semibold', color: C.ink }], x + 16, maxWidth - 16);
+        y -= 9;
+        return;
       case 'thematicBreak':
         ensureSpace(20);
         line(x, x + maxWidth, y - 8, 0.75, C.rule);
@@ -421,7 +441,7 @@ export async function renderArticlePdf(article: KnowledgeArticle) {
     }
   };
 
-  const tree = unified().use(remarkParse).use(remarkGfm).parse(article.body);
+  const tree = unified().use(remarkParse).use(remarkGfm).use(remarkMath).parse(article.body);
   for (const node of tree.children) block(node, M, CW);
 
   // --- closing note ----------------------------------------------------------

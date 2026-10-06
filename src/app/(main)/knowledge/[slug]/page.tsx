@@ -3,7 +3,10 @@ import type { ReactNode } from 'react';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import ReactMarkdown, { type Components } from 'react-markdown';
+import rehypeKatex from 'rehype-katex';
 import remarkGfm from 'remark-gfm';
+import remarkMath from 'remark-math';
+import 'katex/dist/katex.min.css';
 import DesignPlaceholder from '@/components/common/DesignPlaceholder';
 import NewsletterSignup from '@/components/blog/NewsletterSignup';
 import { getFeedProduct } from '@/data/feedProductNutrition';
@@ -129,7 +132,7 @@ export default async function KnowledgeArticlePage({ params }: Props) {
               <h2 className="fs-label m-0 text-[#4f524b]">Key points</h2>
               <ul className="mb-0 mt-3 flex list-disc flex-col gap-2 pl-5 text-[16px] leading-[1.5]">{article.keyPoints.map((point) => <li key={point}>{point}</li>)}</ul>
             </section>
-            <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>{article.body}</ReactMarkdown>
+            <ReactMarkdown remarkPlugins={[remarkGfm, remarkMath]} rehypePlugins={[rehypeKatex]} components={markdownComponents}>{article.body}</ReactMarkdown>
             <p className="mt-10 border-t border-[#d9d4c7] pt-5 text-[14px] leading-[1.55] text-[#4f524b]">Figures in this guide are typical values and general ranges. Confirm targets for your animals, genetics and ingredients, and check batch specifications before formulating.</p>
           </div>
 
