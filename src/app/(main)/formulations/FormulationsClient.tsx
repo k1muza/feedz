@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { analyzeDiet, type AnalyzedNutrient, type DietFormula } from '@/lib/diet-formula';
-import { ingredientDefaultPricePerKg } from '@/lib/feed-ingredient-prices';
+import { ingredientDefaultPricePerKg, type IngredientDefaultPrice } from '@/lib/feed-ingredient-prices';
 import type { FormulationAlternativeKind, FormulationIngredientSuggestionResult, LeastCostFormulationResult } from '@/lib/feed-optimizer';
 import { feedProgrammeById, feedProgrammePhaseById } from '@/lib/feed-programmes';
 import { INGREDIENT_LIBRARY, ingredientLibraryWithCustomPremixes } from '@/lib/ingredient-nutrients';
@@ -59,7 +59,7 @@ type DownloadableFormulation = {
   priority: FormulationPriority;
 };
 
-export default function FormulationsClient() {
+export default function FormulationsClient({ ingredientPrices }: { ingredientPrices: IngredientDefaultPrice[] }) {
   const [inclusions, setInclusions] = useState<Inclusion>(defaults);
   const [visibleIngredientIds, setVisibleIngredientIds] = useState<IngredientId[]>(defaultVisibleIngredientIds);
   const [extraVisibleIngredientIds, setExtraVisibleIngredientIds] = useState<string[]>([]);
@@ -261,7 +261,7 @@ export default function FormulationsClient() {
         ...extraVisibleIngredientIds,
       ]));
       const pricedIngredients = candidateIds.flatMap((ingredientId) => {
-        const pricePerKg = ingredientDefaultPricePerKg(ingredientId);
+        const pricePerKg = ingredientDefaultPricePerKg(ingredientId, ingredientPrices);
         return pricePerKg === undefined ? [] : [{ ingredientId, pricePerKg }];
       });
       if (pricedIngredients.length === 0) {
@@ -283,7 +283,7 @@ export default function FormulationsClient() {
             ...pricedIngredients,
             {
               ingredientId: PUBLIC_PREMIX_ID,
-              pricePerKg: 0,
+              pricePerKg: ingredientDefaultPricePerKg(PUBLIC_PREMIX_ID, ingredientPrices) ?? 0,
               minInclusionPct: PUBLIC_PREMIX_INCLUSION_PCT,
               maxInclusionPct: PUBLIC_PREMIX_INCLUSION_PCT,
             },

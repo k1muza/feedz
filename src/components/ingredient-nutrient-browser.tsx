@@ -22,14 +22,16 @@ import {
 const library = INGREDIENT_LIBRARY;
 const PAGE_SIZE = 10;
 
-function display(value: number | undefined, unit = ""): string {
+const DEFAULT_SOURCE = "Brazilian 2024";
+
+function display(value: number | undefined): string {
   if (value === undefined) return "—";
-  return `${Number(value.toFixed(3))}${unit ? ` ${unit}` : ""}`;
+  return Number(value.toFixed(2)).toLocaleString();
 }
 
 function sourceLabel(ingredient: (typeof library.ingredients)[number]): string {
   return ingredient.provenance.source?.year === 2024
-    ? "Brazilian 2024"
+    ? DEFAULT_SOURCE
     : ingredient.provenance.source?.publisher ?? library.source.publisher;
 }
 
@@ -114,56 +116,51 @@ export function IngredientNutrientBrowser({
         <div className="overflow-x-auto rounded-lg border border-hairline">
           <Table>
             <TableHeader>
-              <TableRow>
-                <TableHead>Ingredient</TableHead>
-                <TableHead>Source</TableHead>
-                <TableHead>Category</TableHead>
-                <TableHead className="text-right">CP</TableHead>
-                <TableHead className="text-right">ME</TableHead>
-                <TableHead className="text-right">NE</TableHead>
-                <TableHead className="text-right">Default price</TableHead>
+              <TableRow className="border-hairline bg-raised/60 hover:bg-raised/60">
+                <TableHead className="text-ink-muted">Ingredient</TableHead>
+                <TableHead className="text-ink-muted">Category</TableHead>
+                <NumericHead label="CP" unit="%" />
+                <NumericHead label="ME" unit="kcal/kg" />
+                <NumericHead label="NE" unit="kcal/kg" />
+                <NumericHead label="Price" unit="US$/t" />
               </TableRow>
             </TableHeader>
             <TableBody>
-              {pageIngredients.map((ingredient) => (
-                <TableRow key={ingredient.id}>
-                  <TableCell>
-                    <Link
-                      href={detailBasePath === "/dashboard/ingredients"
-                        ? feedIngredientHref(ingredient.id)
-                        : `${detailBasePath}/${ingredient.id}`}
-                      className="font-medium text-ink underline-offset-4 hover:underline"
-                    >
-                      {ingredient.name}
-                    </Link>
-                    {ingredient.aliases.length > 0 ? (
-                      <div className="mt-1 text-xs text-ink-faint">
-                        {ingredient.aliases.slice(0, 3).join(", ")}
-                      </div>
-                    ) : null}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="secondary">{sourceLabel(ingredient)}</Badge>
-                  </TableCell>
-                  <TableCell className="capitalize text-ink-muted">
-                    {ingredient.category.replaceAll("_", " ")}
-                  </TableCell>
-                  <TableCell className="text-right font-mono">
-                    {display(ingredient.composition.crudeProteinPct, "%")}
-                  </TableCell>
-                  <TableCell className="text-right font-mono">
-                    {display(ingredient.energy.metabolizableKcalKg, "kcal/kg")}
-                  </TableCell>
-                  <TableCell className="text-right font-mono">
-                    {display(ingredient.energy.netKcalKg, "kcal/kg")}
-                  </TableCell>
-                  <TableCell className="text-right font-mono">
-                    {ingredientDefaultPrice(ingredient.id)
-                      ? `US$${ingredientDefaultPrice(ingredient.id)!.usdPerTonne.toLocaleString()}/t`
-                      : "—"}
-                  </TableCell>
-                </TableRow>
-              ))}
+              {pageIngredients.map((ingredient) => {
+                const price = ingredientDefaultPrice(ingredient.id);
+                const source = sourceLabel(ingredient);
+                return (
+                  <TableRow key={ingredient.id} className="border-hairline hover:bg-raised/50">
+                    <TableCell className="min-w-56 py-3">
+                      <Link
+                        href={detailBasePath === "/dashboard/ingredients"
+                          ? feedIngredientHref(ingredient.id)
+                          : `${detailBasePath}/${ingredient.id}`}
+                        className="font-medium text-ink underline-offset-4 hover:underline"
+                      >
+                        {ingredient.name}
+                      </Link>
+                      {ingredient.aliases.length > 0 ? (
+                        <div className="mt-0.5 line-clamp-1 text-xs text-ink-faint">
+                          {ingredient.aliases.slice(0, 3).join(", ")}
+                        </div>
+                      ) : null}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap py-3">
+                      <span className="inline-flex items-center rounded-full border border-hairline px-2 py-0.5 text-xs capitalize text-ink-muted">
+                        {ingredient.category.replaceAll("_", " ")}
+                      </span>
+                      {source !== DEFAULT_SOURCE ? (
+                        <div className="mt-1 text-xs text-ink-faint">{source}</div>
+                      ) : null}
+                    </TableCell>
+                    <NumericCell value={display(ingredient.composition.crudeProteinPct)} />
+                    <NumericCell value={display(ingredient.energy.metabolizableKcalKg)} />
+                    <NumericCell value={display(ingredient.energy.netKcalKg)} />
+                    <NumericCell value={price ? price.usdPerTonne.toLocaleString() : "—"} />
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         </div>
@@ -246,5 +243,22 @@ function PaginationButton({
     >
       {children}
     </button>
+  );
+}
+
+function NumericHead({ label, unit }: { label: string; unit: string }) {
+  return (
+    <TableHead className="whitespace-nowrap text-right text-ink-muted">
+      {label}
+      <span className="ml-1 text-xs font-normal text-ink-faint">{unit}</span>
+    </TableHead>
+  );
+}
+
+function NumericCell({ value }: { value: string }) {
+  return (
+    <TableCell className="whitespace-nowrap py-3 text-right font-mono tabular-nums text-ink">
+      {value}
+    </TableCell>
   );
 }

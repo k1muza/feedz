@@ -4,6 +4,7 @@ import type { NutritionPhase } from '@/lib/nutrition';
 export const PUBLIC_PREMIX_ID = 'public-premix-salt-additives';
 export const PUBLIC_PREMIX_INCLUSION_PCT = 1;
 export const PUBLIC_PREMIX_KG_PER_TONNE = 10;
+export const PUBLIC_PREMIX_NAME = `Vitamin-mineral premix (${PUBLIC_PREMIX_KG_PER_TONNE} kg/t)`;
 
 export function publicPremixProfileForPhase(phase: NutritionPhase): CustomPremixProfile {
   const supplementation = phase.supplementation;
@@ -24,7 +25,7 @@ export function publicPremixProfileForPhase(phase: NutritionPhase): CustomPremix
 
   return {
     id: PUBLIC_PREMIX_ID,
-    name: `Vitamin-mineral premix (${PUBLIC_PREMIX_KG_PER_TONNE} kg/t)`,
+    name: PUBLIC_PREMIX_NAME,
     vitamins: {
       vitaminAIuKg: vitamins.vitaminAIuKg * factor,
       vitaminDIuKg: vitamins.vitaminDIuKg * factor,

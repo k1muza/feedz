@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 
 import FormulationsClient from './FormulationsClient';
+import { getIngredientPrices } from '@/lib/ingredient-prices';
 import { createPageMetadata } from '@/lib/seo';
 
 export const metadata: Metadata = createPageMetadata({
@@ -9,6 +10,8 @@ export const metadata: Metadata = createPageMetadata({
   path: '/formulations',
 });
 
-export default function FormulationsPage() {
-  return <FormulationsClient />;
+export const revalidate = 3600;
+
+export default async function FormulationsPage() {
+  return <FormulationsClient ingredientPrices={await getIngredientPrices()} />;
 }

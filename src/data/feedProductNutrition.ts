@@ -2,6 +2,7 @@ import {
   INGREDIENT_LIBRARY,
   type IngredientNutrientRecord,
 } from '@/lib/ingredient-nutrients';
+import { PUBLIC_PREMIX_ID, PUBLIC_PREMIX_KG_PER_TONNE } from '@/lib/public-feed-premix';
 import { BRAZILIAN_2024_SOURCE } from '@/lib/brazilian-nutrition';
 import {
   feedProductCatalog,
@@ -143,6 +144,14 @@ export function enrichProduct(item: FeedProductCatalogItem): FeedProduct {
       ...catalogue,
       grade: gradeFallback,
       specs: [{ label: 'Specification', value: 'Supplier-defined', unit: '' }],
+    };
+  }
+
+  if (nutritionIngredientId === PUBLIC_PREMIX_ID) {
+    return {
+      ...catalogue,
+      grade: gradeFallback,
+      specs: [{ label: 'Inclusion', value: String(PUBLIC_PREMIX_KG_PER_TONNE), unit: 'kg/t' }],
     };
   }
 

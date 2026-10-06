@@ -7,6 +7,7 @@ import { PDFDocument, rgb, type PDFFont, type PDFPage, type RGB } from 'pdf-lib'
 import {
   ingredientDefaultPlanningPricePerTonne,
   ingredientDefaultPrice,
+  type IngredientDefaultPrice,
 } from '@/lib/feed-ingredient-prices';
 import type { FormulationNutrientComparison } from '@/lib/feed-optimizer';
 import type { FeedProgrammeDefinition } from '@/lib/feed-programmes';
@@ -16,7 +17,6 @@ import {
 } from '@/lib/ingredient-nutrients';
 import type { NutritionPhase } from '@/lib/nutrition';
 import {
-  PUBLIC_PREMIX_ID,
   PUBLIC_PREMIX_INCLUSION_PCT,
   PUBLIC_PREMIX_KG_PER_TONNE,
   publicPremixProfileForPhase,
@@ -84,6 +84,8 @@ export type PublicFormulationPdfInput = {
   costPerKg: number;
   costIncreasePct: number;
   generatedAt?: Date;
+  /** Planning prices to show; defaults to the hard-coded planning prices. */
+  ingredientPrices?: readonly IngredientDefaultPrice[];
 };
 
 type TableColumn = {
@@ -310,7 +312,7 @@ export async function renderPublicFormulationPdf(input: PublicFormulationPdfInpu
     .sort((a, b) => b.inclusionPct - a.inclusionPct)
     .map((item) => {
       const ingredient = ingredientMap.get(item.ingredientId);
-      const planningPrice = ingredientDefaultPlanningPricePerTonne(item.ingredientId);
+      const planningPrice = ingredientDefaultPlanningPricePerTonne(item.ingredientId, input.ingredientPrices);
       const kgPerTonne = item.inclusionPct * 10;
       const contribution = planningPrice === undefined ? undefined : kgPerTonne * planningPrice / 1000;
       return [
@@ -397,11 +399,10 @@ export async function renderPublicFormulationPdf(input: PublicFormulationPdfInpu
   sectionHeading('Planning prices and provenance');
   paragraph('Prices are planning assumptions, not supplier quotations. Regional and global references include the engine’s standard import multiplier where applicable; freight, duty, handling and supplier-specific terms may still differ.', 8);
   const priceRows = input.formula.ingredients
-    .filter((item) => item.ingredientId !== PUBLIC_PREMIX_ID)
     .map((item) => {
       const ingredient = ingredientMap.get(item.ingredientId);
-      const price = ingredientDefaultPrice(item.ingredientId);
-      const planningPrice = ingredientDefaultPlanningPricePerTonne(item.ingredientId);
+      const price = ingredientDefaultPrice(item.ingredientId, input.ingredientPrices);
+      const planningPrice = ingredientDefaultPlanningPricePerTonne(item.ingredientId, input.ingredientPrices);
       return [
         ingredient?.name ?? item.ingredientId,
         planningPrice === undefined ? '—' : `$${planningPrice.toFixed(2)}`,

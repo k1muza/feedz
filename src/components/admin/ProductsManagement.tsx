@@ -140,42 +140,46 @@ export const ProductsManagement = ({ initialProducts }: { initialProducts: Produ
       {/* Products Table */}
       <div className="bg-ash-800/50 border border-ash-700 rounded-lg overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-ash-700">
+          <table className="w-full divide-y divide-ash-700">
             <thead className="bg-ash-800">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-ash-400 uppercase tracking-wider">Product</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-ash-400 uppercase tracking-wider">Category</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-ash-400 uppercase tracking-wider">Price</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-ash-400 uppercase tracking-wider">Status</th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-ash-400 uppercase tracking-wider">Actions</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-ash-400 uppercase tracking-wider">Product</th>
+                <th className="hidden lg:table-cell px-4 py-3 text-left text-xs font-medium text-ash-400 uppercase tracking-wider">Category</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-ash-400 uppercase tracking-wider">Price</th>
+                <th className="hidden sm:table-cell px-4 py-3 text-left text-xs font-medium text-ash-400 uppercase tracking-wider">Status</th>
+                <th className="w-px px-4 py-3 text-right text-xs font-medium text-ash-400 uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-ash-700">
               {filteredProducts.map((product) => (
                 <tr key={product.id} className="hover:bg-ash-700/50 transition-colors">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center">
+                  {/* w-full + max-w-0 lets this column absorb the spare width and truncate instead of overflowing. */}
+                  <td className="w-full max-w-0 px-4 py-3">
+                    <div className="flex items-center min-w-0">
                       <div className="flex-shrink-0 h-10 w-10">
                         <Image className="h-10 w-10 rounded-md object-cover" src={product.images[0] || '/images/products/placeholder.webp'} alt={product.ingredient?.name || 'product'} width={40} height={40} />
                       </div>
-                      <div className="ml-4">
-                        <div className="text-sm font-medium text-ash-100">{product.ingredient?.name}</div>
-                        <div className="text-sm text-ash-400">{product.id} · {product.ingredientId}</div>
+                      <div className="ml-3 min-w-0">
+                        <div className="text-sm font-medium text-ash-100 truncate">{product.ingredient?.name}</div>
+                        <div className="text-xs text-ash-400 truncate" title={`${product.id} · ${product.ingredientId}`}>
+                          <span className="lg:hidden">{product.ingredient?.category} · </span>{product.id} · {product.ingredientId}
+                        </div>
+                        <div className="sm:hidden text-xs text-ash-300 mt-0.5">{product.status}</div>
                       </div>
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="hidden lg:table-cell px-4 py-3 whitespace-nowrap">
                     <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-900/30 text-green-400 capitalize">
                       {product.ingredient?.category?.replace('-', ' ')}
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-ash-400">{product.price > 0 ? `$${product.price.toFixed(2)} / ${packLabel(product.packSizeKg)}` : 'On request'}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-4 py-3 whitespace-nowrap text-sm text-ash-400">{product.price > 0 ? `$${product.price.toFixed(2)} / ${packLabel(product.packSizeKg)}` : 'On request'}</td>
+                  <td className="hidden sm:table-cell px-4 py-3 whitespace-nowrap">
                     <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${product.status === 'In stock' ? 'bg-green-900/30 text-green-400' : product.status === 'Readily available' ? 'bg-emerald-900/30 text-emerald-300' : product.status === 'Limited' ? 'bg-yellow-900/30 text-yellow-300' : 'bg-ash-700 text-ash-300'}`}>
                       {product.status}
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                  <td className="w-px px-4 py-3 whitespace-nowrap text-right text-sm font-medium">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <button className="p-2 rounded-full hover:bg-ash-700">

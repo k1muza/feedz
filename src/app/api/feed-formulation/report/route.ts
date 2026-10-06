@@ -3,9 +3,10 @@ import { z } from 'zod';
 
 import { ingredientDefaultPricePerKg } from '@/lib/feed-ingredient-prices';
 import { evaluateFormulation } from '@/lib/feed-optimizer';
+import { getIngredientPrices } from '@/lib/ingredient-prices';
 import { feedProgrammeById, feedProgrammePhaseById } from '@/lib/feed-programmes';
 import { INGREDIENT_LIBRARY, ingredientLibraryWithCustomPremixes } from '@/lib/ingredient-nutrients';
-import { PUBLIC_PREMIX_ID, publicPremixProfileForPhase } from '@/lib/public-feed-premix';
+import { publicPremixProfileForPhase } from '@/lib/public-feed-premix';
 import { renderPublicFormulationPdf } from '@/lib/public-formulation-pdf';
 
 export const runtime = 'nodejs';
@@ -100,10 +101,9 @@ export async function POST(request: Request) {
       library,
       { includeSupplementationTargets: true, traceMineralBasis: 'inorganic' },
     );
+    const ingredientPrices = await getIngredientPrices();
     const costPerKg = parsed.data.formula.ingredients.reduce((sum, ingredient) => {
-      const pricePerKg = ingredient.ingredientId === PUBLIC_PREMIX_ID
-        ? 0
-        : ingredientDefaultPricePerKg(ingredient.ingredientId);
+      const pricePerKg = ingredientDefaultPricePerKg(ingredient.ingredientId, ingredientPrices);
       if (pricePerKg === undefined) {
         throw new Error(`No planning price is available for ${ingredient.ingredientId}.`);
       }
@@ -117,6 +117,7 @@ export async function POST(request: Request) {
       nutrientProfile: evaluation.nutrientProfile,
       costPerKg,
       costIncreasePct: 0,
+      ingredientPrices,
     });
     const filename = `feedsport-${filenamePart(phase.label)}-formulation.pdf`;
 

@@ -1,3 +1,5 @@
+import { PUBLIC_PREMIX_ID } from "@/lib/public-feed-premix";
+
 export type IngredientPriceSourceScope =
   | "harare"
   | "zimbabwe"
@@ -254,6 +256,16 @@ export const INGREDIENT_DEFAULT_PRICES: readonly IngredientDefaultPrice[] = [
       "Planning proxy from a user-observed refined soybean oil price of USD 3.60 per 2 L, normalized to approximately USD 1.96/kg. The market product is refined soybean oil; the nutrient profile remains the Brazilian Tables 2024 Soybean, Degummed Oil record.",
   },
   {
+    ingredientId: PUBLIC_PREMIX_ID,
+    usdPerTonne: 2000,
+    market: "Harare, Zimbabwe",
+    asOf: "2026-10-06",
+    sourceScope: "harare",
+    sourceLabel: "FeedSport International — Vitamin-mineral premix (10 kg/t)",
+    sourceUrl: "https://www.feedsport.co.zw/products/premix",
+    note: "USD 40 per 20 kg bag; MOQ 20 kg.",
+  },
+  {
     ingredientId: "corn-oil",
     usdPerTonne: 1587,
     market: "Global import fallback — USA FOB",
@@ -266,23 +278,39 @@ export const INGREDIENT_DEFAULT_PRICES: readonly IngredientDefaultPrice[] = [
   },
 ];
 
+/**
+ * Merges price overrides (e.g. FeedSport's own selling prices from the database)
+ * over the hard-coded planning defaults. An override replaces the default for
+ * the same ingredient; ingredients without an override keep their default.
+ */
+export function mergeIngredientPrices(
+  overrides: readonly IngredientDefaultPrice[],
+  defaults: readonly IngredientDefaultPrice[] = INGREDIENT_DEFAULT_PRICES,
+): IngredientDefaultPrice[] {
+  const overridden = new Set(overrides.map((price) => price.ingredientId));
+  return [...overrides, ...defaults.filter((price) => !overridden.has(price.ingredientId))];
+}
+
 export function ingredientDefaultPrice(
   ingredientId: string,
+  prices: readonly IngredientDefaultPrice[] = INGREDIENT_DEFAULT_PRICES,
 ): IngredientDefaultPrice | undefined {
-  return INGREDIENT_DEFAULT_PRICES.find((price) => price.ingredientId === ingredientId);
+  return prices.find((price) => price.ingredientId === ingredientId);
 }
 
 export function ingredientDefaultPlanningPricePerTonne(
   ingredientId: string,
+  prices: readonly IngredientDefaultPrice[] = INGREDIENT_DEFAULT_PRICES,
 ): number | undefined {
-  const price = ingredientDefaultPrice(ingredientId);
+  const price = ingredientDefaultPrice(ingredientId, prices);
   if (!price) return undefined;
   return price.usdPerTonne * ingredientImportPriceMultiplier(price.sourceScope);
 }
 
 export function ingredientDefaultPricePerKg(
   ingredientId: string,
+  prices: readonly IngredientDefaultPrice[] = INGREDIENT_DEFAULT_PRICES,
 ): number | undefined {
-  const pricePerTonne = ingredientDefaultPlanningPricePerTonne(ingredientId);
+  const pricePerTonne = ingredientDefaultPlanningPricePerTonne(ingredientId, prices);
   return pricePerTonne === undefined ? undefined : pricePerTonne / 1000;
 }

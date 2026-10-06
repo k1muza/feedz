@@ -144,6 +144,20 @@ html.dark {
 }
 html.dark a:hover { color: #b3dcc0; }
 
+/* Admin reuses workspace components (text-ink, border-hairline, …); map their tokens onto the ash/harvest palette. */
+:root:has(.admin-theme) {
+  --fs-grain: #191b18;
+  --fs-paper: #222420;
+  --fs-raised: #2b2d29;
+  --fs-stone: #45473f;
+  --fs-field: #e3aa45;
+  --fs-leaf: #33240b;
+  --fs-charcoal: #f3f0e8;
+  --fs-muted: #b9b6ab;
+  --fs-faint: #8d8a80;
+}
+:root:has(.admin-theme) a:hover { color: #f0c97f; }
+
 html { scroll-behavior: smooth; }
 button, input, select, textarea { font-family: inherit; }
 a { text-underline-offset: 3px; }
