@@ -58,6 +58,6 @@ Public pages are static and refresh within an hour, or immediately when an admin
 
 ## Product data model
 
-Each `products` row links to one technical ingredient through `nutrition_ingredient_id`. That ID must exist in `src/data/nutrition/ingredients/ingredient-library.json`; the application joins the row to the JSON record to render Brazilian Tables nutrient values and provenance. Supabase stores the FeedZ-owned fields: category, display name, description, price, stock, MOQ, packaging, availability, animal tags, images and sales metadata.
+Each `products` row links to one technical ingredient through `nutrition_ingredient_id`. That ID must exist in `src/data/nutrition/ingredients/ingredient-library.json`; the application joins the row to the canonical JSON record to render Brazilian Tables nutrient values and provenance. Ingredient identity and provenance are stored once, while species-specific values live under `nutrition.swine` and `nutrition.poultry`. Supabase stores the FeedZ-owned fields: category, display name, description, price, stock, MOQ, packaging, availability, animal tags, images and sales metadata.
 
 Do not copy nutrient values into `products`. Update the versioned nutrition JSON when the source data changes. Supplier-specific products such as premixes should only be created after a matching supplier-backed JSON ingredient profile exists.
