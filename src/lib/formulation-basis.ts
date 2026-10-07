@@ -11,6 +11,11 @@ export type FeedFormulationBasisIngredient = {
   defaultMinInclusionPct?: number;
   defaultMaxInclusionPct?: number;
   phaseMaxInclusionPct?: number;
+  priceMarket?: string;
+  priceAsOf?: string;
+  priceSource?: string;
+  importMultiplier?: number;
+  availabilityMultiplier?: number;
 };
 
 export type FeedFormulationBasisSnapshot = {

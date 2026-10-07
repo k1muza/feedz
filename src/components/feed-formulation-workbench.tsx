@@ -176,13 +176,15 @@ export function FeedFormulationWorkbench({
       max: row.max,
       lockedPct: row.lockedPct ?? "",
     })) ??
-    initialFormulaSet?.ingredients.map((ingredient) => ({
-      ingredientId: ingredient.ingredientId,
-      price: String(ingredient.pricePerKg),
-      min: "",
-      max: "",
-      lockedPct: "",
-    })) ??
+    initialFormulaSet?.ingredients
+      .filter((ingredient) => ingredient.ingredientId !== PUBLIC_PREMIX_ID)
+      .map((ingredient) => ({
+        ingredientId: ingredient.ingredientId,
+        price: String(ingredient.pricePerKg),
+        min: "",
+        max: "",
+        lockedPct: "",
+      })) ??
     [];
   const initialResult = initialFormulaSet
     ? savedFeedFormulaResult(initialFormulaSet)
@@ -212,9 +214,13 @@ export function FeedFormulationWorkbench({
   const [targetBatchWeight, setTargetBatchWeight] = useState(
     String(initialFormulaSet?.targetBatchKg ?? 1000),
   );
+  const savedPremixPrice =
+    initialFormulaSet?.setup?.fixedPremixName === PUBLIC_PREMIX_NAME &&
+    initialFormulaSet.setup.fixedPremixPricePerKg.trim() !== ""
+      ? initialFormulaSet.setup.fixedPremixPricePerKg
+      : undefined;
   const [fixedPremixPricePerKg, setFixedPremixPricePerKg] = useState(
-    initialFormulaSet?.setup?.fixedPremixPricePerKg ??
-      defaultPriceInput(PUBLIC_PREMIX_ID, ingredients),
+    savedPremixPrice ?? defaultPriceInput(PUBLIC_PREMIX_ID, ingredients),
   );
   const [nextKey, setNextKey] = useState(100);
   const [addIngredientId, setAddIngredientId] = useState("");
@@ -499,6 +505,11 @@ export function FeedFormulationWorkbench({
             defaultMaxInclusionPct: ingredient?.maxInclusionPct,
             phaseMaxInclusionPct:
               selectedPhase?.maxInclusionPct?.[requestIngredient.ingredientId],
+            priceMarket: ingredient?.priceMarket,
+            priceAsOf: ingredient?.priceAsOf,
+            priceSource: ingredient?.priceSource,
+            importMultiplier: ingredient?.importMultiplier,
+            availabilityMultiplier: ingredient?.availabilityMultiplier,
           };
         });
 
@@ -714,9 +725,9 @@ export function FeedFormulationWorkbench({
           <DialogHeader className="border-b border-hairline px-5 py-4 pr-14 sm:px-6">
             <DialogTitle>Finished mix</DialogTitle>
             <DialogDescription className="max-w-3xl leading-6">
-              Set the final batch weight and optionally reserve a fixed commercial premix.
-              FeedSport formulates the remaining basal mix so the complete finished feed still
-              satisfies the Brazilian diet requirements after the premix is added.
+              Set the final batch weight and FeedSport premix price. The phase-specific premix is
+              always included at 10 kg/t so vitamin and trace-mineral supplementation is validated
+              together with the basal diet requirements.
             </DialogDescription>
           </DialogHeader>
 
@@ -1407,11 +1418,12 @@ function FormulationBasisPanel({
           Show exact solver inputs
         </summary>
         <div className="overflow-x-auto border-t border-hairline">
-          <table className="w-full min-w-[760px] text-xs">
+          <table className="w-full min-w-[980px] text-xs">
             <thead className="bg-raised/60 text-left uppercase tracking-wide text-ink-faint">
               <tr>
                 <th className="px-3 py-2">Ingredient</th>
                 <th className="px-3 py-2">Price/kg</th>
+                <th className="px-3 py-2">Price basis</th>
                 <th className="px-3 py-2">Request min</th>
                 <th className="px-3 py-2">Request max</th>
                 <th className="px-3 py-2">Lock</th>
@@ -1430,6 +1442,19 @@ function FormulationBasisPanel({
                     </td>
                     <td className="px-3 py-2 tabular-nums">
                       {ingredient.pricePerKg.toFixed(4)}
+                    </td>
+                    <td className="px-3 py-2 text-ink-muted">
+                      <div>{ingredient.priceMarket ?? "Manual / saved price"}</div>
+                      <div className="text-[11px] text-ink-faint">
+                        {ingredient.importMultiplier && ingredient.importMultiplier > 1
+                          ? `import ×${ingredient.importMultiplier.toFixed(2)}`
+                          : "local/default"}
+                        {ingredient.availabilityMultiplier &&
+                        ingredient.availabilityMultiplier > 1
+                          ? ` · availability ×${ingredient.availabilityMultiplier.toFixed(2)}`
+                          : ""}
+                        {ingredient.priceAsOf ? ` · ${ingredient.priceAsOf}` : ""}
+                      </div>
                     </td>
                     <td className="px-3 py-2 tabular-nums">
                       {ingredient.requestMinInclusionPct?.toFixed(3) ?? "—"}
@@ -1499,7 +1524,7 @@ function recipeReportInput(
 function PracticalAdvisories({
   advisories,
 }: {
-  advisories: readonly NonNullable<FeedRecipeReportInput["practicalAdvisories"]>[number][];
+  advisories: NonNullable<FeedRecipeReportInput["practicalAdvisories"]>;
 }) {
   if (advisories.length === 0) return null;
 

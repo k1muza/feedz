@@ -97,7 +97,7 @@ export function FeedFormulationEditor({
           <p className="max-w-3xl text-sm leading-6 text-ink-muted">
             {editing
               ? "Review the saved setup, adjust inputs and regenerate before saving changes."
-              : "Generate diets for a chosen batch size from your available ingredients, local prices and optional commercial premixes."}
+              : "Generate finished-feed diets from your available ingredients and current planning prices. FeedSport includes the required phase-specific vitamin-mineral premix and validates supplementation targets automatically."}
           </p>
         }
       />
