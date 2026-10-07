@@ -55,11 +55,9 @@ const sourceManifestSchema = z
     title: z.string(),
     edition: z.literal(5),
     year: z.literal(2024),
-    language: z.string(),
     isbn: z.string(),
     publisher: z.string(),
     editors: z.array(z.string()),
-    coverage: z.record(z.string(), z.string()),
     sourceAnomalies: z.array(sourceAnomalySchema).default([]),
   })
   .strict();
