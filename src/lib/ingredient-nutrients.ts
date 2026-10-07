@@ -96,9 +96,12 @@ const inclusionRecommendationSchema = z
     max: z.number().min(0).max(100),
   })
   .strict()
-  .refine((value) => value.practical <= value.max, {
-    message: "Practical inclusion must not exceed the maximum inclusion.",
-  });
+  .refine(
+    (value) => value.practical === undefined || value.practical <= value.max,
+    {
+      message: "Practical inclusion must not exceed the maximum inclusion.",
+    },
+  );
 
 const recommendedInclusionSchema = z
   .object({
