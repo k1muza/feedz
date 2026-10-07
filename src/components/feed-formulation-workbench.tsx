@@ -326,8 +326,10 @@ export function FeedFormulationWorkbench({
           throw new Error(payload.message);
         }
 
-        const suggestedIds = payload.ingredientIds.filter((ingredientId) =>
-          ingredients.some((ingredient) => ingredient.id === ingredientId),
+        const suggestedIds = payload.ingredientIds.filter(
+          (ingredientId) =>
+            ingredientId !== PUBLIC_PREMIX_ID &&
+            ingredients.some((ingredient) => ingredient.id === ingredientId),
         );
         setRows(
           suggestedIds.map((ingredientId, index) => ({
@@ -413,7 +415,9 @@ export function FeedFormulationWorkbench({
 
     let requestIngredients: FormulationIngredientOption[];
     try {
-      requestIngredients = rows.map((row) => {
+      requestIngredients = rows
+        .filter((row) => row.ingredientId !== PUBLIC_PREMIX_ID)
+        .map((row) => {
         const pricePerKg = Number(row.price);
         if (!Number.isFinite(pricePerKg) || pricePerKg < 0 || row.price.trim() === "") {
           throw new Error(
