@@ -1,11 +1,12 @@
 import { z } from "zod";
 
 import { BRAZILIAN_2024_SOURCE } from "./brazilian-source";
+import { BRAZILIAN_2024_CORE_FEEDSTUFFS } from "./brazilian-feedstuffs";
+import { assertUniqueIds } from "./nutrition-validation";
 
 import growingSwineJson from "@/data/nutrition/brazilian-2024/programmes/growing-swine.json";
 import breederSwineJson from "@/data/nutrition/brazilian-2024/programmes/breeder-swine.json";
 import swineSupplementationJson from "@/data/nutrition/brazilian-2024/programmes/swine-supplementation.json";
-import coreFeedstuffsJson from "@/data/nutrition/brazilian-2024/ingredients/core-feedstuffs.json";
 import crystallineAminoAcidsJson from "@/data/nutrition/brazilian-2024/supplements/crystalline-amino-acids.json";
 import mineralSourcesJson from "@/data/nutrition/brazilian-2024/supplements/mineral-sources.json";
 
@@ -249,80 +250,6 @@ const breederSwineSchema = z.object({
   }),
 });
 
-/**
- * Table 1.01 suggested inclusion: `practical` is the usual level (advisory),
- * `max` the published ceiling FeedSport enforces.
- */
-const inclusionRecommendationSchema = z
-  .object({
-    practical: z.number().min(0).max(100),
-    max: z.number().min(0).max(100),
-  })
-  .strict()
-  .refine((value) => value.practical <= value.max, {
-    message: "Practical inclusion must not exceed the maximum inclusion.",
-  });
-
-const coreFeedstuffSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-  pigflowIngredientId: z.string().optional(),
-  mappingConfidence: z.enum(["high", "unmapped"]),
-  sourcePage: z.number(),
-  notes: z.array(z.string()).optional(),
-  digestibleProteinSwinePct: z.number().optional(),
-  compositionPct: z.record(z.string(), z.number()),
-  swineEnergyKcalKg: z.object({
-    digestible: z.number(),
-    metabolizable: z.number(),
-    net: z.number(),
-  }),
-  sowEnergyKcalKg: z.object({
-    digestible: z.number(),
-    metabolizable: z.number(),
-    net: z.number(),
-  }),
-  macroMineralsPct: z.record(z.string(), z.number()),
-  traceMineralsMgKg: z.record(z.string(), z.number()),
-  aminoAcids: z.object({
-    totalPct: z.record(z.string(), z.number()),
-    sidSwinePct: z.record(z.string(), z.number()),
-    sidSwineDigestibilityPct: z.record(z.string(), z.number()),
-  }),
-  recommendedInclusionPct: z
-    .object({
-      growingPigs: z
-        .object({
-          starter: inclusionRecommendationSchema,
-          grower: inclusionRecommendationSchema,
-          finisher: inclusionRecommendationSchema,
-        })
-        .partial()
-        .strict()
-        .optional(),
-      sows: z
-        .object({
-          gestation: inclusionRecommendationSchema,
-          lactation: inclusionRecommendationSchema,
-        })
-        .partial()
-        .strict()
-        .optional(),
-    })
-    .strict()
-    .optional(),
-});
-
-const coreFeedstuffsSchema = z.object({
-  schemaVersion: z.literal(1),
-  id: z.literal("brazilian-2024-core-feedstuffs"),
-  sourceId: z.literal("brazilian-tables-2024"),
-  sourceTable: z.literal("1.01"),
-  basis: z.literal("as-fed"),
-  mappingPolicy: z.string(),
-  ingredients: z.array(coreFeedstuffSchema),
-});
-
 const crystallineAminoAcidsSchema = z.object({
   schemaVersion: z.literal(1),
   id: z.literal("brazilian-2024-crystalline-amino-acids-swine"),
@@ -370,20 +297,13 @@ const mineralSourcesSchema = z.object({
   ),
 });
 
-function assertUniqueIds(values: readonly { id: string }[], label: string): void {
-  const ids = values.map((value) => value.id);
-  if (new Set(ids).size !== ids.length) {
-    throw new Error(`Duplicate IDs in ${label}.`);
-  }
-}
-
 export { BRAZILIAN_2024_SOURCE };
+export { BRAZILIAN_2024_CORE_FEEDSTUFFS };
 
 export const BRAZILIAN_2024_SWINE_SUPPLEMENTATION =
   swineSupplementationSchema.parse(swineSupplementationJson);
 export const BRAZILIAN_2024_GROWING_SWINE = growingSwineSchema.parse(growingSwineJson);
 export const BRAZILIAN_2024_BREEDER_SWINE = breederSwineSchema.parse(breederSwineJson);
-export const BRAZILIAN_2024_CORE_FEEDSTUFFS = coreFeedstuffsSchema.parse(coreFeedstuffsJson);
 export const BRAZILIAN_2024_CRYSTALLINE_AMINO_ACIDS =
   crystallineAminoAcidsSchema.parse(crystallineAminoAcidsJson);
 export const BRAZILIAN_2024_MINERAL_SOURCES = mineralSourcesSchema.parse(mineralSourcesJson);
@@ -398,7 +318,6 @@ assertUniqueIds(
 for (const programme of BRAZILIAN_2024_GROWING_SWINE.programmes) {
   assertUniqueIds(programme.phases, `Brazilian 2024 programme ${programme.id}`);
 }
-assertUniqueIds(BRAZILIAN_2024_CORE_FEEDSTUFFS.ingredients, "Brazilian 2024 feedstuffs");
 assertUniqueIds(
   BRAZILIAN_2024_CRYSTALLINE_AMINO_ACIDS.ingredients,
   "Brazilian 2024 crystalline amino acids",
