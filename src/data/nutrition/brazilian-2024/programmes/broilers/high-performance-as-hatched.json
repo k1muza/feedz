@@ -407,8 +407,8 @@
         "phenylalanine": 0.789,
         "phenylalanineTyrosine": 1.44
       },
-      "sourceNotes": [
-        "Table 2.28 prints averageWeightKg 3.713 kg while the published weight range is 3.11-3.70 kg; preserved verbatim from the source."
+      "sourceAnomalyIds": [
+        "table-2.28-weight-band-43-49"
       ]
     }
   ]
