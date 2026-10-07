@@ -15,6 +15,14 @@ const anomalyTargetSchema = z.discriminatedUnion("kind", [
     .strict(),
   z
     .object({
+      kind: z.literal("poultry-ingredient-nutrient-group"),
+      ingredientId: z.string(),
+      nutrients: z.array(z.string()).min(1),
+      check: z.literal("published-repeated-digestibility-coefficients"),
+    })
+    .strict(),
+  z
+    .object({
       kind: z.literal("broiler-phase"),
       programmeId: z.string(),
       phaseId: z.string(),
