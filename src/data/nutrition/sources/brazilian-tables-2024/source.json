@@ -1,0 +1,131 @@
+{
+  "schemaVersion": 1,
+  "id": "brazilian-tables-2024",
+  "title": "Brazilian Tables for Poultry and Swine — Composition of Feedstuffs and Nutritional Requirements",
+  "edition": 5,
+  "year": 2024,
+  "language": "English",
+  "isbn": "9788581792101",
+  "publisher": "Federal University of Viçosa, Department of Animal Science",
+  "editors": [
+    "Horacio Santiago Rostagno",
+    "Luiz Fernando Teixeira Albino"
+  ],
+  "coverage": {
+    "chapter1": "Feedstuff Composition and Nutritional Value",
+    "chapter5": "Nutritional Requirements of Growing Swine",
+    "chapter6": "Nutritional Requirements of Swine Breeders — Gestation and Lactation",
+    "chapter7": "Vitamin and Trace Mineral Supplementation for Poultry and Swine",
+    "chapter2": "Nutritional Requirements of Broiler Chickens"
+  },
+  "extraction": {
+    "status": "in_progress",
+    "policy": [
+      "Preserve published units and phase boundaries.",
+      "Do not infer missing table values.",
+      "Keep source table and printed page on every extracted record.",
+      "Keep source records separate from PigFlow-normalized models.",
+      "Only map Brazilian ingredients to existing PigFlow ingredient IDs when the source ingredient identity is an exact or explicitly documented match."
+    ],
+    "completedTables": [
+      "1.01 (all 102 feedstuffs)",
+      "1.09",
+      "1.10",
+      "5.30",
+      "5.32",
+      "5.33",
+      "5.34",
+      "5.35",
+      "5.36",
+      "5.37",
+      "5.38",
+      "5.39",
+      "5.40",
+      "5.41",
+      "5.42",
+      "5.43",
+      "6.04",
+      "6.08",
+      "6.11",
+      "6.15",
+      "6.16",
+      "7.05",
+      "7.06",
+      "7.07",
+      "2.28",
+      "2.29",
+      "2.30"
+    ],
+    "nextTables": [
+      "5.44",
+      "5.45"
+    ],
+    "sourceAnomalies": [
+      {
+        "id": "table-2.28-weight-band-43-49",
+        "table": "2.28",
+        "printedPage": 268,
+        "target": {
+          "kind": "broiler-phase",
+          "programmeId": "brazilian-2024-broilers-high-performance-as-hatched",
+          "phaseId": "brazilian-2024-broilers-high-performance-as-hatched:43-49d-3.11-3.7kg",
+          "check": "average-weight-within-band"
+        },
+        "description": "The published 43-49 day phase has average weight 3.713 kg while the published weight range is 3.11-3.70 kg."
+      },
+      {
+        "id": "table-2.29-hot-average-weights",
+        "table": "2.29",
+        "printedPage": 269,
+        "target": {
+          "kind": "broiler-programme",
+          "programmeId": "brazilian-2024-broilers-high-performance-as-hatched-hot-26c",
+          "check": "published-average-weights"
+        },
+        "description": "The hot-climate table publishes the same average weights as Table 2.28 while using different weight ranges."
+      },
+      {
+        "id": "table-1.01-rice-bran-met-cys-digestibility",
+        "table": "1.01",
+        "printedPage": 138,
+        "target": {
+          "kind": "poultry-ingredient-nutrient",
+          "ingredientId": "rice-bran",
+          "nutrient": "methionineCysteine",
+          "check": "amino-acid-digestibility"
+        },
+        "description": "Rice bran poultry Met+Cys SID is printed as 0.33% with a digestibility coefficient of 79.9%, although 0.33/0.47 is about 70.2%; FeedSport preserves the printed coefficient."
+      },
+      {
+        "id": "table-1.01-high-oil-corn-repeated-aa-digestibility",
+        "table": "1.01",
+        "printedPage": 80,
+        "target": {
+          "kind": "poultry-ingredient-nutrient-group",
+          "ingredientId": "corn-high-oil-grain",
+          "nutrients": [
+            "alanine",
+            "glycine",
+            "serine",
+            "proline",
+            "tyrosine"
+          ],
+          "check": "published-repeated-digestibility-coefficients"
+        },
+        "description": "Corn high-oil grain prints poultry digestibility coefficients for alanine 81.0%, glycine 76.0%, serine 81.2%, proline 94.5%, and tyrosine 95.4%, matching the average-corn coefficients despite other amino-acid coefficients differing. FeedSport preserves the printed values."
+      },
+      {
+        "id": "table-1.01-fish-meal-62-met-cys-digestibility",
+        "table": "1.01",
+        "printedPage": 100,
+        "target": {
+          "kind": "poultry-ingredient-nutrient",
+          "ingredientId": "fish-meal-62",
+          "nutrient": "methionineCysteine",
+          "check": "amino-acid-digestibility"
+        },
+        "description": "Fish meal 62% CP prints poultry SID Met+Cys as 1.12% with a digestibility coefficient of 86.9%, even though total Met+Cys is 2.44% and methionine alone is 1.57%. FeedSport preserves the printed value and records the inconsistency."
+      }
+    ]
+  }
+}
