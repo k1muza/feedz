@@ -1,14 +1,11 @@
 import { z } from "zod";
 
-import sourceJson from "@/data/nutrition/brazilian-2024/source.json";
+import { BRAZILIAN_2024_SOURCE } from "./brazilian-source";
+
 import growingSwineJson from "@/data/nutrition/brazilian-2024/programmes/growing-swine.json";
 import breederSwineJson from "@/data/nutrition/brazilian-2024/programmes/breeder-swine.json";
 import swineSupplementationJson from "@/data/nutrition/brazilian-2024/programmes/swine-supplementation.json";
-import broilerHighPerformanceJson from "@/data/nutrition/brazilian-2024/programmes/broilers/high-performance-as-hatched.json";
-import broilerHotHighPerformanceJson from "@/data/nutrition/brazilian-2024/programmes/broilers/high-performance-as-hatched-hot-26c.json";
-import broilerStandardPerformanceJson from "@/data/nutrition/brazilian-2024/programmes/broilers/standard-performance-as-hatched.json";
 import coreFeedstuffsJson from "@/data/nutrition/brazilian-2024/ingredients/core-feedstuffs.json";
-import poultryCoreFeedstuffsJson from "@/data/nutrition/brazilian-2024/ingredients/poultry/core-feedstuffs.json";
 import crystallineAminoAcidsJson from "@/data/nutrition/brazilian-2024/supplements/crystalline-amino-acids.json";
 import mineralSourcesJson from "@/data/nutrition/brazilian-2024/supplements/mineral-sources.json";
 
@@ -73,34 +70,6 @@ const swineSupplementationSchema = z.object({
   notes: z.array(z.string()),
 });
 
-
-const sourceSchema = z.object({
-  schemaVersion: z.literal(1),
-  id: z.literal("brazilian-tables-2024"),
-  title: z.string(),
-  edition: z.literal(5),
-  year: z.literal(2024),
-  language: z.string(),
-  isbn: z.string(),
-  publisher: z.string(),
-  editors: z.array(z.string()),
-  coverage: z.record(z.string(), z.string()),
-  extraction: z.object({
-    status: z.enum(["in_progress", "complete"]),
-    policy: z.array(z.string()),
-    completedTables: z.array(z.string()),
-    nextTables: z.array(z.string()),
-    sourceAnomalies: z
-      .array(
-        z.object({
-          table: z.string(),
-          printedPage: z.number(),
-          description: z.string(),
-        }),
-      )
-      .optional(),
-  }),
-});
 
 const aaRatioSchema = z.object({
   lysine: z.number(),
@@ -354,156 +323,6 @@ const coreFeedstuffsSchema = z.object({
   ingredients: z.array(coreFeedstuffSchema),
 });
 
-const poultryFeedstuffSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-  pigflowIngredientId: z.string().optional(),
-  mappingConfidence: z.enum(["high", "unmapped"]),
-  sourceTable: z.literal("1.01"),
-  sourcePage: z.number(),
-  phosphorus: z
-    .object({
-      digestibilityPct: z.number().optional(),
-      standardizedDigestiblePct: z.number().optional(),
-    })
-    .strict()
-    .refine(
-      (value) =>
-        value.digestibilityPct !== undefined || value.standardizedDigestiblePct !== undefined,
-      { message: "Poultry phosphorus must contain a species-specific value." },
-    )
-    .optional(),
-  aminoAcids: z
-    .object({
-      sidPoultryPct: z.record(z.string(), z.number()),
-      sidPoultryDigestibilityPct: z.record(z.string(), z.number()),
-    })
-    .optional(),
-  recommendedInclusionPct: z
-    .object({
-      broilers: z
-        .object({
-          starter: inclusionRecommendationSchema.optional(),
-          grower: inclusionRecommendationSchema.optional(),
-        })
-        .strict(),
-    })
-    .strict()
-    .optional(),
-  poultryEnergyKcalKg: z
-    .object({
-      metabolizable: z.number().optional(),
-      standardizedMetabolizable: z.number().optional(),
-      net: z.number().optional(),
-    })
-    .strict(),
-});
-
-const poultryCoreFeedstuffsSchema = z.object({
-  schemaVersion: z.literal(1),
-  id: z.literal("brazilian-2024-poultry-core-feedstuffs"),
-  sourceId: z.literal("brazilian-tables-2024"),
-  sourceTable: z.literal("1.01"),
-  species: z.literal("poultry"),
-  basis: z.literal("as-fed"),
-  model: z.literal("species-overlay"),
-  notes: z.array(z.string()),
-  ingredients: z.array(poultryFeedstuffSchema),
-});
-
-const closedRangeSchema = z
-  .object({
-    min: z.number(),
-    max: z.number(),
-  })
-  .refine((value) => value.min <= value.max, {
-    message: "Range min must not exceed max.",
-  });
-
-const broilerAminoAcidsSchema = sidAminoAcidsSchema.extend({
-  glycineSerine: z.number(),
-});
-
-const broilerPhaseSchema = z
-  .object({
-    id: z.string(),
-    phase: z.enum(["pre-starter", "starter", "grower", "finisher"]),
-    ageDays: closedRangeSchema,
-    weightKg: closedRangeSchema,
-    averageWeightKg: z.number(),
-    gainGDay: z.number(),
-    intakeGDay: z.number(),
-    dailyRequirements: z.object({
-      sidLysineGDay: z.number(),
-      availablePhosphorusGDay: z.number(),
-      digestiblePhosphorusGDay: z.number(),
-      metabolizableEnergyKcalDay: z.number(),
-    }),
-    diet: z.object({
-      metabolizableEnergyKcalKg: z.number(),
-      netEnergyKcalKg: z.number(),
-    }),
-    nutrientsPct: z.object({
-      calcium: z.number(),
-      availablePhosphorus: z.number(),
-      digestiblePhosphorus: z.number(),
-      potassium: z.number(),
-      sodium: z.number(),
-      chloride: z.number(),
-      linoleicAcid: z.number(),
-    }),
-    digestibleProteinPct: z.number(),
-    sidAminoAcidsPct: broilerAminoAcidsSchema,
-    crudeProteinPct: z.number(),
-    totalAminoAcidsPct: broilerAminoAcidsSchema,
-    sourceNotes: z.array(z.string()).optional(),
-  })
-  .superRefine((phase, context) => {
-    const outsidePublishedBand =
-      phase.averageWeightKg < phase.weightKg.min || phase.averageWeightKg > phase.weightKg.max;
-    if (outsidePublishedBand && !phase.sourceNotes?.length) {
-      context.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["averageWeightKg"],
-        message:
-          "Average weight outside the published weight band requires an explicit source note.",
-      });
-    }
-  });
-
-const broilerProgrammeSchema = z
-  .object({
-    schemaVersion: z.literal(1),
-    id: z.string(),
-    sourceId: z.literal("brazilian-tables-2024"),
-    chapter: z.literal(2),
-    species: z.literal("broiler"),
-    sourceTable: z.enum(["2.28", "2.29", "2.30"]),
-    printedPage: z.number(),
-    population: z.object({
-      performance: z.enum(["high", "standard"]),
-      sex: z.literal("as-hatched"),
-      temperature: z.enum(["thermoneutral", "hot"]),
-      averageTemperatureC: z.number().optional(),
-      temperatureRangeC: closedRangeSchema.optional(),
-    }),
-    phases: z.array(broilerPhaseSchema),
-    notes: z.array(z.string()).optional(),
-  })
-  .superRefine((programme, context) => {
-    if (
-      programme.population.temperature === "hot" &&
-      (programme.population.averageTemperatureC === undefined ||
-        programme.population.temperatureRangeC === undefined)
-    ) {
-      context.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["population", "temperature"],
-        message: "Hot-climate programmes require averageTemperatureC and temperatureRangeC.",
-      });
-    }
-  });
-
 const crystallineAminoAcidsSchema = z.object({
   schemaVersion: z.literal(1),
   id: z.literal("brazilian-2024-crystalline-amino-acids-swine"),
@@ -558,25 +377,13 @@ function assertUniqueIds(values: readonly { id: string }[], label: string): void
   }
 }
 
-export const BRAZILIAN_2024_SOURCE = sourceSchema.parse(sourceJson);
+export { BRAZILIAN_2024_SOURCE };
+
 export const BRAZILIAN_2024_SWINE_SUPPLEMENTATION =
   swineSupplementationSchema.parse(swineSupplementationJson);
 export const BRAZILIAN_2024_GROWING_SWINE = growingSwineSchema.parse(growingSwineJson);
 export const BRAZILIAN_2024_BREEDER_SWINE = breederSwineSchema.parse(breederSwineJson);
 export const BRAZILIAN_2024_CORE_FEEDSTUFFS = coreFeedstuffsSchema.parse(coreFeedstuffsJson);
-export const BRAZILIAN_2024_POULTRY_CORE_FEEDSTUFFS =
-  poultryCoreFeedstuffsSchema.parse(poultryCoreFeedstuffsJson);
-export const BRAZILIAN_2024_BROILER_HIGH_PERFORMANCE =
-  broilerProgrammeSchema.parse(broilerHighPerformanceJson);
-export const BRAZILIAN_2024_BROILER_HIGH_PERFORMANCE_HOT =
-  broilerProgrammeSchema.parse(broilerHotHighPerformanceJson);
-export const BRAZILIAN_2024_BROILER_STANDARD_PERFORMANCE =
-  broilerProgrammeSchema.parse(broilerStandardPerformanceJson);
-export const BRAZILIAN_2024_BROILER_PROGRAMMES = [
-  BRAZILIAN_2024_BROILER_HIGH_PERFORMANCE,
-  BRAZILIAN_2024_BROILER_HIGH_PERFORMANCE_HOT,
-  BRAZILIAN_2024_BROILER_STANDARD_PERFORMANCE,
-] as const;
 export const BRAZILIAN_2024_CRYSTALLINE_AMINO_ACIDS =
   crystallineAminoAcidsSchema.parse(crystallineAminoAcidsJson);
 export const BRAZILIAN_2024_MINERAL_SOURCES = mineralSourcesSchema.parse(mineralSourcesJson);
@@ -592,14 +399,6 @@ for (const programme of BRAZILIAN_2024_GROWING_SWINE.programmes) {
   assertUniqueIds(programme.phases, `Brazilian 2024 programme ${programme.id}`);
 }
 assertUniqueIds(BRAZILIAN_2024_CORE_FEEDSTUFFS.ingredients, "Brazilian 2024 feedstuffs");
-assertUniqueIds(
-  BRAZILIAN_2024_POULTRY_CORE_FEEDSTUFFS.ingredients,
-  "Brazilian 2024 poultry feedstuffs",
-);
-assertUniqueIds(BRAZILIAN_2024_BROILER_PROGRAMMES, "Brazilian 2024 broiler programmes");
-for (const programme of BRAZILIAN_2024_BROILER_PROGRAMMES) {
-  assertUniqueIds(programme.phases, `Brazilian 2024 broiler programme ${programme.id}`);
-}
 assertUniqueIds(
   BRAZILIAN_2024_CRYSTALLINE_AMINO_ACIDS.ingredients,
   "Brazilian 2024 crystalline amino acids",
