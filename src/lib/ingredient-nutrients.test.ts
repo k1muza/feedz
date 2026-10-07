@@ -5,6 +5,8 @@ import {
   INGREDIENT_LIBRARY,
   INGREDIENT_LIBRARY_SOURCE,
   ingredientLibraryForSpecies,
+  ingredientLibraryWithCustomPremixes,
+  loadIngredientLibrarySource,
 } from "./ingredient-nutrients";
 
 test("ingredient library is the single canonical ingredient dataset", () => {
@@ -44,4 +46,33 @@ test("Brazilian source tables remain represented in the master library", () => {
   assert.equal(counts.get("Table 1.01"), 35);
   assert.equal(counts.get("Table 1.09"), 6);
   assert.equal(counts.get("Table 1.10"), 5);
+});
+
+
+test("library loader rejects duplicate ingredient IDs", () => {
+  const duplicate = structuredClone(INGREDIENT_LIBRARY_SOURCE);
+  duplicate.ingredients.push(structuredClone(duplicate.ingredients[0]));
+
+  assert.throws(
+    () => loadIngredientLibrarySource(duplicate),
+    /Duplicate IDs in FeedSport ingredient library/,
+  );
+});
+
+test("custom premixes are validated before reaching the optimizer", () => {
+  assert.throws(
+    () =>
+      ingredientLibraryWithCustomPremixes(
+        [
+          {
+            id: "bad-premix",
+            name: "Bad premix",
+            vitamins: { vitaminAIuKg: Number.NaN },
+            traceMineralsPpm: { zinc: 100 },
+          },
+        ],
+        INGREDIENT_LIBRARY,
+      ),
+    /Invalid input|nan|NaN/i,
+  );
 });
