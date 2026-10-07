@@ -230,6 +230,13 @@ Most farms use four to five feeds for growing pigs, plus separate feeds for sows
 | Grower | 25 to 60 kg | 16 to 18% | Build lean muscle efficiently |
 | Finisher | 60 kg to market | 14 to 16% | Reach market weight at the lowest feed cost |
 
+> [!CTA]
+> **Not sure which feed fits each stage?**
+>
+> Tell us how many pigs you keep, their ages and what you feed now. We will help you plan a feeding programme that steps each group onto the right feed at the right weight.
+>
+> [Plan my feeding programme](https://wa.me/263774684534?text=Hi%20FeedSport%2C%20I%20would%20like%20help%20planning%20a%20phase%20feeding%20programme%20for%20my%20pigs.)
+
 ## Pre-starter and starter: getting weaners off to a strong start
 
 The first weeks of a pig''s life set the pace for everything that follows. A piglet that stalls after weaning often reaches market days or weeks later than its penmates, eating extra feed the whole way.
@@ -246,6 +253,13 @@ Weaning is stressful. The piglet loses its mother''s milk, is often moved and mi
 These diets cost more per bag than grower or finisher feed, but pigs eat only small amounts of them. Cutting corners here tends to cost more later in slow growth and scouring.
 
 Change from pre-starter to starter gradually over a few days by mixing the two feeds. Sudden changes upset the gut.
+
+> [!CTA]
+> **Weaners stalling after weaning?**
+>
+> A good creep and starter feed is the cheapest way to keep piglets growing through weaning. Ask us which creep and starter feeds suit your litters.
+>
+> [Ask about starter feeds](https://wa.me/263774684534?text=Hi%20FeedSport%2C%20I%20would%20like%20advice%20on%20creep%20and%20starter%20feeds%20for%20my%20weaners.)
 
 ## Grower: building lean muscle
 
@@ -298,6 +312,13 @@ As a rough guide, young weaners convert feed very efficiently, often at an FCR b
 
 The real value comes from tracking FCR over time. If it suddenly worsens, look for causes such as feed wastage, disease, poor water supply, cold or overcrowded pens, or a change in feed quality. To turn FCR into money, see [feed cost per kg of gain](/knowledge/feed-cost-per-kg-gain).
 
+> [!CTA]
+> **Want a second opinion on your FCR?**
+>
+> Send us your pen records: pig weights in and out and the feed used. We will work out your FCR with you and show you where feed is being lost.
+>
+> [Send your pen records](https://wa.me/263774684534?text=Hi%20FeedSport%2C%20here%20are%20my%20pig%20pen%20records.%20Can%20you%20help%20me%20check%20my%20feed%20conversion%3F)
+
 ## Common feeding mistakes and how to avoid them
 
 - **One feed for all ages.** Young pigs grow slowly and older pigs waste protein. Use at least a starter, grower and finisher feed.
@@ -313,7 +334,14 @@ Phase feeding is not complicated. It comes down to giving each pig the feed that
 
 Start small if you need to. Even moving from one feed to separate grower and finisher feeds, and tracking FCR on a single pen, will show you where your money is going.
 
-If you are unsure which feed suits your pigs at each stage, or want help planning a feeding programme for your herd, [get in touch with the FeedSport team](/contact). We are happy to help you match the right feed to every stage.',
+> [!CTA]
+> **Match the right feed to every stage**
+>
+> Whether you keep a few sows or run a commercial unit, our nutrition team will help you choose feeds for each stage of your herd and plan when to switch.
+>
+> [WhatsApp the team](https://wa.me/263774684534?text=Hi%20FeedSport%2C%20I%20would%20like%20help%20matching%20the%20right%20feed%20to%20each%20stage%20of%20my%20pigs.)
+>
+> [Other ways to contact us](/contact)',
   'published', '2026-10-06', now() - interval '1 seconds'
 ) on conflict (slug) do nothing;
 
