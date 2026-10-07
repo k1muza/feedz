@@ -8,7 +8,7 @@
  * Every formulation path (optimizer, candidate selection, diagnostics, MCP and
  * recipe analysis) resolves limits through this module.
  */
-import { BRAZILIAN_2024_CORE_FEEDSTUFFS } from "./brazilian-nutrition";
+import { INGREDIENT_LIBRARY } from "./ingredient-nutrients";
 import type { NutritionPhaseClass } from "./nutrition";
 
 export type BrazilianInclusionColumn = "starter" | "grower" | "finisher" | "gestation" | "lactation";
@@ -42,15 +42,10 @@ type ColumnRecommendations = Partial<Record<BrazilianInclusionColumn, { practica
 
 const RECOMMENDATIONS_BY_INGREDIENT = (() => {
   const map = new Map<string, ColumnRecommendations>();
-  for (const feedstuff of BRAZILIAN_2024_CORE_FEEDSTUFFS.ingredients) {
-    const recommended = feedstuff.recommendedInclusionPct;
-    if (!feedstuff.pigflowIngredientId || !recommended) continue;
-    if (map.has(feedstuff.pigflowIngredientId)) {
-      throw new Error(
-        `Brazilian inclusion limits map more than one feedstuff to ${feedstuff.pigflowIngredientId}.`,
-      );
-    }
-    map.set(feedstuff.pigflowIngredientId, {
+  for (const ingredient of INGREDIENT_LIBRARY.ingredients) {
+    const recommended = ingredient.nutrition.swine?.recommendedInclusionPct;
+    if (!recommended) continue;
+    map.set(ingredient.id, {
       ...recommended.growingPigs,
       ...recommended.sows,
     });
