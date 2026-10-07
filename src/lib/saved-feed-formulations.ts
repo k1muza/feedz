@@ -3,6 +3,7 @@ import type {
   FormulationNutrientComparison,
   LeastCostFormulationResult,
 } from "./feed-optimizer";
+import type { FeedFormulationBasisSnapshot } from "./formulation-basis";
 
 export const SAVED_FEED_FORMULATIONS_COLLECTION = "feedFormulations";
 
@@ -36,6 +37,7 @@ export type SavedFeedFormulaSet = {
     pricePerKg: number;
   }[];
   recipes: readonly SavedFeedFormulaRecipe[];
+  basis?: FeedFormulationBasisSnapshot;
   setup?: {
     rows: readonly {
       ingredientId: string;

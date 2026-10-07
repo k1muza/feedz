@@ -40,6 +40,10 @@ import {
   saveFeedFormulaSet,
   type SavedFeedFormulaSet,
 } from "@/lib/saved-feed-formulations";
+import {
+  buildFeedFormulationBasis,
+  type FeedFormulationBasisSnapshot,
+} from "@/lib/formulation-basis";
 import { editFeedFormulationHref } from "@/lib/formulation-routes";
 import {
   feedRecipeFormulaReportRows,
@@ -100,6 +104,7 @@ type RecipeReportContext = {
   energySystem: "ME" | "NE";
   targetBatchKg: number;
   ingredients: FeedRecipeReportInput["ingredients"];
+  formulationBasis?: FeedFormulationBasisSnapshot;
 };
 
 type RecipeView = {
@@ -229,6 +234,9 @@ export function FeedFormulationWorkbench({
   const [saveError, setSaveError] = useState<string | null>(null);
   const [savedResult, setSavedResult] = useState<LeastCostFormulationResult | null>(
     initialResult,
+  );
+  const [formulationBasis, setFormulationBasis] = useState<FeedFormulationBasisSnapshot | undefined>(
+    initialFormulaSet?.basis,
   );
   const [activeSavedId, setActiveSavedId] = useState(initialFormulaSet?.id);
   const requirementsWereEdited = useRef(false);
@@ -504,6 +512,58 @@ export function FeedFormulationWorkbench({
       if (!response.ok) {
         throw new Error(payload.message ?? "Formulation request failed.");
       }
+      if (payload.status === "optimal") {
+        const basisIngredients = requestIngredients.map((requestIngredient) => {
+          const sourceRow = rows.find((row) => row.ingredientId === requestIngredient.ingredientId);
+          const ingredient = ingredientById.get(requestIngredient.ingredientId);
+          const lockedPct =
+            sourceRow && sourceRow.lockedPct.trim() !== ""
+              ? Number(sourceRow.lockedPct)
+              : undefined;
+          return {
+            ingredientId: requestIngredient.ingredientId,
+            name: ingredient?.name ?? requestIngredient.ingredientId,
+            category: ingredient?.category,
+            pricePerKg: requestIngredient.pricePerKg,
+            requestMinInclusionPct: requestIngredient.minInclusionPct,
+            requestMaxInclusionPct: requestIngredient.maxInclusionPct,
+            lockedPct,
+            defaultMinInclusionPct: ingredient?.minInclusionPct,
+            defaultMaxInclusionPct: ingredient?.maxInclusionPct,
+            phaseMaxInclusionPct:
+              selectedPhase?.maxInclusionPct?.[requestIngredient.ingredientId],
+          };
+        });
+
+        setFormulationBasis(
+          buildFeedFormulationBasis({
+            programmeId,
+            programmeName: selectedProgramme?.name ?? programmeId,
+            phaseId,
+            phaseLabel: selectedPhase?.label ?? phaseId,
+            sourceTable: selectedPhase?.sourceTable,
+            energySystem,
+            targetBatchKg: batchKg,
+            ingredientPoolMode,
+            solverObjective: "least-cost-with-alternatives",
+            settings: {
+              includeSupplementationTargets: false,
+              traceMineralBasis: "inorganic",
+            },
+            ingredients: basisIngredients,
+            fixedPremix: useFixedPremix
+              ? {
+                  id: FIXED_PREMIX_ID,
+                  name: fixedPremixName.trim(),
+                  inclusionKgPerTonne: Number(fixedPremixKgPerTonne),
+                  pricePerKg: Number(fixedPremixPricePerKg),
+                }
+              : undefined,
+          }),
+        );
+      } else {
+        setFormulationBasis(undefined);
+      }
       setResult(payload);
       setSelectedRecipeId("least-cost");
       setActiveTab("recipes");
@@ -549,6 +609,7 @@ export function FeedFormulationWorkbench({
     sourceTable: selectedPhase?.sourceTable,
     energySystem,
     targetBatchKg: displayBatchKg,
+    formulationBasis,
     ingredients: [
       ...rows.map((row) => ({
         ingredientId: row.ingredientId,
@@ -598,6 +659,7 @@ export function FeedFormulationWorkbench({
             costPerKg: recipe.solution.costPerKg,
             costIncreasePct: recipe.costIncreasePct,
           })),
+          basis: formulationBasis ?? initialFormulaSet?.basis,
           setup: {
             rows: rows.map(({ ingredientId, price, min, max, lockedPct }) => ({
               ingredientId,
@@ -1182,6 +1244,7 @@ export function FeedFormulationWorkbench({
             <ResultPanel
               result={result}
               ingredientById={ingredientById}
+              formulationBasis={formulationBasis}
               selectedRecipeId={selectedRecipeId}
               onSelectedRecipeChange={setSelectedRecipeId}
               batchWeightKg={displayBatchKg}
@@ -1208,12 +1271,14 @@ export function FeedFormulationWorkbench({
 function ResultPanel({
   result,
   ingredientById,
+  formulationBasis,
   selectedRecipeId,
   onSelectedRecipeChange,
   batchWeightKg,
 }: {
   result: LeastCostFormulationResult;
   ingredientById: Map<string, IngredientOption>;
+  formulationBasis?: FeedFormulationBasisSnapshot;
   selectedRecipeId: string;
   onSelectedRecipeChange: (recipeId: string) => void;
   batchWeightKg: number;
@@ -1242,6 +1307,7 @@ function ResultPanel({
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-5">
+          <FormulationBasisPanel basis={formulationBasis} />
           {recipes.length > 1 ? (
             <div className="space-y-2">
               <div className="flex flex-wrap items-end justify-between gap-2">
@@ -1371,6 +1437,107 @@ function ResultPanel({
   );
 }
 
+function FormulationBasisPanel({
+  basis,
+}: {
+  basis?: FeedFormulationBasisSnapshot;
+}) {
+  if (!basis) {
+    return (
+      <div className="rounded-lg border border-hairline bg-raised/30 px-4 py-3 text-sm text-ink-muted">
+        This saved recipe predates formulation-basis snapshots. Regenerate it to record the exact
+        solver inputs and run fingerprint.
+      </div>
+    );
+  }
+
+  const lockedCount = basis.ingredients.filter((ingredient) => ingredient.lockedPct !== undefined).length;
+  const constrainedCount = basis.ingredients.filter(
+    (ingredient) =>
+      ingredient.requestMinInclusionPct !== undefined ||
+      ingredient.requestMaxInclusionPct !== undefined,
+  ).length;
+
+  return (
+    <div className="rounded-lg border border-hairline bg-raised/20">
+      <div className="flex flex-wrap items-start justify-between gap-3 px-4 py-3">
+        <div>
+          <div className="text-sm font-medium text-ink">Formulation basis</div>
+          <div className="mt-1 text-xs leading-5 text-ink-muted">
+            {basis.ingredientPoolMode === "selected" ? "My ingredients" : "Suggested pool"}
+            {" · "}
+            {basis.ingredients.length} ingredients
+            {" · "}
+            {basis.energySystem}
+            {basis.sourceTable ? ` · Table ${basis.sourceTable}` : ""}
+            {" · "}
+            {lockedCount} locked
+            {" · "}
+            {constrainedCount} with request bounds
+          </div>
+        </div>
+        <code className="rounded bg-background px-2 py-1 text-[11px] font-semibold text-ink">
+          {basis.fingerprint}
+        </code>
+      </div>
+      <details className="border-t border-hairline">
+        <summary className="cursor-pointer px-4 py-2.5 text-xs font-medium text-ink">
+          Show exact solver inputs
+        </summary>
+        <div className="overflow-x-auto border-t border-hairline">
+          <table className="w-full min-w-[760px] text-xs">
+            <thead className="bg-raised/60 text-left uppercase tracking-wide text-ink-faint">
+              <tr>
+                <th className="px-3 py-2">Ingredient</th>
+                <th className="px-3 py-2">Price/kg</th>
+                <th className="px-3 py-2">Request min</th>
+                <th className="px-3 py-2">Request max</th>
+                <th className="px-3 py-2">Lock</th>
+                <th className="px-3 py-2">FeedSport max</th>
+              </tr>
+            </thead>
+            <tbody>
+              {basis.ingredients.map((ingredient) => {
+                const feedsportMax =
+                  ingredient.phaseMaxInclusionPct ?? ingredient.defaultMaxInclusionPct;
+                return (
+                  <tr key={ingredient.ingredientId} className="border-t border-hairline">
+                    <td className="px-3 py-2">
+                      <div className="font-medium text-ink">{ingredient.name}</div>
+                      <div className="text-[11px] text-ink-faint">{ingredient.ingredientId}</div>
+                    </td>
+                    <td className="px-3 py-2 tabular-nums">
+                      {ingredient.pricePerKg.toFixed(4)}
+                    </td>
+                    <td className="px-3 py-2 tabular-nums">
+                      {ingredient.requestMinInclusionPct?.toFixed(3) ?? "—"}
+                    </td>
+                    <td className="px-3 py-2 tabular-nums">
+                      {ingredient.requestMaxInclusionPct?.toFixed(3) ?? "—"}
+                    </td>
+                    <td className="px-3 py-2 tabular-nums">
+                      {ingredient.lockedPct?.toFixed(3) ?? "—"}
+                    </td>
+                    <td className="px-3 py-2 tabular-nums">
+                      {feedsportMax?.toFixed(3) ?? "—"}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+        <div className="border-t border-hairline px-4 py-3 text-[11px] leading-5 text-ink-muted">
+          Solver mode: least-cost baseline plus validated alternatives. Supplementation targets:{" "}
+          {basis.settings.includeSupplementationTargets ? "on" : "off"}. Batch:{" "}
+          {basis.targetBatchKg.toFixed(1)} kg. Generated{" "}
+          {new Date(basis.generatedAt).toLocaleString()}.
+        </div>
+      </details>
+    </div>
+  );
+}
+
 function recipeReportInput(
   recipe: RecipeView,
   context: RecipeReportContext,
@@ -1388,6 +1555,7 @@ function recipeReportInput(
     ingredients: context.ingredients,
     costPerKg: recipe.solution.costPerKg,
     costIncreasePct: recipe.costIncreasePct,
+    formulationBasis: context.formulationBasis,
     generatedAt: new Date(),
   };
 }

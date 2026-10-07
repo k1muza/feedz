@@ -1,6 +1,7 @@
 
 import type { DietFormula } from "./diet-formula";
 import type { FormulationNutrientComparison } from "./feed-optimizer";
+import type { FeedFormulationBasisSnapshot } from "./formulation-basis";
 import {
   applyBase,
   COLORS,
@@ -35,6 +36,7 @@ export type FeedRecipeReportInput = {
   ingredients: readonly FeedRecipeReportIngredient[];
   costPerKg: number;
   costIncreasePct: number;
+  formulationBasis?: FeedFormulationBasisSnapshot;
   generatedAt: Date;
 };
 
@@ -252,6 +254,90 @@ function addRecipeSheet(
   sheet.headerFooter.oddFooter = "&LFeedSport feed recipe&RPage &P of &N";
 }
 
+function addBasisSheet(
+  workbook: import("exceljs").Workbook,
+  input: FeedRecipeReportInput,
+) {
+  const basis = input.formulationBasis;
+  if (!basis) return;
+
+  const sheet = workbook.addWorksheet("Basis", {
+    views: [{ state: "frozen", ySplit: 12, showGridLines: false }],
+    pageSetup: PORTRAIT_PAGE,
+  });
+  sheet.columns = [
+    { width: 31 },
+    { width: 16 },
+    { width: 15 },
+    { width: 15 },
+    { width: 13 },
+    { width: 17 },
+  ];
+
+  styleTitle(
+    sheet,
+    "Formulation basis",
+    basis.fingerprint + " · exact inputs used to generate this recipe set",
+    "F",
+  );
+
+  sheet.getRow(6).values = ["RUN"];
+  styleSection(sheet.getRow(6), 6);
+
+  const facts: Array<[string, string | number, string, string | number]> = [
+    ["Fingerprint", basis.fingerprint, "Ingredient pool", basis.ingredientPoolMode === "selected" ? "My ingredients" : "Suggested pool"],
+    ["Programme", basis.programmeName, "Phase", basis.phaseLabel],
+    ["Energy basis", basis.energySystem, "Batch weight (kg)", basis.targetBatchKg],
+    ["Solver mode", "Least-cost + alternatives", "Source table", basis.sourceTable ?? "—"],
+    ["Supplementation targets", basis.settings.includeSupplementationTargets ? "On" : "Off", "Generated", new Date(basis.generatedAt).toLocaleString("en-GB")],
+  ];
+  facts.forEach(([leftLabel, leftValue, rightLabel, rightValue], index) => {
+    const row = 7 + index;
+    sheet.getCell(row, 1).value = leftLabel;
+    sheet.getCell(row, 2).value = leftValue;
+    sheet.getCell(row, 4).value = rightLabel;
+    sheet.getCell(row, 5).value = rightValue;
+  });
+
+  const headerRow = 13;
+  sheet.getRow(headerRow).values = [
+    "Ingredient",
+    "Price / kg",
+    "Request min %",
+    "Request max %",
+    "Lock %",
+    "FeedSport max %",
+  ];
+  styleTableHeader(sheet.getRow(headerRow), 1, 6);
+
+  basis.ingredients.forEach((ingredient, index) => {
+    const row = headerRow + 1 + index;
+    const feedsportMax =
+      ingredient.phaseMaxInclusionPct ?? ingredient.defaultMaxInclusionPct;
+    sheet.getRow(row).values = [
+      ingredient.name,
+      ingredient.pricePerKg,
+      ingredient.requestMinInclusionPct,
+      ingredient.requestMaxInclusionPct,
+      ingredient.lockedPct,
+      feedsportMax,
+    ];
+    for (const column of [2, 3, 4, 5, 6]) {
+      sheet.getCell(row, column).numFmt = "0.0000";
+    }
+    ruleRow(sheet, row, 6);
+  });
+
+  const noteRow = headerRow + basis.ingredients.length + 3;
+  sheet.mergeCells(noteRow, 1, noteRow + 1, 6);
+  sheet.getCell(noteRow, 1).value =
+    "The fingerprint changes when the recorded formulation inputs change. Displayed recipe percentages may be rounded, but FeedSport keeps the optimizer result at full precision for validation and saved formulations.";
+  sheet.getCell(noteRow, 1).alignment = { wrapText: true, vertical: "top" };
+
+  applyBase(sheet);
+  sheet.headerFooter.oddFooter = "&LFeedSport formulation basis&RPage &P of &N";
+}
+
 function addNutritionSheet(
   workbook: import("exceljs").Workbook,
   input: FeedRecipeReportInput,
@@ -353,6 +439,7 @@ export async function buildFeedRecipeReport(
 
   addRecipeSheet(workbook, input);
   addNutritionSheet(workbook, input);
+  addBasisSheet(workbook, input);
 
   return workbookBytes(workbook);
 }
