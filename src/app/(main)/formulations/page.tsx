@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 
 import FormulationsClient from './FormulationsClient';
+import { getIngredientPackSizes } from '@/lib/ingredient-pack-sizes';
 import { getIngredientPrices } from '@/lib/ingredient-prices';
 import { createPageMetadata } from '@/lib/seo';
 
@@ -13,5 +14,6 @@ export const metadata: Metadata = createPageMetadata({
 export const revalidate = 3600;
 
 export default async function FormulationsPage() {
-  return <FormulationsClient ingredientPrices={await getIngredientPrices()} />;
+  const [ingredientPrices, ingredientPackSizes] = await Promise.all([getIngredientPrices(), getIngredientPackSizes()]);
+  return <FormulationsClient ingredientPrices={ingredientPrices} ingredientPackSizes={ingredientPackSizes} />;
 }

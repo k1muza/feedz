@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { analyzeDiet, type AnalyzedNutrient, type DietFormula } from '@/lib/diet-formula';
 import { ingredientDefaultPricePerKg, type IngredientDefaultPrice } from '@/lib/feed-ingredient-prices';
+import type { IngredientPackSize } from '@/lib/ingredient-pack-sizes';
 import type { FormulationAlternativeKind, FormulationIngredientSuggestionResult, LeastCostFormulationResult } from '@/lib/feed-optimizer';
 import { feedProgrammeById, feedProgrammePhaseById } from '@/lib/feed-programmes';
 import { INGREDIENT_LIBRARY, ingredientLibraryWithCustomPremixes } from '@/lib/ingredient-nutrients';
@@ -14,6 +15,8 @@ import {
   PUBLIC_PREMIX_KG_PER_TONNE,
   publicPremixProfileForPhase,
 } from '@/lib/public-feed-premix';
+
+import QuoteIngredientsDialog, { type QuoteLine } from './QuoteIngredientsDialog';
 
 const rows = [
   { id: 'sorghum', engineId: 'sorghum-grain', name: 'Sorghum', max: 85, step: .05 },
@@ -59,7 +62,7 @@ type DownloadableFormulation = {
   priority: FormulationPriority;
 };
 
-export default function FormulationsClient({ ingredientPrices }: { ingredientPrices: IngredientDefaultPrice[] }) {
+export default function FormulationsClient({ ingredientPrices, ingredientPackSizes }: { ingredientPrices: IngredientDefaultPrice[]; ingredientPackSizes: IngredientPackSize[] }) {
   const [inclusions, setInclusions] = useState<Inclusion>(defaults);
   const [visibleIngredientIds, setVisibleIngredientIds] = useState<IngredientId[]>(defaultVisibleIngredientIds);
   const [extraVisibleIngredientIds, setExtraVisibleIngredientIds] = useState<string[]>([]);
@@ -73,6 +76,7 @@ export default function FormulationsClient({ ingredientPrices }: { ingredientPri
   const [downloadableFormulation, setDownloadableFormulation] = useState<DownloadableFormulation | null>(null);
   const [downloadingPdf, setDownloadingPdf] = useState(false);
   const [downloadError, setDownloadError] = useState<string | null>(null);
+  const [quoteDialogOpen, setQuoteDialogOpen] = useState(false);
   const lastAutomaticFormulaKey = useRef<string | null>(null);
   const [programmeId, setProgrammeId] = useState(programmeChoices[0].id);
   const selectedProgramme = programmeChoices.find((choice) => choice.id === programmeId) ?? programmeChoices[0];
@@ -172,17 +176,15 @@ export default function FormulationsClient({ ingredientPrices }: { ingredientPri
       .filter((ingredient) => !knownEngineIds.has(ingredient.id) && !selectedEngineIds.has(ingredient.id))
       .map((ingredient) => ({ engineId: ingredient.id, name: ingredient.name })),
   ];
-  const quoteText = [
-    `Please quote the ingredients for this ${selectedProgramme.label.toLowerCase()} ${selectedPhase?.label ?? 'pig feed'} mix:`,
+  const quoteLines: QuoteLine[] = [
     ...rows
       .filter((row) => inclusions[row.id] > 0)
-      .map((row) => `- ${row.name}: ${inclusions[row.id]}%`),
+      .map((row) => ({ ingredientId: row.engineId, name: row.name, inclusionPct: inclusions[row.id] })),
     ...Object.entries(extraInclusions)
       .filter(([, value]) => value > 0)
-      .map(([id, value]) => `- ${ingredientByEngineId.get(id)?.name ?? id}: ${value}%`),
-    `- Vitamin-mineral premix: ${PUBLIC_PREMIX_INCLUSION_PCT}% (${PUBLIC_PREMIX_KG_PER_TONNE} kg/tonne)`,
-  ].join('\n');
-  const quoteHref = `https://wa.me/263774684534?text=${encodeURIComponent(quoteText)}`;
+      .map(([id, value]) => ({ ingredientId: id, name: ingredientByEngineId.get(id)?.name ?? id, inclusionPct: value })),
+    { ingredientId: PUBLIC_PREMIX_ID, name: 'Vitamin-mineral premix', inclusionPct: PUBLIC_PREMIX_INCLUSION_PCT },
+  ];
 
   useEffect(() => {
     const automaticFormulaKey = `${programmeId}:${phaseId}:${formulationPriority}`;
@@ -212,7 +214,7 @@ export default function FormulationsClient({ ingredientPrices }: { ingredientPri
   function markFormulaEdited() {
     setDownloadableFormulation(null);
     setDownloadError(null);
-    setFormulationNote('Ingredient amounts changed. Select Formulate to validate the mix and enable the detailed PDF.');
+    setFormulationNote('Ingredient amounts changed. Select “Optimize this recipe” to validate the mix and enable the formula download.');
   }
 
   function openIngredientPicker() {
@@ -395,12 +397,12 @@ export default function FormulationsClient({ ingredientPrices }: { ingredientPri
           {visibleRows.map((row) => <div key={row.id} className="grid grid-cols-[minmax(110px,1fr)_minmax(100px,2fr)_64px] items-center gap-3.5 border-b border-[#ece8de] px-5 py-3"><span className="text-[15px] font-semibold">{row.name}</span><input type="range" min="0" max={row.max} step={row.step} value={inclusions[row.id]} aria-label={`${row.name} inclusion`} onChange={(event) => { setInclusions((current) => ({ ...current, [row.id]: Number(event.target.value) })); markFormulaEdited(); }} className="w-full"/><span className="text-right text-[16px] font-semibold tabular-nums">{inclusions[row.id] < 1 && inclusions[row.id] > 0 ? inclusions[row.id].toFixed(2) : inclusions[row.id].toFixed(1)}%</span></div>)}
           {extraVisibleIngredientIds.map((ingredientId) => { const ingredient = ingredientByEngineId.get(ingredientId); const value = extraInclusions[ingredientId] ?? 0; return <div key={ingredientId} className="grid grid-cols-[minmax(110px,1fr)_minmax(100px,2fr)_64px] items-center gap-3.5 border-b border-[#ece8de] px-5 py-3"><span className="text-[15px] font-semibold">{ingredient?.name ?? ingredientId}</span><input type="range" min="0" max={ingredient?.constraints.maxInclusionPct ?? 100} step="0.01" value={value} aria-label={`${ingredient?.name ?? ingredientId} inclusion`} onChange={(event) => { setExtraInclusions((current) => ({ ...current, [ingredientId]: Number(event.target.value) })); markFormulaEdited(); }} className="w-full"/><span className="text-right text-[16px] font-semibold tabular-nums">{value < 1 && value > 0 ? value.toFixed(2) : value.toFixed(1)}%</span></div>; })}
           <div className="grid grid-cols-[minmax(110px,1fr)_minmax(100px,2fr)_64px] items-center gap-3.5 px-5 py-3"><span className="text-[15px] font-semibold">Vitamin-mineral premix</span><span className="text-[13px] text-[#4f524b]">Fixed · {PUBLIC_PREMIX_KG_PER_TONNE} kg/tonne</span><span className="text-right text-[16px] font-semibold tabular-nums">{PUBLIC_PREMIX_INCLUSION_PCT.toFixed(1)}%</span></div>
-          {!totalIsValid ? <div className="border-t border-[#ece8de] bg-[#fff8eb] px-5 py-3 text-[13px] leading-5 text-[#6d4b12]"><b>{Math.abs(balanceAmount).toFixed(1)}% {balanceAmount > 0 ? 'still unallocated' : 'over 100%'}.</b> The preview is normalized for comparison. Formulate will calculate a new 100% formula for this phase.</div> : null}
+          {!totalIsValid ? <div className="border-t border-[#ece8de] bg-[#fff8eb] px-5 py-3 text-[13px] leading-5 text-[#6d4b12]"><b>{Math.abs(balanceAmount).toFixed(1)}% {balanceAmount > 0 ? 'still unallocated' : 'over 100%'}.</b> The preview is normalized for comparison. “Optimize this recipe” will calculate a new 100% formula for this phase.</div> : null}
           {balanceError ? <div className="border-t border-[#ece8de] bg-[#f6e0d9] px-5 py-3 text-[13px] leading-5 text-[#8f3420]">{balanceError}</div> : null}
           {downloadError ? <div className="border-t border-[#ece8de] bg-[#f6e0d9] px-5 py-3 text-[13px] leading-5 text-[#8f3420]">{downloadError}</div> : null}
           {formulationNote ? <div className="border-t border-[#ece8de] bg-[#e3eadf] px-5 py-3 text-[13px] leading-5 text-[#1f5c38]">{formulationNote}</div> : null}
           {ingredientPickerOpen ? <div className="flex flex-wrap items-end gap-2 border-t border-[#ece8de] bg-[#f3f0e8] px-5 py-4"><label className="flex min-w-[220px] flex-1 flex-col gap-1.5"><span className="text-[12px] font-semibold text-[#4f524b]">Ingredient to add</span><select autoFocus value={ingredientToAdd} onChange={(event) => setIngredientToAdd(event.target.value)} className="h-[42px] rounded-[4px] border border-[#bdb7a9] bg-white px-3 text-[14px] text-[#191b18]">{ingredientsAvailableToAdd.map((ingredient) => <option key={ingredient.engineId} value={ingredient.engineId}>{ingredient.name}</option>)}</select></label><button type="button" onClick={addIngredient} className="h-[42px] rounded-[4px] bg-[#1d3a2a] px-4 text-[14px] font-semibold text-white">Add</button><button type="button" onClick={() => setIngredientPickerOpen(false)} className="h-[42px] rounded-[4px] border border-[#bdb7a9] bg-transparent px-4 text-[14px] font-semibold">Cancel</button></div> : null}
-          <div className="flex flex-wrap gap-2.5 border-t border-[#d9d4c7] px-5 py-4"><button type="button" onClick={() => void calculateFormula()} disabled={balancing || !selectedPhase} className="h-[42px] rounded-[4px] border-[1.5px] border-[#191b18] bg-transparent px-4 text-[14px] font-semibold disabled:cursor-not-allowed disabled:opacity-40">{balancing ? 'Formulating…' : 'Formulate'}</button><button type="button" onClick={openIngredientPicker} disabled={ingredientsAvailableToAdd.length === 0 || ingredientPickerOpen || balancing} className="h-[42px] rounded-[4px] border-[1.5px] border-[#191b18] bg-transparent px-4 text-[14px] font-semibold disabled:cursor-not-allowed disabled:opacity-40">Add ingredient</button><a href={quoteHref} className="inline-flex h-[42px] items-center rounded-[4px] bg-[#d99a2b] px-4 text-[14px] font-semibold text-[#191b18] no-underline">Quote ingredients</a><button type="button" onClick={() => void openDetailedPdf()} disabled={!downloadableFormulation || balancing || downloadingPdf} title={downloadableFormulation ? 'Open the detailed formulation PDF in a new tab' : 'Formulate the recipe before viewing the PDF'} className="h-[42px] rounded-[4px] border-[1.5px] border-[#191b18] bg-[#fbfaf6] px-4 text-[14px] font-semibold text-[#191b18] disabled:cursor-not-allowed disabled:opacity-40">{downloadingPdf ? 'Opening PDF…' : 'View PDF'}</button></div>
+          <div className="flex flex-wrap gap-2.5 border-t border-[#d9d4c7] px-5 py-4"><button type="button" onClick={() => void calculateFormula()} disabled={balancing || !selectedPhase} className="h-[42px] rounded-[4px] border-[1.5px] border-[#191b18] bg-transparent px-4 text-[14px] font-semibold disabled:cursor-not-allowed disabled:opacity-40">{balancing ? 'Optimizing…' : 'Optimize this recipe'}</button><button type="button" onClick={openIngredientPicker} disabled={ingredientsAvailableToAdd.length === 0 || ingredientPickerOpen || balancing} className="h-[42px] rounded-[4px] border-[1.5px] border-[#191b18] bg-transparent px-4 text-[14px] font-semibold disabled:cursor-not-allowed disabled:opacity-40">Add ingredient</button><button type="button" onClick={() => void openDetailedPdf()} disabled={!downloadableFormulation || balancing || downloadingPdf} title={downloadableFormulation ? 'Open the detailed formulation PDF in a new tab' : 'Optimize the recipe before downloading the formula'} className="h-[42px] rounded-[4px] border-[1.5px] border-[#191b18] bg-[#fbfaf6] px-4 text-[14px] font-semibold text-[#191b18] disabled:cursor-not-allowed disabled:opacity-40">{downloadingPdf ? 'Preparing formula…' : 'Download Formula'}</button></div><div className="px-5 pb-4"><button type="button" onClick={() => setQuoteDialogOpen(true)} disabled={balancing} className="inline-flex h-[42px] items-center rounded-[4px] bg-[#d99a2b] px-4 text-[14px] font-semibold text-[#191b18] disabled:cursor-not-allowed disabled:opacity-40">Quote ingredients</button></div>
         </section>
 
         <section className="rounded-[6px] border border-[#d9d4c7] bg-[#fbfaf6] px-5 pb-4">
@@ -414,6 +416,13 @@ export default function FormulationsClient({ ingredientPrices }: { ingredientPri
       </div>
 
       <div className="mt-6 flex flex-wrap items-center justify-between gap-4 rounded-[6px] bg-[#1d3a2a] px-6 py-[22px] text-white"><div className="flex flex-col gap-1"><span className="text-[18px] font-bold">Want a nutritionist to review it?</span><span className="text-[15px] text-[#dfe6dc]">Send the completed formula to FeedSport for a practical review.</span></div><a href="https://wa.me/263774684534?text=Please%20review%20my%20feed%20formulation" className="inline-flex h-[46px] items-center rounded-[4px] border border-[#dfe6dc] px-[18px] text-[15px] font-semibold text-white no-underline">Ask a nutritionist</a></div>
+      <QuoteIngredientsDialog
+        open={quoteDialogOpen}
+        onOpenChange={setQuoteDialogOpen}
+        mixLabel={`${selectedProgramme.label.toLowerCase()} ${selectedPhase?.label ?? 'pig feed'}`}
+        lines={quoteLines}
+        packSizes={ingredientPackSizes}
+      />
     </main>
   );
 }
