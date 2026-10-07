@@ -11,8 +11,8 @@ import {
 
 test("ingredient library is the single canonical ingredient dataset", () => {
   assert.equal(INGREDIENT_LIBRARY_SOURCE.schemaVersion, 2);
-  assert.equal(INGREDIENT_LIBRARY_SOURCE.ingredients.length, 46);
-  assert.equal(INGREDIENT_LIBRARY.ingredients.length, 46);
+  assert.equal(INGREDIENT_LIBRARY_SOURCE.ingredients.length, 113);
+  assert.equal(INGREDIENT_LIBRARY.ingredients.length, 113);
 
   const ids = INGREDIENT_LIBRARY_SOURCE.ingredients.map((ingredient) => ingredient.id);
   assert.equal(new Set(ids).size, ids.length);
@@ -32,7 +32,7 @@ test("species nutrition lives under the canonical ingredient record", () => {
 
 test("poultry library materializes only ingredients with poultry profiles", () => {
   const poultry = ingredientLibraryForSpecies("poultry");
-  assert.equal(poultry.ingredients.length, 17);
+  assert.equal(poultry.ingredients.length, 102);
   assert.ok(poultry.ingredients.every((ingredient) => ingredient.species === "poultry"));
 });
 
@@ -43,7 +43,7 @@ test("Brazilian source tables remain represented in the master library", () => {
     counts.set(table, (counts.get(table) ?? 0) + 1);
   }
 
-  assert.equal(counts.get("Table 1.01"), 35);
+  assert.equal(counts.get("Table 1.01"), 102);
   assert.equal(counts.get("Table 1.09"), 6);
   assert.equal(counts.get("Table 1.10"), 5);
 });
