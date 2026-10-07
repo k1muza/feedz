@@ -80,4 +80,13 @@ test("formulation energy requires published metabolizable energy", () => {
     kcalKg: 8790,
     basis: "metabolizable",
   });
+
+  const swineCorn = INGREDIENT_LIBRARY.ingredients.find(
+    (ingredient) => ingredient.id === "corn-yellow-dent",
+  );
+  assert.ok(swineCorn);
+  assert.throws(
+    () => poultryFormulationEnergy(swineCorn),
+    /requires a poultry ingredient record/,
+  );
 });
