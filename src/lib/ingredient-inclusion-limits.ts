@@ -45,6 +45,11 @@ const RECOMMENDATIONS_BY_INGREDIENT = (() => {
   for (const ingredient of INGREDIENT_LIBRARY.ingredients) {
     const recommended = ingredient.nutrition.swine?.recommendedInclusionPct;
     if (!recommended) continue;
+    if (map.has(ingredient.id)) {
+      throw new Error(
+        `Brazilian inclusion limits contain duplicate ingredient ID "${ingredient.id}".`,
+      );
+    }
     map.set(ingredient.id, {
       ...recommended.growingPigs,
       ...recommended.sows,
