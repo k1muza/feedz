@@ -1,11 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { BRAZILIAN_2024_CORE_FEEDSTUFFS } from "./brazilian-feedstuffs";
 import {
   BRAZILIAN_2024_BROILER_HIGH_PERFORMANCE,
   BRAZILIAN_2024_BROILER_PROGRAMMES,
-  BRAZILIAN_2024_POULTRY_CORE_FEEDSTUFFS,
+  BRAZILIAN_2024_POULTRY_INGREDIENT_LIBRARY,
   broilerInclusionLimitClassForPhase,
   findBroilerPhaseByAge,
   poultryFormulationEnergy,
@@ -14,13 +13,10 @@ import {
 test("Brazilian 2024 poultry data loads and is tied to canonical ingredients", () => {
   assert.equal(BRAZILIAN_2024_BROILER_PROGRAMMES.length, 3);
 
-  const canonicalIds = new Set(
-    BRAZILIAN_2024_CORE_FEEDSTUFFS.ingredients.map((ingredient) => ingredient.id),
-  );
-
-  assert.equal(BRAZILIAN_2024_POULTRY_CORE_FEEDSTUFFS.ingredients.length, 17);
-  for (const ingredient of BRAZILIAN_2024_POULTRY_CORE_FEEDSTUFFS.ingredients) {
-    assert.ok(canonicalIds.has(ingredient.id), `Missing canonical ingredient: ${ingredient.id}`);
+  assert.equal(BRAZILIAN_2024_POULTRY_INGREDIENT_LIBRARY.ingredients.length, 17);
+  for (const ingredient of BRAZILIAN_2024_POULTRY_INGREDIENT_LIBRARY.ingredients) {
+    assert.equal(ingredient.species, "poultry");
+    assert.ok(ingredient.nutrition.poultry, `Missing poultry profile: ${ingredient.id}`);
   }
 });
 
@@ -69,10 +65,10 @@ test("broiler age lookup treats published ranges as half-open", () => {
 });
 
 test("formulation energy requires published metabolizable energy", () => {
-  const cornOil = BRAZILIAN_2024_POULTRY_CORE_FEEDSTUFFS.ingredients.find(
+  const cornOil = BRAZILIAN_2024_POULTRY_INGREDIENT_LIBRARY.ingredients.find(
     (ingredient) => ingredient.id === "corn-oil",
   );
-  const soybeanOil = BRAZILIAN_2024_POULTRY_CORE_FEEDSTUFFS.ingredients.find(
+  const soybeanOil = BRAZILIAN_2024_POULTRY_INGREDIENT_LIBRARY.ingredients.find(
     (ingredient) => ingredient.id === "soybean-degummed-oil",
   );
 
