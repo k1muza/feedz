@@ -8973,7 +8973,8 @@
             "manganese": 14.3,
             "iron": 157.9,
             "zinc": 56.7,
-            "selenium": 0.58
+            "selenium": 0.58,
+            "copper": 10.5
           },
           "vitamins": {},
           "constraints": {
@@ -9021,7 +9022,8 @@
           },
           "energy": {
             "standardizedMetabolizableKcalKg": 2173,
-            "netKcalKg": 1530
+            "netKcalKg": 1530,
+            "metabolizableKcalKg": 2050
           },
           "aminoAcids": {
             "totalPct": {
@@ -9103,7 +9105,8 @@
             "manganese": 14.3,
             "iron": 157.9,
             "zinc": 56.7,
-            "selenium": 0.58
+            "selenium": 0.58,
+            "copper": 10.5
           },
           "vitamins": {},
           "constraints": {
