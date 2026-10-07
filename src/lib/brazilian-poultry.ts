@@ -271,11 +271,12 @@ function validateAnomalyReferencesForIngredient(
 ): void {
   for (const id of ids ?? []) {
     const anomaly = requireSourceAnomaly(id);
-    if (
-      anomaly.table !== "1.01" ||
-      anomaly.target.kind !== "poultry-ingredient-nutrient" ||
-      anomaly.target.ingredientId !== ingredientId
-    ) {
+    const appliesToIngredient =
+      (anomaly.target.kind === "poultry-ingredient-nutrient" ||
+        anomaly.target.kind === "poultry-ingredient-nutrient-group") &&
+      anomaly.target.ingredientId === ingredientId;
+
+    if (anomaly.table !== "1.01" || !appliesToIngredient) {
       throw new Error(
         `Source anomaly "${id}" does not apply to poultry ingredient "${ingredientId}".`,
       );
@@ -511,9 +512,15 @@ export function findBroilerPhaseByAge(
   programme: z.infer<typeof broilerProgrammeSchema>,
   ageDays: number,
 ): z.infer<typeof broilerPhaseSchema> | undefined {
-  return programme.phases.find(
-    (phase) => ageDays >= phase.ageDays.min && ageDays < phase.ageDays.max,
-  );
+  const lastIndex = programme.phases.length - 1;
+
+  return programme.phases.find((phase, index) => {
+    const includesStart = ageDays >= phase.ageDays.min;
+    const beforeEnd = ageDays < phase.ageDays.max;
+    const isFinalPublishedDay = index === lastIndex && ageDays === phase.ageDays.max;
+
+    return includesStart && (beforeEnd || isFinalPublishedDay);
+  });
 }
 
 export const BRAZILIAN_2024_POULTRY_CORE_FEEDSTUFFS =
