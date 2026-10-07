@@ -13,7 +13,7 @@
   },
   "phases": [
     {
-      "id": "0-8d-0.05-0.24kg",
+      "id": "brazilian-2024-broilers-standard-performance-as-hatched:0-8d-0.05-0.24kg",
       "phase": "pre-starter",
       "ageDays": {
         "min": 0,
@@ -79,7 +79,7 @@
       }
     },
     {
-      "id": "8-17d-0.24-0.68kg",
+      "id": "brazilian-2024-broilers-standard-performance-as-hatched:8-17d-0.24-0.68kg",
       "phase": "starter",
       "ageDays": {
         "min": 8,
@@ -145,7 +145,7 @@
       }
     },
     {
-      "id": "17-27d-0.68-1.49kg",
+      "id": "brazilian-2024-broilers-standard-performance-as-hatched:17-27d-0.68-1.49kg",
       "phase": "grower",
       "ageDays": {
         "min": 17,
@@ -211,7 +211,7 @@
       }
     },
     {
-      "id": "27-35d-1.49-2.29kg",
+      "id": "brazilian-2024-broilers-standard-performance-as-hatched:27-35d-1.49-2.29kg",
       "phase": "grower",
       "ageDays": {
         "min": 27,
@@ -277,7 +277,7 @@
       }
     },
     {
-      "id": "35-43d-2.29-3.11kg",
+      "id": "brazilian-2024-broilers-standard-performance-as-hatched:35-43d-2.29-3.11kg",
       "phase": "finisher",
       "ageDays": {
         "min": 35,
@@ -343,7 +343,7 @@
       }
     },
     {
-      "id": "43-49d-3.11-3.7kg",
+      "id": "brazilian-2024-broilers-standard-performance-as-hatched:43-49d-3.11-3.7kg",
       "phase": "finisher",
       "ageDays": {
         "min": 43,
