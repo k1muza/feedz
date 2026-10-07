@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import sourceJson from "@/data/nutrition/brazilian-2024/source.json";
+import sourceJson from "@/data/nutrition/sources/brazilian-tables-2024/source.json";
 
 import { assertUniqueIds } from "./nutrition-validation";
 
