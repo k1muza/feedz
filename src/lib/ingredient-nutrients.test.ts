@@ -76,3 +76,15 @@ test("custom premixes are validated before reaching the optimizer", () => {
     /Invalid input|nan|NaN/i,
   );
 });
+
+
+test("cottonseed meal 38 keeps published poultry ME and copper", () => {
+  const cottonseed = INGREDIENT_LIBRARY_SOURCE.ingredients.find(
+    (ingredient) => ingredient.id === "cottonseed-meal-38",
+  );
+  assert.ok(cottonseed);
+
+  assert.equal(cottonseed.nutrition.poultry?.energy.metabolizableKcalKg, 1951);
+  assert.equal(cottonseed.nutrition.poultry?.traceMineralsPpm.copper, 10.5);
+  assert.equal(cottonseed.nutrition.swine?.traceMineralsPpm.copper, 10.5);
+});
