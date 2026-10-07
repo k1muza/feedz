@@ -31,14 +31,14 @@ export const BRAZILIAN_INCLUSION_SOURCE = "Brazilian Tables 2024, Table 1.01";
 
 export type PhaseInclusionRecommendation = {
   column: BrazilianInclusionColumn;
-  /** Usual inclusion level. Advisory only; never a solver constraint. */
-  practicalPct: number;
+  /** Usual inclusion level when published. Advisory only; never a solver constraint. */
+  practicalPct?: number;
   /** Published ceiling; enforced as a hard limit. */
   maxPct: number;
   source: typeof BRAZILIAN_INCLUSION_SOURCE;
 };
 
-type ColumnRecommendations = Partial<Record<BrazilianInclusionColumn, { practical: number; max: number }>>;
+type ColumnRecommendations = Partial<Record<BrazilianInclusionColumn, { practical?: number; max: number }>>;
 
 const RECOMMENDATIONS_BY_INGREDIENT = (() => {
   const map = new Map<string, ColumnRecommendations>();
