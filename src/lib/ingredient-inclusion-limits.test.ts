@@ -20,10 +20,12 @@ import {
 
 const FULL_FAT_SOY = "soybean-full-fat-extruded";
 const SOYBEAN_MEAL = "soybean-meal-solvent-extracted";
+const DEHULLED_SOYBEAN_MEAL = "soybean-meal-dehulled-solvent-extracted";
 const MAIZE = "corn-yellow-dent";
 
 const PRE_STARTER = { programme: "nursery-pig", phase: "br2024-5-32-14-21d-4.4-6.2kg" };
 const GROWER = { programme: "grow-finish-pig", phase: "br2024-5-43-63-91d-26-47kg" };
+const WEANER = { programme: "nursery-pig", phase: "br2024-5-32-35-49d-8.4-17.9kg" };
 
 function phase(ref: { programme: string; phase: string }): NutritionPhase {
   const found = feedProgrammePhaseById(ref.programme, ref.phase);
@@ -51,6 +53,18 @@ describe("phase-specific inclusion limits", () => {
     assert.equal(maxPct(SOYBEAN_MEAL, "starter"), 30);
     assert.equal(maxPct(SOYBEAN_MEAL, "grower"), 25);
     assert.equal(maxPct(SOYBEAN_MEAL, "finisher"), 20);
+  });
+
+  test("48% CP dehulled soybean meal uses its own Table 1.01 row", () => {
+    // Published separately for the 48% CP row (printed page 170), not borrowed from 45.6% CP.
+    const columns = { "pre-starter": 30, starter: 30, grower: 25, finisher: 20, gestation: 15, lactation: 25 } as const;
+    for (const [phaseClass, expected] of Object.entries(columns)) {
+      assert.equal(maxPct(DEHULLED_SOYBEAN_MEAL, phaseClass as NutritionPhaseClass), expected, phaseClass);
+    }
+    const limits = feedsportInclusionLimits(DEHULLED_SOYBEAN_MEAL, {}, "pre-starter");
+    assert.equal(limits.maxSource, "brazilian-phase");
+    assert.equal(limits.phase?.practicalPct, 30);
+    assert.equal(maxPct(DEHULLED_SOYBEAN_MEAL, "boar"), 100);
   });
 
   test("sow phases use the sows columns", () => {
@@ -143,6 +157,26 @@ describe("optimizer enforces phase limits", () => {
   });
 });
 
+describe("optimizer enforces the 48% soybean-meal limit", () => {
+  test("cheap dehulled soybean meal is held at its 30% weaner maximum", async () => {
+    const ids = ["sorghum-grain", FULL_FAT_SOY, SOYBEAN_MEAL, DEHULLED_SOYBEAN_MEAL, "soybean-degummed-oil", "dicalcium-phosphate", "limestone-ground", "sodium-chloride", "l-lysine-hcl", "dl-methionine", "l-threonine", "l-tryptophan", "l-valine"];
+    const result = await formulateLeastCostDiet(
+      phase(WEANER),
+      "ME",
+      // Priced low enough that it would exceed 30% without the limit (46.7% before the fix).
+      ids.map((ingredientId) => ({
+        ingredientId,
+        pricePerKg: ingredientId === DEHULLED_SOYBEAN_MEAL ? 0.4 : ingredientDefaultPricePerKg(ingredientId)!,
+      })),
+    );
+    assert.equal(result.status, "optimal");
+    if (result.status !== "optimal") return;
+    const dehulled = inclusion(result.solution.formula, DEHULLED_SOYBEAN_MEAL);
+    assert.ok(dehulled <= 30 + 1e-6, `dehulled soybean meal ${dehulled}% must be <= 30%`);
+    assert.ok(dehulled >= 30 - 1e-6, `dehulled soybean meal ${dehulled}% should be held at its 30% cap`);
+  });
+});
+
 describe("MCP reports effective phase limits", () => {
   const context = { prices: INGREDIENT_DEFAULT_PRICES };
   const programmeId = `${PRE_STARTER.programme}:${PRE_STARTER.phase}`;
@@ -160,6 +194,22 @@ describe("MCP reports effective phase limits", () => {
       "notes" in result && result.notes?.some((note) => note.includes("Requested max 40%") && note.includes("Table 1.01")),
       "explains the ignored request",
     );
+  });
+
+  test("inclusion_limits reports the Brazilian limit for both soybean meals", async () => {
+    const result = await formulate(
+      {
+        programme_id: `${WEANER.programme}:${WEANER.phase}`,
+        ingredients: [...ingredients, DEHULLED_SOYBEAN_MEAL],
+      },
+      context,
+    );
+    const limits = "inclusion_limits" in result ? result.inclusion_limits : undefined;
+    for (const id of [SOYBEAN_MEAL, DEHULLED_SOYBEAN_MEAL]) {
+      const limit = limits?.find((row) => row.ingredient === id);
+      assert.equal(limit?.max_percent, 30, id);
+      assert.match(limit?.feedsport_default.max_source ?? "", /Table 1\.01 starter maximum/, id);
+    }
   });
 
   test("a tighter requested max is applied", async () => {

@@ -260,6 +260,134 @@
       "pigflowIngredientId": "soybean-meal-solvent-extracted"
     },
     {
+      "id": "soybean-meal-48-cp",
+      "name": "Soybean, Meal 48% CP",
+      "mappingConfidence": "high",
+      "sourcePage": 169,
+      "notes": [
+        "Exact Table 1.01 row (printed pages 169-170) for PigFlow's dehulled/high-protein soybean-meal ID. Its Recommended Inclusion Levels are published for this row itself (page 170); they are not borrowed from the 45.6% CP row."
+      ],
+      "compositionPct": {
+        "dryMatter": 88.9,
+        "crudeProtein": 48.2,
+        "starch": 3.0,
+        "crudeFibre": 4.55,
+        "etherExtract": 1.72,
+        "ndf": 11.5,
+        "adf": 8.6,
+        "ash": 6.1,
+        "linoleicAcid": 0.77,
+        "linolenicAcid": 0.1
+      },
+      "swineEnergyKcalKg": {
+        "digestible": 3548,
+        "metabolizable": 3306,
+        "net": 2080
+      },
+      "sowEnergyKcalKg": {
+        "digestible": 3801,
+        "metabolizable": 3447,
+        "net": 2183
+      },
+      "macroMineralsPct": {
+        "potassium": 2.13,
+        "sodium": 0.02,
+        "chloride": 0.05,
+        "sulfur": 0.42,
+        "magnesium": 0.27,
+        "calcium": 0.34,
+        "totalPhosphorus": 0.59,
+        "phytatePhosphorus": 0.36,
+        "availablePhosphorus": 0.23,
+        "standardizedDigestiblePhosphorusSwine": 0.27
+      },
+      "traceMineralsMgKg": {
+        "manganese": 30.7,
+        "iron": 159.5,
+        "copper": 9.0,
+        "zinc": 47.7,
+        "selenium": 0.34
+      },
+      "aminoAcids": {
+        "totalPct": {
+          "lysine": 2.97,
+          "methionine": 0.63,
+          "methionineCysteine": 1.35,
+          "threonine": 1.87,
+          "tryptophan": 0.67,
+          "arginine": 3.49,
+          "valine": 2.29,
+          "isoleucine": 2.23,
+          "leucine": 3.65,
+          "histidine": 1.25,
+          "phenylalanine": 2.48,
+          "phenylalanineTyrosine": 4.18,
+          "cysteine": 0.72,
+          "tyrosine": 1.7
+        },
+        "sidSwinePct": {
+          "lysine": 2.71,
+          "methionine": 0.58,
+          "methionineCysteine": 1.22,
+          "threonine": 1.64,
+          "tryptophan": 0.61,
+          "arginine": 3.31,
+          "valine": 2.05,
+          "isoleucine": 2.01,
+          "leucine": 3.3,
+          "histidine": 1.14,
+          "phenylalanine": 2.24,
+          "phenylalanineTyrosine": 3.81,
+          "cysteine": 0.64,
+          "tyrosine": 1.56
+        },
+        "sidSwineDigestibilityPct": {
+          "lysine": 91.2,
+          "methionine": 92.5,
+          "methionineCysteine": 90.3,
+          "threonine": 87.5,
+          "tryptophan": 90.3,
+          "arginine": 94.7,
+          "valine": 89.5,
+          "isoleucine": 90.2,
+          "leucine": 90.5,
+          "histidine": 91.2,
+          "phenylalanine": 90.5,
+          "phenylalanineTyrosine": 91.1,
+          "cysteine": 88.4,
+          "tyrosine": 91.9
+        }
+      },
+      "recommendedInclusionPct": {
+        "growingPigs": {
+          "starter": {
+            "practical": 30,
+            "max": 30
+          },
+          "grower": {
+            "practical": 25,
+            "max": 25
+          },
+          "finisher": {
+            "practical": 20,
+            "max": 20
+          }
+        },
+        "sows": {
+          "gestation": {
+            "practical": 15,
+            "max": 15
+          },
+          "lactation": {
+            "practical": 25,
+            "max": 25
+          }
+        }
+      },
+      "digestibleProteinSwinePct": 44.0,
+      "pigflowIngredientId": "soybean-meal-dehulled-solvent-extracted"
+    },
+    {
       "id": "corn-oil",
       "name": "Corn, Oil",
       "pigflowIngredientId": "corn-oil",
