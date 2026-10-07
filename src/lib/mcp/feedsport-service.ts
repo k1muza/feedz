@@ -326,7 +326,9 @@ function phaseIngredientLimits(phase: NutritionPhase) {
           ingredient: ingredient.id,
           name: ingredient.name,
           max_percent: feedsportInclusionLimits(ingredient.id, ingredient.constraints, phase.phaseClass).maxPct,
-          practical_percent: recommendation.practicalPct,
+          ...(recommendation.practicalPct !== undefined
+            ? { practical_percent: recommendation.practicalPct }
+            : {}),
         }]
       : [];
   });
@@ -397,7 +399,10 @@ function phaseInclusionSummary(ingredientId: string) {
     phase_inclusion_percent: Object.fromEntries(
       Object.entries(recommendations).map(([column, value]) => [
         column,
-        { max: value.maxPct, practical: value.practicalPct },
+        {
+          max: value.maxPct,
+          ...(value.practicalPct !== undefined ? { practical: value.practicalPct } : {}),
+        },
       ]),
     ),
     phase_inclusion_note: `${BRAZILIAN_INCLUSION_SOURCE}: "max" is enforced for the matching phase (pre-starter uses starter); "practical" is advisory.`,
@@ -419,7 +424,9 @@ function inclusionLimitRow(
       max_percent: feedsport.maxPct,
       max_source: describeMaxSource(feedsport),
     },
-    ...(feedsport.phase ? { practical_percent: feedsport.phase.practicalPct } : {}),
+    ...(feedsport.phase?.practicalPct !== undefined
+      ? { practical_percent: feedsport.phase.practicalPct }
+      : {}),
   };
 }
 
