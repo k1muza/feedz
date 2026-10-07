@@ -80,12 +80,15 @@ export type IngredientOption = {
   maxInclusionPct?: number;
 };
 
+type IngredientPoolMode = "automatic" | "selected";
+
 type Row = {
   key: number;
   ingredientId: string;
   price: string;
   min: string;
   max: string;
+  lockedPct: string;
 };
 
 const FIXED_PREMIX_ID = "fixed-commercial-premix";
@@ -147,13 +150,22 @@ export function FeedFormulationWorkbench({
   const initialProgramme =
     programmes.find((programme) => programme.id === initialFormulaSet?.programmeId) ??
     firstProgramme;
-  const initialRows = initialFormulaSet?.setup?.rows ??
+  const initialRows: Omit<Row, "key">[] =
+    initialFormulaSet?.setup?.rows.map((row) => ({
+      ingredientId: row.ingredientId,
+      price: row.price,
+      min: row.min,
+      max: row.max,
+      lockedPct: row.lockedPct ?? "",
+    })) ??
     initialFormulaSet?.ingredients.map((ingredient) => ({
       ingredientId: ingredient.ingredientId,
       price: String(ingredient.pricePerKg),
       min: "",
       max: "",
-    })) ?? [];
+      lockedPct: "",
+    })) ??
+    [];
   const initialResult = initialFormulaSet
     ? savedFeedFormulaResult(initialFormulaSet)
     : null;
@@ -175,6 +187,9 @@ export function FeedFormulationWorkbench({
   );
   const [energySystem, setEnergySystem] = useState<"ME" | "NE">(
     initialFormulaSet?.energySystem ?? "ME",
+  );
+  const [ingredientPoolMode, setIngredientPoolMode] = useState<IngredientPoolMode>(
+    initialFormulaSet?.setup?.ingredientPoolMode ?? "automatic",
   );
   const [targetBatchWeight, setTargetBatchWeight] = useState(
     String(initialFormulaSet?.targetBatchKg ?? 1000),
@@ -265,7 +280,7 @@ export function FeedFormulationWorkbench({
   );
 
   useEffect(() => {
-    if (!programmeId || !phaseId) return;
+    if (!programmeId || !phaseId || ingredientPoolMode === "selected") return;
 
     // A saved formulation already contains the exact ingredient setup and
     // generated recipe set that the user chose to save. Do not replace that
@@ -316,6 +331,7 @@ export function FeedFormulationWorkbench({
             price: defaultPriceInput(ingredientId),
             min: "",
             max: "",
+            lockedPct: "",
           })),
         );
       } catch (error) {
@@ -330,7 +346,14 @@ export function FeedFormulationWorkbench({
     })();
 
     return () => controller.abort();
-  }, [programmeId, phaseId, energySystem, ingredients]);
+  }, [programmeId, phaseId, energySystem, ingredients, ingredientPoolMode]);
+
+  function changeIngredientPoolMode(value: IngredientPoolMode) {
+    requirementsWereEdited.current = true;
+    setIngredientPoolMode(value);
+    setSuggestionError(null);
+    setResult(null);
+  }
 
   function changeProgramme(value: string) {
     requirementsWereEdited.current = true;
@@ -357,6 +380,7 @@ export function FeedFormulationWorkbench({
         price: defaultPriceInput(addIngredientId),
         min: "",
         max: "",
+        lockedPct: "",
       },
     ]);
     setNextKey((value) => value + 1);
@@ -393,17 +417,27 @@ export function FeedFormulationWorkbench({
         }
         const min = row.min.trim() === "" ? undefined : Number(row.min);
         const max = row.max.trim() === "" ? undefined : Number(row.max);
+        const lockedPct = row.lockedPct.trim() === "" ? undefined : Number(row.lockedPct);
         if (min !== undefined && (!Number.isFinite(min) || min < 0 || min > 100)) {
           throw new Error("Minimum inclusion must be between 0% and 100%.");
         }
         if (max !== undefined && (!Number.isFinite(max) || max < 0 || max > 100)) {
           throw new Error("Maximum inclusion must be between 0% and 100%.");
         }
+        if (min !== undefined && max !== undefined && min > max) {
+          throw new Error("Minimum inclusion cannot exceed maximum inclusion.");
+        }
+        if (
+          lockedPct !== undefined &&
+          (!Number.isFinite(lockedPct) || lockedPct < 0 || lockedPct > 100)
+        ) {
+          throw new Error("Locked inclusion must be between 0% and 100%.");
+        }
         return {
           ingredientId: row.ingredientId,
           pricePerKg,
-          minInclusionPct: min,
-          maxInclusionPct: max,
+          minInclusionPct: lockedPct ?? min,
+          maxInclusionPct: lockedPct ?? max,
         };
       });
 
@@ -565,12 +599,14 @@ export function FeedFormulationWorkbench({
             costIncreasePct: recipe.costIncreasePct,
           })),
           setup: {
-            rows: rows.map(({ ingredientId, price, min, max }) => ({
+            rows: rows.map(({ ingredientId, price, min, max, lockedPct }) => ({
               ingredientId,
               price,
               min,
               max,
+              lockedPct,
             })),
+            ingredientPoolMode,
             useFixedPremix,
             fixedPremixName,
             fixedPremixKgPerTonne,
@@ -940,6 +976,47 @@ export function FeedFormulationWorkbench({
             </Field>
           </div>
 
+          <div className="rounded-lg border border-hairline bg-raised/20 p-3">
+            <div className="text-sm font-medium text-ink">Ingredient pool</div>
+            <div className="mt-1 text-xs leading-5 text-ink-muted">
+              The solver can only use ingredients listed in the table below.
+            </div>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <label className="flex cursor-pointer items-start gap-2 rounded-lg border border-hairline bg-background px-3 py-2">
+                <input
+                  type="radio"
+                  name="ingredient-pool-mode"
+                  value="automatic"
+                  checked={ingredientPoolMode === "automatic"}
+                  onChange={() => changeIngredientPoolMode("automatic")}
+                  className="mt-0.5 h-4 w-4"
+                />
+                <span>
+                  <span className="block text-sm font-medium text-ink">Suggested pool</span>
+                  <span className="block text-xs leading-5 text-ink-muted">
+                    FeedSport refreshes a practical priced starting pool when requirements change.
+                  </span>
+                </span>
+              </label>
+              <label className="flex cursor-pointer items-start gap-2 rounded-lg border border-hairline bg-background px-3 py-2">
+                <input
+                  type="radio"
+                  name="ingredient-pool-mode"
+                  value="selected"
+                  checked={ingredientPoolMode === "selected"}
+                  onChange={() => changeIngredientPoolMode("selected")}
+                  className="mt-0.5 h-4 w-4"
+                />
+                <span>
+                  <span className="block text-sm font-medium text-ink">My ingredients</span>
+                  <span className="block text-xs leading-5 text-ink-muted">
+                    Keep this list when requirements change and formulate only from ingredients you can source.
+                  </span>
+                </span>
+              </label>
+            </div>
+          </div>
+
           {suggesting ? (
             <div className="rounded-lg border border-hairline bg-raised/30 px-4 py-3 text-sm text-ink-muted">
               Building the priced candidate pool for this requirement phase…
@@ -947,11 +1024,12 @@ export function FeedFormulationWorkbench({
           ) : null}
 
           <div className="min-w-0 max-w-full overflow-x-auto rounded-lg border border-hairline">
-            <table className="w-full min-w-[640px] table-fixed text-sm">
+            <table className="w-full min-w-[760px] table-fixed text-sm">
               <colgroup>
-                <col className="w-[34%]" />
-                <col className="w-[30%]" />
-                <col className="w-[15%]" />
+                <col className="w-[28%]" />
+                <col className="w-[25%]" />
+                <col className="w-[13%]" />
+                <col className="w-[13%]" />
                 <col className="w-[15%]" />
                 <col className="w-[6%]" />
               </colgroup>
@@ -961,6 +1039,7 @@ export function FeedFormulationWorkbench({
                   <th className="px-3 py-2.5">Price / kg</th>
                   <th className="px-3 py-2.5">Min %</th>
                   <th className="px-3 py-2.5">Max %</th>
+                  <th className="px-3 py-2.5">Lock %</th>
                   <th className="px-3 py-2.5" />
                 </tr>
               </thead>
@@ -1005,6 +1084,7 @@ export function FeedFormulationWorkbench({
                           max="100"
                           step="0.1"
                           value={row.min}
+                          disabled={row.lockedPct.trim() !== ""}
                           placeholder={ingredient?.minInclusionPct?.toString() ?? "0"}
                           onChange={(event) => updateRow(row.key, "min", event.target.value)}
                         />
@@ -1016,12 +1096,25 @@ export function FeedFormulationWorkbench({
                           max="100"
                           step="0.1"
                           value={row.max}
+                          disabled={row.lockedPct.trim() !== ""}
                           placeholder={(
                             selectedPhase?.maxInclusionPct?.[row.ingredientId] ??
                             ingredient?.maxInclusionPct ??
                             100
                           ).toString()}
                           onChange={(event) => updateRow(row.key, "max", event.target.value)}
+                        />
+                      </td>
+                      <td className="px-3 py-2.5">
+                        <Input
+                          type="number"
+                          min="0"
+                          max="100"
+                          step="0.1"
+                          value={row.lockedPct}
+                          placeholder="—"
+                          title="Set an exact inclusion percentage. This overrides Min % and Max % for this ingredient."
+                          onChange={(event) => updateRow(row.key, "lockedPct", event.target.value)}
                         />
                       </td>
                       <td className="px-3 py-2.5">
@@ -1043,6 +1136,11 @@ export function FeedFormulationWorkbench({
                 })}
               </tbody>
             </table>
+          </div>
+
+          <div className="text-xs leading-5 text-ink-muted">
+            Remove an ingredient to make it unavailable. Set <strong className="text-ink">Lock %</strong>{" "}
+            to force an exact inclusion; otherwise Min % and Max % remain optional bounds.
           </div>
 
           <div className="flex flex-wrap gap-2">

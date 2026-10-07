@@ -42,7 +42,9 @@ export type SavedFeedFormulaSet = {
       price: string;
       min: string;
       max: string;
+      lockedPct?: string;
     }[];
+    ingredientPoolMode?: "automatic" | "selected";
     useFixedPremix: boolean;
     fixedPremixName: string;
     fixedPremixKgPerTonne: string;
