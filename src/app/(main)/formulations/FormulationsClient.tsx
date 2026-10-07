@@ -40,8 +40,9 @@ const defaultVisibleIngredientIds = rows
   .map((row) => row.id);
 
 const programmeChoices = [
-  { id: 'grow-finish-pig', label: 'Standard performance' },
-  { id: 'grow-finish-pig-high-performance', label: 'High performance' },
+  { id: 'grow-finish-pig', label: 'Pig · Standard performance' },
+  { id: 'grow-finish-pig-high-performance', label: 'Pig · High performance' },
+  { id: 'broiler-standard', label: 'Broiler · Standard performance' },
 ].map((choice) => {
   const programme = feedProgrammeById(choice.id);
   if (!programme) throw new Error(`Missing formulation programme ${choice.id}.`);
@@ -123,7 +124,7 @@ export default function FormulationsClient({ ingredientPrices, ingredientPackSiz
       minimum: number | undefined;
     }[] = [
       { id: 'cp', label: 'Crude protein', unit: '%', decimals: 1, measure: calculated.crudeProteinPct, minimum: requirements.crudeProteinPct },
-      { id: 'me', label: 'ME pigs', unit: 'kcal/kg', decimals: 0, measure: calculated.energy.metabolizableKcalKg, minimum: requirements.energy.kcalKg },
+      { id: 'me', label: 'Metabolizable energy', unit: 'kcal/kg', decimals: 0, measure: calculated.energy.metabolizableKcalKg, minimum: requirements.energy.kcalKg },
       { id: 'lys', label: 'SID lysine', unit: '%', decimals: 2, measure: calculated.sidAminoAcidsPct.lysine, minimum: requirements.aminoAcids.sidLysinePct },
       { id: 'met', label: 'SID methionine + cysteine', unit: '%', decimals: 2, measure: calculated.sidAminoAcidsPct.methionineCysteine, minimum: requirements.aminoAcids.sidMethionineCysteinePct },
       { id: 'ca', label: 'Calcium', unit: '%', decimals: 2, measure: calculated.minerals.calciumPct, minimum: requirements.minerals.calciumPct },
@@ -375,17 +376,17 @@ export default function FormulationsClient({ ingredientPrices, ingredientPackSiz
       <p className="fs-mono mb-2.5 mt-0 text-[12px] uppercase tracking-[.08em] text-[#4f524b]">Formulation</p>
       <div className="mb-7 flex max-w-[760px] flex-col gap-3">
         <h1 className="fs-page-title">Will this mix meet the animal&apos;s needs?</h1>
-        <p className="m-0 text-[17px] leading-[1.5] text-[#3d403a]">Choose the production programme and liveweight range, then adjust your ingredient percentages. We&apos;ll compare the mix with the published requirements for that exact phase.</p>
+        <p className="m-0 text-[17px] leading-[1.5] text-[#3d403a]">Choose the production programme and feeding phase, then adjust your ingredient percentages. We&apos;ll compare the mix with the published requirements for that exact phase.</p>
       </div>
 
       <section className="mb-5 rounded-[6px] border border-[#d9d4c7] bg-[#fbfaf6] p-5">
         <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
-          <div><p className="fs-label m-0 text-[#4f524b]">Step 1 · Choose requirements and priority</p><h2 className="mb-0 mt-1.5 text-[20px] font-bold">What pigs are you feeding?</h2></div>
+          <div><p className="fs-label m-0 text-[#4f524b]">Step 1 · Choose requirements and priority</p><h2 className="mb-0 mt-1.5 text-[20px] font-bold">What animals are you feeding?</h2></div>
           <span className="rounded-[3px] bg-[#e3eadf] px-2.5 py-1 text-[12px] font-bold text-[#1f5c38]">Brazilian Tables 2024</span>
         </div>
         <div className="grid gap-4 md:grid-cols-3">
           <label className="flex flex-col gap-2"><span className="text-[13px] font-semibold text-[#4f524b]">Production track</span><select value={programmeId} onChange={(event) => changeProgramme(event.target.value)} className="h-12 rounded-[4px] border border-[#bdb7a9] bg-white px-3 text-[15px] font-semibold text-[#191b18]">{programmeChoices.map((choice) => <option key={choice.id} value={choice.id}>{choice.label}</option>)}</select></label>
-          <label className="flex flex-col gap-2"><span className="text-[13px] font-semibold text-[#4f524b]">Liveweight phase</span><select value={selectedPhase?.id ?? ''} onChange={(event) => changePhase(event.target.value)} className="h-12 rounded-[4px] border border-[#bdb7a9] bg-white px-3 text-[15px] font-semibold text-[#191b18]">{selectedProgramme.programme.phases.map((phase) => <option key={phase.id} value={phase.id}>{phase.label.charAt(0).toUpperCase() + phase.label.slice(1)}</option>)}</select></label>
+          <label className="flex flex-col gap-2"><span className="text-[13px] font-semibold text-[#4f524b]">Feeding phase</span><select value={selectedPhase?.id ?? ''} onChange={(event) => changePhase(event.target.value)} className="h-12 rounded-[4px] border border-[#bdb7a9] bg-white px-3 text-[15px] font-semibold text-[#191b18]">{selectedProgramme.programme.phases.map((phase) => <option key={phase.id} value={phase.id}>{phase.label.charAt(0).toUpperCase() + phase.label.slice(1)}</option>)}</select></label>
           <label className="flex flex-col gap-2"><span className="text-[13px] font-semibold text-[#4f524b]">Formulation priority</span><select value={formulationPriority} onChange={(event) => { setFormulationPriority(event.target.value as FormulationPriority); setFormulationNote(null); setDownloadableFormulation(null); setDownloadError(null); }} className="h-12 rounded-[4px] border border-[#bdb7a9] bg-white px-3 text-[15px] font-semibold text-[#191b18]">{priorityChoices.map((priority) => <option key={priority.id} value={priority.id}>{priority.label}</option>)}</select></label>
         </div>
         <p className="mb-0 mt-3 text-[13px] leading-5 text-[#4f524b]">{selectedProgramme.programme.description} {selectedPhase ? `Source: Table ${selectedPhase.sourceTable}${selectedPhase.periodLabel ? ` · ${selectedPhase.periodLabel}` : ''}.` : ''} <b className="text-[#191b18]">Priority:</b> {selectedPriority.description}</p>
@@ -419,7 +420,7 @@ export default function FormulationsClient({ ingredientPrices, ingredientPackSiz
       <QuoteIngredientsDialog
         open={quoteDialogOpen}
         onOpenChange={setQuoteDialogOpen}
-        mixLabel={`${selectedProgramme.label.toLowerCase()} ${selectedPhase?.label ?? 'pig feed'}`}
+        mixLabel={`${selectedProgramme.label.toLowerCase()} ${selectedPhase?.label ?? 'feed'}`}
         lines={quoteLines}
         packSizes={ingredientPackSizes}
       />
