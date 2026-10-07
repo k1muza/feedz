@@ -89,13 +89,3 @@ export function requireSourceAnomaly(id: string) {
   return anomaly;
 }
 
-export function assertKnownSourceAnomalyIds(
-  ids: readonly string[] | undefined,
-  label: string,
-): void {
-  for (const id of ids ?? []) {
-    if (!BRAZILIAN_2024_SOURCE_ANOMALIES.has(id)) {
-      throw new Error(`Unknown Brazilian 2024 source anomaly "${id}" in ${label}.`);
-    }
-  }
-}
