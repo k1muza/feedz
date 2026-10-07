@@ -406,7 +406,7 @@ export const INGREDIENT_DEFAULT_PRICES: readonly IngredientDefaultPrice[] = [
     sourceScope: "global-fallback",
     sourceLabel: "Darling Ingredients — Feed-grade poultry by-product meal Q2 2026",
     sourceUrl:
-      "https://cdn.yahoofinance.com/prod/sec-filings/0000916540/000091654026000019/dar2q2026earnings.htm",
+      "https://www.sec.gov/Archives/edgar/data/916540/000091654026000019/dar2q2026earnings.htm",
     note:
       "Q2 2026 average USD 423.65 per US short ton converted to USD 466.99 per metric tonne. The standard 1.30x global import multiplier is applied.",
   },
