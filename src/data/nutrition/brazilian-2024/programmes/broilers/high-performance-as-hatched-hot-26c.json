@@ -18,7 +18,7 @@
   },
   "phases": [
     {
-      "id": "17-27d-0.8-1.8kg",
+      "id": "brazilian-2024-broilers-high-performance-as-hatched-hot-26c:17-27d-0.8-1.8kg",
       "phase": "grower",
       "ageDays": {
         "min": 17,
@@ -84,7 +84,7 @@
       }
     },
     {
-      "id": "27-35d-1.8-2.75kg",
+      "id": "brazilian-2024-broilers-high-performance-as-hatched-hot-26c:27-35d-1.8-2.75kg",
       "phase": "grower",
       "ageDays": {
         "min": 27,
@@ -150,7 +150,7 @@
       }
     },
     {
-      "id": "35-43d-2.75-3.68kg",
+      "id": "brazilian-2024-broilers-high-performance-as-hatched-hot-26c:35-43d-2.75-3.68kg",
       "phase": "finisher",
       "ageDays": {
         "min": 35,
@@ -216,7 +216,7 @@
       }
     },
     {
-      "id": "43-49d-3.68-4.32kg",
+      "id": "brazilian-2024-broilers-high-performance-as-hatched-hot-26c:43-49d-3.68-4.32kg",
       "phase": "finisher",
       "ageDays": {
         "min": 43,
