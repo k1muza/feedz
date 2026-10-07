@@ -114,6 +114,18 @@
           "check": "published-repeated-digestibility-coefficients"
         },
         "description": "Corn high-oil grain prints poultry digestibility coefficients for alanine 81.0%, glycine 76.0%, serine 81.2%, proline 94.5%, and tyrosine 95.4%, matching the average-corn coefficients despite other amino-acid coefficients differing. FeedSport preserves the printed values."
+      },
+      {
+        "id": "table-1.01-fish-meal-62-met-cys-digestibility",
+        "table": "1.01",
+        "printedPage": 100,
+        "target": {
+          "kind": "poultry-ingredient-nutrient",
+          "ingredientId": "fish-meal-62",
+          "nutrient": "methionineCysteine",
+          "check": "amino-acid-digestibility"
+        },
+        "description": "Fish meal 62% CP prints poultry SID Met+Cys as 1.12% with a digestibility coefficient of 86.9%, even though total Met+Cys is 2.44% and methionine alone is 1.57%. FeedSport preserves the printed value and records the inconsistency."
       }
     ]
   }
