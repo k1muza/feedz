@@ -1713,6 +1713,261 @@
         }
       },
       "digestibleProteinSwinePct": 41.7
+    },
+    {
+      "id": "sunflower-meal",
+      "name": "Sunflower, Meal",
+      "mappingConfidence": "high",
+      "sourcePage": 189,
+      "notes": [
+        "Exact Table 1.01 row (printed pages 189-190; titled \"Sunflower Meal\" on page 189 and \"Sunflower, Meal\" on page 190). The only sunflower row in Table 1.01; inclusion levels are published for this row (page 190). Linolenic acid is a source dash and is omitted."
+      ],
+      "compositionPct": {
+        "dryMatter": 89.8,
+        "crudeProtein": 33.0,
+        "starch": 4.38,
+        "crudeFibre": 25.8,
+        "etherExtract": 1.98,
+        "ndf": 40.7,
+        "adf": 26.3,
+        "ash": 6.11,
+        "linoleicAcid": 1.03
+      },
+      "swineEnergyKcalKg": {
+        "digestible": 2159,
+        "metabolizable": 1951,
+        "net": 995
+      },
+      "sowEnergyKcalKg": {
+        "digestible": 2588,
+        "metabolizable": 2285,
+        "net": 1239
+      },
+      "macroMineralsPct": {
+        "potassium": 1.42,
+        "sodium": 0.02,
+        "chloride": 0.15,
+        "sulfur": 0.32,
+        "magnesium": 0.65,
+        "calcium": 0.35,
+        "totalPhosphorus": 0.98,
+        "phytatePhosphorus": 0.66,
+        "availablePhosphorus": 0.32,
+        "standardizedDigestiblePhosphorusSwine": 0.25
+      },
+      "traceMineralsMgKg": {
+        "manganese": 0.34,
+        "iron": 248.0,
+        "copper": 26.0,
+        "zinc": 79.0,
+        "selenium": 0.5
+      },
+      "aminoAcids": {
+        "totalPct": {
+          "lysine": 1.14,
+          "methionine": 0.7,
+          "methionineCysteine": 1.26,
+          "threonine": 1.16,
+          "tryptophan": 0.43,
+          "arginine": 2.67,
+          "valine": 1.53,
+          "isoleucine": 1.25,
+          "leucine": 1.98,
+          "histidine": 0.79,
+          "phenylalanine": 1.45,
+          "phenylalanineTyrosine": 2.25,
+          "cysteine": 0.56,
+          "tyrosine": 0.8
+        },
+        "sidSwinePct": {
+          "lysine": 0.9,
+          "methionine": 0.63,
+          "methionineCysteine": 1.08,
+          "threonine": 0.92,
+          "tryptophan": 0.36,
+          "arginine": 2.48,
+          "valine": 1.24,
+          "isoleucine": 1.04,
+          "leucine": 1.66,
+          "histidine": 0.65,
+          "phenylalanine": 1.25,
+          "phenylalanineTyrosine": 1.95,
+          "cysteine": 0.44,
+          "tyrosine": 0.7
+        },
+        "sidSwineDigestibilityPct": {
+          "lysine": 79.2,
+          "methionine": 90.4,
+          "methionineCysteine": 85.4,
+          "threonine": 79.7,
+          "tryptophan": 83.5,
+          "arginine": 92.9,
+          "valine": 81.1,
+          "isoleucine": 83.3,
+          "leucine": 83.6,
+          "histidine": 82.8,
+          "phenylalanine": 86.2,
+          "phenylalanineTyrosine": 86.8,
+          "cysteine": 79.1,
+          "tyrosine": 87.8
+        }
+      },
+      "recommendedInclusionPct": {
+        "growingPigs": {
+          "starter": {
+            "practical": 5,
+            "max": 10
+          },
+          "grower": {
+            "practical": 8,
+            "max": 15
+          },
+          "finisher": {
+            "practical": 10,
+            "max": 18
+          }
+        },
+        "sows": {
+          "gestation": {
+            "practical": 13,
+            "max": 20
+          },
+          "lactation": {
+            "practical": 10,
+            "max": 20
+          }
+        }
+      },
+      "digestibleProteinSwinePct": 27.9,
+      "pigflowIngredientId": "sunflower-meal-solvent-extracted"
+    },
+    {
+      "id": "wheat-bran",
+      "name": "Wheat, Bran",
+      "mappingConfidence": "high",
+      "sourcePage": 197,
+      "notes": [
+        "Exact Table 1.01 row (printed pages 197-198). Distinct from the Wheat Dark Flour, Flour, Germ, Gluten, Grain and Screenings rows; inclusion levels are published for this row (page 198)."
+      ],
+      "compositionPct": {
+        "dryMatter": 88.5,
+        "crudeProtein": 15.2,
+        "starch": 29.6,
+        "crudeFibre": 9.07,
+        "etherExtract": 3.4,
+        "ndf": 39.8,
+        "adf": 13.1,
+        "ash": 4.43,
+        "linoleicAcid": 1.54,
+        "linolenicAcid": 0.12
+      },
+      "swineEnergyKcalKg": {
+        "digestible": 2481,
+        "metabolizable": 2370,
+        "net": 1694
+      },
+      "sowEnergyKcalKg": {
+        "digestible": 2767,
+        "metabolizable": 2605,
+        "net": 1866
+      },
+      "macroMineralsPct": {
+        "potassium": 1.1,
+        "sodium": 0.02,
+        "chloride": 0.07,
+        "sulfur": 0.2,
+        "magnesium": 0.43,
+        "calcium": 0.14,
+        "totalPhosphorus": 0.94,
+        "phytatePhosphorus": 0.45,
+        "availablePhosphorus": 0.49,
+        "standardizedDigestiblePhosphorusSwine": 0.49
+      },
+      "traceMineralsMgKg": {
+        "manganese": 102.7,
+        "iron": 205.3,
+        "copper": 15.0,
+        "zinc": 134.5,
+        "selenium": 0.31
+      },
+      "aminoAcids": {
+        "totalPct": {
+          "lysine": 0.6,
+          "methionine": 0.24,
+          "methionineCysteine": 0.55,
+          "threonine": 0.51,
+          "tryptophan": 0.22,
+          "arginine": 1.02,
+          "valine": 0.7,
+          "isoleucine": 0.48,
+          "leucine": 0.92,
+          "histidine": 0.4,
+          "phenylalanine": 0.6,
+          "phenylalanineTyrosine": 1.04,
+          "cysteine": 0.31,
+          "tyrosine": 0.44
+        },
+        "sidSwinePct": {
+          "lysine": 0.43,
+          "methionine": 0.19,
+          "methionineCysteine": 0.41,
+          "threonine": 0.33,
+          "tryptophan": 0.16,
+          "arginine": 0.88,
+          "valine": 0.53,
+          "isoleucine": 0.37,
+          "leucine": 0.72,
+          "histidine": 0.34,
+          "phenylalanine": 0.49,
+          "phenylalanineTyrosine": 0.83,
+          "cysteine": 0.23,
+          "tyrosine": 0.35
+        },
+        "sidSwineDigestibilityPct": {
+          "lysine": 72.0,
+          "methionine": 77.1,
+          "methionineCysteine": 74.9,
+          "threonine": 65.4,
+          "tryptophan": 70.9,
+          "arginine": 86.4,
+          "valine": 75.4,
+          "isoleucine": 77.5,
+          "leucine": 78.6,
+          "histidine": 85.3,
+          "phenylalanine": 81.3,
+          "phenylalanineTyrosine": 80.2,
+          "cysteine": 73.2,
+          "tyrosine": 78.7
+        }
+      },
+      "recommendedInclusionPct": {
+        "growingPigs": {
+          "starter": {
+            "practical": 2,
+            "max": 5
+          },
+          "grower": {
+            "practical": 5,
+            "max": 12
+          },
+          "finisher": {
+            "practical": 8,
+            "max": 15
+          }
+        },
+        "sows": {
+          "gestation": {
+            "practical": 15,
+            "max": 35
+          },
+          "lactation": {
+            "practical": 5,
+            "max": 15
+          }
+        }
+      },
+      "digestibleProteinSwinePct": 11.7,
+      "pigflowIngredientId": "wheat-bran"
     }
   ]
 }

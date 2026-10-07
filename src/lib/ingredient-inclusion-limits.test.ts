@@ -3,6 +3,7 @@ import { describe, test } from "node:test";
 
 import { ingredientDefaultPricePerKg, INGREDIENT_DEFAULT_PRICES } from "./feed-ingredient-prices";
 import { formulateLeastCostDiet, suggestFormulationIngredients } from "./feed-optimizer";
+import { BRAZILIAN_2024_CORE_FEEDSTUFFS } from "./brazilian-nutrition";
 import { feedProgrammePhaseById } from "./feed-programmes";
 import {
   effectiveInclusionLimits,
@@ -21,11 +22,14 @@ import {
 const FULL_FAT_SOY = "soybean-full-fat-extruded";
 const SOYBEAN_MEAL = "soybean-meal-solvent-extracted";
 const DEHULLED_SOYBEAN_MEAL = "soybean-meal-dehulled-solvent-extracted";
+const WHEAT_BRAN = "wheat-bran";
+const SUNFLOWER_MEAL = "sunflower-meal-solvent-extracted";
 const MAIZE = "corn-yellow-dent";
 
 const PRE_STARTER = { programme: "nursery-pig", phase: "br2024-5-32-14-21d-4.4-6.2kg" };
 const GROWER = { programme: "grow-finish-pig", phase: "br2024-5-43-63-91d-26-47kg" };
 const WEANER = { programme: "nursery-pig", phase: "br2024-5-32-35-49d-8.4-17.9kg" };
+const FINISHER = { programme: "grow-finish-pig", phase: "br2024-5-43-119-147d-74-103kg" };
 
 function phase(ref: { programme: string; phase: string }): NutritionPhase {
   const found = feedProgrammePhaseById(ref.programme, ref.phase);
@@ -67,6 +71,34 @@ describe("phase-specific inclusion limits", () => {
     assert.equal(maxPct(DEHULLED_SOYBEAN_MEAL, "boar"), 100);
   });
 
+  test("wheat bran and sunflower meal use their own Table 1.01 rows", () => {
+    // Pages 198 (Wheat, Bran) and 190 (Sunflower, Meal): [practical, max] per column.
+    const expected = {
+      [WHEAT_BRAN]: { starter: [2, 5], grower: [5, 12], finisher: [8, 15], gestation: [15, 35], lactation: [5, 15] },
+      [SUNFLOWER_MEAL]: { starter: [5, 10], grower: [8, 15], finisher: [10, 18], gestation: [13, 20], lactation: [10, 20] },
+    } as const;
+    for (const [ingredientId, columns] of Object.entries(expected)) {
+      for (const [phaseClass, [practical, max]] of Object.entries(columns)) {
+        const limits = feedsportInclusionLimits(ingredientId, {}, phaseClass as NutritionPhaseClass);
+        assert.equal(limits.maxPct, max, `${ingredientId} ${phaseClass} max`);
+        assert.equal(limits.phase?.practicalPct, practical, `${ingredientId} ${phaseClass} practical`);
+        assert.equal(limits.maxSource, "brazilian-phase");
+      }
+      assert.equal(maxPct(ingredientId, "pre-starter"), columns.starter[1]);
+      assert.equal(maxPct(ingredientId, "boar"), 100);
+    }
+  });
+
+  test("every Brazilian source row maps to an existing canonical ingredient on the same page", () => {
+    for (const feedstuff of BRAZILIAN_2024_CORE_FEEDSTUFFS.ingredients) {
+      if (!feedstuff.pigflowIngredientId) continue;
+      const ingredient = INGREDIENT_LIBRARY.ingredients.find((candidate) => candidate.id === feedstuff.pigflowIngredientId);
+      assert.ok(ingredient, `${feedstuff.id} maps to missing ${feedstuff.pigflowIngredientId}`);
+      assert.equal(ingredient.provenance.sourceTable, "Table 1.01", feedstuff.id);
+      assert.equal(ingredient.provenance.sourcePage, feedstuff.sourcePage, `${feedstuff.id} page`);
+    }
+  });
+
   test("sow phases use the sows columns", () => {
     assert.equal(maxPct(SOYBEAN_MEAL, "gestation"), 15);
     assert.equal(maxPct(FULL_FAT_SOY, "lactation"), 30);
@@ -78,7 +110,7 @@ describe("phase-specific inclusion limits", () => {
 
   test("boars and unmapped ingredients keep their existing limits", () => {
     assert.equal(maxPct(FULL_FAT_SOY, "boar"), 100);
-    assert.equal(maxPct("wheat-bran", "grower"), 100);
+    assert.equal(maxPct("sorghum-grain", "grower"), 100);
     assert.equal(maxPct("corn-oil", "starter"), 100);
   });
 
@@ -174,6 +206,32 @@ describe("optimizer enforces the 48% soybean-meal limit", () => {
     const dehulled = inclusion(result.solution.formula, DEHULLED_SOYBEAN_MEAL);
     assert.ok(dehulled <= 30 + 1e-6, `dehulled soybean meal ${dehulled}% must be <= 30%`);
     assert.ok(dehulled >= 30 - 1e-6, `dehulled soybean meal ${dehulled}% should be held at its 30% cap`);
+  });
+});
+
+describe("optimizer enforces wheat bran and sunflower meal limits", () => {
+  const ids = [MAIZE, SOYBEAN_MEAL, DEHULLED_SOYBEAN_MEAL, FULL_FAT_SOY, WHEAT_BRAN, SUNFLOWER_MEAL, "soybean-degummed-oil", "dicalcium-phosphate", "limestone-ground", "sodium-chloride", "l-lysine-hcl", "dl-methionine", "l-threonine", "l-tryptophan"];
+  const solve = (prices: Record<string, number>) =>
+    formulateLeastCostDiet(
+      phase(FINISHER),
+      "ME",
+      ids.map((ingredientId) => ({ ingredientId, pricePerKg: prices[ingredientId] ?? ingredientDefaultPricePerKg(ingredientId)! })),
+    );
+
+  test("free wheat bran is held at its 15% finisher maximum", async () => {
+    // Used at 41.4% before the source row was mapped.
+    const result = await solve({ [WHEAT_BRAN]: 0, [SUNFLOWER_MEAL]: 0 });
+    assert.equal(result.status, "optimal");
+    if (result.status !== "optimal") return;
+    assert.ok(Math.abs(inclusion(result.solution.formula, WHEAT_BRAN) - 15) < 1e-6);
+    assert.ok(inclusion(result.solution.formula, SUNFLOWER_MEAL) <= 18 + 1e-6);
+  });
+
+  test("free sunflower meal with expensive soy is held at its 18% finisher maximum", async () => {
+    const result = await solve({ [SUNFLOWER_MEAL]: 0, [SOYBEAN_MEAL]: 2, [DEHULLED_SOYBEAN_MEAL]: 2, [FULL_FAT_SOY]: 2 });
+    assert.equal(result.status, "optimal");
+    if (result.status !== "optimal") return;
+    assert.ok(Math.abs(inclusion(result.solution.formula, SUNFLOWER_MEAL) - 18) < 1e-6);
   });
 });
 
