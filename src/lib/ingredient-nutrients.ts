@@ -330,7 +330,7 @@ export function ingredientLibraryWithCustomPremixes(
           "User-entered commercial premix profile. Guaranteed label values should be used rather than inferred nutrient values.",
         ],
       },
-      nutrition: { [library.species]: profile },
+      nutrition: library.species === "swine" ? { swine: profile } : { poultry: profile },
       species: library.species,
       ...profile,
     };
