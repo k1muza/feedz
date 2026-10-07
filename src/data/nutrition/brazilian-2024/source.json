@@ -60,6 +60,18 @@
       "1.01 (remaining feedstuffs)",
       "5.44",
       "5.45"
+    ],
+    "sourceAnomalies": [
+      {
+        "table": "2.28",
+        "printedPage": 268,
+        "description": "The published 43-49 day phase has average weight 3.713 kg while the published weight range is 3.11-3.70 kg. FeedSport preserves both values verbatim."
+      },
+      {
+        "table": "2.29",
+        "printedPage": 269,
+        "description": "The hot-climate table publishes the same average weights as Table 2.28 while using different weight ranges. FeedSport preserves the published values verbatim."
+      }
     ]
   }
 }
