@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
+import { INGREDIENT_LIBRARY } from "./ingredient-nutrients";
+
 import {
   BRAZILIAN_2024_BROILER_HIGH_PERFORMANCE,
   BRAZILIAN_2024_BROILER_PROGRAMMES,
