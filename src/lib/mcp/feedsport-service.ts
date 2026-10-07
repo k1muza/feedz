@@ -427,7 +427,10 @@ function inclusionLimitRow(
 function practicalAdvisories(formula: DietFormula, phaseClass: NutritionPhaseClass) {
   return formula.ingredients.flatMap((row) => {
     const phase = phaseInclusionRecommendation(row.ingredientId, phaseClass);
-    return phase && row.inclusionPct > phase.practicalPct + 1e-6 && row.inclusionPct <= phase.maxPct + 1e-6
+    return phase &&
+      phase.practicalPct !== undefined &&
+      row.inclusionPct > phase.practicalPct + 1e-6 &&
+      row.inclusionPct <= phase.maxPct + 1e-6
       ? [{
           ingredient: row.ingredientId,
           percentage: round(row.inclusionPct, 4),
