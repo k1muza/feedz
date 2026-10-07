@@ -14,11 +14,25 @@ export type IngredientDefaultPrice = {
   sourceScope: IngredientPriceSourceScope;
   sourceLabel: string;
   sourceUrl?: string;
+  /**
+   * Extra planning multiplier for ingredients that have a market benchmark
+   * but no known practical Zimbabwe/Southern-African supply route.
+   * This is deliberately separate from the sourced market price.
+   */
+  availabilityMultiplier?: number;
   note?: string;
 };
 
 export const REGIONAL_IMPORT_PRICE_MULTIPLIER = 1.15;
 export const GLOBAL_IMPORT_PRICE_MULTIPLIER = 1.3;
+
+/**
+ * Conservative planning penalty for bulk ingredients whose only price evidence
+ * is a distant global benchmark and for which FeedSport has no known practical
+ * Zimbabwe/Southern-African supply route. A real supplier quote should replace
+ * this penalty via the normal price override path.
+ */
+export const SCARCE_GLOBAL_BULK_MULTIPLIER = 3;
 
 export function ingredientImportPriceMultiplier(
   sourceScope: IngredientPriceSourceScope,
@@ -271,6 +285,7 @@ export const INGREDIENT_DEFAULT_PRICES: readonly IngredientDefaultPrice[] = [
     market: "Global import fallback — Black Sea FOB",
     asOf: "2026-09-19",
     sourceScope: "global-fallback",
+    availabilityMultiplier: SCARCE_GLOBAL_BULK_MULTIPLIER,
     sourceLabel: "MOSTAGRO — Feed barley FOB Black Sea",
     sourceUrl: "https://most-agro.com/prices/barley",
     note:
@@ -282,6 +297,7 @@ export const INGREDIENT_DEFAULT_PRICES: readonly IngredientDefaultPrice[] = [
     market: "Global import fallback — trade benchmark",
     asOf: "2026-06-30",
     sourceScope: "global-fallback",
+    availabilityMultiplier: SCARCE_GLOBAL_BULK_MULTIPLIER,
     sourceLabel: "Tridge — Canola meal June 2026 trade values",
     sourceUrl:
       "https://insights.tridge.com/product-monthly-update-market-insights/canola-meal/2026-06",
@@ -294,6 +310,7 @@ export const INGREDIENT_DEFAULT_PRICES: readonly IngredientDefaultPrice[] = [
     market: "Global import fallback — United States FOB",
     asOf: "2026-09-21",
     sourceScope: "global-fallback",
+    availabilityMultiplier: SCARCE_GLOBAL_BULK_MULTIPLIER,
     sourceLabel: "USDA AMS via The Ration — DDGS",
     sourceUrl: "https://the-ration.com/ingredient/ddgs",
     note:
@@ -305,6 +322,7 @@ export const INGREDIENT_DEFAULT_PRICES: readonly IngredientDefaultPrice[] = [
     market: "Global import fallback — United States FOB",
     asOf: "2026-09-21",
     sourceScope: "global-fallback",
+    availabilityMultiplier: SCARCE_GLOBAL_BULK_MULTIPLIER,
     sourceLabel: "USDA AMS via The Ration — Corn gluten feed",
     sourceUrl: "https://the-ration.com/ingredient/corn-gluten-feed",
     note:
@@ -316,6 +334,7 @@ export const INGREDIENT_DEFAULT_PRICES: readonly IngredientDefaultPrice[] = [
     market: "Global import fallback — United States FOB",
     asOf: "2026-09-21",
     sourceScope: "global-fallback",
+    availabilityMultiplier: SCARCE_GLOBAL_BULK_MULTIPLIER,
     sourceLabel: "USDA AMS via The Ration — Corn gluten meal",
     sourceUrl: "https://the-ration.com/ingredient/corn-gluten-meal",
     note:
@@ -327,6 +346,7 @@ export const INGREDIENT_DEFAULT_PRICES: readonly IngredientDefaultPrice[] = [
     market: "Global import fallback — United States FOB",
     asOf: "2026-09-21",
     sourceScope: "global-fallback",
+    availabilityMultiplier: SCARCE_GLOBAL_BULK_MULTIPLIER,
     sourceLabel: "USDA AMS via The Ration — Cottonseed meal",
     sourceUrl: "https://the-ration.com/ingredient/cottonseed-meal",
     note:
@@ -338,6 +358,7 @@ export const INGREDIENT_DEFAULT_PRICES: readonly IngredientDefaultPrice[] = [
     market: "Global import fallback — United States FOB",
     asOf: "2026-09-21",
     sourceScope: "global-fallback",
+    availabilityMultiplier: SCARCE_GLOBAL_BULK_MULTIPLIER,
     sourceLabel: "USDA AMS via The Ration — Rice bran",
     sourceUrl: "https://the-ration.com/ingredient/rice-bran",
     note:
@@ -349,6 +370,7 @@ export const INGREDIENT_DEFAULT_PRICES: readonly IngredientDefaultPrice[] = [
     market: "Global import fallback — United States FOB",
     asOf: "2026-09-21",
     sourceScope: "global-fallback",
+    availabilityMultiplier: SCARCE_GLOBAL_BULK_MULTIPLIER,
     sourceLabel: "USDA AMS via The Ration — Soybean hulls",
     sourceUrl: "https://the-ration.com/ingredient/soybean-hulls",
     note:
@@ -371,6 +393,7 @@ export const INGREDIENT_DEFAULT_PRICES: readonly IngredientDefaultPrice[] = [
     market: "Global import fallback — United States FOB",
     asOf: "2026-09-14",
     sourceScope: "global-fallback",
+    availabilityMultiplier: SCARCE_GLOBAL_BULK_MULTIPLIER,
     sourceLabel: "USDA AMS via The Ration — Feather meal",
     sourceUrl: "https://the-ration.com/ingredient/feather-meal",
     note:
@@ -393,6 +416,7 @@ export const INGREDIENT_DEFAULT_PRICES: readonly IngredientDefaultPrice[] = [
     market: "Global import fallback — United States FOB",
     asOf: "2026-09-14",
     sourceScope: "global-fallback",
+    availabilityMultiplier: SCARCE_GLOBAL_BULK_MULTIPLIER,
     sourceLabel: "USDA AMS via The Ration — Meat and bone meal",
     sourceUrl: "https://the-ration.com/ingredient/meat-bone-meal",
     note:
@@ -404,6 +428,7 @@ export const INGREDIENT_DEFAULT_PRICES: readonly IngredientDefaultPrice[] = [
     market: "Global import fallback — United States",
     asOf: "2026-06-30",
     sourceScope: "global-fallback",
+    availabilityMultiplier: SCARCE_GLOBAL_BULK_MULTIPLIER,
     sourceLabel: "Darling Ingredients — Feed-grade poultry by-product meal Q2 2026",
     sourceUrl:
       "https://www.sec.gov/Archives/edgar/data/916540/000091654026000019/dar2q2026earnings.htm",
@@ -460,7 +485,11 @@ export function ingredientDefaultPlanningPricePerTonne(
 ): number | undefined {
   const price = ingredientDefaultPrice(ingredientId, prices);
   if (!price) return undefined;
-  return price.usdPerTonne * ingredientImportPriceMultiplier(price.sourceScope);
+  return (
+    price.usdPerTonne *
+    ingredientImportPriceMultiplier(price.sourceScope) *
+    (price.availabilityMultiplier ?? 1)
+  );
 }
 
 export function ingredientDefaultPricePerKg(
