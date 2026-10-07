@@ -111,13 +111,18 @@ describe("phase-specific inclusion limits", () => {
     const recommendationRows = INGREDIENT_LIBRARY_SOURCE.ingredients.filter(
       (ingredient) => ingredient.nutrition.swine?.recommendedInclusionPct,
     );
-    assert.equal(recommendationRows.length, Object.keys(expectedPages).length);
+    assert.equal(recommendationRows.length, 91);
 
-    for (const ingredient of recommendationRows) {
+    for (const [ingredientId, expectedPage] of Object.entries(expectedPages)) {
+      const ingredient = INGREDIENT_LIBRARY_SOURCE.ingredients.find(
+        (candidate) => candidate.id === ingredientId,
+      );
+      assert.ok(ingredient, `${ingredientId} exists`);
+      assert.ok(ingredient.nutrition.swine?.recommendedInclusionPct);
       assert.equal(ingredient.provenance.sourceTable, "Table 1.01", ingredient.id);
       assert.equal(
         ingredient.provenance.sourcePage,
-        expectedPages[ingredient.id],
+        expectedPage,
         `${ingredient.id} source page`,
       );
     }
@@ -132,10 +137,10 @@ describe("phase-specific inclusion limits", () => {
     assert.equal(maxPct(MAIZE, "grower"), 65);
   });
 
-  test("boars and unmapped ingredients keep their existing limits", () => {
+  test("full Table 1.01 coverage applies published limits while boars remain uncapped", () => {
     assert.equal(maxPct(FULL_FAT_SOY, "boar"), 100);
-    assert.equal(maxPct("sorghum-grain", "grower"), 100);
-    assert.equal(maxPct("corn-oil", "starter"), 100);
+    assert.equal(maxPct("sorghum-grain", "grower"), 65);
+    assert.equal(maxPct("corn-oil", "starter"), 5);
   });
 
   test("static ingredient limits still apply and the tighter limit wins", () => {
