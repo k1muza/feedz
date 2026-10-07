@@ -7,6 +7,6 @@ export default async function EditFeedFormulationPage({
   params: Promise<{ formulationId: string }>;
 }) {
   const { formulationId } = await params;
-  const options = feedFormulationEditorOptions();
+  const options = await feedFormulationEditorOptions();
   return <FeedFormulationEditor {...options} formulationId={formulationId} />;
 }

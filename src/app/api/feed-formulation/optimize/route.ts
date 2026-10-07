@@ -9,6 +9,10 @@ import {
   ingredientLibraryForPhase,
   ingredientLibraryWithCustomPremixes,
 } from "@/lib/ingredient-nutrients";
+import {
+  PUBLIC_PREMIX_ID,
+  publicPremixProfileForPhase,
+} from "@/lib/public-feed-premix";
 
 const optionalNutrient = z.number().finite().nonnegative().optional();
 
@@ -91,8 +95,15 @@ export async function POST(request: Request) {
   }
 
   try {
+    const includesFeedSportPremix = ingredients.some(
+      (ingredient) => ingredient.ingredientId === PUBLIC_PREMIX_ID,
+    );
+    const premixes = [
+      ...customPremixes.filter((premix) => premix.id !== PUBLIC_PREMIX_ID),
+      ...(includesFeedSportPremix ? [publicPremixProfileForPhase(phase)] : []),
+    ];
     const library = ingredientLibraryWithCustomPremixes(
-      customPremixes,
+      premixes,
       ingredientLibraryForPhase(phase),
     );
     const result = await formulateLeastCostDiet(
@@ -101,7 +112,8 @@ export async function POST(request: Request) {
       ingredients,
       library,
       {
-        includeSupplementationTargets,
+        includeSupplementationTargets:
+          includeSupplementationTargets || includesFeedSportPremix,
         traceMineralBasis,
       },
     );

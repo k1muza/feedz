@@ -21,6 +21,16 @@ export type FeedRecipeReportIngredient = {
   ingredientId: string;
   name: string;
   pricePerKg: number;
+  practicalInclusionPct?: number;
+  maxInclusionPct?: number;
+};
+
+export type FeedRecipePracticalAdvisory = {
+  ingredientId: string;
+  name: string;
+  inclusionPct: number;
+  practicalInclusionPct: number;
+  maxInclusionPct?: number;
 };
 
 export type FeedRecipeReportInput = {
@@ -37,6 +47,7 @@ export type FeedRecipeReportInput = {
   costPerKg: number;
   costIncreasePct: number;
   formulationBasis?: FeedFormulationBasisSnapshot;
+  practicalAdvisories?: readonly FeedRecipePracticalAdvisory[];
   generatedAt: Date;
 };
 
@@ -237,10 +248,39 @@ function addRecipeSheet(
   sheet.getCell(totalRow, 7).numFmt = "0.0%";
   styleTotal(sheet.getRow(totalRow), 7, true);
 
-  const noteRow = totalRow + 3;
+  let noteRow = totalRow + 3;
+
+  if ((input.practicalAdvisories?.length ?? 0) > 0) {
+    sheet.getRow(noteRow).values = ["PRACTICAL INCLUSION ADVISORIES"];
+    styleSection(sheet.getRow(noteRow), 7);
+    noteRow += 1;
+    sheet.getRow(noteRow).values = [
+      "Ingredient",
+      "Recipe %",
+      "Practical %",
+      "Hard max %",
+    ];
+    styleTableHeader(sheet.getRow(noteRow), 1, 4);
+
+    for (const advisory of input.practicalAdvisories ?? []) {
+      noteRow += 1;
+      sheet.getRow(noteRow).values = [
+        advisory.name,
+        advisory.inclusionPct,
+        advisory.practicalInclusionPct,
+        advisory.maxInclusionPct,
+      ];
+      for (const column of [2, 3, 4]) {
+        sheet.getCell(noteRow, column).numFmt = "0.00";
+      }
+      ruleRow(sheet, noteRow, 4);
+    }
+    noteRow += 3;
+  }
+
   sheet.mergeCells(noteRow, 1, noteRow + 1, 7);
   sheet.getCell(noteRow, 1).value =
-    "Planning statement: ingredient prices are the values used when this recipe was formulated. Re-run the formulation when supplier quotations, ingredient analyses or nutritional requirements change. This report records a planning formulation; it is not a substitute for quality-control testing of actual feed ingredients.";
+    "Planning statement: ingredient prices are the exact planning values used when this recipe was formulated. Re-run the formulation when supplier quotations, ingredient analyses or nutritional requirements change. Practical inclusion advisories are not hard failures, but should be reviewed before production. This report records a planning formulation; it is not a substitute for quality-control testing of actual feed ingredients.";
   sheet.getCell(noteRow, 1).alignment = { wrapText: true, vertical: "top" };
   sheet.getCell(noteRow, 1).font = {
     name: FONT,
