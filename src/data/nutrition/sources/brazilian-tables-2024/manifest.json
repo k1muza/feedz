@@ -4,20 +4,12 @@
   "title": "Brazilian Tables for Poultry and Swine — Composition of Feedstuffs and Nutritional Requirements",
   "edition": 5,
   "year": 2024,
-  "language": "English",
   "isbn": "9788581792101",
   "publisher": "Federal University of Viçosa, Department of Animal Science",
   "editors": [
     "Horacio Santiago Rostagno",
     "Luiz Fernando Teixeira Albino"
   ],
-  "coverage": {
-    "chapter1": "Feedstuff Composition and Nutritional Value",
-    "chapter5": "Nutritional Requirements of Growing Swine",
-    "chapter6": "Nutritional Requirements of Swine Breeders — Gestation and Lactation",
-    "chapter7": "Vitamin and Trace Mineral Supplementation for Poultry and Swine",
-    "chapter2": "Nutritional Requirements of Broiler Chickens"
-  },
   "sourceAnomalies": [
     {
       "id": "table-2.28-weight-band-43-49",
