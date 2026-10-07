@@ -886,7 +886,8 @@
             "acidDetergentFibrePct": 1.61,
             "linoleicAcidPct": 1.79,
             "ashPct": 1.31,
-            "digestibleProteinPct": 7.8
+            "digestibleProteinPct": 7.8,
+            "crudeProteinPct": 8.76
           },
           "energy": {
             "digestibleKcalKg": 3551,
@@ -1014,7 +1015,8 @@
             "acidDetergentFibrePct": 1.61,
             "linoleicAcidPct": 1.79,
             "ashPct": 1.31,
-            "digestibleProteinPct": 7.21
+            "digestibleProteinPct": 7.21,
+            "crudeProteinPct": 8.76
           },
           "energy": {
             "metabolizableKcalKg": 4010,
@@ -8912,7 +8914,8 @@
               "tyrosine": 1.03,
               "glycine": 1.6,
               "serine": 1.66,
-              "proline": 1.47
+              "proline": 1.47,
+              "isoleucine": 1.21
             },
             "sidDigestibilityPct": {
               "lysine": 62.1,
@@ -8931,7 +8934,8 @@
               "tyrosine": 77,
               "glycine": 70,
               "serine": 75,
-              "proline": 84
+              "proline": 84,
+              "isoleucine": 71.1
             },
             "sidPct": {
               "lysine": 0.97,
@@ -8950,7 +8954,8 @@
               "tyrosine": 0.79,
               "glycine": 1.12,
               "serine": 1.25,
-              "proline": 1.23
+              "proline": 1.23,
+              "isoleucine": 0.86
             }
           },
           "macroMinerals": {
@@ -9037,7 +9042,8 @@
               "tyrosine": 1.03,
               "glycine": 1.6,
               "serine": 1.66,
-              "proline": 1.47
+              "proline": 1.47,
+              "isoleucine": 1.21
             },
             "sidDigestibilityPct": {
               "crudeProtein": 78.2,
@@ -9058,7 +9064,8 @@
               "tyrosine": 71.2,
               "glycine": 71.4,
               "serine": 71.6,
-              "proline": 70.9
+              "proline": 70.9,
+              "isoleucine": 70.1
             },
             "sidPct": {
               "crudeProtein": 29.82,
@@ -9079,7 +9086,8 @@
               "tyrosine": 0.73,
               "glycine": 1.14,
               "serine": 1.19,
-              "proline": 1.04
+              "proline": 1.04,
+              "isoleucine": 0.85
             }
           },
           "macroMinerals": {
@@ -13982,7 +13990,8 @@
             "acidDetergentFibrePct": 12.3,
             "linoleicAcidPct": 3.15,
             "ashPct": 9.01,
-            "digestibleProteinPct": 9.4
+            "digestibleProteinPct": 9.4,
+            "crudeProteinPct": 13.1
           },
           "energy": {
             "digestibleKcalKg": 3110,
@@ -14008,7 +14017,8 @@
               "tyrosine": 0.44,
               "glycine": 0.7,
               "serine": 0.63,
-              "proline": 0.6
+              "proline": 0.6,
+              "isoleucine": 0.46
             },
             "sidDigestibilityPct": {
               "lysine": 74.8,
@@ -14027,7 +14037,8 @@
               "tyrosine": 81,
               "glycine": 59,
               "serine": 69,
-              "proline": 67
+              "proline": 67,
+              "isoleucine": 72
             },
             "sidPct": {
               "lysine": 0.47,
@@ -14046,7 +14057,8 @@
               "tyrosine": 0.36,
               "glycine": 0.41,
               "serine": 0.43,
-              "proline": 0.4
+              "proline": 0.4,
+              "isoleucine": 0.33
             }
           },
           "macroMinerals": {
@@ -14108,7 +14120,8 @@
             "acidDetergentFibrePct": 12.3,
             "linoleicAcidPct": 3.15,
             "ashPct": 9.01,
-            "digestibleProteinPct": 10.1
+            "digestibleProteinPct": 10.1,
+            "crudeProteinPct": 13.1
           },
           "energy": {
             "metabolizableKcalKg": 2583,
@@ -14134,7 +14147,8 @@
               "tyrosine": 0.44,
               "glycine": 0.7,
               "serine": 0.63,
-              "proline": 0.6
+              "proline": 0.6,
+              "isoleucine": 0.46
             },
             "sidDigestibilityPct": {
               "crudeProtein": 77.1,
@@ -14155,7 +14169,8 @@
               "tyrosine": 81.3,
               "glycine": 81.4,
               "serine": 72.5,
-              "proline": 71
+              "proline": 71,
+              "isoleucine": 76
             },
             "sidPct": {
               "crudeProtein": 10.1,
@@ -14176,7 +14191,8 @@
               "tyrosine": 0.36,
               "glycine": 0.57,
               "serine": 0.46,
-              "proline": 0.43
+              "proline": 0.43,
+              "isoleucine": 0.35
             }
           },
           "macroMinerals": {
