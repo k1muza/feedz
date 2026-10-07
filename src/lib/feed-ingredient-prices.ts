@@ -266,6 +266,162 @@ export const INGREDIENT_DEFAULT_PRICES: readonly IngredientDefaultPrice[] = [
     note: "USD 40 per 20 kg bag; MOQ 20 kg.",
   },
   {
+    ingredientId: "barley-two-row",
+    usdPerTonne: 202.5,
+    market: "Global import fallback — Black Sea FOB",
+    asOf: "2026-09-19",
+    sourceScope: "global-fallback",
+    sourceLabel: "MOSTAGRO — Feed barley FOB Black Sea",
+    sourceUrl: "https://most-agro.com/prices/barley",
+    note:
+      "Indicative feed-barley FOB Black Sea midpoint. No transparent current Harare/Southern-African feed-barley quote was found; the standard 1.30x global import multiplier is applied for planning.",
+  },
+  {
+    ingredientId: "canola-meal",
+    usdPerTonne: 224,
+    market: "Global import fallback — trade benchmark",
+    asOf: "2026-06-30",
+    sourceScope: "global-fallback",
+    sourceLabel: "Tridge — Canola meal June 2026 trade values",
+    sourceUrl:
+      "https://insights.tridge.com/product-monthly-update-market-insights/canola-meal/2026-06",
+    note:
+      "Uses the June 2026 India-origin observed average unit value of about USD 0.224/kg as a global planning benchmark. The standard 1.30x import multiplier is applied.",
+  },
+  {
+    ingredientId: "corn-ddgs",
+    usdPerTonne: 210.54,
+    market: "Global import fallback — United States FOB",
+    asOf: "2026-09-21",
+    sourceScope: "global-fallback",
+    sourceLabel: "USDA AMS via The Ration — DDGS",
+    sourceUrl: "https://the-ration.com/ingredient/ddgs",
+    note:
+      "Converted from the USDA national median of USD 191 per US short ton to USD 210.54 per metric tonne. The standard 1.30x import multiplier is applied.",
+  },
+  {
+    ingredientId: "corn-gluten-feed",
+    usdPerTonne: 223.77,
+    market: "Global import fallback — United States FOB",
+    asOf: "2026-09-21",
+    sourceScope: "global-fallback",
+    sourceLabel: "USDA AMS via The Ration — Corn gluten feed",
+    sourceUrl: "https://the-ration.com/ingredient/corn-gluten-feed",
+    note:
+      "Converted from USD 203 per US short ton to USD 223.77 per metric tonne. The standard 1.30x import multiplier is applied.",
+  },
+  {
+    ingredientId: "corn-gluten-meal-60",
+    usdPerTonne: 557.77,
+    market: "Global import fallback — United States FOB",
+    asOf: "2026-09-21",
+    sourceScope: "global-fallback",
+    sourceLabel: "USDA AMS via The Ration — Corn gluten meal",
+    sourceUrl: "https://the-ration.com/ingredient/corn-gluten-meal",
+    note:
+      "Converted from the USDA 60% protein benchmark of USD 506 per US short ton to USD 557.77 per metric tonne. The standard 1.30x import multiplier is applied.",
+  },
+  {
+    ingredientId: "cottonseed-meal-43",
+    usdPerTonne: 374.79,
+    market: "Global import fallback — United States FOB",
+    asOf: "2026-09-21",
+    sourceScope: "global-fallback",
+    sourceLabel: "USDA AMS via The Ration — Cottonseed meal",
+    sourceUrl: "https://the-ration.com/ingredient/cottonseed-meal",
+    note:
+      "USD 340 per US short ton converted to USD 374.79 per metric tonne. USDA quotes about 41% CP; FeedSport maps this benchmark to the nearest 43% CP Brazilian Tables record. The standard 1.30x import multiplier is applied.",
+  },
+  {
+    ingredientId: "rice-bran",
+    usdPerTonne: 157.63,
+    market: "Global import fallback — United States FOB",
+    asOf: "2026-09-21",
+    sourceScope: "global-fallback",
+    sourceLabel: "USDA AMS via The Ration — Rice bran",
+    sourceUrl: "https://the-ration.com/ingredient/rice-bran",
+    note:
+      "Converted from USD 143 per US short ton to USD 157.63 per metric tonne. The standard 1.30x import multiplier is applied.",
+  },
+  {
+    ingredientId: "soybean-hulls",
+    usdPerTonne: 170.86,
+    market: "Global import fallback — United States FOB",
+    asOf: "2026-09-21",
+    sourceScope: "global-fallback",
+    sourceLabel: "USDA AMS via The Ration — Soybean hulls",
+    sourceUrl: "https://the-ration.com/ingredient/soybean-hulls",
+    note:
+      "Converted from USD 155 per US short ton to USD 170.86 per metric tonne. The standard 1.30x import multiplier is applied.",
+  },
+  {
+    ingredientId: "blood-meal",
+    usdPerTonne: 1733.94,
+    market: "Global import fallback — United States FOB",
+    asOf: "2026-09-14",
+    sourceScope: "global-fallback",
+    sourceLabel: "USDA AMS via The Ration — Blood meal",
+    sourceUrl: "https://the-ration.com/ingredient/blood-meal",
+    note:
+      "Converted from USD 1,573 per US short ton to USD 1,733.94 per metric tonne. Blood-meal quality varies materially by drying method, so replace this with a supplier-specific quote when available.",
+  },
+  {
+    ingredientId: "feather-meal-84-cp",
+    usdPerTonne: 501.55,
+    market: "Global import fallback — United States FOB",
+    asOf: "2026-09-14",
+    sourceScope: "global-fallback",
+    sourceLabel: "USDA AMS via The Ration — Feather meal",
+    sourceUrl: "https://the-ration.com/ingredient/feather-meal",
+    note:
+      "Converted from USD 455 per US short ton to USD 501.55 per metric tonne. USDA's benchmark is about 80% CP; this is used for the closest higher-protein FeedSport record. The standard 1.30x import multiplier is applied.",
+  },
+  {
+    ingredientId: "fish-meal-62",
+    usdPerTonne: 2916,
+    market: "Global import fallback — CIF Hamburg",
+    asOf: "2026-09-30",
+    sourceScope: "global-fallback",
+    sourceLabel: "World Bank Pink Sheet — Fishmeal 64–65% protein",
+    sourceUrl: "https://commodityorigins.com/prices/fishmeal/",
+    note:
+      "September 2026 World Bank benchmark for 64–65% protein fishmeal. FeedSport maps it to the closest 62% CP record; the standard 1.30x import multiplier is applied.",
+  },
+  {
+    ingredientId: "bovine-meat-and-bone-meal-48-cp",
+    usdPerTonne: 537.93,
+    market: "Global import fallback — United States FOB",
+    asOf: "2026-09-14",
+    sourceScope: "global-fallback",
+    sourceLabel: "USDA AMS via The Ration — Meat and bone meal",
+    sourceUrl: "https://the-ration.com/ingredient/meat-bone-meal",
+    note:
+      "Converted from USD 488 per US short ton to USD 537.93 per metric tonne. USDA quotes roughly 46–50% CP, so this benchmark is mapped to FeedSport's 48% CP record. The standard 1.30x import multiplier is applied.",
+  },
+  {
+    ingredientId: "poultry-by-product-meal",
+    usdPerTonne: 466.99,
+    market: "Global import fallback — United States",
+    asOf: "2026-06-30",
+    sourceScope: "global-fallback",
+    sourceLabel: "Darling Ingredients — Feed-grade poultry by-product meal Q2 2026",
+    sourceUrl:
+      "https://www.sec.gov/Archives/edgar/data/916540/000091654026000019/dar2q2026earnings.htm",
+    note:
+      "Q2 2026 average USD 423.65 per US short ton converted to USD 466.99 per metric tonne. The standard 1.30x global import multiplier is applied.",
+  },
+  {
+    ingredientId: "molasses-cane",
+    usdPerTonne: 170,
+    market: "South Africa export unit value",
+    asOf: "2026-06-10",
+    sourceScope: "regional",
+    sourceLabel: "UN Comtrade via Selina Wamucii — South Africa molasses",
+    sourceUrl: "https://www.selinawamucii.com/insights/prices/south-africa/molasses/",
+    note:
+      "South African export unit-value benchmark of about USD 0.17/kg. The standard 1.15x regional import multiplier is applied for planning into Zimbabwe.",
+  },
+  {
     ingredientId: "corn-oil",
     usdPerTonne: 1587,
     market: "Global import fallback — USA FOB",
