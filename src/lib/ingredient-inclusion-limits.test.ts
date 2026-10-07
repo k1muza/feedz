@@ -88,14 +88,38 @@ describe("phase-specific inclusion limits", () => {
     }
   });
 
-  test("phase recommendations live on the canonical ingredient record", () => {
-    const ids = new Set(INGREDIENT_LIBRARY_SOURCE.ingredients.map((ingredient) => ingredient.id));
-    assert.equal(ids.size, INGREDIENT_LIBRARY_SOURCE.ingredients.length);
+  test("phase recommendations stay attached to the correct Table 1.01 source row", () => {
+    const expectedPages: Record<string, number> = {
+      "corn-yellow-dent": 73,
+      "soybean-meal-solvent-extracted": 165,
+      "soybean-meal-dehulled-solvent-extracted": 169,
+      "soybean-degummed-oil": 153,
+      "corn-ddgs": 61,
+      "corn-high-lysine-grain": 77,
+      "corn-high-oil-grain": 79,
+      "rice-broken": 139,
+      "sorghum-grain-high-tannin": 149,
+      "soybean-full-fat-extruded": 155,
+      "rice-bran": 137,
+      "cassava-whole": 49,
+      "cottonseed-meal-38": 87,
+      "fish-meal-54": 97,
+      "sunflower-meal-solvent-extracted": 189,
+      "wheat-bran": 197,
+    };
 
-    for (const ingredient of INGREDIENT_LIBRARY_SOURCE.ingredients) {
-      const recommendations = ingredient.nutrition.swine?.recommendedInclusionPct;
-      if (!recommendations) continue;
+    const recommendationRows = INGREDIENT_LIBRARY_SOURCE.ingredients.filter(
+      (ingredient) => ingredient.nutrition.swine?.recommendedInclusionPct,
+    );
+    assert.equal(recommendationRows.length, Object.keys(expectedPages).length);
+
+    for (const ingredient of recommendationRows) {
       assert.equal(ingredient.provenance.sourceTable, "Table 1.01", ingredient.id);
+      assert.equal(
+        ingredient.provenance.sourcePage,
+        expectedPages[ingredient.id],
+        `${ingredient.id} source page`,
+      );
     }
   });
 
