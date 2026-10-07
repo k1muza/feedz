@@ -129,8 +129,10 @@ const closedRangeSchema = z
 
 /**
  * Broiler age bands are printed with a shared boundary (for example 0-8, 8-17).
- * FeedSport interprets them as half-open intervals: [min, max).
- * The ending day belongs to the following phase, not both phases.
+ * FeedSport treats non-final phases as half-open intervals: [min, max), so a
+ * shared boundary day belongs only to the following phase. The final phase
+ * additionally includes its published max day so the programme covers its
+ * complete published age range.
  */
 const halfOpenAgeRangeSchema = z
   .object({
