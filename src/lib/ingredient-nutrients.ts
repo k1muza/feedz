@@ -92,7 +92,7 @@ const constraintsSchema = z
 /** Table 1.01 `practical` is advisory; `max` is the published hard ceiling. */
 const inclusionRecommendationSchema = z
   .object({
-    practical: z.number().min(0).max(100),
+    practical: z.number().min(0).max(100).optional(),
     max: z.number().min(0).max(100),
   })
   .strict()
