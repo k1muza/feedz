@@ -417,6 +417,12 @@ export type PoultryFormulationEnergy = {
 export function poultryFormulationEnergy(
   ingredient: IngredientNutrientRecord,
 ): PoultryFormulationEnergy | null {
+  if (ingredient.species !== "poultry") {
+    throw new Error(
+      `poultryFormulationEnergy requires a poultry ingredient record, received "${ingredient.species}".`,
+    );
+  }
+
   const metabolizable = ingredient.energy.metabolizableKcalKg;
   if (metabolizable === undefined) return null;
   return { kcalKg: metabolizable, basis: "metabolizable" };
