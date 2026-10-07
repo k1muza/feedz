@@ -12,6 +12,7 @@ import NewsletterSignup from '@/components/blog/NewsletterSignup';
 import { getFeedProduct } from '@/data/feedProductNutrition';
 import { articleAuthor, articleHeadings, headingId, readingMinutes, relatedArticles } from '@/data/knowledgeArticles';
 import { getPublishedArticles } from '@/lib/content';
+import remarkCta from '@/lib/remark-cta';
 import { absoluteUrl, breadcrumbJsonLd, createPageMetadata, serializeJsonLd, siteConfig } from '@/lib/seo';
 
 type Props = { params: Promise<{ slug: string }> };
@@ -59,6 +60,8 @@ const markdownComponents: Components = {
   ul: ({ children }) => <ul className="my-4 flex list-disc flex-col gap-2 pl-6 text-[17px] leading-[1.6] text-[#2c2e29]">{children}</ul>,
   ol: ({ children }) => <ol className="my-4 flex list-decimal flex-col gap-2 pl-6 text-[17px] leading-[1.6] text-[#2c2e29]">{children}</ol>,
   strong: ({ children }) => <strong className="font-semibold text-[#191b18]">{children}</strong>,
+  // Call-to-action boxes, written as `> [!CTA]` blockquotes (see remark-cta).
+  aside: ({ children }) => <aside className="my-8 rounded-[6px] border-l-[3px] border-[#d99a2b] bg-[#1d3a2a] px-5 py-1 text-white [&_a]:inline-flex [&_a]:min-h-[44px] [&_a]:items-center [&_a]:rounded-[4px] [&_a]:bg-[#fbfaf6] [&_a]:px-4 [&_a]:text-[15px] [&_a]:text-[#1d3a2a] [&_a]:no-underline [&_p]:my-3 [&_p]:text-[16px] [&_p]:leading-[1.55] [&_p]:text-[#dfe6dc] [&_strong]:text-[19px] [&_strong]:font-bold [&_strong]:text-white">{children}</aside>,
   blockquote: ({ children }) => <blockquote className="fs-mono my-5 rounded-[4px] border-l-[3px] border-[#d99a2b] bg-[#fbfaf6] px-4 py-1 text-[14px] [&_p]:text-[14px]">{children}</blockquote>,
   table: ({ children }) => <div className="my-6 overflow-x-auto rounded-[6px] border border-[#d9d4c7] bg-[#fbfaf6]"><table className="w-full border-collapse text-left text-[15px]">{children}</table></div>,
   th: ({ children }) => <th className="border-b-2 border-[#191b18] px-3.5 py-2.5 text-[13px] font-semibold text-[#4f524b]">{children}</th>,
@@ -132,7 +135,7 @@ export default async function KnowledgeArticlePage({ params }: Props) {
               <h2 className="fs-label m-0 text-[#4f524b]">Key points</h2>
               <ul className="mb-0 mt-3 flex list-disc flex-col gap-2 pl-5 text-[16px] leading-[1.5]">{article.keyPoints.map((point) => <li key={point}>{point}</li>)}</ul>
             </section>
-            <ReactMarkdown remarkPlugins={[remarkGfm, remarkMath]} rehypePlugins={[rehypeKatex]} components={markdownComponents}>{article.body}</ReactMarkdown>
+            <ReactMarkdown remarkPlugins={[remarkGfm, remarkMath, remarkCta]} rehypePlugins={[rehypeKatex]} components={markdownComponents}>{article.body}</ReactMarkdown>
             <p className="mt-10 border-t border-[#d9d4c7] pt-5 text-[14px] leading-[1.55] text-[#4f524b]">Figures in this guide are typical values and general ranges. Confirm targets for your animals, genetics and ingredients, and check batch specifications before formulating.</p>
           </div>
 

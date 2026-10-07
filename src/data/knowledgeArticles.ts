@@ -29,6 +29,217 @@ export const articleAuthor = 'FeedSport Nutrition Team';
 // Once the database is connected, edit articles in /admin/blog instead.
 export const knowledgeArticles: KnowledgeArticle[] = [
   {
+    slug: 'broilers-not-reaching-target-weight',
+    title: 'Why your broilers aren\'t reaching target weight (and how to fix it)',
+    seoTitle: 'Why Your Broilers Aren\'t Reaching Target Weight (and How to Fix It)',
+    description: 'The common reasons broilers grow slowly or unevenly, from feed and water to brooding, housing and disease, with target weights, a simple FCR check and a troubleshooting checklist.',
+    topic: 'Poultry nutrition',
+    image: knowledgeImages['broiler chicks brooding'],
+    published: '2026-10-07',
+    updated: '2026-10-07',
+    ingredients: ['soybean-meal', 'methionine', 'lysine', 'premix'],
+    keywords: ['broilers not growing', 'broiler target weight', 'broiler weight by age', 'slow broiler growth', 'broiler feed conversion ratio', 'broiler brooding temperature'],
+    keyPoints: [
+      'A modern broiler should weigh about 2 kg by day 35, and the 7-day weight matters most.',
+      'Slow growth almost always comes down to feed, water, brooding, housing or disease, often more than one.',
+      'Feed is 65–75% of the cost of a broiler, so the cheapest bag is rarely the cheapest chicken.',
+      'Weigh birds weekly and track feed conversion ratio (FCR) for every batch.',
+    ],
+    body: `
+If your broilers are taking seven or eight weeks to reach a weight that should come at five or six, you are losing money every extra day they stay on the farm. Each extra day means more feed, more labour, more risk of disease, and a later sale.
+
+Slow, uneven growth is one of the most common complaints from broiler farmers in Zimbabwe, from backyard batches of 50 birds to commercial houses of 5,000. The good news is that the causes are usually few and fixable. In most cases it comes down to feed, water, brooding, housing or disease, and often a combination of them.
+
+This guide explains each of these in plain terms, shows you what normal growth looks like, and ends with a checklist you can use on your own farm.
+
+## What normal growth looks like
+
+A modern broiler (such as Ross 308 or Cobb 500) should weigh roughly 2 kg by day 35. You cannot tell whether your birds are behind unless you know the targets and weigh them.
+
+| Age (days) | Target live weight (approx.) | Cumulative feed eaten per bird (approx.) |
+| --- | --- | --- |
+| 7 | 180–200 g | 0.15–0.17 kg |
+| 14 | 450–500 g | 0.55–0.60 kg |
+| 21 | 900–1,000 g | 1.2–1.3 kg |
+| 28 | 1.45–1.6 kg | 2.1–2.3 kg |
+| 35 | 2.0–2.2 kg | 3.1–3.4 kg |
+| 42 | 2.6–2.9 kg | 4.4–4.8 kg |
+
+These are approximate breed-standard figures. Under local conditions many farms achieve 85–95% of them, which is fine. Falling well below that, especially early on, points to a problem.
+
+The 7-day weight matters most. A chick should roughly multiply its hatch weight by four or five in the first week. Birds that miss the 7-day target rarely catch up fully.
+
+**How to weigh:** once a week, catch 20 to 50 birds at random from different parts of the house and weigh them on a kitchen or hanging scale. Record the average, and note the lightest and heaviest. If most birds fall within 10% of the average, the flock is even; a wide spread suggests some birds are not getting enough feed or water.
+
+> [!CTA]
+> **Not sure if your birds are on track?**
+>
+> Send us your weekly weights and the age of your flock. Our nutrition team will compare them with the targets and tell you where to look first.
+>
+> [WhatsApp your weights](https://wa.me/263774684534?text=Hi%20FeedSport%2C%20here%20are%20my%20broiler%20weights.%20Can%20you%20check%20them%20against%20target%3F)
+
+## Feed: the right diet at the right age
+
+Feed makes up about 65–75% of the cost of raising a broiler, and the wrong feed at the wrong age is the most common reason birds fall behind. A broiler's needs change fast. A young chick is building muscle, bone and its gut, so it needs a lot of protein and amino acids in every mouthful. An older bird is mostly putting on weight, so it needs relatively more energy and less protein.
+
+That is why broiler feeding is split into three stages:
+
+| Feed | Typical age | Crude protein (approx.) | Main job |
+| --- | --- | --- | --- |
+| Starter | Day 0 to 10–14 | 21–23% | Fast early growth, gut and bone development |
+| Grower | Day 11–14 to 24–28 | 19–21% | Frame and muscle growth |
+| Finisher | Day 25–28 to sale | 18–19% | Efficient weight gain at lower cost |
+
+Protein percentage alone does not tell you whether a feed is good. What matters is the balance of digestible amino acids, especially [lysine](/products/lysine) and [methionine](/products/methionine), along with energy, calcium, phosphorus and vitamins. Two feeds with the same protein on the label can perform very differently. For more on what changes between stages, see [broiler starter, grower and finisher feed explained](/knowledge/broiler-starter-grower-finisher-feed).
+
+Common feed mistakes:
+
+- **Switching too early to save money.** Moving chicks onto grower before about day 10 to save on starter costs more in lost growth than it saves.
+- **Feeding one feed throughout.** Starter all the way wastes money; finisher from the start starves chicks of protein.
+- **Running out of feed.** Empty feeders for even a few hours set birds back. Keep feed in front of them at all times.
+- **Sudden changes.** Mix old and new feed over two or three days when moving to the next stage.
+
+## Feed quality: when cheap feed costs more
+
+The cheapest feed per bag is rarely the cheapest feed per kilogram of chicken. A feed that costs 10% less but makes birds eat 15% more to reach the same weight is a loss, not a saving. To compare feeds properly, see [feed cost per kg of gain](/knowledge/feed-cost-per-kg-gain).
+
+**Home mixing.** Mixing your own feed from maize, [soya cake](/products/soybean-meal) and a concentrate can work, but only if the recipe is properly balanced and the ingredients are measured accurately. Common problems are too much maize (too little protein), poor-quality soya, and missing vitamins, minerals or amino acids. If you mix at home, use a tested formulation with a broiler [premix](/products/premix), and weigh every ingredient. You can check a recipe before you mix in our [formulation tool](/formulations).
+
+**Ingredient quality.** Maize and soya vary from batch to batch. Mouldy or poorly stored grain can carry aflatoxins, which damage the liver, weaken immunity and slow growth even when you cannot see mould in the feed.
+
+**Storage.** Store bags off the floor on pallets, away from walls, in a dry, cool, well-ventilated place. Use older stock first and aim to finish each batch within three to four weeks. Keep rats out: they eat feed, spoil it and spread disease.
+
+**Crumbs and pellets versus mash.** Birds eat crumbled or pelleted feed faster and waste less of it, and they usually grow faster on it. Mash works, but expect more wastage and slightly slower growth, and make sure it is not too finely ground or dusty.
+
+> [!CTA]
+> **Get the feed right for every stage**
+>
+> Feed is the biggest cost in every batch. Tell us your flock size, your current feeds and the age you sell at, and we will help you choose a starter, grower and finisher programme that pays.
+>
+> [Ask about broiler feeds](https://wa.me/263774684534?text=Hi%20FeedSport%2C%20I%20would%20like%20help%20choosing%20the%20right%20broiler%20feeds%20for%20my%20flock.)
+
+## Water: the forgotten nutrient
+
+A broiler drinks roughly 1.6 to 2 times as much water as it eats feed, and more in hot weather. Birds that cannot drink enough will not eat enough, however good the feed.
+
+- **Always available.** Drinkers should never run dry, especially in the afternoon heat.
+- **Clean.** Wash drinkers daily. Dirty water spreads disease and birds drink less of it.
+- **Cool.** Birds drink less when water is warm. Shade tanks and pipes, and flush lines on hot days.
+- **Right height.** Keep drinker lips at about the height of the birds' backs, raising them as the birds grow.
+- **Check the source.** Borehole water can be salty or high in iron or bacteria. If growth is poor for no clear reason, get your water tested.
+
+## Brooding: the first week sets the pace
+
+The first seven days are about 15–20% of a broiler's life, and mistakes made here show up at slaughter. Chicks cannot control their own body temperature at first, so if they are cold they huddle instead of eating and drinking.
+
+**Temperature.** Aim for about 32–33°C at chick level on day one, dropping by roughly 2–3°C each week until about 21–24°C. Watch the chicks rather than relying only on a thermometer:
+
+- **Huddled under the heat source and noisy:** too cold.
+- **Panting, wings out, pushed to the edges:** too hot.
+- **Spread evenly, eating, drinking and resting:** just right.
+
+**Preheat the house.** Switch on heaters 12 to 24 hours before chicks arrive so the floor and litter are warm, not just the air. Cold winter nights catch many farmers out.
+
+**Chick quality.** Buy from a reputable hatchery. Good chicks are bright, active, with dry navels and even size. Weak or dehydrated chicks will never perform well, whatever you feed them.
+
+**Get them eating fast.** Place chicks next to feed and water straight away. Spread starter feed on paper or trays for the first two or three days so every chick finds it. A simple check: 24 hours after placement, gently feel the crops of a few chicks. At least 95% should feel full and soft.
+
+## Housing and management
+
+Even with perfect feed, birds will not grow if they are crowded, short of feeder space or breathing bad air.
+
+**Stocking density.** A common guide is about 10 birds per square metre for birds sold at around 2 kg, fewer in hot weather or in houses with poor ventilation. Overcrowding causes heat stress, wet litter and uneven growth.
+
+**Feeder and drinker space.** Every bird should reach feed and water without fighting. As a rough guide, allow one tube feeder per 30–50 birds and one bell drinker per 50–80 birds, or one nipple per 10–12 birds. Smaller, weaker birds lose out first when space is tight, which is why flocks become uneven.
+
+**Ventilation.** Ammonia from wet litter burns the eyes and lungs and cuts growth. If the house smells of ammonia at your head height, it is far worse at bird level. Use curtains to let fresh air in while avoiding cold draughts on young chicks.
+
+**Litter.** Use 5–10 cm of dry pine shavings or similar. Turn wet patches, remove caked litter around drinkers and fix leaks. Wet litter leads to footpad sores, breast blisters and coccidiosis.
+
+## Disease and heat stress
+
+A sick bird uses its energy fighting infection instead of growing. Some diseases kill birds outright, but many simply slow growth quietly.
+
+**Coccidiosis.** A gut parasite that thrives in wet litter. Signs include ruffled feathers, droopy birds and bloody or watery droppings, but mild cases may only show as poor growth and feed conversion. Most commercial starter and grower feeds contain a coccidiostat; check the label, and keep litter dry.
+
+**Newcastle disease and Gumboro.** Both can be devastating. Follow a vaccination programme recommended by your hatchery or vet, and handle vaccines correctly: keep them cold, and use chlorine-free water when giving them in drinking water.
+
+**Biosecurity.** Keep visitors out, use a footbath, raise one age group at a time, and clean and disinfect the house between batches with at least one to two weeks of rest.
+
+**Heat stress.** In October and November, Zimbabwe's hottest months, house temperatures can climb well above 30°C. Hot birds eat less, so they grow less. Help them by:
+
+- feeding in the cooler early morning and evening;
+- making sure there is plenty of cool, clean water;
+- opening curtains fully and lowering stocking density;
+- using electrolytes or vitamin C in water during heatwaves, as advised by your vet or supplier.
+
+## Measuring performance: feed conversion ratio
+
+Feed conversion ratio (FCR) tells you how many kilograms of feed it took to produce one kilogram of live chicken. It is the single most useful number for judging both your feed and your management.
+
+$$
+\\text{FCR} = \\frac{\\text{total feed used (kg)}}{\\text{total live weight sold (kg)}}
+$$
+
+**Example:** you raise 500 birds and use 1,700 kg of feed. You sell 485 birds averaging 2.1 kg, so total live weight is 1,018.5 kg. FCR = 1,700 ÷ 1,018.5 = 1.67.
+
+A well-run flock sold at around 35 days should achieve an FCR of roughly 1.5 to 1.7. An FCR of 2.0 or more means you are paying for a lot of feed that is not turning into meat, through wastage, poor feed, disease or heat.
+
+Keep a simple record for every batch:
+
+| Record | Why it matters |
+| --- | --- |
+| Date placed and number of chicks | Starting point for mortality and growth |
+| Feed delivered (bags and type) | Total feed for FCR, and when you switched stages |
+| Weekly average weight | Shows when birds fall behind target |
+| Daily deaths | Spots disease early |
+| Number and weight sold | Final FCR and income |
+
+Comparing these figures from batch to batch is the fastest way to see whether a change, such as a new feed or better brooding, is paying off.
+
+> [!CTA]
+> **Is your FCR above 1.8?**
+>
+> Send us your batch records: chicks placed, feed used, weekly weights and birds sold. We will work through them with you and show you where the feed is going.
+>
+> [Send your batch records](https://wa.me/263774684534?text=Hi%20FeedSport%2C%20here%20are%20my%20broiler%20batch%20records.%20Can%20you%20help%20me%20find%20where%20we%20are%20losing%20growth%3F)
+
+## Quick troubleshooting checklist
+
+If your birds are behind target, work through these questions:
+
+1. Did chicks reach 180–200 g by day 7?
+2. Were 95% of crops full 24 hours after placement?
+3. Was the house preheated and the temperature right for the chicks' behaviour?
+4. Are birds on starter, grower and finisher at the right ages?
+5. Is the feed fresh, dry, mould-free and from a trusted source?
+6. Have feeders or drinkers ever run empty?
+7. Is there enough feeder and drinker space for every bird?
+8. Is the water clean, cool and tested?
+9. Is stocking density right for the season?
+10. Is the litter dry and the air free of ammonia?
+11. Are vaccinations up to date and biosecurity in place?
+12. Are you weighing birds weekly and calculating FCR?
+
+Every "no" is a place where growth, and money, is leaking out.
+
+## Getting your birds back on track
+
+Broilers are bred to grow fast, and when they don't, there is almost always a reason you can find and fix. Start with the basics: a strong first week, the right feed at each stage, plenty of clean water, and a house that is not too hot, crowded or damp. Then weigh your birds and track FCR so you know what is working.
+
+The feed you choose is the biggest single cost in every batch, so it pays to get it right. At FeedSport, we formulate feeds to give birds the nutrients they need at each stage of growth, so you get more chicken from every bag.
+
+> [!CTA]
+> **Broilers falling behind? Talk to FeedSport**
+>
+> Whether you raise 50 birds or 5,000, we are happy to talk through your results, help you choose the right feeds and feeding programme, and find where the gains are.
+>
+> [WhatsApp the team](https://wa.me/263774684534?text=Hi%20FeedSport%2C%20my%20broilers%20are%20behind%20target%20weight%20and%20I%20would%20like%20help%20with%20my%20feeding%20programme.)
+>
+> [Other ways to contact us](/contact)
+`,
+  },
+  {
     slug: 'feeding-pigs-by-stage-phase-feeding',
     title: 'Feeding pigs by stage: a practical guide to phase feeding',
     seoTitle: 'Feeding Pigs by Stage: A Practical Guide to Phase Feeding',

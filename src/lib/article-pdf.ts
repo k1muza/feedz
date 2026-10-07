@@ -2,7 +2,7 @@ import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 
 import fontkit from '@pdf-lib/fontkit';
-import type { BlockContent, List, PhrasingContent, RootContent, Table } from 'mdast';
+import type { Blockquote, BlockContent, List, PhrasingContent, Root, RootContent, Table } from 'mdast';
 import { PDFDocument, PDFString, rgb, type PDFFont, type PDFPage, type RGB } from 'pdf-lib';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
@@ -10,6 +10,7 @@ import remarkParse from 'remark-parse';
 import { unified } from 'unified';
 
 import { articleAuthor, readingMinutes, type KnowledgeArticle } from '@/data/knowledgeArticles';
+import remarkCta, { isCta } from '@/lib/remark-cta';
 import { absoluteUrl, siteConfig } from '@/lib/seo';
 
 const W = 595.28;
@@ -37,6 +38,7 @@ const C = {
   paper: hex('#fbfaf6'),
   zebra: hex('#f6f3ec'),
   white: rgb(1, 1, 1),
+  ctaText: hex('#dfe6dc'),
 };
 
 const FONT_DIR = path.join(process.cwd(), 'src/assets/fonts/pdf');
@@ -126,16 +128,17 @@ export async function renderArticlePdf(article: KnowledgeArticle) {
   const line = (x1: number, x2: number, atY: number, thickness = 0.5, color = C.rule) => {
     page.drawLine({ start: { x: x1, y: atY }, end: { x: x2, y: atY }, thickness, color });
   };
-  const link = (href: string, x: number, baseline: number, w: number, size: number) => {
+  const linkArea = (href: string, x1: number, y1: number, x2: number, y2: number) => {
     const annotation = pdf.context.obj({
       Type: 'Annot',
       Subtype: 'Link',
-      Rect: [x, baseline - size * 0.25, x + w, baseline + size * 0.9],
+      Rect: [x1, y1, x2, y2],
       Border: [0, 0, 0],
       A: { Type: 'Action', S: 'URI', URI: PDFString.of(href) },
     });
     page.node.addAnnot(pdf.context.register(annotation));
   };
+  const link = (href: string, x: number, baseline: number, w: number, size: number) => linkArea(href, x, baseline - size * 0.25, x + w, baseline + size * 0.9);
   const wrap = (value: string, font: FontName, size: number, maxWidth: number) => {
     const lines: string[] = [];
     let current = '';
@@ -360,6 +363,84 @@ export async function renderArticlePdf(article: KnowledgeArticle) {
     line(M, W - M, y, 1, C.ink);
   };
 
+  // A call-to-action box: bold heading, short text, and links drawn as buttons. Kept on one page.
+  const ctaBox = (node: Blockquote, x: number, maxWidth: number) => {
+    const pad = 18;
+    const left = x + pad + 4;
+    const inner = maxWidth - pad * 2 - 4;
+    const buttonSize = 10;
+    const buttonHeight = 26;
+    const buttonGap = 8;
+    type Part = { kind: 'text'; lines: Word[][]; size: number; leading: number } | { kind: 'buttons'; links: { label: string; href: string; width: number }[] };
+    const parts: Part[] = [];
+    node.children.forEach((child, index) => {
+      if (child.type !== 'paragraph') return;
+      const links = child.children.filter((item) => item.type === 'link');
+      if (links.length && child.children.every((item) => item.type === 'link' || (item.type === 'text' && !item.value.trim()))) {
+        const buttons = links.map((item) => {
+          const label = plainText(inlineRuns(item.children, { font: 'semibold', color: C.green })).trim();
+          return { label, href: item.url.startsWith('/') ? absoluteUrl(item.url) : item.url, width: width(label, 'semibold', buttonSize) + 28 };
+        });
+        const previous = parts[parts.length - 1];
+        if (previous?.kind === 'buttons') previous.links.push(...buttons);
+        else parts.push({ kind: 'buttons', links: buttons });
+        return;
+      }
+      const heading = index === 0 && child.children.length === 1 && child.children[0].type === 'strong';
+      const size = heading ? 14 : 10.5;
+      const color = heading ? C.white : C.ctaText;
+      const runs = inlineRuns(child.children, { font: heading ? 'bold' : 'regular', color }).map((run) => ({ ...run, color, font: heading ? 'bold' as FontName : run.font }));
+      parts.push({ kind: 'text', lines: layoutRuns(runs, size, inner), size, leading: size * 1.4 });
+    });
+
+    // Buttons flow left to right and wrap onto further rows.
+    const buttonRows = (links: { width: number }[]) => {
+      let rows = 1;
+      let used = 0;
+      for (const item of links) {
+        if (used && used + buttonGap + item.width > inner) {
+          rows += 1;
+          used = 0;
+        }
+        used += (used ? buttonGap : 0) + item.width;
+      }
+      return rows;
+    };
+    const partHeight = (part: Part) => part.kind === 'text' ? part.lines.length * part.leading : buttonRows(part.links) * (buttonHeight + buttonGap) - buttonGap + 4;
+    const height = pad * 2 + parts.reduce((total, part, index) => total + partHeight(part) + (index ? 8 : 0), 0);
+
+    y -= 8;
+    ensureSpace(height);
+    const top = y;
+    box(x, top, maxWidth, height, C.green);
+    box(x, top, 5, height, C.amber);
+    let cursor = top - pad;
+    parts.forEach((part, index) => {
+      if (index) cursor -= 8;
+      if (part.kind === 'text') {
+        for (const words of part.lines) {
+          drawWords(words, left, part.size, cursor - part.size);
+          cursor -= part.leading;
+        }
+        return;
+      }
+      cursor -= 4;
+      let bx = left;
+      for (const item of part.links) {
+        if (bx > left && bx + item.width > left + inner) {
+          bx = left;
+          cursor -= buttonHeight + buttonGap;
+        }
+        box(bx, cursor, item.width, buttonHeight, C.paper);
+        text(item.label, bx + 14, buttonSize, 'semibold', C.green, cursor - buttonHeight / 2 - buttonSize * 0.35);
+        linkArea(item.href, bx, cursor - buttonHeight, bx + item.width, cursor);
+        bx += item.width + buttonGap;
+      }
+      cursor -= buttonHeight;
+    });
+    y = top - height - 18;
+  };
+
   const block = (node: RootContent | BlockContent, x: number, maxWidth: number, tight = false) => {
     switch (node.type) {
       case 'heading': {
@@ -392,6 +473,10 @@ export async function renderArticlePdf(article: KnowledgeArticle) {
         y -= 16;
         return;
       case 'blockquote': {
+        if (isCta(node)) {
+          ctaBox(node, x, maxWidth);
+          return;
+        }
         const runs = node.children.flatMap((child, index) => [
           ...(index ? [{ text: '\n', font: 'regular' as FontName, color: C.body }] : []),
           ...(child.type === 'paragraph' ? inlineRuns(child.children, { font: 'regular', color: C.body }) : []),
@@ -441,7 +526,8 @@ export async function renderArticlePdf(article: KnowledgeArticle) {
     }
   };
 
-  const tree = unified().use(remarkParse).use(remarkGfm).use(remarkMath).parse(article.body);
+  const processor = unified().use(remarkParse).use(remarkGfm).use(remarkMath).use(remarkCta);
+  const tree = processor.runSync(processor.parse(article.body)) as Root;
   for (const node of tree.children) block(node, M, CW);
 
   // --- closing note ----------------------------------------------------------
