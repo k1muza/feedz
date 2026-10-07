@@ -1,7 +1,6 @@
 import { z } from "zod";
 
 import { BRAZILIAN_2024_SOURCE } from "./brazilian-source";
-import { BRAZILIAN_2024_CORE_FEEDSTUFFS } from "./brazilian-feedstuffs";
 import { assertUniqueIds } from "./nutrition-validation";
 
 import growingSwineJson from "@/data/nutrition/brazilian-2024/programmes/growing-swine.json";
@@ -298,7 +297,6 @@ const mineralSourcesSchema = z.object({
 });
 
 export { BRAZILIAN_2024_SOURCE };
-export { BRAZILIAN_2024_CORE_FEEDSTUFFS };
 
 export const BRAZILIAN_2024_SWINE_SUPPLEMENTATION =
   swineSupplementationSchema.parse(swineSupplementationJson);
