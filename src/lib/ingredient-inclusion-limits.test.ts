@@ -3,14 +3,13 @@ import { describe, test } from "node:test";
 
 import { ingredientDefaultPricePerKg, INGREDIENT_DEFAULT_PRICES } from "./feed-ingredient-prices";
 import { formulateLeastCostDiet, suggestFormulationIngredients } from "./feed-optimizer";
-import { BRAZILIAN_2024_CORE_FEEDSTUFFS } from "./brazilian-nutrition";
 import { feedProgrammePhaseById } from "./feed-programmes";
 import {
   effectiveInclusionLimits,
   feedsportInclusionLimits,
   phaseInclusionRecommendation,
 } from "./ingredient-inclusion-limits";
-import { INGREDIENT_LIBRARY, ingredientLibraryWithCustomPremixes } from "./ingredient-nutrients";
+import { INGREDIENT_LIBRARY, INGREDIENT_LIBRARY_SOURCE, ingredientLibraryWithCustomPremixes } from "./ingredient-nutrients";
 import { analyseFormulation, formulate } from "./mcp/feedsport-service";
 import type { NutritionPhase, NutritionPhaseClass } from "./nutrition";
 import {
@@ -89,13 +88,14 @@ describe("phase-specific inclusion limits", () => {
     }
   });
 
-  test("every Brazilian source row maps to an existing canonical ingredient on the same page", () => {
-    for (const feedstuff of BRAZILIAN_2024_CORE_FEEDSTUFFS.ingredients) {
-      if (!feedstuff.pigflowIngredientId) continue;
-      const ingredient = INGREDIENT_LIBRARY.ingredients.find((candidate) => candidate.id === feedstuff.pigflowIngredientId);
-      assert.ok(ingredient, `${feedstuff.id} maps to missing ${feedstuff.pigflowIngredientId}`);
-      assert.equal(ingredient.provenance.sourceTable, "Table 1.01", feedstuff.id);
-      assert.equal(ingredient.provenance.sourcePage, feedstuff.sourcePage, `${feedstuff.id} page`);
+  test("phase recommendations live on the canonical ingredient record", () => {
+    const ids = new Set(INGREDIENT_LIBRARY_SOURCE.ingredients.map((ingredient) => ingredient.id));
+    assert.equal(ids.size, INGREDIENT_LIBRARY_SOURCE.ingredients.length);
+
+    for (const ingredient of INGREDIENT_LIBRARY_SOURCE.ingredients) {
+      const recommendations = ingredient.nutrition.swine?.recommendedInclusionPct;
+      if (!recommendations) continue;
+      assert.equal(ingredient.provenance.sourceTable, "Table 1.01", ingredient.id);
     }
   });
 
