@@ -3,7 +3,7 @@ import {
   type IngredientNutrientRecord,
 } from '@/lib/ingredient-nutrients';
 import { PUBLIC_PREMIX_ID, PUBLIC_PREMIX_KG_PER_TONNE } from '@/lib/public-feed-premix';
-import { BRAZILIAN_2024_SOURCE } from '@/lib/brazilian-nutrition';
+import { BRAZILIAN_2024_SOURCE } from '@/lib/brazilian-source';
 import {
   feedProductCatalog,
   resolveFeedProductId,
