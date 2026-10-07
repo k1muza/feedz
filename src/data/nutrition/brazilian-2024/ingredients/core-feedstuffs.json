@@ -68,7 +68,12 @@
           "phenylalanine": 0.36,
           "phenylalanineTyrosine": 0.65,
           "cysteine": 0.17,
-          "tyrosine": 0.29
+          "tyrosine": 0.29,
+          "glycineSerine": 0.72,
+          "alanine": 0.6,
+          "glycine": 0.32,
+          "serine": 0.4,
+          "proline": 0.77
         },
         "sidSwinePct": {
           "lysine": 0.2,
@@ -195,7 +200,12 @@
           "phenylalanine": 2.34,
           "phenylalanineTyrosine": 4.05,
           "cysteine": 0.65,
-          "tyrosine": 1.71
+          "tyrosine": 1.71,
+          "glycineSerine": 4.5,
+          "alanine": 2.09,
+          "glycine": 2.04,
+          "serine": 2.46,
+          "proline": 2.39
         },
         "sidSwinePct": {
           "lysine": 2.59,
@@ -270,7 +280,7 @@
       "compositionPct": {
         "dryMatter": 88.9,
         "crudeProtein": 48.2,
-        "starch": 3.0,
+        "starch": 3,
         "crudeFibre": 4.55,
         "etherExtract": 1.72,
         "ndf": 11.5,
@@ -304,7 +314,7 @@
       "traceMineralsMgKg": {
         "manganese": 30.7,
         "iron": 159.5,
-        "copper": 9.0,
+        "copper": 9,
         "zinc": 47.7,
         "selenium": 0.34
       },
@@ -323,7 +333,12 @@
           "phenylalanine": 2.48,
           "phenylalanineTyrosine": 4.18,
           "cysteine": 0.72,
-          "tyrosine": 1.7
+          "tyrosine": 1.7,
+          "glycineSerine": 4.65,
+          "alanine": 2,
+          "glycine": 2.1,
+          "serine": 2.55,
+          "proline": 2.36
         },
         "sidSwinePct": {
           "lysine": 2.71,
@@ -384,7 +399,7 @@
           }
         }
       },
-      "digestibleProteinSwinePct": 44.0,
+      "digestibleProteinSwinePct": 44,
       "pigflowIngredientId": "soybean-meal-dehulled-solvent-extracted"
     },
     {
@@ -535,7 +550,12 @@
           "phenylalanine": 1.55,
           "phenylalanineTyrosine": 2.57,
           "cysteine": 0.47,
-          "tyrosine": 1.02
+          "tyrosine": 1.02,
+          "glycineSerine": 2.48,
+          "alanine": 2.29,
+          "glycine": 1.1,
+          "serine": 1.38,
+          "proline": 2.8
         },
         "sidSwinePct": {
           "lysine": 0.45,
@@ -660,7 +680,8 @@
           "phenylalanine": 0.34,
           "phenylalanineTyrosine": 0.57,
           "cysteine": 0.18,
-          "tyrosine": 0.23
+          "tyrosine": 0.23,
+          "glycineSerine": 0.82
         },
         "sidSwinePct": {
           "lysine": 0.27,
@@ -784,7 +805,12 @@
           "phenylalanine": 0.42,
           "phenylalanineTyrosine": 0.71,
           "cysteine": 0.21,
-          "tyrosine": 0.29
+          "tyrosine": 0.29,
+          "glycineSerine": 0.79,
+          "alanine": 0.64,
+          "glycine": 0.37,
+          "serine": 0.42,
+          "proline": 0.84
         },
         "sidSwinePct": {
           "lysine": 0.21,
@@ -909,7 +935,12 @@
           "phenylalanine": 0.4,
           "phenylalanineTyrosine": 0.78,
           "cysteine": 0.17,
-          "tyrosine": 0.38
+          "tyrosine": 0.38,
+          "glycineSerine": 0.78,
+          "alanine": 0.46,
+          "glycine": 0.37,
+          "serine": 0.41,
+          "proline": 0.41
         },
         "sidSwinePct": {
           "lysine": 0.25,
@@ -1033,7 +1064,12 @@
           "phenylalanine": 0.46,
           "phenylalanineTyrosine": 0.82,
           "cysteine": 0.15,
-          "tyrosine": 0.36
+          "tyrosine": 0.36,
+          "glycineSerine": 0.7,
+          "alanine": 0.82,
+          "glycine": 0.31,
+          "serine": 0.39,
+          "proline": 0.76
         },
         "sidSwinePct": {
           "lysine": 0.15,
@@ -1158,7 +1194,12 @@
           "phenylalanine": 1.89,
           "phenylalanineTyrosine": 3.15,
           "cysteine": 0.58,
-          "tyrosine": 1.26
+          "tyrosine": 1.26,
+          "glycineSerine": 3.5,
+          "alanine": 1.6,
+          "glycine": 1.6,
+          "serine": 1.9,
+          "proline": 1.92
         },
         "sidSwinePct": {
           "lysine": 2,
@@ -1283,7 +1324,12 @@
           "phenylalanine": 0.58,
           "phenylalanineTyrosine": 1.02,
           "cysteine": 0.23,
-          "tyrosine": 0.44
+          "tyrosine": 0.44,
+          "glycineSerine": 1.33,
+          "alanine": 0.82,
+          "glycine": 0.7,
+          "serine": 0.63,
+          "proline": 0.6
         },
         "sidSwinePct": {
           "lysine": 0.47,
@@ -1406,7 +1452,12 @@
           "phenylalanine": 0.09,
           "phenylalanineTyrosine": 0.17,
           "cysteine": 0.04,
-          "tyrosine": 0.08
+          "tyrosine": 0.08,
+          "glycineSerine": 0.17,
+          "alanine": 0.12,
+          "glycine": 0.09,
+          "serine": 0.08,
+          "proline": 0.11
         },
         "sidSwinePct": {
           "lysine": 0.07,
@@ -1531,7 +1582,12 @@
           "phenylalanine": 2,
           "phenylalanineTyrosine": 3.03,
           "cysteine": 0.64,
-          "tyrosine": 1.03
+          "tyrosine": 1.03,
+          "glycineSerine": 3.26,
+          "alanine": 1.51,
+          "glycine": 1.6,
+          "serine": 1.66,
+          "proline": 1.47
         },
         "sidSwinePct": {
           "lysine": 0.97,
@@ -1651,7 +1707,12 @@
           "phenylalanine": 2.05,
           "phenylalanineTyrosine": 3.58,
           "cysteine": 0.96,
-          "tyrosine": 1.53
+          "tyrosine": 1.53,
+          "glycineSerine": 7.68,
+          "alanine": 3.51,
+          "glycine": 5.01,
+          "serine": 2.67,
+          "proline": 3.87
         },
         "sidSwinePct": {
           "lysine": 2.57,
@@ -1724,7 +1785,7 @@
       ],
       "compositionPct": {
         "dryMatter": 89.8,
-        "crudeProtein": 33.0,
+        "crudeProtein": 33,
         "starch": 4.38,
         "crudeFibre": 25.8,
         "etherExtract": 1.98,
@@ -1757,9 +1818,9 @@
       },
       "traceMineralsMgKg": {
         "manganese": 0.34,
-        "iron": 248.0,
-        "copper": 26.0,
-        "zinc": 79.0,
+        "iron": 248,
+        "copper": 26,
+        "zinc": 79,
         "selenium": 0.5
       },
       "aminoAcids": {
@@ -1777,7 +1838,12 @@
           "phenylalanine": 1.45,
           "phenylalanineTyrosine": 2.25,
           "cysteine": 0.56,
-          "tyrosine": 0.8
+          "tyrosine": 0.8,
+          "glycineSerine": 3.15,
+          "alanine": 1.4,
+          "glycine": 1.75,
+          "serine": 1.4,
+          "proline": 1.66
         },
         "sidSwinePct": {
           "lysine": 0.9,
@@ -1886,7 +1952,7 @@
       "traceMineralsMgKg": {
         "manganese": 102.7,
         "iron": 205.3,
-        "copper": 15.0,
+        "copper": 15,
         "zinc": 134.5,
         "selenium": 0.31
       },
@@ -1905,7 +1971,12 @@
           "phenylalanine": 0.6,
           "phenylalanineTyrosine": 1.04,
           "cysteine": 0.31,
-          "tyrosine": 0.44
+          "tyrosine": 0.44,
+          "glycineSerine": 1.47,
+          "alanine": 0.72,
+          "glycine": 0.81,
+          "serine": 0.66,
+          "proline": 1
         },
         "sidSwinePct": {
           "lysine": 0.43,
@@ -1924,7 +1995,7 @@
           "tyrosine": 0.35
         },
         "sidSwineDigestibilityPct": {
-          "lysine": 72.0,
+          "lysine": 72,
           "methionine": 77.1,
           "methionineCysteine": 74.9,
           "threonine": 65.4,
