@@ -127,6 +127,21 @@ const closedRangeSchema = z
     message: "Range min must not exceed max.",
   });
 
+/**
+ * Broiler age bands are printed with a shared boundary (for example 0-8, 8-17).
+ * FeedSport interprets them as half-open intervals: [min, max).
+ * The ending day belongs to the following phase, not both phases.
+ */
+const halfOpenAgeRangeSchema = z
+  .object({
+    min: z.number(),
+    max: z.number(),
+  })
+  .strict()
+  .refine((value) => value.min < value.max, {
+    message: "Age range min must be less than max.",
+  });
+
 const broilerAminoAcidsSchema = z
   .object({
     lysine: percentSchema,
@@ -149,7 +164,7 @@ const broilerPhaseSchema = z
   .object({
     id: z.string(),
     phase: z.enum(["pre-starter", "starter", "grower", "finisher"]),
-    ageDays: closedRangeSchema,
+    ageDays: halfOpenAgeRangeSchema,
     weightKg: closedRangeSchema,
     averageWeightKg: positiveNumberSchema,
     gainGDay: positiveNumberSchema,
@@ -468,23 +483,37 @@ export function broilerInclusionLimitClassForPhase(
 
 export type PoultryFormulationEnergy = {
   kcalKg: number;
-  basis: "metabolizable" | "standardized-metabolizable";
+  basis: "metabolizable";
 };
 
+/**
+ * Return energy only when Table 1.01 publishes poultry metabolizable energy.
+ *
+ * Standardized metabolizable energy is retained as source data, but FeedSport
+ * does not silently substitute it during formulation because it is a different
+ * energy basis and would bias ingredients such as corn oil.
+ */
 export function poultryFormulationEnergy(
   ingredient: z.infer<typeof poultryFeedstuffSchema>,
-): PoultryFormulationEnergy {
-  if (ingredient.poultryEnergyKcalKg.metabolizable !== undefined) {
-    return {
-      kcalKg: ingredient.poultryEnergyKcalKg.metabolizable,
-      basis: "metabolizable",
-    };
+): PoultryFormulationEnergy | null {
+  const metabolizable = ingredient.poultryEnergyKcalKg.metabolizable;
+  if (metabolizable === undefined) {
+    return null;
   }
 
   return {
-    kcalKg: ingredient.poultryEnergyKcalKg.standardizedMetabolizable!,
-    basis: "standardized-metabolizable",
+    kcalKg: metabolizable,
+    basis: "metabolizable",
   };
+}
+
+export function findBroilerPhaseByAge(
+  programme: z.infer<typeof broilerProgrammeSchema>,
+  ageDays: number,
+): z.infer<typeof broilerPhaseSchema> | undefined {
+  return programme.phases.find(
+    (phase) => ageDays >= phase.ageDays.min && ageDays < phase.ageDays.max,
+  );
 }
 
 export const BRAZILIAN_2024_POULTRY_CORE_FEEDSTUFFS =
