@@ -128,6 +128,13 @@ describe("phase-specific inclusion limits", () => {
     }
   });
 
+  test("max-only inclusion rows keep their published ceiling without a practical value", () => {
+    const sugar = phaseInclusionRecommendation("sugar", "grower");
+    assert.ok(sugar);
+    assert.equal(sugar.maxPct, 10);
+    assert.equal(sugar.practicalPct, undefined);
+  });
+
   test("sow phases use the sows columns", () => {
     assert.equal(maxPct(SOYBEAN_MEAL, "gestation"), 15);
     assert.equal(maxPct(FULL_FAT_SOY, "lactation"), 30);
