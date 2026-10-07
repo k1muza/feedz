@@ -8,16 +8,12 @@
   "model": "species-overlay",
   "notes": [
     "Species-specific poultry energy, SID amino-acid, phosphorus digestibility, and broiler inclusion data.",
-    "Shared ingredient identity, composition, minerals, and available/non-phytate phosphorus remain in the canonical ingredient library.",
+    "Ingredient identity, mapping metadata, source page, composition, minerals, and available/non-phytate phosphorus are inherited from the canonical Brazilian Table 1.01 ingredient record by id.",
     "Poultry phosphorus digestibility fields are omitted where Table 1.01 prints no poultry value."
   ],
   "ingredients": [
     {
       "id": "corn-grain-average",
-      "name": "Corn, Grain (Average)",
-      "pigflowIngredientId": "corn-yellow-dent",
-      "sourceTable": "1.01",
-      "sourcePage": 73,
       "aminoAcids": {
         "sidPoultryPct": {
           "crudeProtein": 7.02,
@@ -81,7 +77,6 @@
         "standardizedMetabolizable": 3481,
         "net": 2711
       },
-      "mappingConfidence": "high",
       "phosphorus": {
         "digestibilityPct": 40.8,
         "standardizedDigestiblePct": 0.09
@@ -89,10 +84,6 @@
     },
     {
       "id": "soybean-meal-45.6-cp-average",
-      "name": "Soybean, Meal 45.6% CP (Average)",
-      "pigflowIngredientId": "soybean-meal-solvent-extracted",
-      "sourceTable": "1.01",
-      "sourcePage": 165,
       "aminoAcids": {
         "sidPoultryPct": {
           "crudeProtein": 40.7,
@@ -156,7 +147,6 @@
         "standardizedMetabolizable": 2538,
         "net": 1746
       },
-      "mappingConfidence": "high",
       "phosphorus": {
         "digestibilityPct": 42,
         "standardizedDigestiblePct": 0.24
@@ -164,10 +154,6 @@
     },
     {
       "id": "soybean-meal-48-cp",
-      "name": "Soybean, Meal 48% CP",
-      "pigflowIngredientId": "soybean-meal-dehulled-solvent-extracted",
-      "sourceTable": "1.01",
-      "sourcePage": 169,
       "aminoAcids": {
         "sidPoultryPct": {
           "crudeProtein": 43.3,
@@ -231,7 +217,6 @@
         "standardizedMetabolizable": 2373,
         "net": 1769
       },
-      "mappingConfidence": "high",
       "phosphorus": {
         "digestibilityPct": 45,
         "standardizedDigestiblePct": 0.27
@@ -239,10 +224,6 @@
     },
     {
       "id": "corn-oil",
-      "name": "Corn, Oil",
-      "pigflowIngredientId": "corn-oil",
-      "sourceTable": "1.01",
-      "sourcePage": 83,
       "recommendedInclusionPct": {
         "broilers": {
           "starter": {
@@ -258,15 +239,10 @@
       "poultryEnergyKcalKg": {
         "standardizedMetabolizable": 9250,
         "net": 7896
-      },
-      "mappingConfidence": "high"
+      }
     },
     {
       "id": "soybean-degummed-oil",
-      "name": "Soybean, Degummed Oil",
-      "pigflowIngredientId": "soybean-degummed-oil",
-      "sourceTable": "1.01",
-      "sourcePage": 153,
       "recommendedInclusionPct": {
         "broilers": {
           "starter": {
@@ -283,15 +259,10 @@
         "metabolizable": 8790,
         "standardizedMetabolizable": 9200,
         "net": 7912
-      },
-      "mappingConfidence": "high"
+      }
     },
     {
       "id": "corn-ddgs-6-9-ee",
-      "name": "Corn, Distillers Dried Grains with Solubles (DDGS) - 6 to 9% of EE",
-      "pigflowIngredientId": "corn-ddgs",
-      "sourceTable": "1.01",
-      "sourcePage": 61,
       "aminoAcids": {
         "sidPoultryPct": {
           "crudeProtein": 24.9,
@@ -353,15 +324,10 @@
       "poultryEnergyKcalKg": {
         "metabolizable": 2410,
         "net": 1948
-      },
-      "mappingConfidence": "high"
+      }
     },
     {
       "id": "corn-high-lysine-grain",
-      "name": "Corn, High-Lysine Grain",
-      "pigflowIngredientId": "corn-high-lysine-grain",
-      "sourceTable": "1.01",
-      "sourcePage": 77,
       "aminoAcids": {
         "sidPoultryPct": {
           "crudeProtein": 7.3,
@@ -417,7 +383,6 @@
         "standardizedMetabolizable": 3579,
         "net": 2743
       },
-      "mappingConfidence": "high",
       "phosphorus": {
         "digestibilityPct": 40.8,
         "standardizedDigestiblePct": 0.08
@@ -425,10 +390,6 @@
     },
     {
       "id": "corn-high-oil-grain",
-      "name": "Corn, High-Oil Grain",
-      "pigflowIngredientId": "corn-high-oil-grain",
-      "sourceTable": "1.01",
-      "sourcePage": 79,
       "aminoAcids": {
         "sidPoultryPct": {
           "crudeProtein": 7.26,
@@ -491,7 +452,6 @@
         "metabolizable": 3560,
         "net": 2890
       },
-      "mappingConfidence": "high",
       "phosphorus": {
         "digestibilityPct": 40.8,
         "standardizedDigestiblePct": 0.11
@@ -499,10 +459,6 @@
     },
     {
       "id": "rice-broken",
-      "name": "Rice, Broken",
-      "pigflowIngredientId": "rice-broken",
-      "sourceTable": "1.01",
-      "sourcePage": 139,
       "aminoAcids": {
         "sidPoultryPct": {
           "crudeProtein": 6.2,
@@ -566,7 +522,6 @@
         "standardizedMetabolizable": 3507,
         "net": 2575
       },
-      "mappingConfidence": "high",
       "phosphorus": {
         "digestibilityPct": 36,
         "standardizedDigestiblePct": 0.06
@@ -574,10 +529,6 @@
     },
     {
       "id": "sorghum-grain-high-tannin",
-      "name": "Sorghum, Grain High Tannin",
-      "pigflowIngredientId": "sorghum-grain-high-tannin",
-      "sourceTable": "1.01",
-      "sourcePage": 149,
       "phosphorus": {
         "digestibilityPct": 36,
         "standardizedDigestiblePct": 0.09
@@ -634,15 +585,10 @@
         "metabolizable": 2956,
         "standardizedMetabolizable": 3037,
         "net": 2374
-      },
-      "mappingConfidence": "high"
+      }
     },
     {
       "id": "soybean-full-fat-extruded",
-      "name": "Soybean, Full-fat Extruded",
-      "pigflowIngredientId": "soybean-full-fat-extruded",
-      "sourceTable": "1.01",
-      "sourcePage": 155,
       "phosphorus": {
         "digestibilityPct": 38,
         "standardizedDigestiblePct": 0.2
@@ -709,15 +655,10 @@
         "metabolizable": 3393,
         "standardizedMetabolizable": 3538,
         "net": 2804
-      },
-      "mappingConfidence": "high"
+      }
     },
     {
       "id": "rice-bran",
-      "name": "Rice, Bran",
-      "pigflowIngredientId": "rice-bran",
-      "sourceTable": "1.01",
-      "sourcePage": 137,
       "aminoAcids": {
         "sidPoultryPct": {
           "crudeProtein": 10.1,
@@ -779,18 +720,16 @@
         "standardizedMetabolizable": 3152,
         "net": 2148
       },
-      "mappingConfidence": "high",
       "phosphorus": {
         "digestibilityPct": 29,
         "standardizedDigestiblePct": 0.58
-      }
+      },
+      "sourceAnomalyIds": [
+        "table-1.01-rice-bran-met-cys-digestibility"
+      ]
     },
     {
       "id": "cassava-whole",
-      "name": "Cassava, Whole",
-      "pigflowIngredientId": "cassava-whole",
-      "sourceTable": "1.01",
-      "sourcePage": 49,
       "aminoAcids": {
         "sidPoultryPct": {
           "crudeProtein": 1.21
@@ -816,18 +755,13 @@
         "standardizedMetabolizable": 3192,
         "net": 2378
       },
-      "mappingConfidence": "high",
       "phosphorus": {
-        "digestibilityPct": 0.38,
+        "digestibilityPct": 38,
         "standardizedDigestiblePct": 0.03
       }
     },
     {
       "id": "cottonseed-meal-38",
-      "name": "Cottonseed, Meal 38% CP",
-      "pigflowIngredientId": "cottonseed-meal-38",
-      "sourceTable": "1.01",
-      "sourcePage": 87,
       "aminoAcids": {
         "sidPoultryPct": {
           "crudeProtein": 29.82,
@@ -888,15 +822,10 @@
         "metabolizable": 2050,
         "standardizedMetabolizable": 2173,
         "net": 1530
-      },
-      "mappingConfidence": "high"
+      }
     },
     {
       "id": "fish-meal-54",
-      "name": "Fish, Meal 54% CP",
-      "pigflowIngredientId": "fish-meal-54",
-      "sourceTable": "1.01",
-      "sourcePage": 97,
       "aminoAcids": {
         "sidPoultryPct": {
           "crudeProtein": 47.6,
@@ -960,7 +889,6 @@
         "standardizedMetabolizable": 3065,
         "net": 2293
       },
-      "mappingConfidence": "high",
       "phosphorus": {
         "digestibilityPct": 75,
         "standardizedDigestiblePct": 2.19
@@ -968,10 +896,6 @@
     },
     {
       "id": "sunflower-meal",
-      "name": "Sunflower, Meal",
-      "pigflowIngredientId": "sunflower-meal-solvent-extracted",
-      "sourceTable": "1.01",
-      "sourcePage": 189,
       "aminoAcids": {
         "sidPoultryPct": {
           "crudeProtein": 29.2,
@@ -1034,7 +958,6 @@
         "metabolizable": 1795,
         "net": 1396
       },
-      "mappingConfidence": "high",
       "phosphorus": {
         "digestibilityPct": 39,
         "standardizedDigestiblePct": 0.38
@@ -1042,10 +965,6 @@
     },
     {
       "id": "wheat-bran",
-      "name": "Wheat, Bran",
-      "pigflowIngredientId": "wheat-bran",
-      "sourceTable": "1.01",
-      "sourcePage": 197,
       "aminoAcids": {
         "sidPoultryPct": {
           "crudeProtein": 12.3,
@@ -1109,7 +1028,6 @@
         "standardizedMetabolizable": 2119,
         "net": 1444
       },
-      "mappingConfidence": "high",
       "phosphorus": {
         "digestibilityPct": 50,
         "standardizedDigestiblePct": 0.47
