@@ -363,11 +363,15 @@ const poultryFeedstuffSchema = z.object({
   sourcePage: z.number(),
   phosphorus: z
     .object({
-      availablePct: z.number(),
       digestibilityPct: z.number().optional(),
       standardizedDigestiblePct: z.number().optional(),
     })
     .strict()
+    .refine(
+      (value) =>
+        value.digestibilityPct !== undefined || value.standardizedDigestiblePct !== undefined,
+      { message: "Poultry phosphorus must contain a species-specific value." },
+    )
     .optional(),
   aminoAcids: z
     .object({
