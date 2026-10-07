@@ -19644,11 +19644,108 @@
             "priority": "fallback",
             "basis": "As-fed average; used only where Brazilian Tables 2024 leaves the nutrient missing",
             "note": "AFZ sugarcane molasses table publishes standardized ileal digestible poultry amino acids on an as-fed basis; g/kg values are converted to percent."
+          },
+          "poultry.aminoAcids.totalPct.lysine": {
+            "publisher": "INRAE, CIRAD, AFZ",
+            "title": "Tables of composition and nutritional values of feed materials",
+            "url": "https://www.feedtables.com/content/molasses-sugarcane",
+            "priority": "fallback",
+            "basis": "As-fed average; used only where Brazilian Tables 2024 leaves the nutrient missing",
+            "note": "AFZ publishes total sugarcane-molasses amino acids in g/kg as-fed. Values are converted to percent; the published table is coarsely rounded for these very small concentrations."
+          },
+          "poultry.aminoAcids.totalPct.methionine": {
+            "publisher": "INRAE, CIRAD, AFZ",
+            "title": "Tables of composition and nutritional values of feed materials",
+            "url": "https://www.feedtables.com/content/molasses-sugarcane",
+            "priority": "fallback",
+            "basis": "As-fed average; used only where Brazilian Tables 2024 leaves the nutrient missing",
+            "note": "AFZ publishes total sugarcane-molasses amino acids in g/kg as-fed. Values are converted to percent; the published table is coarsely rounded for these very small concentrations."
+          },
+          "poultry.aminoAcids.totalPct.methionineCysteine": {
+            "publisher": "INRAE, CIRAD, AFZ",
+            "title": "Tables of composition and nutritional values of feed materials",
+            "url": "https://www.feedtables.com/content/molasses-sugarcane",
+            "priority": "fallback",
+            "basis": "As-fed average; used only where Brazilian Tables 2024 leaves the nutrient missing",
+            "note": "AFZ publishes total sugarcane-molasses amino acids in g/kg as-fed. Values are converted to percent; the published table is coarsely rounded for these very small concentrations."
+          },
+          "poultry.aminoAcids.totalPct.threonine": {
+            "publisher": "INRAE, CIRAD, AFZ",
+            "title": "Tables of composition and nutritional values of feed materials",
+            "url": "https://www.feedtables.com/content/molasses-sugarcane",
+            "priority": "fallback",
+            "basis": "As-fed average; used only where Brazilian Tables 2024 leaves the nutrient missing",
+            "note": "AFZ publishes total sugarcane-molasses amino acids in g/kg as-fed. Values are converted to percent; the published table is coarsely rounded for these very small concentrations."
+          },
+          "poultry.aminoAcids.totalPct.tryptophan": {
+            "publisher": "INRAE, CIRAD, AFZ",
+            "title": "Tables of composition and nutritional values of feed materials",
+            "url": "https://www.feedtables.com/content/molasses-sugarcane",
+            "priority": "fallback",
+            "basis": "As-fed average; used only where Brazilian Tables 2024 leaves the nutrient missing",
+            "note": "AFZ publishes total sugarcane-molasses amino acids in g/kg as-fed. Values are converted to percent; the published table is coarsely rounded for these very small concentrations."
+          },
+          "poultry.aminoAcids.totalPct.valine": {
+            "publisher": "INRAE, CIRAD, AFZ",
+            "title": "Tables of composition and nutritional values of feed materials",
+            "url": "https://www.feedtables.com/content/molasses-sugarcane",
+            "priority": "fallback",
+            "basis": "As-fed average; used only where Brazilian Tables 2024 leaves the nutrient missing",
+            "note": "AFZ publishes total sugarcane-molasses amino acids in g/kg as-fed. Values are converted to percent; the published table is coarsely rounded for these very small concentrations."
+          },
+          "poultry.aminoAcids.totalPct.isoleucine": {
+            "publisher": "INRAE, CIRAD, AFZ",
+            "title": "Tables of composition and nutritional values of feed materials",
+            "url": "https://www.feedtables.com/content/molasses-sugarcane",
+            "priority": "fallback",
+            "basis": "As-fed average; used only where Brazilian Tables 2024 leaves the nutrient missing",
+            "note": "AFZ publishes total sugarcane-molasses amino acids in g/kg as-fed. Values are converted to percent; the published table is coarsely rounded for these very small concentrations."
+          },
+          "poultry.aminoAcids.totalPct.leucine": {
+            "publisher": "INRAE, CIRAD, AFZ",
+            "title": "Tables of composition and nutritional values of feed materials",
+            "url": "https://www.feedtables.com/content/molasses-sugarcane",
+            "priority": "fallback",
+            "basis": "As-fed average; used only where Brazilian Tables 2024 leaves the nutrient missing",
+            "note": "AFZ publishes total sugarcane-molasses amino acids in g/kg as-fed. Values are converted to percent; the published table is coarsely rounded for these very small concentrations."
+          },
+          "poultry.aminoAcids.totalPct.histidine": {
+            "publisher": "INRAE, CIRAD, AFZ",
+            "title": "Tables of composition and nutritional values of feed materials",
+            "url": "https://www.feedtables.com/content/molasses-sugarcane",
+            "priority": "fallback",
+            "basis": "As-fed average; used only where Brazilian Tables 2024 leaves the nutrient missing",
+            "note": "AFZ publishes total sugarcane-molasses amino acids in g/kg as-fed. Values are converted to percent; the published table is coarsely rounded for these very small concentrations."
+          },
+          "poultry.aminoAcids.totalPct.phenylalanine": {
+            "publisher": "INRAE, CIRAD, AFZ",
+            "title": "Tables of composition and nutritional values of feed materials",
+            "url": "https://www.feedtables.com/content/molasses-sugarcane",
+            "priority": "fallback",
+            "basis": "As-fed average; used only where Brazilian Tables 2024 leaves the nutrient missing",
+            "note": "AFZ publishes total sugarcane-molasses amino acids in g/kg as-fed. Values are converted to percent; the published table is coarsely rounded for these very small concentrations."
+          },
+          "poultry.aminoAcids.totalPct.tyrosine": {
+            "publisher": "INRAE, CIRAD, AFZ",
+            "title": "Tables of composition and nutritional values of feed materials",
+            "url": "https://www.feedtables.com/content/molasses-sugarcane",
+            "priority": "fallback",
+            "basis": "As-fed average; used only where Brazilian Tables 2024 leaves the nutrient missing",
+            "note": "AFZ publishes total sugarcane-molasses amino acids in g/kg as-fed. Values are converted to percent; the published table is coarsely rounded for these very small concentrations."
+          },
+          "poultry.aminoAcids.totalPct.phenylalanineTyrosine": {
+            "publisher": "INRAE, CIRAD, AFZ",
+            "title": "Tables of composition and nutritional values of feed materials",
+            "url": "https://www.feedtables.com/content/molasses-sugarcane",
+            "priority": "fallback",
+            "basis": "As-fed average; used only where Brazilian Tables 2024 leaves the nutrient missing",
+            "note": "AFZ publishes total sugarcane-molasses amino acids in g/kg as-fed. Values are converted to percent; the published table is coarsely rounded for these very small concentrations."
           }
         },
         "notes": [
           "Nutrient values are transcribed from the Brazilian Tables 2024 Table 1.01 swine columns; source dashes remain missing rather than being converted to zero.",
-          "Poultry amino-acid, linoleic-acid and digestible-protein gaps use explicitly recorded fallback sources rather than treating Brazilian Tables dashes as zero."
+          "Poultry amino-acid, linoleic-acid and digestible-protein gaps use explicitly recorded fallback sources rather than treating Brazilian Tables dashes as zero.",
+          "AFZ total and standardized ileal poultry amino-acid values for molasses are very small and are published with coarse rounding; FeedSport preserves the published values rather than forcing the displayed SID/total ratio to reproduce the published digestibility coefficient."
         ]
       },
       "nutrition": {
@@ -19727,7 +19824,20 @@
             "standardizedMetabolizableKcalKg": 2230
           },
           "aminoAcids": {
-            "totalPct": {},
+            "totalPct": {
+              "lysine": 0.02,
+              "methionine": 0.02,
+              "methionineCysteine": 0.06,
+              "threonine": 0.06,
+              "tryptophan": 0.008,
+              "valine": 0.13,
+              "isoleucine": 0.04,
+              "leucine": 0.05,
+              "histidine": 0.01,
+              "phenylalanine": 0.02,
+              "tyrosine": 0.05,
+              "phenylalanineTyrosine": 0.08
+            },
             "sidDigestibilityPct": {
               "lysine": 93,
               "methionine": 98,
@@ -23840,4 +23950,4 @@
       }
     }
   ]
-}
+}\n

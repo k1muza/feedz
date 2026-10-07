@@ -226,6 +226,18 @@ function hasAminoAcidAnomaly(
   });
 }
 
+function hasFallbackPoultryAminoAcidSource(
+  ingredient: IngredientSourceRecord,
+  nutrient: string,
+): boolean {
+  const nutrientSources = ingredient.provenance.nutrientSources;
+  return [
+    `poultry.aminoAcids.totalPct.${nutrient}`,
+    `poultry.aminoAcids.sidPct.${nutrient}`,
+    `poultry.aminoAcids.sidDigestibilityPct.${nutrient}`,
+  ].some((path) => nutrientSources[path]?.priority === "fallback");
+}
+
 function validatePoultryIngredientRelations(ingredient: IngredientSourceRecord): void {
   const profile = ingredient.nutrition.poultry;
   if (!profile) return;
@@ -293,7 +305,8 @@ function validatePoultryIngredientRelations(ingredient: IngredientSourceRecord):
     const calculated = (sidValue / totalValue) * 100;
     if (
       Math.abs(calculated - digestibility) > 6 &&
-      !hasAminoAcidAnomaly(ingredient.id, nutrient, profile.sourceAnomalyIds)
+      !hasAminoAcidAnomaly(ingredient.id, nutrient, profile.sourceAnomalyIds) &&
+      !hasFallbackPoultryAminoAcidSource(ingredient, nutrient)
     ) {
       throw new Error(
         `Poultry ${nutrient} digestibility for ${ingredient.id} is inconsistent: ` +
