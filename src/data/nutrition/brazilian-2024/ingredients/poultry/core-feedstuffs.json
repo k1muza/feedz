@@ -455,7 +455,10 @@
       "phosphorus": {
         "digestibilityPct": 40.8,
         "standardizedDigestiblePct": 0.11
-      }
+      },
+      "sourceAnomalyIds": [
+        "table-1.01-high-oil-corn-repeated-aa-digestibility"
+      ]
     },
     {
       "id": "rice-broken",
