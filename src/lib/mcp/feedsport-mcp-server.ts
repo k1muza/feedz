@@ -22,11 +22,11 @@ import {
   runSensitivityAnalysisTool,
 } from "./feedsport-diagnostics";
 
-export const FEEDSPORT_MCP_VERSION = "0.2.0";
+export const FEEDSPORT_MCP_VERSION = "0.3.0";
 
 const INSTRUCTIONS = `FeedSport formulates and analyses livestock (swine) feeds with its own nutrient database, programme requirements and GLPK least-cost optimizer.
 
-Typical workflow: get_programmes → get_programme → search_ingredients → formulate (or analyse_formulation for an existing recipe).
+Typical workflow: get_programmes → get_programme → formulate. For a generic formulation request, omit ingredients (or set ingredient_mode="automatic") and FeedSport will build the complete priced candidate pool itself. Use ingredient_mode="selected" only when the user explicitly specifies which ingredients are available. Use analyse_formulation for an existing recipe.
 
 To answer "why" and "what if" questions, use the diagnostics tools instead of reasoning about the numbers yourself: explain_formulation (limiting nutrients, why an ingredient is or isn't used), diagnose_infeasibility (why no ration exists and what fixes it), run_sensitivity_analysis (price or limit changes), find_ingredient_opportunities (which ingredient would make it cheaper) and compare_formulation_strategies. Their "findings" are plain-language statements derived from the solver; quote them rather than paraphrasing numbers.
 
@@ -34,7 +34,9 @@ Rules:
 - Never calculate, adjust or invent rations, nutrient values or requirements yourself. Use FeedSport results as returned.
 - FeedSport requirements and ingredient inclusion limits cannot be relaxed; request constraints can only tighten them.
 - A result with status "infeasible", "missing_data", "error" or "fail" is not a valid ration. Explain the issues instead of presenting a recipe.
-- Include the FeedSport premix (public-premix-salt-additives) to cover vitamin and trace-mineral supplementation.
+- Automatic ingredient mode includes the FeedSport premix (public-premix-salt-additives) and only offers priced ingredients with complete data for the selected programme phase.
+- In selected ingredient mode, include the FeedSport premix (public-premix-salt-additives) to cover vitamin and trace-mineral supplementation.
+- Do not choose a smaller ingredient basket on the user's behalf for a generic request; use automatic mode so FeedSport, not the AI client, determines the candidate pool.
 - Prices are FeedSport planning prices in USD per tonne unless the caller supplied its own.`;
 
 const READ_ONLY = {
@@ -54,7 +56,23 @@ const programmeId = z
   .min(1)
   .describe('Programme phase id from get_programmes, e.g. "grow-finish-pig:<phase-id>".');
 
-/** Inputs shared by formulate and every diagnostics tool. */
+const ingredientConstraints = z
+  .record(
+    z.string(),
+    z.object({
+      min_percent: z.number().min(0).max(100).optional(),
+      max_percent: z.number().min(0).max(100).optional(),
+      price_per_tonne: z
+        .number()
+        .nonnegative()
+        .optional()
+        .describe("Override the FeedSport planning price (USD per tonne)."),
+    }),
+  )
+  .optional()
+  .describe("Per-ingredient limits keyed by ingredient id. Limits can only tighten FeedSport defaults.");
+
+/** Inputs shared by diagnostics tools, which analyse a specific offered pool. */
 const formulationShape = {
   programme_id: programmeId,
   energy_system: energySystem,
@@ -63,21 +81,7 @@ const formulationShape = {
     .min(1)
     .max(60)
     .describe("Ingredient ids (exact names or aliases are accepted when unambiguous)."),
-  constraints: z
-    .record(
-      z.string(),
-      z.object({
-        min_percent: z.number().min(0).max(100).optional(),
-        max_percent: z.number().min(0).max(100).optional(),
-        price_per_tonne: z
-          .number()
-          .nonnegative()
-          .optional()
-          .describe("Override the FeedSport planning price (USD per tonne)."),
-      }),
-    )
-    .optional()
-    .describe("Per-ingredient limits keyed by ingredient id. Limits can only tighten FeedSport defaults."),
+  constraints: ingredientConstraints,
 };
 
 function json(value: unknown): CallToolResult {
@@ -195,9 +199,25 @@ export function createFeedSportMcpServer(
     {
       title: "Formulate a feed",
       description:
-        "Formulate a ration with FeedSport's GLPK optimizer from the given ingredients against a programme phase. Returns the recipe, cost, nutrient profile and requirement comparison, or an infeasible response with the limiting nutrients.",
+        "Formulate a ration with FeedSport's GLPK optimizer against a programme phase. By default FeedSport automatically offers every priced ingredient with complete data for the phase, including its fixed premix. Set ingredient_mode='selected' and pass ingredients only when the user has specified the available basket. Returns the recipe, cost, candidate-pool basis, nutrient profile and requirement comparison, or an infeasible response.",
       inputSchema: z.object({
-        ...formulationShape,
+        programme_id: programmeId,
+        energy_system: energySystem,
+        ingredient_mode: z
+          .enum(["automatic", "selected"])
+          .optional()
+          .describe(
+            "Omit for automatic mode unless ingredients are supplied (legacy calls with ingredients are treated as selected). automatic = FeedSport builds the complete priced candidate pool; selected = only the supplied ingredients are offered.",
+          ),
+        ingredients: z
+          .array(z.string().min(1))
+          .min(1)
+          .max(60)
+          .optional()
+          .describe(
+            "Only for selected mode: ingredient ids the user can access. Omit for a generic formulation so FeedSport can build the candidate pool itself.",
+          ),
+        constraints: ingredientConstraints,
         objective: z
           .enum(FORMULATION_OBJECTIVES)
           .default("least_cost")

@@ -14,9 +14,12 @@ import {
   type IngredientDefaultPrice,
 } from "@/lib/feed-ingredient-prices";
 import {
+  buildConstraintSpecs,
+  collectMissingData,
   evaluateFormulation,
   formulateLeastCostDiet,
   formulationRequirements,
+  prepareIngredients,
   type FormulationIngredientOption,
   type FormulationNutrientComparison,
   type FormulationSettings,
@@ -847,11 +850,14 @@ export type IngredientConstraintInput = {
   price_per_tonne?: number;
 };
 
+export type IngredientMode = "automatic" | "selected";
+
 export type FormulateInput = {
   programme_id: string;
   objective?: FormulationObjective;
   energy_system?: EnergySystem;
-  ingredients: readonly string[];
+  ingredient_mode?: IngredientMode;
+  ingredients?: readonly string[];
   constraints?: Record<string, IngredientConstraintInput>;
 };
 
@@ -914,13 +920,22 @@ function formulationNotes(request: PreparedRequest): string[] {
   return notes;
 }
 
-export type FormulationBaseInput = Omit<FormulateInput, "objective">;
+export type FormulationBaseInput = {
+  programme_id: string;
+  energy_system?: EnergySystem;
+  ingredients: readonly string[];
+  constraints?: Record<string, IngredientConstraintInput>;
+};
 
 /**
  * Resolve an agent request into the engine's scenario: ingredient ids,
  * request limits (which can only tighten FeedSport defaults) and prices.
  */
-export function buildScenario(input: FormulationBaseInput, context: FeedSportServiceContext) {
+export function buildScenario(
+  input: FormulationBaseInput,
+  context: FeedSportServiceContext,
+  ingredientMode: IngredientMode = "selected",
+) {
   const request = prepareRequest(input.programme_id, input.energy_system ?? "ME", input.ingredients);
   const { resolved, library, ingredientIds } = request;
 
@@ -999,6 +1014,11 @@ export function buildScenario(input: FormulationBaseInput, context: FeedSportSer
     inclusionLimits,
     common: {
       programme: programmeHeader(resolved),
+      formulation_basis: {
+        ingredient_mode: ingredientMode,
+        candidate_count: ingredientIds.length,
+        candidate_ingredients: ingredientIds,
+      },
       ...(request.resolvedNames.length > 0 ? { resolved_ingredient_names: request.resolvedNames } : {}),
       data_sources: dataSources(resolved, library, ingredientIds, prices, request.energySystem, request.includesPremix),
     },
@@ -1006,9 +1026,142 @@ export function buildScenario(input: FormulationBaseInput, context: FeedSportSer
   };
 }
 
+
+function automaticIngredientIds(
+  input: Omit<FormulateInput, "objective" | "ingredients" | "ingredient_mode">,
+  context: FeedSportServiceContext,
+): string[] {
+  const resolved = resolvePhase(input.programme_id);
+  const energySystem = input.energy_system ?? "ME";
+  const speciesLibrary = ingredientLibraryForPhase(resolved.phase);
+  const library = ingredientLibraryWithCustomPremixes(
+    [publicPremixProfileForPhase(resolved.phase)],
+    speciesLibrary,
+  );
+  const settings: FormulationSettings = {
+    includeSupplementationTargets: true,
+    traceMineralBasis: "inorganic",
+  };
+
+  const constraintById = new Map<string, IngredientConstraintInput>();
+  for (const [key, value] of Object.entries(input.constraints ?? {})) {
+    const id = resolveRequestedIngredient(key, INGREDIENT_LIBRARY);
+    if (constraintById.has(id)) {
+      throw new FeedSportInputError(`Constraint for ${id} was supplied more than once.`);
+    }
+    constraintById.set(id, value);
+  }
+
+  const options: FormulationIngredientOption[] = library.ingredients.flatMap((ingredient) => {
+    const requestConstraint = constraintById.get(ingredient.id);
+    const price = priceRecord(
+      ingredient.id,
+      requestConstraint?.price_per_tonne,
+      context,
+    );
+    if (!price) return [];
+
+    return [{
+      ingredientId: ingredient.id,
+      pricePerKg: price.price_per_tonne / 1000,
+      ...(ingredient.id === PUBLIC_PREMIX_ID
+        ? {
+            minInclusionPct: PUBLIC_PREMIX_INCLUSION_PCT,
+            maxInclusionPct: PUBLIC_PREMIX_INCLUSION_PCT,
+          }
+        : {
+            minInclusionPct: requestConstraint?.min_percent,
+            maxInclusionPct: requestConstraint?.max_percent,
+          }),
+    }];
+  });
+
+  const constraints = buildConstraintSpecs(
+    resolved.phase,
+    energySystem,
+    settings,
+  );
+  const prepared = prepareIngredients(
+    options,
+    constraints,
+    library,
+    resolved.phase,
+  );
+  const incomplete = new Set(
+    collectMissingData(prepared, constraints).map((row) => row.ingredientId),
+  );
+  const ingredientIds = prepared
+    .map((ingredient) => ingredient.option.ingredientId)
+    .filter((id) => !incomplete.has(id));
+
+  if (!ingredientIds.includes(PUBLIC_PREMIX_ID)) {
+    throw new FeedSportInputError(
+      `FeedSport could not build an automatic candidate pool containing ${PUBLIC_PREMIX_ID}.`,
+    );
+  }
+  if (ingredientIds.length <= 1) {
+    throw new FeedSportInputError(
+      "FeedSport could not find enough priced ingredients with complete nutrient data for this phase.",
+    );
+  }
+
+  for (const id of constraintById.keys()) {
+    if (!ingredientIds.includes(id)) {
+      throw new FeedSportInputError(
+        `Constraint given for ${id}, but that ingredient is unavailable to automatic mode because it is unpriced or has incomplete nutrient data. Use ingredient_mode="selected" after fixing its price/data, or remove the constraint.`,
+      );
+    }
+  }
+
+  return ingredientIds;
+}
+
+function formulateScenario(
+  input: FormulateInput,
+  context: FeedSportServiceContext,
+) {
+  const explicitIngredients = input.ingredients ?? [];
+  const ingredientMode: IngredientMode =
+    input.ingredient_mode ?? (explicitIngredients.length > 0 ? "selected" : "automatic");
+
+  if (ingredientMode === "selected" && explicitIngredients.length === 0) {
+    throw new FeedSportInputError(
+      'ingredient_mode="selected" requires at least one ingredient.',
+    );
+  }
+  if (ingredientMode === "automatic" && explicitIngredients.length > 0) {
+    throw new FeedSportInputError(
+      'Do not pass ingredients with ingredient_mode="automatic". Omit ingredients so FeedSport can build the candidate pool, or use ingredient_mode="selected".',
+    );
+  }
+
+  const ingredients =
+    ingredientMode === "automatic"
+      ? automaticIngredientIds(
+          {
+            programme_id: input.programme_id,
+            energy_system: input.energy_system,
+            constraints: input.constraints,
+          },
+          context,
+        )
+      : [...explicitIngredients];
+
+  return buildScenario(
+    {
+      programme_id: input.programme_id,
+      energy_system: input.energy_system,
+      ingredients,
+      constraints: input.constraints,
+    },
+    context,
+    ingredientMode,
+  );
+}
+
 export async function formulate(input: FormulateInput, context: FeedSportServiceContext) {
   const objective = input.objective ?? "least_cost";
-  const { request, options, pricesPerTonne, inclusionLimits, common, notes } = buildScenario(input, context);
+  const { request, options, pricesPerTonne, inclusionLimits, common, notes } = formulateScenario(input, context);
   const { resolved, library, ingredientIds } = request;
 
   const result = await formulateLeastCostDiet(
@@ -1105,7 +1258,14 @@ export async function formulate(input: FormulateInput, context: FeedSportService
     inclusion_limits: inclusionLimits,
     ...(advisories.length > 0 ? { above_practical_inclusion: advisories } : {}),
     unsupported_requirements: result.unsupportedRequirements,
-    notes,
+    notes: [
+      ...notes,
+      ...(common.formulation_basis.ingredient_mode === "automatic"
+        ? [
+            "FeedSport built the candidate pool automatically from priced ingredients with complete data for this phase; the AI client did not choose the basket.",
+          ]
+        : []),
+    ],
     ...common,
   };
 }
