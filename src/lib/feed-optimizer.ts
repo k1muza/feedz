@@ -15,6 +15,7 @@ import {
   ingredientDefaultPrice,
   ingredientDefaultPricePerKg,
 } from "./feed-ingredient-prices";
+import { describeMaxSource, effectiveInclusionLimits } from "./ingredient-inclusion-limits";
 import { resolveNutritionTargets, type EnergySystem } from "./nutrition-targets";
 import type { NutritionPhase } from "./nutrition";
 
@@ -300,7 +301,7 @@ export async function formulateLeastCostDiet(
     validateOptions(options, library);
 
     const constraints = buildConstraintSpecs(phase, energySystem, settings);
-    const prepared = prepareIngredients(options, constraints, library);
+    const prepared = prepareIngredients(options, constraints, library, phase);
     const missingData = collectMissingData(prepared, constraints);
 
     if (missingData.length > 0) {
@@ -410,7 +411,7 @@ export async function suggestFormulationIngredients(
         return [{ ingredientId: ingredient.id, pricePerKg }];
       },
     );
-    const prepared = prepareIngredients(options, constraints, library).filter(
+    const prepared = prepareIngredients(options, constraints, library, phase).filter(
       (ingredient) =>
         constraints.every((constraint) =>
           ingredient.coefficients.has(constraint.id),
@@ -824,6 +825,7 @@ export function prepareIngredients(
   options: readonly FormulationIngredientOption[],
   constraints: readonly ConstraintSpec[],
   library: IngredientLibrary,
+  phase: NutritionPhase,
 ): PreparedIngredient[] {
   return options.map((option, index) => {
     const ingredient = library.ingredients.find(
@@ -833,16 +835,21 @@ export function prepareIngredients(
       throw new Error(`Unknown ingredient: ${option.ingredientId}.`);
     }
 
-    const sourceMin = ingredient.constraints.minInclusionPct ?? 0;
-    const sourceMax = ingredient.constraints.maxInclusionPct ?? 100;
-    const requestedMin = option.minInclusionPct ?? 0;
-    const requestedMax = option.maxInclusionPct ?? 100;
-    const minPct = Math.max(sourceMin, requestedMin);
-    const maxPct = Math.min(sourceMax, requestedMax);
+    // Static and phase-specific FeedSport limits; requests can only tighten them.
+    const { minPct, maxPct, feedsport } = effectiveInclusionLimits(
+      ingredient.id,
+      ingredient.constraints,
+      phase.phaseClass,
+      option,
+    );
 
     if (minPct > maxPct) {
+      const maxSource =
+        maxPct === feedsport.maxPct && feedsport.maxSource !== "none"
+          ? ` (${describeMaxSource(feedsport)})`
+          : "";
       throw new Error(
-        `Ingredient ${ingredient.name} has incompatible inclusion bounds: minimum ${minPct}% exceeds maximum ${maxPct}%.`,
+        `Ingredient ${ingredient.name} has incompatible inclusion bounds: minimum ${minPct}% exceeds maximum ${maxPct}%${maxSource}.`,
       );
     }
 

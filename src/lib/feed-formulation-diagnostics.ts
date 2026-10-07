@@ -72,7 +72,7 @@ function buildModel(scenario: FormulationScenario, options = scenario.options): 
   const constraints = buildConstraintSpecs(scenario.phase, scenario.energySystem, scenario.settings);
   return {
     constraints,
-    prepared: prepareIngredients(options, constraints, scenario.library),
+    prepared: prepareIngredients(options, constraints, scenario.library, scenario.phase),
   };
 }
 
@@ -310,7 +310,7 @@ export async function explainFormulation(
     });
 
     const outside = outsideCandidates.map((option): IngredientExplanation => {
-      const [candidate] = prepareIngredients([option], constraints, scenario.library);
+      const [candidate] = prepareIngredients([option], constraints, scenario.library, scenario.phase);
       const missing = constraints
         .filter((constraint) => !candidate.coefficients.has(constraint.id))
         .map((constraint) => constraint.id);
@@ -523,7 +523,7 @@ export async function diagnoseInfeasibility(
 
     // Single-ingredient additions, confirmed by re-solving.
     const usable = addCandidates.filter((candidate) => {
-      const [prepared] = prepareIngredients([candidate], constraints, scenario.library);
+      const [prepared] = prepareIngredients([candidate], constraints, scenario.library, scenario.phase);
       return constraints.every((constraint) => prepared.coefficients.has(constraint.id));
     });
     for (const candidate of usable) {
@@ -715,7 +715,7 @@ export async function findIngredientOpportunities(
     const priced: IngredientOpportunityResult[] = [];
     const skippedForMissingData: string[] = [];
     for (const candidate of candidates) {
-      const [prepared] = prepareIngredients([candidate], constraints, scenario.library);
+      const [prepared] = prepareIngredients([candidate], constraints, scenario.library, scenario.phase);
       if (!constraints.every((constraint) => prepared.coefficients.has(constraint.id))) {
         skippedForMissingData.push(candidate.ingredientId);
         continue;

@@ -267,6 +267,20 @@ const breederSwineSchema = z.object({
   }),
 });
 
+/**
+ * Table 1.01 suggested inclusion: `practical` is the usual level (advisory),
+ * `max` the published ceiling FeedSport enforces.
+ */
+const inclusionRecommendationSchema = z
+  .object({
+    practical: z.number().min(0).max(100),
+    max: z.number().min(0).max(100),
+  })
+  .strict()
+  .refine((value) => value.practical <= value.max, {
+    message: "Practical inclusion must not exceed the maximum inclusion.",
+  });
+
 const coreFeedstuffSchema = z.object({
   id: z.string(),
   name: z.string(),
@@ -293,7 +307,28 @@ const coreFeedstuffSchema = z.object({
     sidSwinePct: z.record(z.string(), z.number()),
     sidSwineDigestibilityPct: z.record(z.string(), z.number()),
   }),
-  recommendedInclusionPct: z.record(z.string(), z.unknown()).optional(),
+  recommendedInclusionPct: z
+    .object({
+      growingPigs: z
+        .object({
+          starter: inclusionRecommendationSchema,
+          grower: inclusionRecommendationSchema,
+          finisher: inclusionRecommendationSchema,
+        })
+        .partial()
+        .strict()
+        .optional(),
+      sows: z
+        .object({
+          gestation: inclusionRecommendationSchema,
+          lactation: inclusionRecommendationSchema,
+        })
+        .partial()
+        .strict()
+        .optional(),
+    })
+    .strict()
+    .optional(),
 });
 
 const coreFeedstuffsSchema = z.object({

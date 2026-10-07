@@ -65,6 +65,8 @@ export type ProgrammeOption = {
   phases: {
     id: string;
     label: string;
+    /** Phase-specific FeedSport max inclusion, where it differs from the static limit. */
+    maxInclusionPct?: Record<string, number>;
     sourceTable: string;
     supplementationSourceTables?: readonly string[];
   }[];
@@ -1014,7 +1016,11 @@ export function FeedFormulationWorkbench({
                           max="100"
                           step="0.1"
                           value={row.max}
-                          placeholder={ingredient?.maxInclusionPct?.toString() ?? "100"}
+                          placeholder={(
+                            selectedPhase?.maxInclusionPct?.[row.ingredientId] ??
+                            ingredient?.maxInclusionPct ??
+                            100
+                          ).toString()}
                           onChange={(event) => updateRow(row.key, "max", event.target.value)}
                         />
                       </td>
