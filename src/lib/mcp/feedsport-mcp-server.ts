@@ -1,6 +1,6 @@
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import { z } from "zod";
+import { McpServer, type CallToolResult } from "@modelcontextprotocol/server";
+// The MCP SDK needs Zod 4 (Standard Schema with JSON Schema); the app is on Zod 3.
+import { z } from "zod-v4";
 
 import {
   FORMULATION_OBJECTIVES,
@@ -122,14 +122,14 @@ export function createFeedSportMcpServer(
       title: "List feeding programmes",
       description:
         "List FeedSport feeding programmes and their phases. Each phase id (programme:phase) is what get_programme, formulate and analyse_formulation take.",
-      inputSchema: {
+      inputSchema: z.object({
         query: z.string().optional().describe('Free-text filter, e.g. "grower", "gilt", "lactation".'),
         body_weight_kg: z
           .number()
           .positive()
           .optional()
           .describe("Only return phases whose body-weight range contains this weight."),
-      },
+      }),
       annotations: READ_ONLY,
     },
     async (args) => run(() => ({ programmes: getProgrammes(args) })),
@@ -141,7 +141,7 @@ export function createFeedSportMcpServer(
       title: "Get programme requirements",
       description:
         "Nutritional requirements and source metadata for one programme phase — exactly the constraints FeedSport enforces when formulating.",
-      inputSchema: { programme_id: programmeId, energy_system: energySystem },
+      inputSchema: z.object({ programme_id: programmeId, energy_system: energySystem }),
       annotations: READ_ONLY,
     },
     async ({ programme_id, energy_system }) => run(() => getProgramme(programme_id, energy_system)),
@@ -153,7 +153,7 @@ export function createFeedSportMcpServer(
       title: "Search ingredients",
       description:
         "Find FeedSport ingredients by name, category, nutrient, price market, supplier or availability. Returns ids, planning prices and default inclusion limits.",
-      inputSchema: {
+      inputSchema: z.object({
         query: z.string().optional().describe('Name, alias or id, e.g. "wheat bran", "maize", "soybean meal".'),
         category: z.enum(INGREDIENT_CATEGORIES).optional(),
         nutrient: z
@@ -167,7 +167,7 @@ export function createFeedSportMcpServer(
           .default(false)
           .describe("Only ingredients FeedSport has a planning price for."),
         limit: z.number().int().min(1).max(100).default(25),
-      },
+      }),
       annotations: READ_ONLY,
     },
     async (args) => run(async () => searchIngredients(args, await context())),
@@ -179,12 +179,12 @@ export function createFeedSportMcpServer(
       title: "Get ingredient",
       description:
         "Full FeedSport nutrient profile, planning price, default inclusion limits and data source for one ingredient.",
-      inputSchema: {
+      inputSchema: z.object({
         id: z.string().min(1).describe("Ingredient id from search_ingredients."),
         programme_id: programmeId
           .optional()
           .describe("Only for the FeedSport premix, whose profile depends on the programme phase."),
-      },
+      }),
       annotations: READ_ONLY,
     },
     async ({ id, programme_id }) => run(async () => getIngredient(id, await context(), programme_id)),
@@ -196,7 +196,7 @@ export function createFeedSportMcpServer(
       title: "Formulate a feed",
       description:
         "Formulate a ration with FeedSport's GLPK optimizer from the given ingredients against a programme phase. Returns the recipe, cost, nutrient profile and requirement comparison, or an infeasible response with the limiting nutrients.",
-      inputSchema: {
+      inputSchema: z.object({
         ...formulationShape,
         objective: z
           .enum(FORMULATION_OBJECTIVES)
@@ -204,7 +204,7 @@ export function createFeedSportMcpServer(
           .describe(
             "least_cost, or an alternative within 3% of least cost: simple (fewer ingredients), low_soy, low_import.",
           ),
-      },
+      }),
       annotations: READ_ONLY,
     },
     async (args) => run(async () => formulate(args, await context())),
@@ -216,7 +216,7 @@ export function createFeedSportMcpServer(
       title: "Explain a formulation",
       description:
         "Explain the least-cost solution from the solver's own output: which nutrients are limiting and what they cost, why each ingredient is selected, held at a limit or left out, and the price at which an excluded ingredient would enter. Answers questions like \"why isn't wheat bran selected?\".",
-      inputSchema: {
+      inputSchema: z.object({
         ...formulationShape,
         ingredients_to_explain: z
           .array(z.string().min(1))
@@ -225,7 +225,7 @@ export function createFeedSportMcpServer(
           .describe(
             "Ingredients to focus the findings on. Ones not in the ingredient list are priced against the solution without being added.",
           ),
-      },
+      }),
       annotations: READ_ONLY,
     },
     async (args) => run(async () => explainFormulationTool(args, await context())),
@@ -237,14 +237,14 @@ export function createFeedSportMcpServer(
       title: "Diagnose an infeasible formulation",
       description:
         "Determine why no valid formulation exists: inclusion-limit conflicts, requirements no blend of the ingredients can reach, a minimal set of requirements that conflict, and confirmed fixes (ingredients to add, or request limits to remove). Never relaxes FeedSport requirements.",
-      inputSchema: {
+      inputSchema: z.object({
         ...formulationShape,
         candidate_ingredients: z
           .array(z.string().min(1))
           .max(60)
           .optional()
           .describe("Ingredients to try adding as fixes. Defaults to every priced FeedSport ingredient."),
-      },
+      }),
       annotations: READ_ONLY,
     },
     async (args) => run(async () => diagnoseInfeasibilityTool(args, await context())),
@@ -256,7 +256,7 @@ export function createFeedSportMcpServer(
       title: "Run sensitivity analysis",
       description:
         "Re-solve the formulation under price or inclusion-limit changes and report cost and recipe shifts. With no scenarios, varies each ingredient's price by price_steps_percent (default ±10%).",
-      inputSchema: {
+      inputSchema: z.object({
         ...formulationShape,
         scenarios: z
           .array(
@@ -285,7 +285,7 @@ export function createFeedSportMcpServer(
           .max(6)
           .optional()
           .describe("Automatic mode only: price changes to apply to each ingredient in turn."),
-      },
+      }),
       annotations: READ_ONLY,
     },
     async (args) => run(async () => runSensitivityAnalysisTool(args, await context())),
@@ -297,7 +297,7 @@ export function createFeedSportMcpServer(
       title: "Find ingredient opportunities",
       description:
         "Identify the limiting nutrients and which additional FeedSport ingredients would lower the cost of this formulation at current prices, with confirmed savings, what they displace, and the price at which near-miss ingredients would become worthwhile.",
-      inputSchema: {
+      inputSchema: z.object({
         ...formulationShape,
         candidate_ingredients: z
           .array(z.string().min(1))
@@ -305,7 +305,7 @@ export function createFeedSportMcpServer(
           .optional()
           .describe("Ingredients to consider adding. Defaults to every priced FeedSport ingredient not already listed."),
         limit: z.number().int().min(1).max(20).default(5),
-      },
+      }),
       annotations: READ_ONLY,
     },
     async (args) => run(async () => findIngredientOpportunitiesTool(args, await context())),
@@ -317,7 +317,7 @@ export function createFeedSportMcpServer(
       title: "Compare formulation strategies",
       description:
         "Compare least cost with the simple, low-soy and low-import alternatives, the formulation without the request's own limits, forced-ingredient variants and other programmes (e.g. a high-performance phase) — cost, ingredient count, soybean meal and binding requirements side by side.",
-      inputSchema: {
+      inputSchema: z.object({
         ...formulationShape,
         force_ingredients: z
           .array(z.object({ ingredient: z.string().min(1), min_percent: z.number().min(0).max(100) }))
@@ -329,7 +329,7 @@ export function createFeedSportMcpServer(
           .max(5)
           .optional()
           .describe("Other programme phase ids to formulate with the same ingredients, e.g. a high-performance phase."),
-      },
+      }),
       annotations: READ_ONLY,
     },
     async (args) => run(async () => compareFormulationStrategiesTool(args, await context())),
@@ -341,7 +341,7 @@ export function createFeedSportMcpServer(
       title: "Analyse a formulation",
       description:
         "Check an existing recipe (percentages totalling 100) against a programme phase: nutrient profile, deficiencies, excesses, inclusion-limit violations, cost and pass/fail.",
-      inputSchema: {
+      inputSchema: z.object({
         programme_id: programmeId,
         energy_system: energySystem,
         recipe: z
@@ -357,7 +357,7 @@ export function createFeedSportMcpServer(
           .record(z.string(), z.number().nonnegative())
           .optional()
           .describe("Optional USD-per-tonne price overrides keyed by ingredient id."),
-      },
+      }),
       annotations: READ_ONLY,
     },
     async (args) => run(async () => analyseFormulation(args, await context())),
