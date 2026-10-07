@@ -82,7 +82,7 @@ export function phaseInclusionRecommendation(
 /** Every published column for an ingredient, e.g. for ingredient detail views. */
 export function brazilianInclusionRecommendations(
   ingredientId: string,
-): Partial<Record<BrazilianInclusionColumn, { practicalPct: number; maxPct: number }>> | undefined {
+): Partial<Record<BrazilianInclusionColumn, { practicalPct?: number; maxPct: number }>> | undefined {
   const recommendations = RECOMMENDATIONS_BY_INGREDIENT.get(ingredientId);
   if (!recommendations) return undefined;
   return Object.fromEntries(
