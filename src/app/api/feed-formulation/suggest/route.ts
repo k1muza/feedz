@@ -4,7 +4,7 @@ export const runtime = "nodejs";
 import { z } from "zod";
 
 import { ingredientDefaultPricePerKg } from "@/lib/feed-ingredient-prices";
-import { INGREDIENT_LIBRARY } from "@/lib/ingredient-nutrients";
+import { ingredientLibraryForPhase } from "@/lib/ingredient-nutrients";
 import { getIngredientPrices } from "@/lib/ingredient-prices";
 import { suggestFormulationIngredients } from "@/lib/feed-optimizer";
 import { feedProgrammePhaseById } from "@/lib/feed-programmes";
@@ -44,7 +44,7 @@ export async function POST(request: Request) {
   const result = await suggestFormulationIngredients(
     phase,
     energySystem,
-    INGREDIENT_LIBRARY,
+    ingredientLibraryForPhase(phase),
     (ingredientId) => ingredientDefaultPricePerKg(ingredientId, prices),
   );
   return NextResponse.json(result);

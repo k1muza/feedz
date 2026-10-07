@@ -7,7 +7,7 @@ import broilerStandardPerformanceJson from "@/data/nutrition/sources/brazilian-t
 import { requireSourceAnomaly } from "./brazilian-source";
 import {
   INGREDIENT_LIBRARY_SOURCE,
-  ingredientLibraryForSpecies,
+  POULTRY_INGREDIENT_LIBRARY,
   type IngredientNutrientRecord,
   type IngredientNutritionProfile,
   type IngredientSourceRecord,
@@ -155,7 +155,7 @@ const broilerProgrammeSchema = z
     }
   });
 
-const POULTRY_LIBRARY = ingredientLibraryForSpecies("poultry");
+const POULTRY_LIBRARY = POULTRY_INGREDIENT_LIBRARY;
 
 const POULTRY_AMINO_ACID_KEYS = new Set([
   "crudeProtein",
@@ -251,6 +251,10 @@ function validatePoultryIngredientRelations(ingredient: IngredientSourceRecord):
       );
     }
   }
+
+  // Table 1.09 crystalline amino acids publish digestible content directly,
+  // without separate total values and digestibility coefficients.
+  if (ingredient.category === "amino_acid") return;
 
   const sidValues = profile.aminoAcids.sidPct;
   const digestibilityValues = profile.aminoAcids.sidDigestibilityPct;

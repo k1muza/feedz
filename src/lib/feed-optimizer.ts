@@ -586,7 +586,7 @@ export function buildConstraintSpecs(
   if (targets.digestibleProteinPct !== undefined) {
     constraints.push({
       id: "digestible-protein",
-      label: "Digestible protein (swine SID)",
+      label: phase.species === "broiler" ? "Digestible protein" : "Digestible protein (swine SID)",
       unit: "%",
       relation: "min",
       bound: targets.digestibleProteinPct,
@@ -839,7 +839,7 @@ export function prepareIngredients(
     const { minPct, maxPct, feedsport } = effectiveInclusionLimits(
       ingredient.id,
       ingredient.constraints,
-      phase.phaseClass,
+      phase,
       option,
     );
 

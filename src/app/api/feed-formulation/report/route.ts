@@ -5,7 +5,7 @@ import { ingredientDefaultPricePerKg } from '@/lib/feed-ingredient-prices';
 import { evaluateFormulation } from '@/lib/feed-optimizer';
 import { getIngredientPrices } from '@/lib/ingredient-prices';
 import { feedProgrammeById, feedProgrammePhaseById } from '@/lib/feed-programmes';
-import { INGREDIENT_LIBRARY, ingredientLibraryWithCustomPremixes } from '@/lib/ingredient-nutrients';
+import { ingredientLibraryForPhase, ingredientLibraryWithCustomPremixes } from '@/lib/ingredient-nutrients';
 import { publicPremixProfileForPhase } from '@/lib/public-feed-premix';
 import { renderPublicFormulationPdf } from '@/lib/public-formulation-pdf';
 
@@ -92,7 +92,7 @@ export async function POST(request: Request) {
 
     const library = ingredientLibraryWithCustomPremixes(
       [publicPremixProfileForPhase(phase)],
-      INGREDIENT_LIBRARY,
+      ingredientLibraryForPhase(phase),
     );
     const evaluation = evaluateFormulation(
       phase,

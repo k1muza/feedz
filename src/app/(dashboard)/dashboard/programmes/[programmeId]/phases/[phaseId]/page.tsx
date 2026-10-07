@@ -156,7 +156,9 @@ export default async function FeedProgrammePhasePage({
           <CardDescription>
             {programme.sourceProgramme?.source.includes("PIC")
               ? "PIC publishes the mature-boar amino-acid and phosphorus specifications relative to dietary energy. FeedSport shows the 3,175 kcal ME/kg reference-diet concentrations here and recalculates those targets when ME or NE is selected during formulation. PIC added vitamins and trace minerals are represented as supplementation targets, not natural ingredient content."
-              : `These are direct ${phase.sourceTable.startsWith("6.") ? "Chapter 6 breeder" : "Chapter 5 growing-swine"} requirements from the Brazilian Tables 2024. Vitamin and trace-mineral values are intentionally not shown as requirements here: Chapter 7 describes those values as suggested supplementation levels.`}
+              : phase.species === "broiler"
+                ? "These are direct Chapter 2 broiler requirements from the Brazilian Tables 2024. Phosphorus is formulated on available phosphorus: the published digestible-phosphorus requirement is not enforced because the inorganic phosphate sources carry no poultry digestible-phosphorus value. Poultry vitamin and trace-mineral supplementation is not loaded yet."
+                : `These are direct ${phase.sourceTable.startsWith("6.") ? "Chapter 6 breeder" : "Chapter 5 growing-swine"} requirements from the Brazilian Tables 2024. Vitamin and trace-mineral values are intentionally not shown as requirements here: Chapter 7 describes those values as suggested supplementation levels.`}
           </CardDescription>
         </CardHeader>
       </Card>

@@ -25,6 +25,7 @@ import {
 import { FEED_PROGRAMMES, feedProgrammeById, type FeedProgrammeDefinition } from "@/lib/feed-programmes";
 import {
   INGREDIENT_LIBRARY,
+  ingredientLibraryForPhase,
   ingredientLibraryWithCustomPremixes,
   sidAminoAcidPct,
   sttdPhosphorusPctOf,
@@ -40,10 +41,11 @@ import {
   feedsportInclusionLimits,
   phaseInclusionRecommendation,
   brazilianInclusionColumn,
+  inclusionColumnLabel,
   type EffectiveInclusionLimits,
 } from "@/lib/ingredient-inclusion-limits";
 import type { EnergySystem } from "@/lib/nutrition-targets";
-import type { NutritionPhase, NutritionPhaseClass } from "@/lib/nutrition";
+import type { NutritionPhase, NutritionSpecies } from "@/lib/nutrition";
 import {
   PUBLIC_PREMIX_ID,
   PUBLIC_PREMIX_INCLUSION_PCT,
@@ -209,12 +211,16 @@ function phaseSummary(programme: FeedProgrammeDefinition, phase: NutritionPhase)
   };
 }
 
+function speciesName(species: NutritionSpecies): string {
+  return species === "broiler" ? "broiler" : "pig";
+}
+
 function programmeHeader(resolved: ResolvedPhase) {
   const { programme, phase } = resolved;
   return {
     id: resolved.id,
     name: `${programme.name} — ${phase.label}`,
-    species: "pig",
+    species: speciesName(programme.species),
     source: programme.sourceProgramme?.source,
   };
 }
@@ -241,8 +247,7 @@ export function getProgrammes(filters: { query?: string; body_weight_kg?: number
         id: programme.id,
         name: programme.name,
         description: programme.description,
-        // Every loaded FeedSport programme is a swine programme.
-        species: "pig",
+        species: speciesName(programme.species),
         source: programme.sourceProgramme?.source,
         source_version: programme.sourceProgramme?.sourceVersion,
         phases: phases.map((phase) => phaseSummary(programme, phase)),
@@ -318,14 +323,14 @@ export function getProgramme(id: string, energySystem: EnergySystem = "ME") {
 }
 
 function phaseIngredientLimits(phase: NutritionPhase) {
-  const column = brazilianInclusionColumn(phase.phaseClass);
-  const limits = INGREDIENT_LIBRARY.ingredients.flatMap((ingredient) => {
-    const recommendation = phaseInclusionRecommendation(ingredient.id, phase.phaseClass);
+  const column = brazilianInclusionColumn(phase);
+  const limits = ingredientLibraryForPhase(phase).ingredients.flatMap((ingredient) => {
+    const recommendation = phaseInclusionRecommendation(ingredient.id, phase);
     return recommendation
       ? [{
           ingredient: ingredient.id,
           name: ingredient.name,
-          max_percent: feedsportInclusionLimits(ingredient.id, ingredient.constraints, phase.phaseClass).maxPct,
+          max_percent: feedsportInclusionLimits(ingredient.id, ingredient.constraints, phase).maxPct,
           ...(recommendation.practicalPct !== undefined
             ? { practical_percent: recommendation.practicalPct }
             : {}),
@@ -335,7 +340,7 @@ function phaseIngredientLimits(phase: NutritionPhase) {
   if (!column || limits.length === 0) return {};
   return {
     ingredient_inclusion_limits: {
-      source: `${BRAZILIAN_INCLUSION_SOURCE}, ${column} column${phase.phaseClass === "pre-starter" ? " (no separate pre-starter column is published)" : ""}`,
+      source: `${BRAZILIAN_INCLUSION_SOURCE}, ${inclusionColumnLabel({ species: phase.species, column })} column${phase.phaseClass === "pre-starter" ? " (no separate pre-starter column is published)" : ""}`,
       note: "max_percent is enforced when formulating; practical_percent is advisory. Ingredients not listed keep their default limits.",
       limits,
     },
@@ -393,19 +398,23 @@ function ingredientSummary(ingredient: IngredientNutrientRecord, context: FeedSp
 
 /** Brazilian Tables phase columns; the max is enforced, practical is advisory. */
 function phaseInclusionSummary(ingredientId: string) {
-  const recommendations = brazilianInclusionRecommendations(ingredientId);
-  if (!recommendations) return {};
-  return {
-    phase_inclusion_percent: Object.fromEntries(
-      Object.entries(recommendations).map(([column, value]) => [
+  const columns = (recommendations: ReturnType<typeof brazilianInclusionRecommendations>) =>
+    Object.fromEntries(
+      Object.entries(recommendations ?? {}).map(([column, value]) => [
         column,
         {
           max: value.maxPct,
           ...(value.practicalPct !== undefined ? { practical: value.practicalPct } : {}),
         },
       ]),
-    ),
-    phase_inclusion_note: `${BRAZILIAN_INCLUSION_SOURCE}: "max" is enforced for the matching phase (pre-starter uses starter); "practical" is advisory.`,
+    );
+  const swine = brazilianInclusionRecommendations(ingredientId, "swine");
+  const broiler = brazilianInclusionRecommendations(ingredientId, "broiler");
+  if (!swine && !broiler) return {};
+  return {
+    ...(swine ? { phase_inclusion_percent: columns(swine) } : {}),
+    ...(broiler ? { broiler_phase_inclusion_percent: columns(broiler) } : {}),
+    phase_inclusion_note: `${BRAZILIAN_INCLUSION_SOURCE}: "max" is enforced for the matching phase (pre-starter uses starter; broiler finisher uses the broiler grower column); "practical" is advisory.`,
   };
 }
 
@@ -431,9 +440,9 @@ function inclusionLimitRow(
 }
 
 /** Above the Brazilian practical level but within the max: advisory, never a failure. */
-function practicalAdvisories(formula: DietFormula, phaseClass: NutritionPhaseClass) {
+function practicalAdvisories(formula: DietFormula, nutritionPhase: NutritionPhase) {
   return formula.ingredients.flatMap((row) => {
-    const phase = phaseInclusionRecommendation(row.ingredientId, phaseClass);
+    const phase = phaseInclusionRecommendation(row.ingredientId, nutritionPhase);
     return phase &&
       phase.practicalPct !== undefined &&
       row.inclusionPct > phase.practicalPct + 1e-6 &&
@@ -874,12 +883,13 @@ function prepareRequest(
   }
 
   const includesPremix = ingredientIds.includes(PUBLIC_PREMIX_ID);
+  const speciesLibrary = ingredientLibraryForPhase(resolved.phase);
   return {
     resolved,
     energySystem,
     library: includesPremix
-      ? ingredientLibraryWithCustomPremixes([publicPremixProfileForPhase(resolved.phase)], INGREDIENT_LIBRARY)
-      : INGREDIENT_LIBRARY,
+      ? ingredientLibraryWithCustomPremixes([publicPremixProfileForPhase(resolved.phase)], speciesLibrary)
+      : speciesLibrary,
     settings: {
       includeSupplementationTargets: includesPremix,
       traceMineralBasis: "inorganic",
@@ -965,7 +975,7 @@ export function buildScenario(input: FormulationBaseInput, context: FeedSportSer
     const record = library.ingredients.find((ingredient) => ingredient.id === option.ingredientId)!;
     return {
       ingredientId: option.ingredientId,
-      limits: effectiveInclusionLimits(record.id, record.constraints, resolved.phase.phaseClass, option),
+      limits: effectiveInclusionLimits(record.id, record.constraints, resolved.phase, option),
     };
   });
   const inclusionLimits = resolvedLimits.map(({ ingredientId, limits }) => inclusionLimitRow(ingredientId, limits));
@@ -1075,7 +1085,7 @@ export async function formulate(input: FormulateInput, context: FeedSportService
     : { solution: result.solution, profile: result.nutrientProfile };
 
   const used = new Set(chosen.solution.formula.ingredients.map((row) => row.ingredientId));
-  const advisories = practicalAdvisories(chosen.solution.formula, resolved.phase.phaseClass);
+  const advisories = practicalAdvisories(chosen.solution.formula, resolved.phase);
   return {
     status: "optimal" as const,
     objective,
@@ -1163,11 +1173,10 @@ export function analyseFormulation(input: AnalyseInput, context: FeedSportServic
     max_percent?: number;
     limit_source?: string;
   };
-  const phaseClass = resolved.phase.phaseClass;
   const inclusionLimitViolations = formula.ingredients.flatMap((row): InclusionLimitViolation[] => {
     if (row.ingredientId === PUBLIC_PREMIX_ID) return [];
     const record = library.ingredients.find((ingredient) => ingredient.id === row.ingredientId)!;
-    const limits = feedsportInclusionLimits(record.id, record.constraints, phaseClass);
+    const limits = feedsportInclusionLimits(record.id, record.constraints, resolved.phase);
     if (row.inclusionPct > limits.maxPct + 1e-6) {
       return [{
         ingredient: row.ingredientId,
@@ -1181,7 +1190,7 @@ export function analyseFormulation(input: AnalyseInput, context: FeedSportServic
     }
     return [];
   });
-  const practicalInclusionAdvisories = practicalAdvisories(formula, phaseClass);
+  const practicalInclusionAdvisories = practicalAdvisories(formula, resolved.phase);
 
   const unverifiable = evaluation.incompleteRequirements.map((requirement) => ({
     nutrient: snake(requirement.id),

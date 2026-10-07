@@ -8,10 +8,19 @@
  * Every formulation path (optimizer, candidate selection, diagnostics, MCP and
  * recipe analysis) resolves limits through this module.
  */
-import { INGREDIENT_LIBRARY } from "./ingredient-nutrients";
-import type { NutritionPhaseClass } from "./nutrition";
+import { broilerInclusionLimitClassForPhase } from "./brazilian-poultry";
+import { INGREDIENT_LIBRARY, POULTRY_INGREDIENT_LIBRARY } from "./ingredient-nutrients";
+import type { NutritionPhase, NutritionPhaseClass, NutritionSpecies } from "./nutrition";
 
 export type BrazilianInclusionColumn = "starter" | "grower" | "finisher" | "gestation" | "lactation";
+
+/**
+ * A phase class alone means a swine phase; pass the phase itself (or its
+ * species and class) to resolve limits for other species.
+ */
+export type InclusionPhaseRef =
+  | NutritionPhaseClass
+  | Pick<NutritionPhase, "species" | "phaseClass">;
 
 /**
  * Table 1.01 publishes no pre-starter column, so pre-starter phases use the
@@ -30,6 +39,7 @@ const PHASE_COLUMNS: Record<NutritionPhaseClass, BrazilianInclusionColumn | unde
 export const BRAZILIAN_INCLUSION_SOURCE = "Brazilian Tables 2024, Table 1.01";
 
 export type PhaseInclusionRecommendation = {
+  species: NutritionSpecies;
   column: BrazilianInclusionColumn;
   /** Usual inclusion level when published. Advisory only; never a solver constraint. */
   practicalPct?: number;
@@ -40,38 +50,85 @@ export type PhaseInclusionRecommendation = {
 
 type ColumnRecommendations = Partial<Record<BrazilianInclusionColumn, { practical?: number; max: number }>>;
 
-const RECOMMENDATIONS_BY_INGREDIENT = (() => {
+function recommendationMap(
+  entries: Iterable<[string, ColumnRecommendations | undefined]>,
+  label: string,
+): Map<string, ColumnRecommendations> {
   const map = new Map<string, ColumnRecommendations>();
-  for (const ingredient of INGREDIENT_LIBRARY.ingredients) {
-    const recommended = ingredient.nutrition.swine?.recommendedInclusionPct;
-    if (!recommended) continue;
-    if (map.has(ingredient.id)) {
-      throw new Error(
-        `Brazilian inclusion limits contain duplicate ingredient ID "${ingredient.id}".`,
-      );
+  for (const [id, recommendations] of entries) {
+    if (!recommendations) continue;
+    if (map.has(id)) {
+      throw new Error(`${label} inclusion limits contain duplicate ingredient ID "${id}".`);
     }
-    map.set(ingredient.id, {
-      ...recommended.growingPigs,
-      ...recommended.sows,
-    });
+    map.set(id, recommendations);
   }
   return map;
-})();
+}
+
+const RECOMMENDATIONS_BY_SPECIES: Record<NutritionSpecies, Map<string, ColumnRecommendations>> = {
+  swine: recommendationMap(
+    INGREDIENT_LIBRARY.ingredients.map((ingredient) => {
+      const recommended = ingredient.nutrition.swine?.recommendedInclusionPct;
+      return [
+        ingredient.id,
+        recommended && { ...recommended.growingPigs, ...recommended.sows },
+      ];
+    }),
+    "Brazilian swine",
+  ),
+  broiler: recommendationMap(
+    POULTRY_INGREDIENT_LIBRARY.ingredients.map((ingredient) => [
+      ingredient.id,
+      ingredient.nutrition.poultry?.recommendedInclusionPct?.broilers,
+    ]),
+    "Brazilian broiler",
+  ),
+};
+
+function resolvePhaseRef(
+  ref: InclusionPhaseRef | undefined,
+): { species: NutritionSpecies; phaseClass: NutritionPhaseClass } | undefined {
+  if (ref === undefined) return undefined;
+  return typeof ref === "string" ? { species: "swine", phaseClass: ref } : ref;
+}
 
 export function brazilianInclusionColumn(
-  phaseClass: NutritionPhaseClass | undefined,
+  ref: InclusionPhaseRef | undefined,
 ): BrazilianInclusionColumn | undefined {
-  return phaseClass ? PHASE_COLUMNS[phaseClass] : undefined;
+  const resolved = resolvePhaseRef(ref);
+  if (!resolved) return undefined;
+  if (resolved.species === "broiler") {
+    const { phaseClass } = resolved;
+    return phaseClass === "pre-starter" ||
+      phaseClass === "starter" ||
+      phaseClass === "grower" ||
+      phaseClass === "finisher"
+      ? broilerInclusionLimitClassForPhase(phaseClass)
+      : undefined;
+  }
+  return PHASE_COLUMNS[resolved.phaseClass];
+}
+
+/** Column name as printed in messages, e.g. "starter" or "broiler starter". */
+export function inclusionColumnLabel(
+  recommendation: Pick<PhaseInclusionRecommendation, "species" | "column">,
+): string {
+  return recommendation.species === "broiler"
+    ? `broiler ${recommendation.column}`
+    : recommendation.column;
 }
 
 export function phaseInclusionRecommendation(
   ingredientId: string,
-  phaseClass: NutritionPhaseClass | undefined,
+  ref: InclusionPhaseRef | undefined,
 ): PhaseInclusionRecommendation | undefined {
-  const column = brazilianInclusionColumn(phaseClass);
-  const recommendation = column ? RECOMMENDATIONS_BY_INGREDIENT.get(ingredientId)?.[column] : undefined;
-  if (!column || !recommendation) return undefined;
+  const resolved = resolvePhaseRef(ref);
+  const column = brazilianInclusionColumn(ref);
+  if (!resolved || !column) return undefined;
+  const recommendation = RECOMMENDATIONS_BY_SPECIES[resolved.species].get(ingredientId)?.[column];
+  if (!recommendation) return undefined;
   return {
+    species: resolved.species,
     column,
     practicalPct: recommendation.practical,
     maxPct: recommendation.max,
@@ -82,8 +139,9 @@ export function phaseInclusionRecommendation(
 /** Every published column for an ingredient, e.g. for ingredient detail views. */
 export function brazilianInclusionRecommendations(
   ingredientId: string,
+  species: NutritionSpecies = "swine",
 ): Partial<Record<BrazilianInclusionColumn, { practicalPct?: number; maxPct: number }>> | undefined {
-  const recommendations = RECOMMENDATIONS_BY_INGREDIENT.get(ingredientId);
+  const recommendations = RECOMMENDATIONS_BY_SPECIES[species].get(ingredientId);
   if (!recommendations) return undefined;
   return Object.fromEntries(
     Object.entries(recommendations).map(([column, value]) => [
@@ -113,11 +171,11 @@ export type FeedSportInclusionLimits = {
 export function feedsportInclusionLimits(
   ingredientId: string,
   staticLimits: StaticInclusionLimits,
-  phaseClass: NutritionPhaseClass | undefined,
+  phaseRef: InclusionPhaseRef | undefined,
 ): FeedSportInclusionLimits {
   const staticMinPct = staticLimits.minInclusionPct ?? 0;
   const staticMaxPct = staticLimits.maxInclusionPct ?? 100;
-  const phase = phaseInclusionRecommendation(ingredientId, phaseClass);
+  const phase = phaseInclusionRecommendation(ingredientId, phaseRef);
   const maxPct = Math.min(staticMaxPct, phase?.maxPct ?? 100);
 
   return {
@@ -153,10 +211,10 @@ export type EffectiveInclusionLimits = {
 export function effectiveInclusionLimits(
   ingredientId: string,
   staticLimits: StaticInclusionLimits,
-  phaseClass: NutritionPhaseClass | undefined,
+  phaseRef: InclusionPhaseRef | undefined,
   requested: StaticInclusionLimits = {},
 ): EffectiveInclusionLimits {
-  const feedsport = feedsportInclusionLimits(ingredientId, staticLimits, phaseClass);
+  const feedsport = feedsportInclusionLimits(ingredientId, staticLimits, phaseRef);
   const ignoredRequests: IgnoredInclusionRequest[] = [];
   if (requested.maxInclusionPct !== undefined && requested.maxInclusionPct > feedsport.maxPct) {
     ignoredRequests.push({ bound: "max", requestedPct: requested.maxInclusionPct, appliedPct: feedsport.maxPct });
@@ -176,7 +234,7 @@ export function effectiveInclusionLimits(
 /** Human-readable origin of a FeedSport maximum, for messages and reports. */
 export function describeMaxSource(limits: FeedSportInclusionLimits): string {
   if (limits.maxSource === "brazilian-phase" && limits.phase) {
-    return `${limits.phase.source} ${limits.phase.column} maximum`;
+    return `${limits.phase.source} ${inclusionColumnLabel(limits.phase)} maximum`;
   }
   return limits.maxSource === "ingredient" ? "FeedSport ingredient limit" : "no limit";
 }

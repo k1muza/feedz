@@ -22774,11 +22774,30 @@
         },
         "nutrientSources": {},
         "notes": [
-          "Only nutrient values explicitly published for this mineral source are stored; other mineral-family values are treated as structural zero by PigFlow."
+          "Only nutrient values explicitly published for this mineral source are stored; other mineral-family values are treated as structural zero by PigFlow.",
+          "Poultry profile reuses the Table 1.10 Ca, P, available P, Na, Cl and Mg concentrations, which are chemical composition shared by both species. The swine STTD phosphorus value is not copied; no poultry digestible-phosphorus value is stored for this source."
         ]
       },
       "nutrition": {
         "swine": {
+          "composition": {},
+          "energy": {},
+          "aminoAcids": {
+            "totalPct": {},
+            "sidDigestibilityPct": {},
+            "sidPct": {}
+          },
+          "macroMinerals": {
+            "calciumPct": 37.5,
+            "magnesiumPct": 0.27
+          },
+          "traceMineralsPpm": {},
+          "vitamins": {},
+          "constraints": {
+            "notes": []
+          }
+        },
+        "poultry": {
           "composition": {},
           "energy": {},
           "aminoAcids": {
@@ -22821,11 +22840,29 @@
         },
         "nutrientSources": {},
         "notes": [
-          "Only nutrient values explicitly published for this mineral source are stored; other mineral-family values are treated as structural zero by PigFlow."
+          "Only nutrient values explicitly published for this mineral source are stored; other mineral-family values are treated as structural zero by PigFlow.",
+          "Poultry profile reuses the Table 1.10 Ca, P, available P, Na, Cl and Mg concentrations, which are chemical composition shared by both species. The swine STTD phosphorus value is not copied; no poultry digestible-phosphorus value is stored for this source."
         ]
       },
       "nutrition": {
         "swine": {
+          "composition": {},
+          "energy": {},
+          "aminoAcids": {
+            "totalPct": {},
+            "sidDigestibilityPct": {},
+            "sidPct": {}
+          },
+          "macroMinerals": {
+            "calciumPct": 43.3
+          },
+          "traceMineralsPpm": {},
+          "vitamins": {},
+          "constraints": {
+            "notes": []
+          }
+        },
+        "poultry": {
           "composition": {},
           "energy": {},
           "aminoAcids": {
@@ -22867,7 +22904,8 @@
         },
         "nutrientSources": {},
         "notes": [
-          "Only nutrient values explicitly published for this mineral source are stored; other mineral-family values are treated as structural zero by PigFlow."
+          "Only nutrient values explicitly published for this mineral source are stored; other mineral-family values are treated as structural zero by PigFlow.",
+          "Poultry profile reuses the Table 1.10 Ca, P, available P, Na, Cl and Mg concentrations, which are chemical composition shared by both species. The swine STTD phosphorus value is not copied; no poultry digestible-phosphorus value is stored for this source."
         ]
       },
       "nutrition": {
@@ -22884,6 +22922,25 @@
             "totalPhosphorusPct": 18.5,
             "availablePhosphorusPct": 18.5,
             "sttdPhosphorusPct": 13.9
+          },
+          "traceMineralsPpm": {},
+          "vitamins": {},
+          "constraints": {
+            "notes": []
+          }
+        },
+        "poultry": {
+          "composition": {},
+          "energy": {},
+          "aminoAcids": {
+            "totalPct": {},
+            "sidDigestibilityPct": {},
+            "sidPct": {}
+          },
+          "macroMinerals": {
+            "calciumPct": 24,
+            "totalPhosphorusPct": 18.5,
+            "availablePhosphorusPct": 18.5
           },
           "traceMineralsPpm": {},
           "vitamins": {},
@@ -22914,7 +22971,8 @@
         },
         "nutrientSources": {},
         "notes": [
-          "Only nutrient values explicitly published for this mineral source are stored; other mineral-family values are treated as structural zero by PigFlow."
+          "Only nutrient values explicitly published for this mineral source are stored; other mineral-family values are treated as structural zero by PigFlow.",
+          "Poultry profile reuses the Table 1.10 Ca, P, available P, Na, Cl and Mg concentrations, which are chemical composition shared by both species. The swine STTD phosphorus value is not copied; no poultry digestible-phosphorus value is stored for this source."
         ]
       },
       "nutrition": {
@@ -22931,6 +22989,25 @@
             "totalPhosphorusPct": 21.4,
             "availablePhosphorusPct": 22,
             "sttdPhosphorusPct": 16.4
+          },
+          "traceMineralsPpm": {},
+          "vitamins": {},
+          "constraints": {
+            "notes": []
+          }
+        },
+        "poultry": {
+          "composition": {},
+          "energy": {},
+          "aminoAcids": {
+            "totalPct": {},
+            "sidDigestibilityPct": {},
+            "sidPct": {}
+          },
+          "macroMinerals": {
+            "calciumPct": 18.9,
+            "totalPhosphorusPct": 21.4,
+            "availablePhosphorusPct": 22
           },
           "traceMineralsPpm": {},
           "vitamins": {},
@@ -22963,11 +23040,30 @@
         },
         "nutrientSources": {},
         "notes": [
-          "Only nutrient values explicitly published for this mineral source are stored; other mineral-family values are treated as structural zero by PigFlow."
+          "Only nutrient values explicitly published for this mineral source are stored; other mineral-family values are treated as structural zero by PigFlow.",
+          "Poultry profile reuses the Table 1.10 Ca, P, available P, Na, Cl and Mg concentrations, which are chemical composition shared by both species. The swine STTD phosphorus value is not copied; no poultry digestible-phosphorus value is stored for this source."
         ]
       },
       "nutrition": {
         "swine": {
+          "composition": {},
+          "energy": {},
+          "aminoAcids": {
+            "totalPct": {},
+            "sidDigestibilityPct": {},
+            "sidPct": {}
+          },
+          "macroMinerals": {
+            "sodiumPct": 39.7,
+            "chloridePct": 59.6
+          },
+          "traceMineralsPpm": {},
+          "vitamins": {},
+          "constraints": {
+            "notes": []
+          }
+        },
+        "poultry": {
           "composition": {},
           "energy": {},
           "aminoAcids": {
@@ -23011,7 +23107,8 @@
         "nutrientSources": {},
         "notes": [
           "Legacy PigFlow ID retained for compatibility where applicable.",
-          "Lysine concentration is derived only from Table 1.09 nitrogen values: Lysine-HCl N% divided by pure lysine N%; SID concentration then applies the published standardized digestibility."
+          "Lysine concentration is derived only from Table 1.09 nitrogen values: Lysine-HCl N% divided by pure lysine N%; SID concentration then applies the published standardized digestibility.",
+          "Poultry profile reuses the Table 1.09 crystalline amino-acid, crude-protein and digestible-protein values, which describe the product rather than the species. No poultry metabolizable energy is published, so energy is left empty and treated as structural zero."
         ]
       },
       "nutrition": {
@@ -23042,6 +23139,28 @@
               "Brazilian Table 1.09 publishes standardized metabolizable energy (MESn35), not ordinary ME; PigFlow preserves it separately and does not relabel it as ME."
             ]
           }
+        },
+        "poultry": {
+          "composition": {
+            "crudeProteinPct": 85.81,
+            "digestibleProteinPct": 84.1796
+          },
+          "energy": {},
+          "aminoAcids": {
+            "totalPct": {
+              "lysine": 71.659708
+            },
+            "sidDigestibilityPct": {},
+            "sidPct": {
+              "lysine": 70.298173
+            }
+          },
+          "macroMinerals": {},
+          "traceMineralsPpm": {},
+          "vitamins": {},
+          "constraints": {
+            "notes": []
+          }
         }
       }
     },
@@ -23068,7 +23187,8 @@
         "nutrientSources": {},
         "notes": [
           "Legacy PigFlow ID retained for compatibility. The Brazilian source identifies the crystalline source only as Methionine and does not specify a DL product.",
-          "The named crystalline amino acid SID concentration is represented by the Table 1.09 standardized digestibility percentage on its dry-matter basis."
+          "The named crystalline amino acid SID concentration is represented by the Table 1.09 standardized digestibility percentage on its dry-matter basis.",
+          "Poultry profile reuses the Table 1.09 crystalline amino-acid, crude-protein and digestible-protein values, which describe the product rather than the species. No poultry metabolizable energy is published, so energy is left empty and treated as structural zero."
         ]
       },
       "nutrition": {
@@ -23097,6 +23217,26 @@
               "Brazilian Table 1.09 publishes standardized metabolizable energy (MESn35), not ordinary ME; PigFlow preserves it separately and does not relabel it as ME."
             ]
           }
+        },
+        "poultry": {
+          "composition": {
+            "crudeProteinPct": 58.67,
+            "digestibleProteinPct": 58.3766
+          },
+          "energy": {},
+          "aminoAcids": {
+            "totalPct": {},
+            "sidDigestibilityPct": {},
+            "sidPct": {
+              "methionine": 99.5
+            }
+          },
+          "macroMinerals": {},
+          "traceMineralsPpm": {},
+          "vitamins": {},
+          "constraints": {
+            "notes": []
+          }
         }
       }
     },
@@ -23123,7 +23263,8 @@
         "nutrientSources": {},
         "notes": [
           "Legacy PigFlow ID retained for compatibility where applicable.",
-          "The named crystalline amino acid SID concentration is represented by the Table 1.09 standardized digestibility percentage on its dry-matter basis."
+          "The named crystalline amino acid SID concentration is represented by the Table 1.09 standardized digestibility percentage on its dry-matter basis.",
+          "Poultry profile reuses the Table 1.09 crystalline amino-acid, crude-protein and digestible-protein values, which describe the product rather than the species. No poultry metabolizable energy is published, so energy is left empty and treated as structural zero."
         ]
       },
       "nutrition": {
@@ -23152,6 +23293,26 @@
               "Brazilian Table 1.09 publishes standardized metabolizable energy (MESn35), not ordinary ME; PigFlow preserves it separately and does not relabel it as ME."
             ]
           }
+        },
+        "poultry": {
+          "composition": {
+            "crudeProteinPct": 73.49,
+            "digestibleProteinPct": 71.1383
+          },
+          "energy": {},
+          "aminoAcids": {
+            "totalPct": {},
+            "sidDigestibilityPct": {},
+            "sidPct": {
+              "threonine": 96.8
+            }
+          },
+          "macroMinerals": {},
+          "traceMineralsPpm": {},
+          "vitamins": {},
+          "constraints": {
+            "notes": []
+          }
         }
       }
     },
@@ -23178,7 +23339,8 @@
         "nutrientSources": {},
         "notes": [
           "Legacy PigFlow ID retained for compatibility where applicable.",
-          "The named crystalline amino acid SID concentration is represented by the Table 1.09 standardized digestibility percentage on its dry-matter basis."
+          "The named crystalline amino acid SID concentration is represented by the Table 1.09 standardized digestibility percentage on its dry-matter basis.",
+          "Poultry profile reuses the Table 1.09 crystalline amino-acid, crude-protein and digestible-protein values, which describe the product rather than the species. No poultry metabolizable energy is published, so energy is left empty and treated as structural zero."
         ]
       },
       "nutrition": {
@@ -23207,6 +23369,26 @@
               "Brazilian Table 1.09 publishes standardized metabolizable energy (MESn35), not ordinary ME; PigFlow preserves it separately and does not relabel it as ME."
             ]
           }
+        },
+        "poultry": {
+          "composition": {
+            "crudeProteinPct": 85.73,
+            "digestibleProteinPct": 84.8727
+          },
+          "energy": {},
+          "aminoAcids": {
+            "totalPct": {},
+            "sidDigestibilityPct": {},
+            "sidPct": {
+              "tryptophan": 99
+            }
+          },
+          "macroMinerals": {},
+          "traceMineralsPpm": {},
+          "vitamins": {},
+          "constraints": {
+            "notes": []
+          }
         }
       }
     },
@@ -23234,7 +23416,8 @@
         "nutrientSources": {},
         "notes": [
           "Legacy PigFlow ID retained for compatibility where applicable.",
-          "The named crystalline amino acid SID concentration is represented by the Table 1.09 standardized digestibility percentage on its dry-matter basis."
+          "The named crystalline amino acid SID concentration is represented by the Table 1.09 standardized digestibility percentage on its dry-matter basis.",
+          "Poultry profile reuses the Table 1.09 crystalline amino-acid, crude-protein and digestible-protein values, which describe the product rather than the species. No poultry metabolizable energy is published, so energy is left empty and treated as structural zero."
         ]
       },
       "nutrition": {
@@ -23263,6 +23446,26 @@
               "Brazilian Table 1.09 publishes standardized metabolizable energy (MESn35), not ordinary ME; PigFlow preserves it separately and does not relabel it as ME."
             ]
           }
+        },
+        "poultry": {
+          "composition": {
+            "crudeProteinPct": 74.73,
+            "digestibleProteinPct": 71.3671
+          },
+          "energy": {},
+          "aminoAcids": {
+            "totalPct": {},
+            "sidDigestibilityPct": {},
+            "sidPct": {
+              "valine": 95.5
+            }
+          },
+          "macroMinerals": {},
+          "traceMineralsPpm": {},
+          "vitamins": {},
+          "constraints": {
+            "notes": []
+          }
         }
       }
     },
@@ -23290,7 +23493,8 @@
         "nutrientSources": {},
         "notes": [
           "Legacy PigFlow ID retained for compatibility where applicable.",
-          "The named crystalline amino acid SID concentration is represented by the Table 1.09 standardized digestibility percentage on its dry-matter basis."
+          "The named crystalline amino acid SID concentration is represented by the Table 1.09 standardized digestibility percentage on its dry-matter basis.",
+          "Poultry profile reuses the Table 1.09 crystalline amino-acid, crude-protein and digestible-protein values, which describe the product rather than the species. No poultry metabolizable energy is published, so energy is left empty and treated as structural zero."
         ]
       },
       "nutrition": {
@@ -23318,6 +23522,26 @@
             "notes": [
               "Brazilian Table 1.09 publishes standardized metabolizable energy (MESn35), not ordinary ME; PigFlow preserves it separately and does not relabel it as ME."
             ]
+          }
+        },
+        "poultry": {
+          "composition": {
+            "crudeProteinPct": 66.74,
+            "digestibleProteinPct": 64.8045
+          },
+          "energy": {},
+          "aminoAcids": {
+            "totalPct": {},
+            "sidDigestibilityPct": {},
+            "sidPct": {
+              "isoleucine": 97.1
+            }
+          },
+          "macroMinerals": {},
+          "traceMineralsPpm": {},
+          "vitamins": {},
+          "constraints": {
+            "notes": []
           }
         }
       }

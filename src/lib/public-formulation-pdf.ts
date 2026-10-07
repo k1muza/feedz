@@ -13,6 +13,7 @@ import type { FormulationNutrientComparison } from '@/lib/feed-optimizer';
 import type { FeedProgrammeDefinition } from '@/lib/feed-programmes';
 import {
   INGREDIENT_LIBRARY,
+  ingredientLibraryForPhase,
   ingredientLibraryWithCustomPremixes,
 } from '@/lib/ingredient-nutrients';
 import type { NutritionPhase } from '@/lib/nutrition';
@@ -150,7 +151,7 @@ export async function renderPublicFormulationPdf(input: PublicFormulationPdfInpu
   );
   const docRef = `FS-FORM-${input.phase.id.toUpperCase()}-${dateParts.year}${dateParts.month}${dateParts.day}`;
   const premix = publicPremixProfileForPhase(input.phase);
-  const ingredientLibrary = ingredientLibraryWithCustomPremixes([premix], INGREDIENT_LIBRARY);
+  const ingredientLibrary = ingredientLibraryWithCustomPremixes([premix], ingredientLibraryForPhase(input.phase));
   const ingredientMap = new Map(ingredientLibrary.ingredients.map((ingredient) => [ingredient.id, ingredient]));
   const totalInclusion = input.formula.ingredients.reduce((sum, ingredient) => sum + ingredient.inclusionPct, 0);
   const passed = input.nutrientProfile.filter((nutrient) => nutrient.margin >= -1e-6).length;

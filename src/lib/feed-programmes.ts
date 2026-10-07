@@ -1,4 +1,7 @@
 import {
+  BRAZILIAN_2024_BROILER_HIGH_HOT_NUTRITION,
+  BRAZILIAN_2024_BROILER_HIGH_NUTRITION,
+  BRAZILIAN_2024_BROILER_STANDARD_NUTRITION,
   BRAZILIAN_2024_GESTATION_NUTRITION,
   BRAZILIAN_2024_HIGH_BARROW_HOT_NUTRITION,
   BRAZILIAN_2024_HIGH_BARROW_NUTRITION,
@@ -16,6 +19,7 @@ import {
   PIC_MATURE_BOAR_NUTRITION,
   type NutritionPhase,
   type NutritionProgramme,
+  type NutritionSpecies,
 } from "./nutrition";
 
 export type FeedProgrammeStatus = "loaded" | "not_loaded";
@@ -25,6 +29,7 @@ export type FeedProgrammeDefinition = {
   name: string;
   description: string;
   status: FeedProgrammeStatus;
+  species: NutritionSpecies;
   sourceProgramme?: NutritionProgramme;
   phases: readonly NutritionPhase[];
 };
@@ -40,7 +45,7 @@ function isGrowFinishPhase(phase: NutritionPhase): boolean {
 const DEFAULT_PROGRAMME = BRAZILIAN_2024_STANDARD_GROWTH_NUTRITION;
 const HIGH_PERFORMANCE_PROGRAMME = BRAZILIAN_2024_HIGH_GROWTH_NUTRITION;
 
-export const FEED_PROGRAMMES: readonly FeedProgrammeDefinition[] = [
+const PROGRAMME_DEFINITIONS: readonly Omit<FeedProgrammeDefinition, "species">[] = [
   {
     id: "nursery-pig",
     name: "Nursery Pig",
@@ -194,7 +199,38 @@ export const FEED_PROGRAMMES: readonly FeedProgrammeDefinition[] = [
     sourceProgramme: BRAZILIAN_2024_HIGH_MIXED_SEX_HOT_NUTRITION,
     phases: BRAZILIAN_2024_HIGH_MIXED_SEX_HOT_NUTRITION.phases,
   },
+  {
+    id: "broiler-standard",
+    name: "Broiler — Standard Performance",
+    description:
+      "Brazilian Tables 2024 standard-performance as-hatched broiler requirements from Table 2.30, pre-starter to 49 days.",
+    status: "loaded",
+    sourceProgramme: BRAZILIAN_2024_BROILER_STANDARD_NUTRITION,
+    phases: BRAZILIAN_2024_BROILER_STANDARD_NUTRITION.phases,
+  },
+  {
+    id: "broiler-high-performance",
+    name: "Broiler — High Performance",
+    description:
+      "Brazilian Tables 2024 high-performance as-hatched broiler requirements from Table 2.28, pre-starter to 49 days.",
+    status: "loaded",
+    sourceProgramme: BRAZILIAN_2024_BROILER_HIGH_NUTRITION,
+    phases: BRAZILIAN_2024_BROILER_HIGH_NUTRITION.phases,
+  },
+  {
+    id: "broiler-high-performance-hot",
+    name: "Broiler — High Performance (26 °C)",
+    description:
+      "Brazilian Tables 2024 high-performance as-hatched broiler requirements at an average 26 °C (21–31 °C) from Table 2.29, days 17–49.",
+    status: "loaded",
+    sourceProgramme: BRAZILIAN_2024_BROILER_HIGH_HOT_NUTRITION,
+    phases: BRAZILIAN_2024_BROILER_HIGH_HOT_NUTRITION.phases,
+  },
 ];
+
+export const FEED_PROGRAMMES: readonly FeedProgrammeDefinition[] = PROGRAMME_DEFINITIONS.map(
+  (programme) => ({ ...programme, species: programme.sourceProgramme?.species ?? "swine" }),
+);
 
 export function feedProgrammeById(id: string): FeedProgrammeDefinition | undefined {
   return FEED_PROGRAMMES.find((programme) => programme.id === id);

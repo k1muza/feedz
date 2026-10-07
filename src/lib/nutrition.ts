@@ -4,8 +4,14 @@ import {
   BRAZILIAN_2024_SOURCE,
   BRAZILIAN_2024_SWINE_SUPPLEMENTATION,
 } from "./brazilian-nutrition";
+import {
+  BRAZILIAN_2024_BROILER_HIGH_PERFORMANCE,
+  BRAZILIAN_2024_BROILER_HIGH_PERFORMANCE_HOT,
+  BRAZILIAN_2024_BROILER_STANDARD_PERFORMANCE,
+} from "./brazilian-poultry";
 import { PIC_MATURE_BOAR, PIC_MATURE_BOAR_SOURCE } from "./pic-nutrition";
 
+export type NutritionSpecies = "swine" | "broiler";
 export type NutritionGrowthStage = "weaner" | "grower" | "finisher";
 export type NutritionVariant = "default";
 export type GrowingPerformance = "standard" | "high";
@@ -137,6 +143,7 @@ export type NutritionPhase = {
   id: string;
   label: string;
   variant: NutritionVariant;
+  species: NutritionSpecies;
   phaseClass: NutritionPhaseClass;
   ageMinDays?: number;
   ageMaxDays?: number;
@@ -164,6 +171,7 @@ export type NutritionProgramme = {
   source: string;
   sourceVersion: string;
   sourceSections: readonly string[];
+  species: NutritionSpecies;
   performance: NutritionPerformance;
   phases: readonly NutritionPhase[];
 };
@@ -272,6 +280,7 @@ function normalizeBrazilianPhase(
     id: `br2024-${sourceProgramme.sourceTable.replace(".", "-")}-${phase.id}`,
     label: `${phase.phase.replace("-", " ")}: ${sourceMinWeightKg}–${sourceMaxWeightKg} kg`,
     variant: "default",
+    species: "swine",
     phaseClass: phase.phase,
     ageMinDays: phase.ageDays.min,
     ageMaxDays: phase.ageDays.max,
@@ -385,6 +394,7 @@ function buildGrowingProgramme(
       `Table ${growth.sourceTable}`,
       `Table ${BRAZILIAN_2024_GROWING_SWINE.aminoAcidRatios.sourceTable}`,
     ],
+    species: "swine",
     performance,
     phases,
   };
@@ -407,6 +417,7 @@ function buildStandaloneGrowingProgramme(
       `Table ${sourceProgramme.sourceTable}`,
       `Table ${BRAZILIAN_2024_GROWING_SWINE.aminoAcidRatios.sourceTable}`,
     ],
+    species: "swine",
     performance,
     phases: normalizeGrowingSourcePhases(
       sourceProgramme.phases,
@@ -435,6 +446,7 @@ function buildGiltProgramme(
       `Table ${sourceProgramme.sourceTable}`,
       `Table ${BRAZILIAN_2024_GROWING_SWINE.aminoAcidRatios.sourceTable}`,
     ],
+    species: "swine",
     performance,
     phases,
   };
@@ -479,6 +491,7 @@ function normalizeBreederPhase(
     id: `br2024-${sourceTable.replace(".", "-")}-${phase.id}`,
     label,
     variant: "default",
+    species: "swine",
     phaseClass: phase.stage,
     periodLabel: isGestation
       ? `Gestation days ${phase.gestationDays?.min}–${phase.gestationDays?.max}`
@@ -561,6 +574,7 @@ function buildBreederProgramme(stage: "gestation" | "lactation"): NutritionProgr
       `Table ${source.sourceTable}`,
       `Table ${ratioTable}`,
     ],
+    species: "swine",
     performance: "breeder",
     phases: source.phases.map((phase) => normalizeBreederPhase(source.sourceTable, phase)),
   };
@@ -668,6 +682,7 @@ function buildPicMatureBoarProgramme(): NutritionProgramme {
     id: "pic-mature-boar",
     label: "Mature boar",
     variant: "default",
+    species: "swine",
     phaseClass: "boar",
     periodLabel:
       "Production boar; adjust daily feed allowance for body weight, body condition and temperature",
@@ -754,6 +769,7 @@ function buildPicMatureBoarProgramme(): NutritionProgramme {
     source: `${PIC_MATURE_BOAR_SOURCE.publisher} — ${PIC_MATURE_BOAR_SOURCE.title}`,
     sourceVersion: PIC_MATURE_BOAR_SOURCE.version,
     sourceSections: PIC_MATURE_BOAR_SOURCE.sections,
+    species: "swine",
     performance: "breeder",
     phases: [phase],
   };
@@ -774,11 +790,140 @@ export const BRAZILIAN_2024_LACTATION_25C_NUTRITION: NutritionProgramme = {
     `Table ${BRAZILIAN_2024_BREEDER_SWINE.lactation25C.sourceTable}`,
     `Table ${BRAZILIAN_2024_BREEDER_SWINE.lactation25C.aminoAcidRatios.sourceTable}`,
   ],
+  species: "swine",
   performance: "breeder",
   phases: BRAZILIAN_2024_BREEDER_SWINE.lactation25C.phases.map((phase) =>
     normalizeBreederPhase(BRAZILIAN_2024_BREEDER_SWINE.lactation25C.sourceTable, phase),
   ),
 };
+
+type BroilerProgramme = typeof BRAZILIAN_2024_BROILER_STANDARD_PERFORMANCE;
+type BroilerPhase = BroilerProgramme["phases"][number];
+
+function ratioToLysinePct(value: number, lysine: number): number {
+  return Math.round((value / lysine) * 1000) / 10;
+}
+
+function normalizeBroilerPhase(
+  programme: BroilerProgramme,
+  phase: BroilerPhase,
+  lookupMinWeightKg: number,
+  lookupMaxWeightKg: number,
+): NutritionPhase {
+  const { min: sourceMinWeightKg, max: sourceMaxWeightKg } = phase.weightKg;
+  const { min: ageMinDays, max: ageMaxDays } = phase.ageDays;
+  const sid = phase.sidAminoAcidsPct;
+  const nutrients = phase.nutrientsPct;
+  const suffix = phase.id.slice(programme.id.length + 1);
+
+  return {
+    id: `br2024-${programme.sourceTable.replace(".", "-")}-${suffix}`,
+    label: `${phase.phase.replace("-", " ")}: days ${ageMinDays}–${ageMaxDays} (${sourceMinWeightKg}–${sourceMaxWeightKg} kg)`,
+    variant: "default",
+    species: "broiler",
+    phaseClass: phase.phase,
+    ageMinDays,
+    ageMaxDays,
+    periodLabel: `Age ${ageMinDays}–${ageMaxDays} days`,
+    dailyFeedIntakeKg: phase.intakeGDay / 1000,
+    dailyMetabolizableEnergyKcal: phase.dailyRequirements.metabolizableEnergyKcalDay,
+    sourceTable: programme.sourceTable,
+    sourcePage: programme.printedPage,
+    sourceMinWeightKg,
+    sourceMaxWeightKg,
+    sourceWeightRange: `${sourceMinWeightKg}–${sourceMaxWeightKg} kg`,
+    lookupMinWeightKg,
+    lookupMaxWeightKg,
+    requirements: {
+      metabolizableEnergyKcalKg: phase.diet.metabolizableEnergyKcalKg,
+      netEnergyKcalKg: phase.diet.netEnergyKcalKg,
+      sidLysinePct: sid.lysine,
+      sidAminoAcidsPct: {
+        lysine: sid.lysine,
+        methionineCysteine: sid.methionineCysteine,
+        threonine: sid.threonine,
+        tryptophan: sid.tryptophan,
+        valine: sid.valine,
+        isoleucine: sid.isoleucine,
+        leucine: sid.leucine,
+        histidine: sid.histidine,
+        phenylalanineTyrosine: sid.phenylalanineTyrosine,
+      },
+      // The broiler tables publish concentrations, not ratios; derive the
+      // ideal-protein ratios for display.
+      aminoAcids: {
+        methionineCysteineToLysPct: ratioToLysinePct(sid.methionineCysteine, sid.lysine),
+        threonineToLysPct: ratioToLysinePct(sid.threonine, sid.lysine),
+        tryptophanToLysPct: ratioToLysinePct(sid.tryptophan, sid.lysine),
+        valineToLysPct: ratioToLysinePct(sid.valine, sid.lysine),
+        isoleucineToLysPct: ratioToLysinePct(sid.isoleucine, sid.lysine),
+        leucineToLysPct: ratioToLysinePct(sid.leucine, sid.lysine),
+        histidineToLysPct: ratioToLysinePct(sid.histidine, sid.lysine),
+        phenylalanineTyrosineToLysPct: ratioToLysinePct(sid.phenylalanineTyrosine, sid.lysine),
+      },
+      crudeProteinPct: phase.crudeProteinPct,
+      digestibleProteinPct: phase.digestibleProteinPct,
+      potassiumPct: nutrients.potassium,
+      linoleicAcidPct: nutrients.linoleicAcid,
+      minerals: {
+        calciumPct: nutrients.calcium,
+        availablePhosphorusPct: nutrients.availablePhosphorus,
+        // The published poultry digestible-phosphorus requirement is not
+        // enforced: Table 1.10 inorganic phosphates carry no poultry
+        // digestible-P value, so every diet using them would be incomplete.
+        // Available phosphorus is published for those sources and is used.
+        sodiumPct: nutrients.sodium,
+        chloridePct: nutrients.chloride,
+      },
+      practical: {},
+    },
+  };
+}
+
+function buildBroilerProgramme(
+  source: BroilerProgramme,
+  name: string,
+): NutritionProgramme {
+  const phases = source.phases.map((phase, index) => {
+    const previous = source.phases[index - 1];
+    const next = source.phases[index + 1];
+    const lookupMin =
+      previous === undefined
+        ? 0
+        : Math.max(previous.weightKg.max, phase.weightKg.min);
+    const lookupMax =
+      next === undefined
+        ? phase.weightKg.max
+        : Math.max(phase.weightKg.max, next.weightKg.min);
+    return normalizeBroilerPhase(source, phase, lookupMin, lookupMax);
+  });
+
+  return {
+    id: source.id,
+    name,
+    source: BRAZILIAN_2024_SOURCE.title,
+    sourceVersion: `5th edition (${BRAZILIAN_2024_SOURCE.year})`,
+    sourceSections: [`Chapter ${source.chapter} — Broilers`, `Table ${source.sourceTable}`],
+    species: "broiler",
+    performance: source.population.performance,
+    phases,
+  };
+}
+
+export const BRAZILIAN_2024_BROILER_STANDARD_NUTRITION = buildBroilerProgramme(
+  BRAZILIAN_2024_BROILER_STANDARD_PERFORMANCE,
+  "Brazilian Tables 2024 — Standard performance broilers (as-hatched)",
+);
+
+export const BRAZILIAN_2024_BROILER_HIGH_NUTRITION = buildBroilerProgramme(
+  BRAZILIAN_2024_BROILER_HIGH_PERFORMANCE,
+  "Brazilian Tables 2024 — High performance broilers (as-hatched)",
+);
+
+export const BRAZILIAN_2024_BROILER_HIGH_HOT_NUTRITION = buildBroilerProgramme(
+  BRAZILIAN_2024_BROILER_HIGH_PERFORMANCE_HOT,
+  "Brazilian Tables 2024 — High performance broilers (as-hatched, 26 °C)",
+);
 
 /**
  * Until PigFlow exposes a project-level performance-programme selector, the

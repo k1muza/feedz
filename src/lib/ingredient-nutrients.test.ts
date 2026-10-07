@@ -32,7 +32,7 @@ test("species nutrition lives under the canonical ingredient record", () => {
 
 test("poultry library materializes only ingredients with poultry profiles", () => {
   const poultry = ingredientLibraryForSpecies("poultry");
-  assert.equal(poultry.ingredients.length, 102);
+  assert.equal(poultry.ingredients.length, 113);
   assert.ok(poultry.ingredients.every((ingredient) => ingredient.species === "poultry"));
 });
 

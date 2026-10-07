@@ -6,7 +6,7 @@ import { z } from "zod";
 import { formulateLeastCostDiet } from "@/lib/feed-optimizer";
 import { feedProgrammePhaseById } from "@/lib/feed-programmes";
 import {
-  INGREDIENT_LIBRARY,
+  ingredientLibraryForPhase,
   ingredientLibraryWithCustomPremixes,
 } from "@/lib/ingredient-nutrients";
 
@@ -93,7 +93,7 @@ export async function POST(request: Request) {
   try {
     const library = ingredientLibraryWithCustomPremixes(
       customPremixes,
-      INGREDIENT_LIBRARY,
+      ingredientLibraryForPhase(phase),
     );
     const result = await formulateLeastCostDiet(
       phase,

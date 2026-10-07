@@ -569,7 +569,7 @@ export function evaluateDietForPhase(
     checkMin(
       checks,
       "digestible-protein",
-      "Digestible protein (swine SID)",
+      phase.species === "broiler" ? "Digestible protein" : "Digestible protein (swine SID)",
       analysis.digestibleProteinPct,
       targets.digestibleProteinPct,
       "%",

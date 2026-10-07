@@ -2,6 +2,7 @@ import { z } from "zod";
 
 import ingredientLibraryJson from "@/data/nutrition/ingredients/ingredient-library.json";
 
+import type { NutritionPhase } from "./nutrition";
 import { assertUniqueIds } from "./nutrition-validation";
 
 const nutrientSourceSchema = z.object({
@@ -278,6 +279,15 @@ export function ingredientLibraryForSpecies(
  */
 export const INGREDIENT_LIBRARY = ingredientLibraryForSpecies("swine");
 
+export const POULTRY_INGREDIENT_LIBRARY = ingredientLibraryForSpecies("poultry");
+
+/** The species-specific nutrient values a phase must be formulated against. */
+export function ingredientLibraryForPhase(
+  phase: Pick<NutritionPhase, "species">,
+): IngredientLibrary {
+  return phase.species === "broiler" ? POULTRY_INGREDIENT_LIBRARY : INGREDIENT_LIBRARY;
+}
+
 export function loadIngredientLibrary(input: unknown): IngredientLibrary {
   return ingredientLibraryForSpecies("swine", loadIngredientLibrarySource(input));
 }
@@ -361,10 +371,18 @@ export function sidAminoAcidPct(
   return total * (digestibility / 100);
 }
 
-/** Standardized digestible phosphorus concentration, explicit or derived from total P. */
+/**
+ * Standardized digestible phosphorus concentration, explicit or derived from
+ * total P. Poultry records use the poultry digestible-phosphorus values.
+ */
 export function sttdPhosphorusPctOf(
   ingredient: IngredientNutrientRecord,
 ): number | undefined {
+  if (ingredient.species === "poultry") {
+    const minerals = ingredient.macroMinerals;
+    if (minerals.digestiblePhosphorusPct !== undefined) return minerals.digestiblePhosphorusPct;
+    return minerals.totalPhosphorusPct === 0 ? 0 : undefined;
+  }
   if (ingredient.macroMinerals.sttdPhosphorusPct !== undefined) {
     return ingredient.macroMinerals.sttdPhosphorusPct;
   }
