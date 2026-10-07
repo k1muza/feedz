@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 export const siteConfig = {
   name: 'FeedSport International',
   shortName: 'FeedSport',
-  url: 'https://feedsport.co.zw',
+  url: 'https://www.feedsport.co.zw',
   description:
     'Feed ingredients, livestock nutrition support and practical feed formulation tools for farmers and feed manufacturers in Zimbabwe.',
   phone: '+263774684534',

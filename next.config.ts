@@ -5,6 +5,22 @@ const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
+  // Keep one public origin so canonical URLs, sitemap entries, and requests agree.
+  async redirects() {
+    return [
+      {
+        source: '/:path*',
+        has: [
+          {
+            type: 'host',
+            value: 'feedsport.co.zw',
+          },
+        ],
+        destination: 'https://www.feedsport.co.zw/:path*',
+        permanent: true,
+      },
+    ];
+  },
   // Load GLPK from node_modules at runtime so its Node build can find glpk.wasm.
   serverExternalPackages: ['glpk.js'],
   // The spec-sheet PDF reads its embedded fonts from disk at request time.
