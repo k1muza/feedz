@@ -96,6 +96,24 @@
           "check": "amino-acid-digestibility"
         },
         "description": "Rice bran poultry Met+Cys SID is printed as 0.33% with a digestibility coefficient of 79.9%, although 0.33/0.47 is about 70.2%; FeedSport preserves the printed coefficient."
+      },
+      {
+        "id": "table-1.01-high-oil-corn-repeated-aa-digestibility",
+        "table": "1.01",
+        "printedPage": 80,
+        "target": {
+          "kind": "poultry-ingredient-nutrient-group",
+          "ingredientId": "corn-high-oil-grain",
+          "nutrients": [
+            "alanine",
+            "glycine",
+            "serine",
+            "proline",
+            "tyrosine"
+          ],
+          "check": "published-repeated-digestibility-coefficients"
+        },
+        "description": "Corn high-oil grain prints poultry digestibility coefficients for alanine 81.0%, glycine 76.0%, serine 81.2%, proline 94.5%, and tyrosine 95.4%, matching the average-corn coefficients despite other amino-acid coefficients differing. FeedSport preserves the printed values."
       }
     ]
   }
