@@ -108,3 +108,20 @@ Here is a high-level overview of the project's structure:
 └── tailwind.config.ts      # Tailwind CSS configuration
 ```
 
+
+---
+
+## 🤖 MCP Server
+
+FeedSport exposes its formulation engine to MCP-compatible AI agents (Claude, ChatGPT, etc.) at `/api/mcp` (Streamable HTTP, stateless, read-only). See [docs/mcp-spec.md](docs/mcp-spec.md) for the product spec.
+
+Tools: `get_programmes`, `get_programme`, `search_ingredients`, `get_ingredient`, `formulate`, `analyse_formulation`, plus diagnostics — `explain_formulation`, `diagnose_infeasibility`, `run_sensitivity_analysis`, `find_ingredient_opportunities`, `compare_formulation_strategies` (engine side in `src/lib/feed-formulation-diagnostics.ts`). The server is a thin layer in `src/lib/mcp/` over the same optimizer, programme, ingredient and pricing modules the web app uses.
+
+Connect a client, e.g. Claude Code:
+
+```bash
+claude mcp add --transport http feedsport http://localhost:9002/api/mcp
+# production: https://www.feedsport.co.zw/api/mcp
+```
+
+v0.1 has no authentication and never writes data.

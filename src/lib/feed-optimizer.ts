@@ -166,11 +166,44 @@ export type FormulationIngredientSuggestionResult =
       message: string;
     };
 
+export type FormulationIncompleteRequirement = {
+  id: string;
+  label: string;
+  unit: string;
+  relation: "min" | "max";
+  requirement: number;
+  missingIngredientIds: string[];
+};
+
 export type FormulationEvaluation = {
   analysis: DietAnalysis;
   nutrientProfile: FormulationNutrientComparison[];
+  /** Modeled constraints that cannot be checked because ingredient data is missing. */
+  incompleteRequirements: FormulationIncompleteRequirement[];
   unsupportedRequirements: FormulationUnsupportedRequirement[];
 };
+
+export type FormulationRequirement = {
+  id: string;
+  label: string;
+  unit: string;
+  relation: "min" | "max";
+  bound: number;
+};
+
+/**
+ * The hard constraints the optimizer enforces for a phase, so callers can
+ * publish exactly what formulation and evaluation are checked against.
+ */
+export function formulationRequirements(
+  phase: NutritionPhase,
+  energySystem: EnergySystem,
+  settings: FormulationSettings = {},
+): FormulationRequirement[] {
+  return buildConstraintSpecs(phase, energySystem, settings).map(
+    ({ id, label, unit, relation, bound }) => ({ id, label, unit, relation, bound }),
+  );
+}
 
 /**
  * Re-evaluate an existing formula against the same constraints used by the
@@ -189,11 +222,25 @@ export function evaluateFormulation(
   return {
     analysis,
     nutrientProfile: buildNutrientProfile(analysis, constraints),
+    incompleteRequirements: constraints.flatMap((constraint) => {
+      const measure = constraint.measure(analysis);
+      if (measure.complete) return [];
+      return [
+        {
+          id: constraint.id,
+          label: constraint.label,
+          unit: constraint.unit,
+          relation: constraint.relation,
+          requirement: constraint.bound,
+          missingIngredientIds: measure.missingIngredientIds,
+        },
+      ];
+    }),
     unsupportedRequirements: unsupportedRequirementsForPhase(phase, settings),
   };
 }
 
-type ConstraintSpec = {
+export type ConstraintSpec = {
   id: string;
   label: string;
   unit: string;
@@ -202,7 +249,7 @@ type ConstraintSpec = {
   measure: (analysis: DietAnalysis) => AnalyzedNutrient;
 };
 
-type PreparedIngredient = {
+export type PreparedIngredient = {
   option: FormulationIngredientOption;
   variable: string;
   minFraction: number;
@@ -210,7 +257,7 @@ type PreparedIngredient = {
   coefficients: Map<string, number>;
 };
 
-function unsupportedRequirementsForPhase(
+export function unsupportedRequirementsForPhase(
   phase: NutritionPhase,
   settings: FormulationSettings = {},
 ): FormulationUnsupportedRequirement[] {
@@ -417,7 +464,7 @@ export async function suggestFormulationIngredients(
   }
 }
 
-function buildConstraintSpecs(
+export function buildConstraintSpecs(
   phase: NutritionPhase,
   energySystem: EnergySystem,
   settings: FormulationSettings = {},
@@ -773,7 +820,7 @@ function buildConstraintSpecs(
   return constraints;
 }
 
-function prepareIngredients(
+export function prepareIngredients(
   options: readonly FormulationIngredientOption[],
   constraints: readonly ConstraintSpec[],
   library: IngredientLibrary,
@@ -823,7 +870,7 @@ function prepareIngredients(
   });
 }
 
-function collectMissingData(
+export function collectMissingData(
   ingredients: readonly PreparedIngredient[],
   constraints: readonly ConstraintSpec[],
 ): FormulationMissingData[] {
@@ -837,11 +884,19 @@ function collectMissingData(
   });
 }
 
-async function solveStrict(
+export async function solveStrict(
   glpk: GLPK,
   ingredients: readonly PreparedIngredient[],
   constraints: readonly ConstraintSpec[],
-): Promise<{ status: "optimal"; vars: Record<string, number> } | { status: "infeasible" }> {
+): Promise<
+  | {
+      status: "optimal";
+      vars: Record<string, number>;
+      /** Row duals keyed by row name (`total_inclusion`, `nutrient_<id>`). */
+      dual: Record<string, number>;
+    }
+  | { status: "infeasible" }
+> {
   const {
     GLP_DB,
     GLP_FX,
@@ -902,7 +957,7 @@ async function solveStrict(
     return { status: "infeasible" };
   }
 
-  return { status: "optimal", vars: result.result.vars };
+  return { status: "optimal", vars: result.result.vars, dual: result.result.dual ?? {} };
 }
 
 
@@ -993,7 +1048,7 @@ async function solveAlternativeObjective(
   return { status: "optimal", vars: result.result.vars };
 }
 
-function buildNutrientProfile(
+export function buildNutrientProfile(
   analysis: DietAnalysis,
   constraints: readonly ConstraintSpec[],
 ): FormulationNutrientComparison[] {
@@ -1306,7 +1361,7 @@ async function buildAlternativeFormulations(
   return alternatives;
 }
 
-async function solveDiagnostic(
+export async function solveDiagnostic(
   glpk: GLPK,
   ingredients: readonly PreparedIngredient[],
   constraints: readonly ConstraintSpec[],
@@ -1400,7 +1455,7 @@ async function solveDiagnostic(
   return { status: "optimal", vars: result.result.vars };
 }
 
-function buildSolution(
+export function buildSolution(
   vars: Record<string, number>,
   ingredients: readonly PreparedIngredient[],
   library: IngredientLibrary,
@@ -1438,7 +1493,7 @@ function buildSolution(
   };
 }
 
-function describeDiagnostics(
+export function describeDiagnostics(
   analysis: DietAnalysis,
   constraints: readonly ConstraintSpec[],
 ): FormulationDiagnostic[] {
@@ -1473,7 +1528,7 @@ function describeDiagnostics(
   });
 }
 
-function validateOptions(
+export function validateOptions(
   options: readonly FormulationIngredientOption[],
   library: IngredientLibrary,
 ): void {
@@ -1508,7 +1563,7 @@ function validateOptions(
   }
 }
 
-async function loadGlpk(): Promise<GLPK> {
+export async function loadGlpk(): Promise<GLPK> {
   // These formulation routines execute in server-side API routes. Use the
   // package's Node entrypoint so Next.js does not bundle the browser build and
   // rewrite the relative glpk.wasm asset path.
