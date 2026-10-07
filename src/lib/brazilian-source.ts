@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import sourceJson from "@/data/nutrition/sources/brazilian-tables-2024/source.json";
+import manifestJson from "@/data/nutrition/sources/brazilian-tables-2024/manifest.json";
 
 import { assertUniqueIds } from "./nutrition-validation";
 
@@ -48,7 +48,7 @@ const sourceAnomalySchema = z
   })
   .strict();
 
-const sourceSchema = z
+const sourceManifestSchema = z
   .object({
     schemaVersion: z.literal(1),
     id: z.literal("brazilian-tables-2024"),
@@ -60,21 +60,13 @@ const sourceSchema = z
     publisher: z.string(),
     editors: z.array(z.string()),
     coverage: z.record(z.string(), z.string()),
-    extraction: z
-      .object({
-        status: z.enum(["in_progress", "complete"]),
-        policy: z.array(z.string()),
-        completedTables: z.array(z.string()),
-        nextTables: z.array(z.string()),
-        sourceAnomalies: z.array(sourceAnomalySchema).optional(),
-      })
-      .strict(),
+    sourceAnomalies: z.array(sourceAnomalySchema).default([]),
   })
   .strict();
 
-export const BRAZILIAN_2024_SOURCE = sourceSchema.parse(sourceJson);
+export const BRAZILIAN_2024_SOURCE = sourceManifestSchema.parse(manifestJson);
 
-const anomalies = BRAZILIAN_2024_SOURCE.extraction.sourceAnomalies ?? [];
+const anomalies = BRAZILIAN_2024_SOURCE.sourceAnomalies;
 assertUniqueIds(anomalies, "Brazilian 2024 source anomalies");
 
 export const BRAZILIAN_2024_SOURCE_ANOMALIES = new Map(
