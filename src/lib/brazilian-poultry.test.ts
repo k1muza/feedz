@@ -59,7 +59,11 @@ test("broiler age lookup treats published ranges as half-open", () => {
     "brazilian-2024-broilers-high-performance-as-hatched:17-27d-0.68-1.49kg",
   );
   assert.equal(
-    findBroilerPhaseByAge(BRAZILIAN_2024_BROILER_HIGH_PERFORMANCE, 49),
+    findBroilerPhaseByAge(BRAZILIAN_2024_BROILER_HIGH_PERFORMANCE, 49)?.phase,
+    "finisher",
+  );
+  assert.equal(
+    findBroilerPhaseByAge(BRAZILIAN_2024_BROILER_HIGH_PERFORMANCE, 49.001),
     undefined,
   );
 });
