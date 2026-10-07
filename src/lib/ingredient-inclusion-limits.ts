@@ -8,7 +8,7 @@
  * Every formulation path (optimizer, candidate selection, diagnostics, MCP and
  * recipe analysis) resolves limits through this module.
  */
-import { BRAZILIAN_2024_CORE_FEEDSTUFFS } from "./brazilian-nutrition";
+import { INGREDIENT_LIBRARY } from "./ingredient-nutrients";
 import type { NutritionPhaseClass } from "./nutrition";
 
 export type BrazilianInclusionColumn = "starter" | "grower" | "finisher" | "gestation" | "lactation";
@@ -31,26 +31,26 @@ export const BRAZILIAN_INCLUSION_SOURCE = "Brazilian Tables 2024, Table 1.01";
 
 export type PhaseInclusionRecommendation = {
   column: BrazilianInclusionColumn;
-  /** Usual inclusion level. Advisory only; never a solver constraint. */
-  practicalPct: number;
+  /** Usual inclusion level when published. Advisory only; never a solver constraint. */
+  practicalPct?: number;
   /** Published ceiling; enforced as a hard limit. */
   maxPct: number;
   source: typeof BRAZILIAN_INCLUSION_SOURCE;
 };
 
-type ColumnRecommendations = Partial<Record<BrazilianInclusionColumn, { practical: number; max: number }>>;
+type ColumnRecommendations = Partial<Record<BrazilianInclusionColumn, { practical?: number; max: number }>>;
 
 const RECOMMENDATIONS_BY_INGREDIENT = (() => {
   const map = new Map<string, ColumnRecommendations>();
-  for (const feedstuff of BRAZILIAN_2024_CORE_FEEDSTUFFS.ingredients) {
-    const recommended = feedstuff.recommendedInclusionPct;
-    if (!feedstuff.pigflowIngredientId || !recommended) continue;
-    if (map.has(feedstuff.pigflowIngredientId)) {
+  for (const ingredient of INGREDIENT_LIBRARY.ingredients) {
+    const recommended = ingredient.nutrition.swine?.recommendedInclusionPct;
+    if (!recommended) continue;
+    if (map.has(ingredient.id)) {
       throw new Error(
-        `Brazilian inclusion limits map more than one feedstuff to ${feedstuff.pigflowIngredientId}.`,
+        `Brazilian inclusion limits contain duplicate ingredient ID "${ingredient.id}".`,
       );
     }
-    map.set(feedstuff.pigflowIngredientId, {
+    map.set(ingredient.id, {
       ...recommended.growingPigs,
       ...recommended.sows,
     });
@@ -82,7 +82,7 @@ export function phaseInclusionRecommendation(
 /** Every published column for an ingredient, e.g. for ingredient detail views. */
 export function brazilianInclusionRecommendations(
   ingredientId: string,
-): Partial<Record<BrazilianInclusionColumn, { practicalPct: number; maxPct: number }>> | undefined {
+): Partial<Record<BrazilianInclusionColumn, { practicalPct?: number; maxPct: number }>> | undefined {
   const recommendations = RECOMMENDATIONS_BY_INGREDIENT.get(ingredientId);
   if (!recommendations) return undefined;
   return Object.fromEntries(

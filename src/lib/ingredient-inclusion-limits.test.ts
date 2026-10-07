@@ -3,14 +3,13 @@ import { describe, test } from "node:test";
 
 import { ingredientDefaultPricePerKg, INGREDIENT_DEFAULT_PRICES } from "./feed-ingredient-prices";
 import { formulateLeastCostDiet, suggestFormulationIngredients } from "./feed-optimizer";
-import { BRAZILIAN_2024_CORE_FEEDSTUFFS } from "./brazilian-nutrition";
 import { feedProgrammePhaseById } from "./feed-programmes";
 import {
   effectiveInclusionLimits,
   feedsportInclusionLimits,
   phaseInclusionRecommendation,
 } from "./ingredient-inclusion-limits";
-import { INGREDIENT_LIBRARY, ingredientLibraryWithCustomPremixes } from "./ingredient-nutrients";
+import { INGREDIENT_LIBRARY, INGREDIENT_LIBRARY_SOURCE, ingredientLibraryWithCustomPremixes } from "./ingredient-nutrients";
 import { analyseFormulation, formulate } from "./mcp/feedsport-service";
 import type { NutritionPhase, NutritionPhaseClass } from "./nutrition";
 import {
@@ -89,14 +88,51 @@ describe("phase-specific inclusion limits", () => {
     }
   });
 
-  test("every Brazilian source row maps to an existing canonical ingredient on the same page", () => {
-    for (const feedstuff of BRAZILIAN_2024_CORE_FEEDSTUFFS.ingredients) {
-      if (!feedstuff.pigflowIngredientId) continue;
-      const ingredient = INGREDIENT_LIBRARY.ingredients.find((candidate) => candidate.id === feedstuff.pigflowIngredientId);
-      assert.ok(ingredient, `${feedstuff.id} maps to missing ${feedstuff.pigflowIngredientId}`);
-      assert.equal(ingredient.provenance.sourceTable, "Table 1.01", feedstuff.id);
-      assert.equal(ingredient.provenance.sourcePage, feedstuff.sourcePage, `${feedstuff.id} page`);
+  test("phase recommendations stay attached to the correct Table 1.01 source row", () => {
+    const expectedPages: Record<string, number> = {
+      "corn-yellow-dent": 73,
+      "soybean-meal-solvent-extracted": 165,
+      "soybean-meal-dehulled-solvent-extracted": 169,
+      "soybean-degummed-oil": 153,
+      "corn-ddgs": 61,
+      "corn-high-lysine-grain": 77,
+      "corn-high-oil-grain": 79,
+      "rice-broken": 139,
+      "sorghum-grain-high-tannin": 149,
+      "soybean-full-fat-extruded": 155,
+      "rice-bran": 137,
+      "cassava-whole": 49,
+      "cottonseed-meal-38": 87,
+      "fish-meal-54": 97,
+      "sunflower-meal-solvent-extracted": 189,
+      "wheat-bran": 197,
+    };
+
+    const recommendationRows = INGREDIENT_LIBRARY_SOURCE.ingredients.filter(
+      (ingredient) => ingredient.nutrition.swine?.recommendedInclusionPct,
+    );
+    assert.equal(recommendationRows.length, 91);
+
+    for (const [ingredientId, expectedPage] of Object.entries(expectedPages)) {
+      const ingredient = INGREDIENT_LIBRARY_SOURCE.ingredients.find(
+        (candidate) => candidate.id === ingredientId,
+      );
+      assert.ok(ingredient, `${ingredientId} exists`);
+      assert.ok(ingredient.nutrition.swine?.recommendedInclusionPct);
+      assert.equal(ingredient.provenance.sourceTable, "Table 1.01", ingredient.id);
+      assert.equal(
+        ingredient.provenance.sourcePage,
+        expectedPage,
+        `${ingredient.id} source page`,
+      );
     }
+  });
+
+  test("max-only inclusion rows keep their published ceiling without a practical value", () => {
+    const sugar = phaseInclusionRecommendation("sugar", "grower");
+    assert.ok(sugar);
+    assert.equal(sugar.maxPct, 10);
+    assert.equal(sugar.practicalPct, undefined);
   });
 
   test("sow phases use the sows columns", () => {
@@ -108,10 +144,10 @@ describe("phase-specific inclusion limits", () => {
     assert.equal(maxPct(MAIZE, "grower"), 65);
   });
 
-  test("boars and unmapped ingredients keep their existing limits", () => {
+  test("full Table 1.01 coverage applies published limits while boars remain uncapped", () => {
     assert.equal(maxPct(FULL_FAT_SOY, "boar"), 100);
-    assert.equal(maxPct("sorghum-grain", "grower"), 100);
-    assert.equal(maxPct("corn-oil", "starter"), 100);
+    assert.equal(maxPct("sorghum-grain", "grower"), 65);
+    assert.equal(maxPct("corn-oil", "starter"), 5);
   });
 
   test("static ingredient limits still apply and the tighter limit wins", () => {
