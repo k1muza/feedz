@@ -87,6 +87,7 @@ const constraintsSchema = z
   })
   .default({ notes: [] });
 
+/** Table 1.01 `practical` is advisory; `max` is the published hard ceiling. */
 const inclusionRecommendationSchema = z
   .object({
     practical: z.number().min(0).max(100),
@@ -293,7 +294,7 @@ export type CustomPremixProfile = {
   id: string;
   name: string;
   vitamins: Partial<IngredientNutrientRecord["vitamins"]>;
-  traceMineralsPpm: Partial<IngredientNutrientRecord["traceMineralsPpm"]>;
+  traceMineralsPpm: Record<string, number>;
 };
 
 export function ingredientLibraryWithCustomPremixes(
