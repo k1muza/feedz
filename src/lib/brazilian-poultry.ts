@@ -1,121 +1,21 @@
 import { z } from "zod";
 
-import poultryCoreFeedstuffsJson from "@/data/nutrition/brazilian-2024/ingredients/poultry/core-feedstuffs.json";
 import broilerHighPerformanceJson from "@/data/nutrition/brazilian-2024/programmes/broilers/high-performance-as-hatched.json";
 import broilerHotHighPerformanceJson from "@/data/nutrition/brazilian-2024/programmes/broilers/high-performance-as-hatched-hot-26c.json";
 import broilerStandardPerformanceJson from "@/data/nutrition/brazilian-2024/programmes/broilers/standard-performance-as-hatched.json";
 
-import { BRAZILIAN_2024_CORE_FEEDSTUFFS } from "./brazilian-feedstuffs";
 import { requireSourceAnomaly } from "./brazilian-source";
+import {
+  INGREDIENT_LIBRARY_SOURCE,
+  ingredientLibraryForSpecies,
+  type IngredientNutrientRecord,
+  type IngredientNutritionProfile,
+  type IngredientSourceRecord,
+} from "./ingredient-nutrients";
 import { assertUniqueIds } from "./nutrition-validation";
 
 const percentSchema = z.number().min(0).max(100);
 const positiveNumberSchema = z.number().positive();
-
-const aminoAcidValuesSchema = z
-  .object({
-    crudeProtein: percentSchema.optional(),
-    lysine: percentSchema.optional(),
-    methionine: percentSchema.optional(),
-    methionineCysteine: percentSchema.optional(),
-    threonine: percentSchema.optional(),
-    tryptophan: percentSchema.optional(),
-    arginine: percentSchema.optional(),
-    glycineSerine: percentSchema.optional(),
-    valine: percentSchema.optional(),
-    isoleucine: percentSchema.optional(),
-    leucine: percentSchema.optional(),
-    histidine: percentSchema.optional(),
-    phenylalanine: percentSchema.optional(),
-    phenylalanineTyrosine: percentSchema.optional(),
-    alanine: percentSchema.optional(),
-    cysteine: percentSchema.optional(),
-    tyrosine: percentSchema.optional(),
-    glycine: percentSchema.optional(),
-    serine: percentSchema.optional(),
-    proline: percentSchema.optional(),
-  })
-  .strict();
-
-type PoultryAminoAcidName = keyof z.infer<typeof aminoAcidValuesSchema>;
-
-const inclusionRecommendationSchema = z
-  .object({
-    practical: percentSchema,
-    max: percentSchema,
-  })
-  .strict()
-  .refine((value) => value.practical <= value.max, {
-    message: "Practical inclusion must not exceed the maximum inclusion.",
-  });
-
-const poultryEnergySchema = z
-  .object({
-    metabolizable: positiveNumberSchema.optional(),
-    standardizedMetabolizable: positiveNumberSchema.optional(),
-    net: positiveNumberSchema.optional(),
-  })
-  .strict()
-  .refine(
-    (value) =>
-      value.metabolizable !== undefined || value.standardizedMetabolizable !== undefined,
-    {
-      message:
-        "Poultry ingredients require metabolizable or standardized metabolizable energy.",
-    },
-  );
-
-const poultryFeedstuffSchema = z
-  .object({
-    id: z.string(),
-    sourceAnomalyIds: z.array(z.string()).optional(),
-    phosphorus: z
-      .object({
-        digestibilityPct: percentSchema.optional(),
-        standardizedDigestiblePct: percentSchema.optional(),
-      })
-      .strict()
-      .refine(
-        (value) =>
-          value.digestibilityPct !== undefined || value.standardizedDigestiblePct !== undefined,
-        { message: "Poultry phosphorus must contain a species-specific value." },
-      )
-      .optional(),
-    aminoAcids: z
-      .object({
-        sidPoultryPct: aminoAcidValuesSchema,
-        sidPoultryDigestibilityPct: aminoAcidValuesSchema,
-      })
-      .strict()
-      .optional(),
-    recommendedInclusionPct: z
-      .object({
-        broilers: z
-          .object({
-            starter: inclusionRecommendationSchema.optional(),
-            grower: inclusionRecommendationSchema.optional(),
-          })
-          .strict(),
-      })
-      .strict()
-      .optional(),
-    poultryEnergyKcalKg: poultryEnergySchema,
-  })
-  .strict();
-
-const poultryCoreFeedstuffsSchema = z
-  .object({
-    schemaVersion: z.literal(1),
-    id: z.literal("brazilian-2024-poultry-core-feedstuffs"),
-    sourceId: z.literal("brazilian-tables-2024"),
-    sourceTable: z.literal("1.01"),
-    species: z.literal("poultry"),
-    basis: z.literal("as-fed"),
-    model: z.literal("species-overlay"),
-    notes: z.array(z.string()),
-    ingredients: z.array(poultryFeedstuffSchema),
-  })
-  .strict();
 
 const closedRangeSchema = z
   .object({
@@ -255,32 +155,45 @@ const broilerProgrammeSchema = z
     }
   });
 
-const canonicalById = new Map(
-  BRAZILIAN_2024_CORE_FEEDSTUFFS.ingredients.map((ingredient) => [ingredient.id, ingredient]),
-);
+const POULTRY_LIBRARY = ingredientLibraryForSpecies("poultry");
 
-function requireCanonicalIngredient(id: string) {
-  const ingredient = canonicalById.get(id);
-  if (!ingredient) {
-    throw new Error(`Poultry ingredient "${id}" has no canonical Brazilian Table 1.01 record.`);
-  }
-  return ingredient;
-}
+const POULTRY_AMINO_ACID_KEYS = new Set([
+  "crudeProtein",
+  "lysine",
+  "methionine",
+  "methionineCysteine",
+  "threonine",
+  "tryptophan",
+  "arginine",
+  "glycineSerine",
+  "valine",
+  "isoleucine",
+  "leucine",
+  "histidine",
+  "phenylalanine",
+  "phenylalanineTyrosine",
+  "alanine",
+  "cysteine",
+  "tyrosine",
+  "glycine",
+  "serine",
+  "proline",
+]);
 
 function validateAnomalyReferencesForIngredient(
-  ingredientId: string,
-  ids: readonly string[] | undefined,
+  ingredient: IngredientSourceRecord,
+  profile: IngredientNutritionProfile,
 ): void {
-  for (const id of ids ?? []) {
+  for (const id of profile.sourceAnomalyIds ?? []) {
     const anomaly = requireSourceAnomaly(id);
     const appliesToIngredient =
       (anomaly.target.kind === "poultry-ingredient-nutrient" ||
         anomaly.target.kind === "poultry-ingredient-nutrient-group") &&
-      anomaly.target.ingredientId === ingredientId;
+      anomaly.target.ingredientId === ingredient.id;
 
     if (anomaly.table !== "1.01" || !appliesToIngredient) {
       throw new Error(
-        `Source anomaly "${id}" does not apply to poultry ingredient "${ingredientId}".`,
+        `Source anomaly "${id}" does not apply to poultry ingredient "${ingredient.id}".`,
       );
     }
   }
@@ -288,53 +201,67 @@ function validateAnomalyReferencesForIngredient(
 
 function hasAminoAcidAnomaly(
   ingredientId: string,
-  nutrient: PoultryAminoAcidName,
+  nutrient: string,
   ids: readonly string[] | undefined,
 ): boolean {
   return (ids ?? []).some((id) => {
     const anomaly = requireSourceAnomaly(id);
-    return (
-      anomaly.table === "1.01" &&
+    if (anomaly.table !== "1.01") return false;
+
+    if (
       anomaly.target.kind === "poultry-ingredient-nutrient" &&
       anomaly.target.ingredientId === ingredientId &&
       anomaly.target.nutrient === nutrient &&
       anomaly.target.check === "amino-acid-digestibility"
+    ) {
+      return true;
+    }
+
+    return (
+      anomaly.target.kind === "poultry-ingredient-nutrient-group" &&
+      anomaly.target.ingredientId === ingredientId &&
+      anomaly.target.nutrients.includes(nutrient) &&
+      anomaly.target.check === "published-repeated-digestibility-coefficients"
     );
   });
 }
 
-function validatePoultryIngredientRelations(
-  ingredient: z.infer<typeof poultryFeedstuffSchema>,
-): void {
-  const canonical = requireCanonicalIngredient(ingredient.id);
-  validateAnomalyReferencesForIngredient(ingredient.id, ingredient.sourceAnomalyIds);
+function validatePoultryIngredientRelations(ingredient: IngredientSourceRecord): void {
+  const profile = ingredient.nutrition.poultry;
+  if (!profile) return;
 
-  const p = ingredient.phosphorus;
-  const totalPhosphorus = canonical.macroMineralsPct.totalPhosphorus;
+  validateAnomalyReferencesForIngredient(ingredient, profile);
+
+  const minerals = profile.macroMinerals;
   if (
-    p?.digestibilityPct !== undefined &&
-    p.standardizedDigestiblePct !== undefined
+    minerals.phosphorusDigestibilityPct !== undefined &&
+    minerals.digestiblePhosphorusPct !== undefined
   ) {
+    const totalPhosphorus = minerals.totalPhosphorusPct;
     if (!totalPhosphorus) {
       throw new Error(
-        `Canonical total phosphorus is missing for poultry ingredient "${ingredient.id}".`,
+        `Total phosphorus is missing for poultry ingredient "${ingredient.id}".`,
       );
     }
-    const calculated = (p.standardizedDigestiblePct / totalPhosphorus) * 100;
-    if (Math.abs(calculated - p.digestibilityPct) > 5) {
+    const calculated = (minerals.digestiblePhosphorusPct / totalPhosphorus) * 100;
+    if (Math.abs(calculated - minerals.phosphorusDigestibilityPct) > 5) {
       throw new Error(
         `Poultry phosphorus digestibility for ${ingredient.id} is inconsistent: ` +
-          `stored ${p.digestibilityPct}%, calculated about ${calculated.toFixed(1)}%.`,
+          `stored ${minerals.phosphorusDigestibilityPct}%, calculated about ${calculated.toFixed(1)}%.`,
       );
     }
   }
 
-  if (!ingredient.aminoAcids) return;
+  const sidValues = profile.aminoAcids.sidPct;
+  const digestibilityValues = profile.aminoAcids.sidDigestibilityPct;
+  const sidKeys = Object.keys(sidValues);
+  const digestibilityKeys = Object.keys(digestibilityValues);
 
-  const sidValues = ingredient.aminoAcids.sidPoultryPct;
-  const digestibilityValues = ingredient.aminoAcids.sidPoultryDigestibilityPct;
-  const sidKeys = Object.keys(sidValues) as PoultryAminoAcidName[];
-  const digestibilityKeys = Object.keys(digestibilityValues) as PoultryAminoAcidName[];
+  for (const key of [...sidKeys, ...digestibilityKeys]) {
+    if (!POULTRY_AMINO_ACID_KEYS.has(key)) {
+      throw new Error(`Unknown poultry amino-acid key "${key}" for "${ingredient.id}".`);
+    }
+  }
 
   if (
     sidKeys.length !== digestibilityKeys.length ||
@@ -348,27 +275,21 @@ function validatePoultryIngredientRelations(
   for (const nutrient of sidKeys) {
     const sidValue = sidValues[nutrient];
     const digestibility = digestibilityValues[nutrient];
-    if (sidValue === undefined || digestibility === undefined) {
-      throw new Error(
-        `Poultry ${nutrient} is missing SID or digestibility data for "${ingredient.id}".`,
-      );
-    }
-
     const totalValue =
       nutrient === "crudeProtein"
-        ? canonical.compositionPct.crudeProtein
-        : canonical.aminoAcids.totalPct[nutrient];
+        ? profile.composition.crudeProteinPct
+        : profile.aminoAcids.totalPct[nutrient];
 
     if (totalValue === undefined) {
       throw new Error(
-        `Canonical total ${nutrient} is missing for poultry ingredient "${ingredient.id}".`,
+        `Total ${nutrient} is missing for poultry ingredient "${ingredient.id}".`,
       );
     }
 
     const calculated = (sidValue / totalValue) * 100;
     if (
       Math.abs(calculated - digestibility) > 6 &&
-      !hasAminoAcidAnomaly(ingredient.id, nutrient, ingredient.sourceAnomalyIds)
+      !hasAminoAcidAnomaly(ingredient.id, nutrient, profile.sourceAnomalyIds)
     ) {
       throw new Error(
         `Poultry ${nutrient} digestibility for ${ingredient.id} is inconsistent: ` +
@@ -491,23 +412,14 @@ export type PoultryFormulationEnergy = {
 
 /**
  * Return energy only when Table 1.01 publishes poultry metabolizable energy.
- *
- * Standardized metabolizable energy is retained as source data, but FeedSport
- * does not silently substitute it during formulation because it is a different
- * energy basis and would bias ingredients such as corn oil.
+ * Standardized ME remains in the species profile but is never substituted.
  */
 export function poultryFormulationEnergy(
-  ingredient: z.infer<typeof poultryFeedstuffSchema>,
+  ingredient: IngredientNutrientRecord,
 ): PoultryFormulationEnergy | null {
-  const metabolizable = ingredient.poultryEnergyKcalKg.metabolizable;
-  if (metabolizable === undefined) {
-    return null;
-  }
-
-  return {
-    kcalKg: metabolizable,
-    basis: "metabolizable",
-  };
+  const metabolizable = ingredient.energy.metabolizableKcalKg;
+  if (metabolizable === undefined) return null;
+  return { kcalKg: metabolizable, basis: "metabolizable" };
 }
 
 export function findBroilerPhaseByAge(
@@ -520,13 +432,11 @@ export function findBroilerPhaseByAge(
     const includesStart = ageDays >= phase.ageDays.min;
     const beforeEnd = ageDays < phase.ageDays.max;
     const isFinalPublishedDay = index === lastIndex && ageDays === phase.ageDays.max;
-
     return includesStart && (beforeEnd || isFinalPublishedDay);
   });
 }
 
-export const BRAZILIAN_2024_POULTRY_CORE_FEEDSTUFFS =
-  poultryCoreFeedstuffsSchema.parse(poultryCoreFeedstuffsJson);
+export const BRAZILIAN_2024_POULTRY_INGREDIENT_LIBRARY = POULTRY_LIBRARY;
 
 export const BRAZILIAN_2024_BROILER_HIGH_PERFORMANCE =
   broilerProgrammeSchema.parse(broilerHighPerformanceJson);
@@ -542,10 +452,10 @@ export const BRAZILIAN_2024_BROILER_PROGRAMMES = [
 ] as const;
 
 assertUniqueIds(
-  BRAZILIAN_2024_POULTRY_CORE_FEEDSTUFFS.ingredients,
-  "Brazilian 2024 poultry feedstuffs",
+  INGREDIENT_LIBRARY_SOURCE.ingredients,
+  "FeedSport ingredient library",
 );
-for (const ingredient of BRAZILIAN_2024_POULTRY_CORE_FEEDSTUFFS.ingredients) {
+for (const ingredient of INGREDIENT_LIBRARY_SOURCE.ingredients) {
   validatePoultryIngredientRelations(ingredient);
 }
 
