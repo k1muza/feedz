@@ -45,6 +45,7 @@ next-env.d.ts
 google-credentials.json
 *.json
 !.env.example
+!vercel.json
 
 # Source drafts for knowledge articles
 drafts/
