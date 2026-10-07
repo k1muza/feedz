@@ -3,9 +3,9 @@ import { z } from "zod";
 import { BRAZILIAN_2024_SOURCE } from "./brazilian-source";
 import { assertUniqueIds } from "./nutrition-validation";
 
-import growingSwineJson from "@/data/nutrition/brazilian-2024/programmes/growing-swine.json";
-import breederSwineJson from "@/data/nutrition/brazilian-2024/programmes/breeder-swine.json";
-import swineSupplementationJson from "@/data/nutrition/brazilian-2024/programmes/swine-supplementation.json";
+import growingSwineJson from "@/data/nutrition/sources/brazilian-tables-2024/programmes/swine/growing.json";
+import breederSwineJson from "@/data/nutrition/sources/brazilian-tables-2024/programmes/swine/breeders.json";
+import swineSupplementationJson from "@/data/nutrition/sources/brazilian-tables-2024/programmes/swine/supplementation.json";
 
 const rangeSchema = z.object({
   min: z.number().optional(),
