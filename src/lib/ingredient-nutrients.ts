@@ -2,6 +2,8 @@ import { z } from "zod";
 
 import ingredientLibraryJson from "@/data/nutrition/ingredients/ingredient-library.json";
 
+import { assertUniqueIds } from "./nutrition-validation";
+
 const nutrientSourceSchema = z.object({
   publisher: z.string(),
   title: z.string(),
@@ -227,7 +229,9 @@ export type IngredientLibrary = Omit<IngredientLibrarySource, "ingredients"> & {
 };
 
 export function loadIngredientLibrarySource(input: unknown): IngredientLibrarySource {
-  return ingredientLibrarySourceSchema.parse(input);
+  const library = ingredientLibrarySourceSchema.parse(input);
+  assertUniqueIds(library.ingredients, "FeedSport ingredient library");
+  return library;
 }
 
 export const INGREDIENT_LIBRARY_SOURCE = loadIngredientLibrarySource(ingredientLibraryJson);
@@ -282,14 +286,6 @@ export function ingredientNutritionProfile(
   return ingredient.nutrition[species];
 }
 
-export function ingredientById(
-  id: string,
-  species: IngredientSpecies = "swine",
-): IngredientNutrientRecord | undefined {
-  const source = INGREDIENT_LIBRARY_SOURCE.ingredients.find((ingredient) => ingredient.id === id);
-  return source ? materializeIngredient(source, species) : undefined;
-}
-
 export type CustomPremixProfile = {
   id: string;
   name: string;
@@ -310,7 +306,7 @@ export function ingredientLibraryWithCustomPremixes(
     }
     existingIds.add(premix.id);
 
-    const profile: IngredientNutritionProfile = {
+    const profile = nutritionProfileSchema.parse({
       composition: {},
       energy: {},
       aminoAcids: { totalPct: {}, sidDigestibilityPct: {}, sidPct: {} },
@@ -318,7 +314,7 @@ export function ingredientLibraryWithCustomPremixes(
       traceMineralsPpm: premix.traceMineralsPpm,
       vitamins: premix.vitamins,
       constraints: { notes: ["User-entered commercial premix profile."] },
-    };
+    });
 
     return {
       id: premix.id,
