@@ -5,11 +5,39 @@ import broilerHighPerformanceJson from "@/data/nutrition/brazilian-2024/programm
 import broilerHotHighPerformanceJson from "@/data/nutrition/brazilian-2024/programmes/broilers/high-performance-as-hatched-hot-26c.json";
 import broilerStandardPerformanceJson from "@/data/nutrition/brazilian-2024/programmes/broilers/standard-performance-as-hatched.json";
 
-import { BRAZILIAN_2024_CORE_FEEDSTUFFS } from "./brazilian-nutrition";
-import { assertKnownSourceAnomalyIds } from "./brazilian-source";
+import { BRAZILIAN_2024_CORE_FEEDSTUFFS } from "./brazilian-feedstuffs";
+import { requireSourceAnomaly } from "./brazilian-source";
+import { assertUniqueIds } from "./nutrition-validation";
 
 const percentSchema = z.number().min(0).max(100);
 const positiveNumberSchema = z.number().positive();
+
+const aminoAcidValuesSchema = z
+  .object({
+    crudeProtein: percentSchema.optional(),
+    lysine: percentSchema.optional(),
+    methionine: percentSchema.optional(),
+    methionineCysteine: percentSchema.optional(),
+    threonine: percentSchema.optional(),
+    tryptophan: percentSchema.optional(),
+    arginine: percentSchema.optional(),
+    glycineSerine: percentSchema.optional(),
+    valine: percentSchema.optional(),
+    isoleucine: percentSchema.optional(),
+    leucine: percentSchema.optional(),
+    histidine: percentSchema.optional(),
+    phenylalanine: percentSchema.optional(),
+    phenylalanineTyrosine: percentSchema.optional(),
+    alanine: percentSchema.optional(),
+    cysteine: percentSchema.optional(),
+    tyrosine: percentSchema.optional(),
+    glycine: percentSchema.optional(),
+    serine: percentSchema.optional(),
+    proline: percentSchema.optional(),
+  })
+  .strict();
+
+type PoultryAminoAcidName = keyof z.infer<typeof aminoAcidValuesSchema>;
 
 const inclusionRecommendationSchema = z
   .object({
@@ -20,6 +48,22 @@ const inclusionRecommendationSchema = z
   .refine((value) => value.practical <= value.max, {
     message: "Practical inclusion must not exceed the maximum inclusion.",
   });
+
+const poultryEnergySchema = z
+  .object({
+    metabolizable: positiveNumberSchema.optional(),
+    standardizedMetabolizable: positiveNumberSchema.optional(),
+    net: positiveNumberSchema.optional(),
+  })
+  .strict()
+  .refine(
+    (value) =>
+      value.metabolizable !== undefined || value.standardizedMetabolizable !== undefined,
+    {
+      message:
+        "Poultry ingredients require metabolizable or standardized metabolizable energy.",
+    },
+  );
 
 const poultryFeedstuffSchema = z
   .object({
@@ -39,8 +83,8 @@ const poultryFeedstuffSchema = z
       .optional(),
     aminoAcids: z
       .object({
-        sidPoultryPct: z.record(z.string(), percentSchema),
-        sidPoultryDigestibilityPct: z.record(z.string(), percentSchema),
+        sidPoultryPct: aminoAcidValuesSchema,
+        sidPoultryDigestibilityPct: aminoAcidValuesSchema,
       })
       .strict()
       .optional(),
@@ -55,13 +99,7 @@ const poultryFeedstuffSchema = z
       })
       .strict()
       .optional(),
-    poultryEnergyKcalKg: z
-      .object({
-        metabolizable: positiveNumberSchema.optional(),
-        standardizedMetabolizable: positiveNumberSchema.optional(),
-        net: positiveNumberSchema.optional(),
-      })
-      .strict(),
+    poultryEnergyKcalKg: poultryEnergySchema,
   })
   .strict();
 
@@ -147,19 +185,7 @@ const broilerPhaseSchema = z
     totalAminoAcidsPct: broilerAminoAcidsSchema,
     sourceAnomalyIds: z.array(z.string()).optional(),
   })
-  .strict()
-  .superRefine((phase, context) => {
-    const outsidePublishedBand =
-      phase.averageWeightKg < phase.weightKg.min || phase.averageWeightKg > phase.weightKg.max;
-    if (outsidePublishedBand && !phase.sourceAnomalyIds?.length) {
-      context.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["averageWeightKg"],
-        message:
-          "Average weight outside the published weight band requires a source anomaly reference.",
-      });
-    }
-  });
+  .strict();
 
 const broilerProgrammeSchema = z
   .object({
@@ -212,13 +238,6 @@ const broilerProgrammeSchema = z
     }
   });
 
-function assertUniqueIds(values: readonly { id: string }[], label: string): void {
-  const ids = values.map((value) => value.id);
-  if (new Set(ids).size !== ids.length) {
-    throw new Error(`Duplicate IDs in ${label}.`);
-  }
-}
-
 const canonicalById = new Map(
   BRAZILIAN_2024_CORE_FEEDSTUFFS.ingredients.map((ingredient) => [ingredient.id, ingredient]),
 );
@@ -231,25 +250,60 @@ function requireCanonicalIngredient(id: string) {
   return ingredient;
 }
 
-function hasSourceAnomaly(ids: readonly string[] | undefined): boolean {
-  return Boolean(ids?.length);
+function validateAnomalyReferencesForIngredient(
+  ingredientId: string,
+  ids: readonly string[] | undefined,
+): void {
+  for (const id of ids ?? []) {
+    const anomaly = requireSourceAnomaly(id);
+    if (
+      anomaly.table !== "1.01" ||
+      anomaly.target.kind !== "poultry-ingredient-nutrient" ||
+      anomaly.target.ingredientId !== ingredientId
+    ) {
+      throw new Error(
+        `Source anomaly "${id}" does not apply to poultry ingredient "${ingredientId}".`,
+      );
+    }
+  }
+}
+
+function hasAminoAcidAnomaly(
+  ingredientId: string,
+  nutrient: PoultryAminoAcidName,
+  ids: readonly string[] | undefined,
+): boolean {
+  return (ids ?? []).some((id) => {
+    const anomaly = requireSourceAnomaly(id);
+    return (
+      anomaly.table === "1.01" &&
+      anomaly.target.kind === "poultry-ingredient-nutrient" &&
+      anomaly.target.ingredientId === ingredientId &&
+      anomaly.target.nutrient === nutrient &&
+      anomaly.target.check === "amino-acid-digestibility"
+    );
+  });
 }
 
 function validatePoultryIngredientRelations(
   ingredient: z.infer<typeof poultryFeedstuffSchema>,
 ): void {
   const canonical = requireCanonicalIngredient(ingredient.id);
-  assertKnownSourceAnomalyIds(ingredient.sourceAnomalyIds, `poultry ingredient ${ingredient.id}`);
+  validateAnomalyReferencesForIngredient(ingredient.id, ingredient.sourceAnomalyIds);
 
   const p = ingredient.phosphorus;
   const totalPhosphorus = canonical.macroMineralsPct.totalPhosphorus;
   if (
     p?.digestibilityPct !== undefined &&
-    p.standardizedDigestiblePct !== undefined &&
-    totalPhosphorus
+    p.standardizedDigestiblePct !== undefined
   ) {
+    if (!totalPhosphorus) {
+      throw new Error(
+        `Canonical total phosphorus is missing for poultry ingredient "${ingredient.id}".`,
+      );
+    }
     const calculated = (p.standardizedDigestiblePct / totalPhosphorus) * 100;
-    if (Math.abs(calculated - p.digestibilityPct) > 5 && !hasSourceAnomaly(ingredient.sourceAnomalyIds)) {
+    if (Math.abs(calculated - p.digestibilityPct) > 5) {
       throw new Error(
         `Poultry phosphorus digestibility for ${ingredient.id} is inconsistent: ` +
           `stored ${p.digestibilityPct}%, calculated about ${calculated.toFixed(1)}%.`,
@@ -259,20 +313,44 @@ function validatePoultryIngredientRelations(
 
   if (!ingredient.aminoAcids) return;
 
-  const totalAminoAcids = canonical.aminoAcids.totalPct;
-  for (const [nutrient, sidValue] of Object.entries(ingredient.aminoAcids.sidPoultryPct)) {
-    const digestibility = ingredient.aminoAcids.sidPoultryDigestibilityPct[nutrient];
+  const sidValues = ingredient.aminoAcids.sidPoultryPct;
+  const digestibilityValues = ingredient.aminoAcids.sidPoultryDigestibilityPct;
+  const sidKeys = Object.keys(sidValues) as PoultryAminoAcidName[];
+  const digestibilityKeys = Object.keys(digestibilityValues) as PoultryAminoAcidName[];
+
+  if (
+    sidKeys.length !== digestibilityKeys.length ||
+    sidKeys.some((key) => digestibilityValues[key] === undefined)
+  ) {
+    throw new Error(
+      `Poultry SID values and digestibility coefficients must have identical nutrient keys for "${ingredient.id}".`,
+    );
+  }
+
+  for (const nutrient of sidKeys) {
+    const sidValue = sidValues[nutrient];
+    const digestibility = digestibilityValues[nutrient];
+    if (sidValue === undefined || digestibility === undefined) {
+      throw new Error(
+        `Poultry ${nutrient} is missing SID or digestibility data for "${ingredient.id}".`,
+      );
+    }
+
     const totalValue =
       nutrient === "crudeProtein"
         ? canonical.compositionPct.crudeProtein
-        : totalAminoAcids[nutrient];
+        : canonical.aminoAcids.totalPct[nutrient];
 
-    if (digestibility === undefined || !totalValue) continue;
+    if (totalValue === undefined) {
+      throw new Error(
+        `Canonical total ${nutrient} is missing for poultry ingredient "${ingredient.id}".`,
+      );
+    }
 
     const calculated = (sidValue / totalValue) * 100;
     if (
       Math.abs(calculated - digestibility) > 6 &&
-      !hasSourceAnomaly(ingredient.sourceAnomalyIds)
+      !hasAminoAcidAnomaly(ingredient.id, nutrient, ingredient.sourceAnomalyIds)
     ) {
       throw new Error(
         `Poultry ${nutrient} digestibility for ${ingredient.id} is inconsistent: ` +
@@ -280,6 +358,133 @@ function validatePoultryIngredientRelations(
       );
     }
   }
+}
+
+function validateProgrammeAnomalyReferences(
+  programme: z.infer<typeof broilerProgrammeSchema>,
+): void {
+  for (const id of programme.sourceAnomalyIds ?? []) {
+    const anomaly = requireSourceAnomaly(id);
+    if (
+      anomaly.table !== programme.sourceTable ||
+      anomaly.target.kind !== "broiler-programme" ||
+      anomaly.target.programmeId !== programme.id
+    ) {
+      throw new Error(
+        `Source anomaly "${id}" does not apply to broiler programme "${programme.id}".`,
+      );
+    }
+  }
+
+  for (const phase of programme.phases) {
+    for (const id of phase.sourceAnomalyIds ?? []) {
+      const anomaly = requireSourceAnomaly(id);
+      if (
+        anomaly.table !== programme.sourceTable ||
+        anomaly.target.kind !== "broiler-phase" ||
+        anomaly.target.programmeId !== programme.id ||
+        anomaly.target.phaseId !== phase.id
+      ) {
+        throw new Error(
+          `Source anomaly "${id}" does not apply to broiler phase "${phase.id}".`,
+        );
+      }
+    }
+  }
+}
+
+function hasWeightBandAnomaly(
+  programme: z.infer<typeof broilerProgrammeSchema>,
+  phase: z.infer<typeof broilerPhaseSchema>,
+): boolean {
+  return (phase.sourceAnomalyIds ?? []).some((id) => {
+    const anomaly = requireSourceAnomaly(id);
+    return (
+      anomaly.table === programme.sourceTable &&
+      anomaly.target.kind === "broiler-phase" &&
+      anomaly.target.programmeId === programme.id &&
+      anomaly.target.phaseId === phase.id &&
+      anomaly.target.check === "average-weight-within-band"
+    );
+  });
+}
+
+function validateProgrammePhases(
+  programme: z.infer<typeof broilerProgrammeSchema>,
+): void {
+  assertUniqueIds(programme.phases, `Brazilian 2024 broiler programme ${programme.id}`);
+
+  for (let index = 0; index < programme.phases.length; index += 1) {
+    const phase = programme.phases[index];
+
+    if (!phase.id.startsWith(`${programme.id}:`)) {
+      throw new Error(
+        `Broiler phase ID "${phase.id}" must be qualified by programme "${programme.id}".`,
+      );
+    }
+
+    const outsideWeightBand =
+      phase.averageWeightKg < phase.weightKg.min || phase.averageWeightKg > phase.weightKg.max;
+    if (outsideWeightBand && !hasWeightBandAnomaly(programme, phase)) {
+      throw new Error(
+        `Average weight for broiler phase "${phase.id}" falls outside its published weight band.`,
+      );
+    }
+
+    if (index > 0) {
+      const previous = programme.phases[index - 1];
+      if (previous.ageDays.max !== phase.ageDays.min) {
+        throw new Error(
+          `Broiler programme "${programme.id}" has an age gap or overlap between "${previous.id}" and "${phase.id}".`,
+        );
+      }
+      if (previous.ageDays.min >= phase.ageDays.min) {
+        throw new Error(
+          `Broiler programme "${programme.id}" phases are not in chronological order.`,
+        );
+      }
+    }
+  }
+}
+
+export type BroilerPhaseClass = "pre-starter" | "starter" | "grower" | "finisher";
+export type BroilerInclusionLimitClass = "starter" | "grower";
+
+export const BROILER_INCLUSION_LIMIT_CLASS: Record<
+  BroilerPhaseClass,
+  BroilerInclusionLimitClass
+> = {
+  "pre-starter": "starter",
+  starter: "starter",
+  grower: "grower",
+  finisher: "grower",
+};
+
+export function broilerInclusionLimitClassForPhase(
+  phase: BroilerPhaseClass,
+): BroilerInclusionLimitClass {
+  return BROILER_INCLUSION_LIMIT_CLASS[phase];
+}
+
+export type PoultryFormulationEnergy = {
+  kcalKg: number;
+  basis: "metabolizable" | "standardized-metabolizable";
+};
+
+export function poultryFormulationEnergy(
+  ingredient: z.infer<typeof poultryFeedstuffSchema>,
+): PoultryFormulationEnergy {
+  if (ingredient.poultryEnergyKcalKg.metabolizable !== undefined) {
+    return {
+      kcalKg: ingredient.poultryEnergyKcalKg.metabolizable,
+      basis: "metabolizable",
+    };
+  }
+
+  return {
+    kcalKg: ingredient.poultryEnergyKcalKg.standardizedMetabolizable!,
+    basis: "standardized-metabolizable",
+  };
 }
 
 export const BRAZILIAN_2024_POULTRY_CORE_FEEDSTUFFS =
@@ -308,15 +513,11 @@ for (const ingredient of BRAZILIAN_2024_POULTRY_CORE_FEEDSTUFFS.ingredients) {
 
 assertUniqueIds(BRAZILIAN_2024_BROILER_PROGRAMMES, "Brazilian 2024 broiler programmes");
 for (const programme of BRAZILIAN_2024_BROILER_PROGRAMMES) {
-  assertKnownSourceAnomalyIds(
-    programme.sourceAnomalyIds,
-    `Brazilian 2024 broiler programme ${programme.id}`,
-  );
-  assertUniqueIds(programme.phases, `Brazilian 2024 broiler programme ${programme.id}`);
-  for (const phase of programme.phases) {
-    assertKnownSourceAnomalyIds(
-      phase.sourceAnomalyIds,
-      `Brazilian 2024 broiler phase ${programme.id}/${phase.id}`,
-    );
-  }
+  validateProgrammeAnomalyReferences(programme);
+  validateProgrammePhases(programme);
 }
+
+assertUniqueIds(
+  BRAZILIAN_2024_BROILER_PROGRAMMES.flatMap((programme) => programme.phases),
+  "Brazilian 2024 broiler phases across programmes",
+);
