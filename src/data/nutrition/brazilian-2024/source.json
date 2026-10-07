@@ -28,7 +28,7 @@
       "Only map Brazilian ingredients to existing PigFlow ingredient IDs when the source ingredient identity is an exact or explicitly documented match."
     ],
     "completedTables": [
-      "1.01 (selected feedstuffs)",
+      "1.01 (all 102 feedstuffs)",
       "1.09",
       "1.10",
       "5.30",
