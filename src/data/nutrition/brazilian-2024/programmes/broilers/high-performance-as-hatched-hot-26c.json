@@ -282,7 +282,7 @@
       }
     }
   ],
-  "notes": [
-    "Table 2.29 publishes the same average weights as Table 2.28 while using wider hot-climate weight ranges; values are preserved verbatim from the source."
+  "sourceAnomalyIds": [
+    "table-2.29-hot-average-weights"
   ]
 }
