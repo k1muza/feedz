@@ -15,7 +15,7 @@ import {
 test("Brazilian 2024 poultry data loads and is tied to canonical ingredients", () => {
   assert.equal(BRAZILIAN_2024_BROILER_PROGRAMMES.length, 3);
 
-  assert.equal(BRAZILIAN_2024_POULTRY_INGREDIENT_LIBRARY.ingredients.length, 17);
+  assert.equal(BRAZILIAN_2024_POULTRY_INGREDIENT_LIBRARY.ingredients.length, 102);
   for (const ingredient of BRAZILIAN_2024_POULTRY_INGREDIENT_LIBRARY.ingredients) {
     assert.equal(ingredient.species, "poultry");
     assert.ok(ingredient.nutrition.poultry, `Missing poultry profile: ${ingredient.id}`);
@@ -66,7 +66,7 @@ test("broiler age lookup treats published ranges as half-open", () => {
   );
 });
 
-test("formulation energy requires published metabolizable energy", () => {
+test("formulation energy uses the published poultry metabolizable-energy basis", () => {
   const cornOil = BRAZILIAN_2024_POULTRY_INGREDIENT_LIBRARY.ingredients.find(
     (ingredient) => ingredient.id === "corn-oil",
   );
@@ -77,7 +77,10 @@ test("formulation energy requires published metabolizable energy", () => {
   assert.ok(cornOil);
   assert.ok(soybeanOil);
 
-  assert.equal(poultryFormulationEnergy(cornOil), null);
+  assert.deepEqual(poultryFormulationEnergy(cornOil), {
+    kcalKg: 8773,
+    basis: "metabolizable",
+  });
   assert.deepEqual(poultryFormulationEnergy(soybeanOil), {
     kcalKg: 8790,
     basis: "metabolizable",
