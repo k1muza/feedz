@@ -7,9 +7,9 @@
   "basis": "as-fed",
   "model": "species-overlay",
   "notes": [
-    "Species-specific poultry energy, SID amino-acid, phosphorus, and broiler inclusion data.",
-    "Shared ingredient identity and non-species-specific composition remain in the canonical ingredient library.",
-    "Poultry phosphorus fields preserve Table 1.01 values exactly; fields omitted where the source prints no value."
+    "Species-specific poultry energy, SID amino-acid, phosphorus digestibility, and broiler inclusion data.",
+    "Shared ingredient identity, composition, minerals, and available/non-phytate phosphorus remain in the canonical ingredient library.",
+    "Poultry phosphorus digestibility fields are omitted where Table 1.01 prints no poultry value."
   ],
   "ingredients": [
     {
@@ -83,7 +83,6 @@
       },
       "mappingConfidence": "high",
       "phosphorus": {
-        "availablePct": 0.05,
         "digestibilityPct": 40.8,
         "standardizedDigestiblePct": 0.09
       }
@@ -159,7 +158,6 @@
       },
       "mappingConfidence": "high",
       "phosphorus": {
-        "availablePct": 0.22,
         "digestibilityPct": 42,
         "standardizedDigestiblePct": 0.24
       }
@@ -235,7 +233,6 @@
       },
       "mappingConfidence": "high",
       "phosphorus": {
-        "availablePct": 0.23,
         "digestibilityPct": 45,
         "standardizedDigestiblePct": 0.27
       }
@@ -357,10 +354,7 @@
         "metabolizable": 2410,
         "net": 1948
       },
-      "mappingConfidence": "high",
-      "phosphorus": {
-        "availablePct": 0.12
-      }
+      "mappingConfidence": "high"
     },
     {
       "id": "corn-high-lysine-grain",
@@ -425,7 +419,6 @@
       },
       "mappingConfidence": "high",
       "phosphorus": {
-        "availablePct": 0.05,
         "digestibilityPct": 40.8,
         "standardizedDigestiblePct": 0.08
       }
@@ -500,7 +493,6 @@
       },
       "mappingConfidence": "high",
       "phosphorus": {
-        "availablePct": 0.07,
         "digestibilityPct": 40.8,
         "standardizedDigestiblePct": 0.11
       }
@@ -576,7 +568,6 @@
       },
       "mappingConfidence": "high",
       "phosphorus": {
-        "availablePct": 0.06,
         "digestibilityPct": 36,
         "standardizedDigestiblePct": 0.06
       }
@@ -588,7 +579,6 @@
       "sourceTable": "1.01",
       "sourcePage": 149,
       "phosphorus": {
-        "availablePct": 0.08,
         "digestibilityPct": 36,
         "standardizedDigestiblePct": 0.09
       },
@@ -654,7 +644,6 @@
       "sourceTable": "1.01",
       "sourcePage": 155,
       "phosphorus": {
-        "availablePct": 0.17,
         "digestibilityPct": 38,
         "standardizedDigestiblePct": 0.2
       },
@@ -792,7 +781,6 @@
       },
       "mappingConfidence": "high",
       "phosphorus": {
-        "availablePct": 0.63,
         "digestibilityPct": 29,
         "standardizedDigestiblePct": 0.58
       }
@@ -830,7 +818,6 @@
       },
       "mappingConfidence": "high",
       "phosphorus": {
-        "availablePct": 0.02,
         "digestibilityPct": 0.38,
         "standardizedDigestiblePct": 0.03
       }
@@ -902,10 +889,7 @@
         "standardizedMetabolizable": 2173,
         "net": 1530
       },
-      "mappingConfidence": "high",
-      "phosphorus": {
-        "availablePct": 0.38
-      }
+      "mappingConfidence": "high"
     },
     {
       "id": "fish-meal-54",
@@ -978,7 +962,6 @@
       },
       "mappingConfidence": "high",
       "phosphorus": {
-        "availablePct": 2.92,
         "digestibilityPct": 75,
         "standardizedDigestiblePct": 2.19
       }
@@ -1053,7 +1036,6 @@
       },
       "mappingConfidence": "high",
       "phosphorus": {
-        "availablePct": 0.32,
         "digestibilityPct": 39,
         "standardizedDigestiblePct": 0.38
       }
@@ -1129,7 +1111,6 @@
       },
       "mappingConfidence": "high",
       "phosphorus": {
-        "availablePct": 0.49,
         "digestibilityPct": 50,
         "standardizedDigestiblePct": 0.47
       }
