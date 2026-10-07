@@ -1,8 +1,8 @@
 import { z } from "zod";
 
-import broilerHighPerformanceJson from "@/data/nutrition/brazilian-2024/programmes/broilers/high-performance-as-hatched.json";
-import broilerHotHighPerformanceJson from "@/data/nutrition/brazilian-2024/programmes/broilers/high-performance-as-hatched-hot-26c.json";
-import broilerStandardPerformanceJson from "@/data/nutrition/brazilian-2024/programmes/broilers/standard-performance-as-hatched.json";
+import broilerHighPerformanceJson from "@/data/nutrition/sources/brazilian-tables-2024/programmes/poultry/broilers/high-performance-as-hatched.json";
+import broilerHotHighPerformanceJson from "@/data/nutrition/sources/brazilian-tables-2024/programmes/poultry/broilers/high-performance-as-hatched-hot-26c.json";
+import broilerStandardPerformanceJson from "@/data/nutrition/sources/brazilian-tables-2024/programmes/poultry/broilers/standard-performance-as-hatched.json";
 
 import { requireSourceAnomaly } from "./brazilian-source";
 import {
