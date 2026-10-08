@@ -380,8 +380,20 @@ export default function FormulationsClient({ ingredientPrices, ingredientPackSiz
         </section>
       </div>
 
-      <section className="mt-6 flex flex-wrap items-center justify-between gap-4 rounded-[6px] border border-[#d9d4c7] bg-[#fbfaf6] px-6 py-[22px]"><div className="flex max-w-[640px] flex-col gap-1"><p className="fs-label m-0 text-[#4f524b]">Formulation Studio</p><span className="text-[18px] font-bold">Need more than a quick check?</span><span className="text-[15px] leading-[1.5] text-[#3d403a]">Use the full ingredient catalogue and nutrient model, set your own inclusion limits and prices, then save, version and compare formulations.</span></div><Link href="/studio" className="inline-flex h-[46px] items-center rounded-[4px] bg-[#1d3a2a] px-[18px] text-[15px] font-semibold text-white no-underline">Open Formulation Studio</Link></section>
-      <div className="mt-6 flex flex-wrap items-center justify-between gap-4 rounded-[6px] bg-[#1d3a2a] px-6 py-[22px] text-white"><div className="flex flex-col gap-1"><span className="text-[18px] font-bold">Want a nutritionist to review it?</span><span className="text-[15px] text-[#dfe6dc]">Send the completed formula to FeedSport for a practical review.</span></div><a href="https://wa.me/263774684534?text=Please%20review%20my%20feed%20formulation" className="inline-flex h-[46px] items-center rounded-[4px] border border-[#dfe6dc] px-[18px] text-[15px] font-semibold text-white no-underline">Ask a nutritionist</a></div>
+      <section className="mt-6 grid overflow-hidden rounded-[6px] bg-[#1d3a2a] text-white md:grid-cols-2">
+        <div className="flex flex-col items-start gap-3 px-6 py-8 md:px-12 md:py-12">
+          <p className="fs-label m-0 inline-flex items-center gap-2.5 text-[#d99a2b]"><i aria-hidden className="h-2.5 w-2.5 rotate-45 bg-[#d99a2b]"/>Formulation Studio</p>
+          <h2 className="m-0 text-[clamp(26px,2.8cqi,38px)] font-bold leading-[1.1] tracking-[-.03em] [font-stretch:115%]">Need more than a quick check?</h2>
+          <p className="m-0 max-w-[560px] text-[16px] leading-[1.55] text-[#dfe6dc]">Use the full ingredient catalogue and nutrient model, set your own inclusion limits and prices, then save, version and compare formulations.</p>
+          <div className="mt-auto pt-3"><Link href="/studio" className="inline-flex h-[52px] items-center gap-3 rounded-[4px] bg-[#fbfaf6] px-7 text-[16px] font-semibold text-[#191b18] no-underline hover:bg-white hover:text-[#191b18]">Open Formulation Studio<span aria-hidden>→</span></Link></div>
+        </div>
+        <div className="flex flex-col items-start gap-3 border-t border-[#3d5a48] px-6 py-8 md:border-l md:border-t-0 md:px-12 md:py-12">
+          <p className="fs-label m-0 inline-flex items-center gap-2.5 text-[#dfe6dc]"><i aria-hidden className="h-2.5 w-2.5 rounded-full bg-[#dfe6dc]"/>Nutritionist review</p>
+          <h2 className="m-0 text-[clamp(26px,2.8cqi,38px)] font-bold leading-[1.1] tracking-[-.03em] [font-stretch:115%]">Want a nutritionist to review it?</h2>
+          <p className="m-0 max-w-[560px] text-[16px] leading-[1.55] text-[#dfe6dc]">Send the completed formula to FeedSport for a practical review.</p>
+          <div className="mt-auto pt-3"><a href="https://wa.me/263774684534?text=Please%20review%20my%20feed%20formulation" className="inline-flex h-[52px] items-center rounded-[4px] border border-[#dfe6dc] px-7 text-[16px] font-semibold text-white no-underline hover:bg-white/10 hover:text-white">Ask a nutritionist</a></div>
+        </div>
+      </section>
       <QuoteIngredientsDialog
         open={quoteDialogOpen}
         onOpenChange={setQuoteDialogOpen}
