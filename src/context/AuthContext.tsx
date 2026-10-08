@@ -6,7 +6,15 @@ import type { User } from '@supabase/supabase-js';
 import { createClient } from '@/lib/supabase/client';
 import { isSupabaseConfigured } from '@/lib/supabase/config';
 
-type AppUser = { uid: string; email: string | null; displayName: string | null };
+type AppUser = {
+  uid: string;
+  email: string | null;
+  displayName: string | null;
+  /** What the user said describes them at sign-up (farmer, nutritionist, manufacturer). */
+  role: string | null;
+  /** Farm or company given at sign-up. */
+  org: string | null;
+};
 
 interface AuthContextType {
   user: AppUser | null;
@@ -16,8 +24,22 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const metadataText = (user: User, key: string) => {
+  const value = user.user_metadata?.[key];
+  return typeof value === 'string' && value.trim() ? value.trim() : null;
+};
+
+// Google supplies full_name (or name); email sign-up stores full_name, role and org.
 const toAppUser = (user: User | null | undefined): AppUser | null =>
-  user ? { uid: user.id, email: user.email ?? null, displayName: (user.user_metadata?.full_name as string | undefined) ?? null } : null;
+  user
+    ? {
+        uid: user.id,
+        email: user.email ?? null,
+        displayName: metadataText(user, 'full_name') ?? metadataText(user, 'name'),
+        role: metadataText(user, 'role'),
+        org: metadataText(user, 'org'),
+      }
+    : null;
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
