@@ -3,6 +3,7 @@ import type { IngredientListItem } from "@/lib/ingredient-lists";
 import type { StudioPhase, StudioProgramme, StudioProgrammeData } from "@/lib/studio-programmes";
 import type {
   FormulationAlternative,
+  FormulationIncompleteRequirement,
   FormulationNutrientComparison,
   FormulationSolution,
   LeastCostFormulationResult,
@@ -155,6 +156,7 @@ export interface Summary {
   req?: number;
   adv?: number;
   fail?: number;
+  unknown?: number;
 }
 export interface SavedVersion {
   v: number;
@@ -405,8 +407,9 @@ export async function formulate(snap: Snapshot, ctx: EngineContext): Promise<For
 
 export interface ManualCheck {
   recipeValidity: ManualRecipeValidity;
-  nutrientAdequacy: "met" | "not-met" | "not-checked";
+  nutrientAdequacy: "met" | "not-met" | "unknown" | "not-checked";
   nutrients: NutrientResult[];
+  incompleteRequirements: FormulationIncompleteRequirement[];
   advisories: Advisory[];
   cost: number;
 }
@@ -430,6 +433,11 @@ export function validateManualRecipe(snap: Snapshot, pct: Record<string, number>
   for (const [id, value] of values) {
     if (!Number.isFinite(value) || value < 0) {
       issues.push({ id, title: "Enter a valid amount for " + nameOf(ctx, id), body: "Ingredient amounts must be zero or a positive percentage." });
+    }
+    if (!ctx.catalogue.has(id)) {
+      issues.push({ id, title: "Unknown ingredient " + id, body: "This ingredient is not in the FeedSport catalogue and cannot be checked." });
+    } else if (value > MANUAL_BOUND_TOLERANCE && !Object.prototype.hasOwnProperty.call(snap.pool, id)) {
+      issues.push({ id, title: nameOf(ctx, id) + " is not in the selected ingredient pool", body: "Add it to the pool before using it in this recipe." });
     }
   }
   if (Math.abs(total - 100) > MANUAL_TOTAL_TOLERANCE) {
@@ -469,9 +477,9 @@ export async function evaluateManual(snap: Snapshot, pct: Record<string, number>
   const { programme, phase } = phaseOf(ctx.programmes, snap.programmeId, snap.phaseId);
   const recipeValidity = validateManualRecipe(snap, pct, ctx);
   const cost = Object.keys(pct).reduce((t, id) => t + (Math.max(0, pct[id]) / 100) * (priceOf(id, snap.pool, ctx.catalogue) ?? 0), 0);
-  if (!recipeValidity.valid) return { recipeValidity, nutrientAdequacy: "not-checked", nutrients: [], advisories: [], cost };
+  if (!recipeValidity.valid) return { recipeValidity, nutrientAdequacy: "not-checked", nutrients: [], incompleteRequirements: [], advisories: [], cost };
 
-  const data = await post<{ status: string; nutrientProfile?: FormulationNutrientComparison[]; message?: string }>("/api/feed-formulation/evaluate", {
+  const data = await post<{ status: string; nutrientProfile?: FormulationNutrientComparison[]; incompleteRequirements?: FormulationIncompleteRequirement[]; message?: string }>("/api/feed-formulation/evaluate", {
     programmeId: programme.id,
     phaseId: phase.id,
     energySystem: "ME",
@@ -479,10 +487,13 @@ export async function evaluateManual(snap: Snapshot, pct: Record<string, number>
   });
   if (data.status !== "evaluated" || !data.nutrientProfile) throw new Error(data.message ?? "Couldn’t check this recipe.");
   const nutrients = nutrientRows(data.nutrientProfile);
+  const incompleteRequirements = data.incompleteRequirements ?? [];
+  const hasFailure = nutrients.some((nutrient) => nutrient.status !== "met");
   return {
     recipeValidity,
-    nutrientAdequacy: nutrients.every((nutrient) => nutrient.status === "met") ? "met" : "not-met",
+    nutrientAdequacy: hasFailure ? "not-met" : incompleteRequirements.length ? "unknown" : "met",
     nutrients,
+    incompleteRequirements,
     advisories: advisoriesFor(ctx, phase, pct),
     cost,
   };

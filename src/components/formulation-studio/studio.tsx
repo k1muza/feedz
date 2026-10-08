@@ -492,6 +492,7 @@ function manualRecipe(S: State, catalogue: Map<string, CatalogueIngredient>) {
 }
 type ManualView = ReturnType<typeof manualRecipe> & {
   nutrients: NutrientResult[];
+  incompleteRequirements: ManualCheck["incompleteRequirements"];
   advisories: ManualCheck["advisories"];
   recipeValidity: ManualCheck["recipeValidity"] | null;
   nutrientAdequacy: ManualCheck["nutrientAdequacy"];
@@ -499,7 +500,7 @@ type ManualView = ReturnType<typeof manualRecipe> & {
 };
 
 function summarise(r: FormulateResult, manual: ManualView | null): Summary {
-  if (manual) return { status: "manual", costT: manual.cost, recipe: manual.recipe, met: manual.nutrients.filter((n) => n.status === "met").length, req: manual.nutrients.length, adv: manual.advisories.length, fail: manual.nutrients.filter((n) => n.status !== "met").length };
+  if (manual) return { status: "manual", costT: manual.cost, recipe: manual.recipe, met: manual.nutrients.filter((n) => n.status === "met").length, req: manual.nutrients.length + manual.incompleteRequirements.length, adv: manual.advisories.length, fail: manual.nutrients.filter((n) => n.status !== "met").length, unknown: manual.incompleteRequirements.length };
   if (r.status !== "optimal") return { status: r.status };
   return { status: "optimal", costT: r.costT, recipe: r.recipe.map((x) => ({ id: x.id, pct: x.pct })), met: r.nutrients.filter((n) => n.status === "met").length, req: r.nutrients.length, adv: r.advisories.length, fail: 0 };
 }
@@ -538,7 +539,7 @@ const roleShort = (e: PoolEntry) => (e.role === "fixed" ? "Fixed " + e.fixed + "
 function stOfSum(s: Summary | undefined): StatusMark {
   if (!s) return ST.none;
   if (s.status === "optimal") return s.adv ? { ...ST.adv, label: "Valid · " + s.adv + " advisory" } : { ...ST.met, label: "Meets all" };
-  if (s.status === "manual") return s.fail ? { ...ST.below, label: "Manual · " + s.fail + " failing" } : { ...ST.met, label: "Manual · meets all" };
+  if (s.status === "manual") return s.fail ? { ...ST.below, label: "Manual · " + s.fail + " failing" + (s.unknown ? " · " + s.unknown + " unknown" : "") } : s.unknown ? { ...ST.adv, label: "Manual · " + s.unknown + " unknown" } : { ...ST.met, label: "Manual · meets all" };
   if (s.status === "infeasible") return { ...ST.below, label: "No valid recipe" };
   return { ...ST.below, label: "Can't formulate" };
 }
@@ -1029,6 +1030,7 @@ function useStudio({ catalogue, nutrients, programmes, showSolverDetails = false
           return {
             ...m,
             nutrients: check?.nutrients ?? [],
+            incompleteRequirements: check?.incompleteRequirements ?? [],
             advisories: check?.advisories ?? [],
             recipeValidity: check?.recipeValidity ?? null,
             nutrientAdequacy: check?.nutrientAdequacy ?? "not-checked",
@@ -1413,7 +1415,12 @@ function useStudio({ catalogue, nutrients, programmes, showSolverDetails = false
           limiting: nutrient.limiting,
         })),
         advisories: advisories.map((advisory) => advisory.text),
-        notes: optimal.warns.map((warning) => warning.title + ": " + warning.body),
+        notes: [
+          ...optimal.warns.map((warning) => warning.title + ": " + warning.body),
+          ...(manualView?.incompleteRequirements.map((requirement) =>
+            "Nutritional adequacy unknown for " + requirement.label + ": missing data for " + requirement.missingIngredientIds.map(ingredientName).join(", ") + ".",
+          ) ?? []),
+        ],
       };
       const response = await fetch("/api/feed-formulation/studio-report", {
         method: "POST",
@@ -1644,7 +1651,9 @@ function optimalVals(
   const nutrientStatus = mc?.checking || recipeInvalid
     ? { label: "Nutrition not checked", color: "#64665c", bg: "#d0cdc3", r: "50%" }
     : failN
-      ? { label: failN + " of " + nList.length + " nutrient requirements not met", color: "#a63d2a", bg: "#b2412e", r: "0" }
+      ? { label: failN + " of " + nList.length + " checked nutrient requirements not met" + (mc?.incompleteRequirements.length ? " · " + mc.incompleteRequirements.length + " unknown" : ""), color: "#a63d2a", bg: "#b2412e", r: "0" }
+      : mc?.nutrientAdequacy === "unknown"
+        ? { label: mc.incompleteRequirements.length + " nutrient requirement" + (mc.incompleteRequirements.length === 1 ? " is" : "s are") + " unknown · missing ingredient data", color: "#8a5f18", bg: "#c98a1e", r: "0" }
       : { label: "Meets all " + nList.length + " nutrient requirements", color: "#2b6a42", bg: "#2f7a4a", r: "50%" };
   const strip = {
     ...nutrientStatus,
@@ -2006,6 +2015,7 @@ function libraryVals(
         const planning = g?.price?.usdPerTonne ?? null;
         const has = it.price != null;
         const age = it.priceUpdatedAt ? daysSince(it.priceUpdatedAt) : 0;
+        const priceState = myLists.priceState(cur.id, it.ingredientId, it.price);
         return {
           id: it.ingredientId,
           name: g?.name ?? it.ingredientId,
@@ -2025,9 +2035,9 @@ function libraryVals(
           }),
           price: myLists.priceText(cur.id, it.ingredientId, it.price),
           onPrice: (e: InputEvent) => myLists.setPrice(cur.id, it.ingredientId, e.target.value),
-          age: !has ? (planning != null ? "Uses default" : "Needs a price") : age === 0 ? "Updated today" : "Updated " + age + " day" + (age === 1 ? "" : "s") + " ago",
-          ageColor: has && age > 30 ? "#8a5f18" : !has && planning == null ? "#a63d2a" : "#64665c",
-          ageDot: has && age > 30,
+          age: priceState?.label ?? (!has ? (planning != null ? "Uses default" : "Needs a price") : age === 0 ? "Updated today" : "Updated " + age + " day" + (age === 1 ? "" : "s") + " ago"),
+          ageColor: priceState?.color ?? (has && age > 30 ? "#8a5f18" : !has && planning == null ? "#a63d2a" : "#64665c"),
+          ageDot: priceState?.dot ?? (has && age > 30),
           remove: () => void myLists.removeItem(cur.id, it.ingredientId),
         };
       })

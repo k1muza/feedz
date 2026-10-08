@@ -31,9 +31,10 @@ interface QueuedWrite<T> {
   write: () => Promise<T>;
   committed: (value: T) => void;
   failed: (error: unknown) => void;
+  persisted: (value: T) => void;
 }
 
-/** Serializes debounced writes per key and only reconciles the latest edit. */
+/** Serializes writes per key, tracks the latest draft, and reconciles every persisted response. */
 export class SerializedEditQueue<T> {
   private revisions = new Map<string, number>();
   private pending = new Map<string, QueuedWrite<T>>();
@@ -42,10 +43,10 @@ export class SerializedEditQueue<T> {
 
   constructor(private readonly delayMs: number) {}
 
-  enqueue(key: string, write: () => Promise<T>, committed: (value: T) => void, failed: (error: unknown) => void) {
+  enqueue(key: string, write: () => Promise<T>, committed: (value: T) => void, failed: (error: unknown) => void, persisted: (value: T) => void = () => {}) {
     const revision = (this.revisions.get(key) ?? 0) + 1;
     this.revisions.set(key, revision);
-    this.pending.set(key, { revision, write, committed, failed });
+    this.pending.set(key, { revision, write, committed, failed, persisted });
     clearTimeout(this.timers.get(key));
     this.timers.set(key, setTimeout(() => this.drain(key), this.delayMs));
     return revision;
@@ -68,6 +69,9 @@ export class SerializedEditQueue<T> {
     this.pending.delete(key);
     const task = edit.write()
       .then((value) => {
+        // Even a superseded request may have changed the database. Keep the
+        // committed value in sync while leaving the newer draft untouched.
+        edit.persisted(value);
         if (this.revisions.get(key) === edit.revision) edit.committed(value);
       })
       .catch((error: unknown) => {
@@ -119,6 +123,26 @@ const STARTER_LIST = {
 
 type Status = "idle" | "loading" | "ready" | "error";
 
+export interface PriceDraft {
+  text: string;
+  status: "invalid" | "pending";
+}
+
+export interface PriceEditState {
+  label: string;
+  color: string;
+  dot: boolean;
+}
+
+/** Makes a draft's validation/save state distinct from its last stored value. */
+export function priceEditState(draft: PriceDraft | undefined, committedPrice: number | null): PriceEditState | null {
+  if (!draft) return null;
+  const saved = committedPrice == null ? "no custom price saved" : "$" + committedPrice + "/t saved";
+  return draft.status === "invalid"
+    ? { label: "Invalid price · " + saved, color: "#a63d2a", dot: true }
+    : { label: "Saving… · " + saved, color: "#8a5f18", dot: true };
+}
+
 // Default first, then oldest first: the order the database returns them in.
 const ordered = (lists: IngredientList[]) => [...lists].sort((a, b) => Number(b.isDefault) - Number(a.isDefault) || a.createdAt.localeCompare(b.createdAt));
 
@@ -127,7 +151,7 @@ export function useMyLists(userId: string | null, flash: (message: string) => vo
   const [lists, setListsRaw] = useState<IngredientList[]>([]);
   const setLists = (update: (all: IngredientList[]) => IngredientList[]) => setListsRaw((all) => ordered(update(all)));
   // Raw text typed into price boxes, so "3" on the way to "320" isn't reformatted.
-  const [priceDrafts, setPriceDrafts] = useState<Record<string, string>>({});
+  const [priceDrafts, setPriceDrafts] = useState<Record<string, PriceDraft>>({});
   const priceSaves = useRef<SerializedEditQueue<IngredientListItem> | null>(null);
   if (!priceSaves.current) priceSaves.current = new SerializedEditQueue(SAVE_DELAY_MS);
 
@@ -236,24 +260,25 @@ export function useMyLists(userId: string | null, flash: (message: string) => vo
 
   const setPrice = (listId: string, ingredientId: string, text: string) => {
     const key = listId + "|" + ingredientId;
-    setPriceDrafts((drafts) => ({ ...drafts, [key]: text }));
     const price = text.trim() === "" ? null : Number(text);
     // Wait for something storable: blank (use the planning price) or a positive number.
     if (price !== null && !(price > 0)) {
+      setPriceDrafts((drafts) => ({ ...drafts, [key]: { text, status: "invalid" } }));
       priceSaves.current!.invalidate(key);
       return;
     }
+    setPriceDrafts((drafts) => ({ ...drafts, [key]: { text, status: "pending" } }));
     priceSaves.current!.enqueue(
       key,
       () => setIngredientListItemPrice(listId, ingredientId, price),
-      (item) => {
-        patchList(listId, (l) => ({ ...l, items: l.items.map((it) => (it.ingredientId === ingredientId ? item : it)) }));
+      () => {
         setPriceDrafts((drafts) => {
           const { [key]: _saved, ...rest } = drafts;
           return rest;
         });
       },
       failed("save the price"),
+      (item) => patchList(listId, (l) => ({ ...l, items: l.items.map((it) => (it.ingredientId === ingredientId ? item : it)) })),
     );
   };
 
@@ -274,9 +299,10 @@ export function useMyLists(userId: string | null, flash: (message: string) => vo
     await removeIngredientListItem(listId, ingredientId).catch(failed("remove the ingredient"));
   };
 
-  const priceText = (listId: string, ingredientId: string, price: number | null) => priceDrafts[listId + "|" + ingredientId] ?? (price == null ? "" : String(price));
+  const priceText = (listId: string, ingredientId: string, price: number | null) => priceDrafts[listId + "|" + ingredientId]?.text ?? (price == null ? "" : String(price));
+  const priceState = (listId: string, ingredientId: string, price: number | null) => priceEditState(priceDrafts[listId + "|" + ingredientId], price);
 
-  return { status, lists, reload: load, createList, renameList, setDefault, deleteList, addItem, setPrice, setRule, removeItem, priceText, flushPrices: () => priceSaves.current!.flush() };
+  return { status, lists, reload: load, createList, renameList, setDefault, deleteList, addItem, setPrice, setRule, removeItem, priceText, priceState, flushPrices: () => priceSaves.current!.flush() };
 }
 
 export type MyLists = ReturnType<typeof useMyLists>;
