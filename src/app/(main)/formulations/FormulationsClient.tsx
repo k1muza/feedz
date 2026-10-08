@@ -69,8 +69,6 @@ export default function FormulationsClient({ ingredientPrices, ingredientPackSiz
   const [visibleIngredientIds, setVisibleIngredientIds] = useState<IngredientId[]>(defaultVisibleIngredientIds);
   const [extraVisibleIngredientIds, setExtraVisibleIngredientIds] = useState<string[]>([]);
   const [extraInclusions, setExtraInclusions] = useState<Record<string, number>>({});
-  const [ingredientPickerOpen, setIngredientPickerOpen] = useState(false);
-  const [ingredientToAdd, setIngredientToAdd] = useState('');
   const [balancing, setBalancing] = useState(false);
   const [balanceError, setBalanceError] = useState<string | null>(null);
   const [formulationPriority, setFormulationPriority] = useState<FormulationPriority>('simple');
@@ -166,18 +164,6 @@ export default function FormulationsClient({ ingredientPrices, ingredientPackSiz
   const mixTotal = total > 0 ? total : 1;
   const visibleRows = rows.filter((row) => visibleIngredientIds.includes(row.id));
   const knownEngineIds = new Set<string>(rows.map((row) => row.engineId));
-  const selectedEngineIds = new Set<string>([
-    ...visibleRows.map((row) => row.engineId),
-    ...extraVisibleIngredientIds,
-  ]);
-  const ingredientsAvailableToAdd = [
-    ...rows
-      .filter((row) => !visibleIngredientIds.includes(row.id))
-      .map((row) => ({ engineId: row.engineId, name: row.name })),
-    ...INGREDIENT_LIBRARY.ingredients
-      .filter((ingredient) => !knownEngineIds.has(ingredient.id) && !selectedEngineIds.has(ingredient.id))
-      .map((ingredient) => ({ engineId: ingredient.id, name: ingredient.name })),
-  ];
   const quoteLines: QuoteLine[] = [
     ...rows
       .filter((row) => inclusions[row.id] > 0)
@@ -217,27 +203,6 @@ export default function FormulationsClient({ ingredientPrices, ingredientPackSiz
     setDownloadableFormulation(null);
     setDownloadError(null);
     setFormulationNote('Ingredient amounts changed. Select “Optimize this recipe” to validate the mix and enable the formula download.');
-  }
-
-  function openIngredientPicker() {
-    const firstAvailable = ingredientsAvailableToAdd[0];
-    if (!firstAvailable) return;
-    setIngredientToAdd(firstAvailable.engineId);
-    setIngredientPickerOpen(true);
-  }
-
-  function addIngredient() {
-    if (!ingredientToAdd) return;
-    const knownRow = rows.find((row) => row.engineId === ingredientToAdd);
-    if (knownRow) {
-      setVisibleIngredientIds((current) => [...current, knownRow.id]);
-    } else {
-      setExtraVisibleIngredientIds((current) => [...current, ingredientToAdd]);
-      setExtraInclusions((current) => ({ ...current, [ingredientToAdd]: 0 }));
-    }
-    setIngredientToAdd('');
-    setIngredientPickerOpen(false);
-    markFormulaEdited();
   }
 
   async function calculateFormula() {
@@ -324,7 +289,6 @@ export default function FormulationsClient({ ingredientPrices, ingredientPackSiz
         formula: selectedRecipe.formula,
         priority: selectedAlternative?.id ?? 'least-cost',
       });
-      setIngredientPickerOpen(false);
       if (formulationPriority !== 'least-cost' && !selectedAlternative) {
         setFormulationNote(`${selectedPriority.label} did not produce a materially different valid recipe, so the lowest-cost formula was applied.`);
       } else if (selectedAlternative) {
@@ -403,8 +367,7 @@ export default function FormulationsClient({ ingredientPrices, ingredientPackSiz
           {balanceError ? <div className="border-t border-[#ece8de] bg-[#f6e0d9] px-5 py-3 text-[13px] leading-5 text-[#8f3420]">{balanceError}</div> : null}
           {downloadError ? <div className="border-t border-[#ece8de] bg-[#f6e0d9] px-5 py-3 text-[13px] leading-5 text-[#8f3420]">{downloadError}</div> : null}
           {formulationNote ? <div className="border-t border-[#ece8de] bg-[#e3eadf] px-5 py-3 text-[13px] leading-5 text-[#1f5c38]">{formulationNote}</div> : null}
-          {ingredientPickerOpen ? <div className="flex flex-wrap items-end gap-2 border-t border-[#ece8de] bg-[#f3f0e8] px-5 py-4"><label className="flex min-w-[220px] flex-1 flex-col gap-1.5"><span className="text-[12px] font-semibold text-[#4f524b]">Ingredient to add</span><select autoFocus value={ingredientToAdd} onChange={(event) => setIngredientToAdd(event.target.value)} className="h-[42px] rounded-[4px] border border-[#bdb7a9] bg-white px-3 text-[14px] text-[#191b18]">{ingredientsAvailableToAdd.map((ingredient) => <option key={ingredient.engineId} value={ingredient.engineId}>{ingredient.name}</option>)}</select></label><button type="button" onClick={addIngredient} className="h-[42px] rounded-[4px] bg-[#1d3a2a] px-4 text-[14px] font-semibold text-white">Add</button><button type="button" onClick={() => setIngredientPickerOpen(false)} className="h-[42px] rounded-[4px] border border-[#bdb7a9] bg-transparent px-4 text-[14px] font-semibold">Cancel</button></div> : null}
-          <div className="flex flex-wrap gap-2.5 border-t border-[#d9d4c7] px-5 py-4"><button type="button" onClick={() => void calculateFormula()} disabled={balancing || !selectedPhase} className="h-[42px] rounded-[4px] border-[1.5px] border-[#191b18] bg-transparent px-4 text-[14px] font-semibold disabled:cursor-not-allowed disabled:opacity-40">{balancing ? 'Optimizing…' : 'Optimize this recipe'}</button><button type="button" onClick={openIngredientPicker} disabled={ingredientsAvailableToAdd.length === 0 || ingredientPickerOpen || balancing} className="h-[42px] rounded-[4px] border-[1.5px] border-[#191b18] bg-transparent px-4 text-[14px] font-semibold disabled:cursor-not-allowed disabled:opacity-40">Add ingredient</button><button type="button" onClick={() => void openDetailedPdf()} disabled={!downloadableFormulation || balancing || downloadingPdf} title={downloadableFormulation ? 'Open the detailed formulation PDF in a new tab' : 'Optimize the recipe before downloading the formula'} className="h-[42px] rounded-[4px] border-[1.5px] border-[#191b18] bg-[#fbfaf6] px-4 text-[14px] font-semibold text-[#191b18] disabled:cursor-not-allowed disabled:opacity-40">{downloadingPdf ? 'Preparing formula…' : 'Download Formula'}</button></div><div className="px-5 pb-4"><button type="button" onClick={() => setQuoteDialogOpen(true)} disabled={balancing} className="inline-flex h-[42px] items-center rounded-[4px] bg-[#d99a2b] px-4 text-[14px] font-semibold text-[#191b18] disabled:cursor-not-allowed disabled:opacity-40">Quote ingredients</button></div>
+          <div className="flex flex-wrap gap-2.5 border-t border-[#d9d4c7] px-5 py-4"><button type="button" onClick={() => void calculateFormula()} disabled={balancing || !selectedPhase} className="h-[42px] rounded-[4px] border-[1.5px] border-[#191b18] bg-transparent px-4 text-[14px] font-semibold disabled:cursor-not-allowed disabled:opacity-40">{balancing ? 'Optimizing…' : 'Optimize this recipe'}</button><button type="button" onClick={() => void openDetailedPdf()} disabled={!downloadableFormulation || balancing || downloadingPdf} title={downloadableFormulation ? 'Open the detailed formulation PDF in a new tab' : 'Optimize the recipe before downloading the formula'} className="h-[42px] rounded-[4px] border-[1.5px] border-[#191b18] bg-[#fbfaf6] px-4 text-[14px] font-semibold text-[#191b18] disabled:cursor-not-allowed disabled:opacity-40">{downloadingPdf ? 'Preparing formula…' : 'Download Formula'}</button><button type="button" onClick={() => setQuoteDialogOpen(true)} disabled={balancing} className="inline-flex h-[42px] items-center rounded-[4px] bg-[#d99a2b] px-4 text-[14px] font-semibold text-[#191b18] disabled:cursor-not-allowed disabled:opacity-40">Quote ingredients</button></div>
         </section>
 
         <section className="rounded-[6px] border border-[#d9d4c7] bg-[#fbfaf6] px-5 pb-4">
