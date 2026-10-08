@@ -167,6 +167,26 @@ export type FormulationIngredientSuggestionResult =
       message: string;
     };
 
+export type FormulationIngredientCompletionResult =
+  | {
+      status: "suggested" | "complete";
+      /** The smallest set of extra ingredients needed alongside the current pool. */
+      ingredientIds: string[];
+      /** Inclusion from the feasibility model, useful for ranking—not a final recipe. */
+      projectedInclusionPct: Record<string, number>;
+      candidateCount: number;
+      /** Current ingredients the studio will set aside because required data is missing. */
+      setAsideIngredientIds: string[];
+      unsupportedRequirements: FormulationUnsupportedRequirement[];
+    }
+  | {
+      status: "infeasible" | "error";
+      candidateCount: number;
+      setAsideIngredientIds: string[];
+      unsupportedRequirements: FormulationUnsupportedRequirement[];
+      message: string;
+    };
+
 export type FormulationIncompleteRequirement = {
   id: string;
   label: string;
@@ -459,6 +479,122 @@ export async function suggestFormulationIngredients(
     return {
       status: "error",
       candidateCount: 0,
+      unsupportedRequirements,
+      message: error instanceof Error ? error.message : String(error),
+    };
+  }
+}
+
+/**
+ * Find the minimum number of catalogue ingredients that make an existing pool
+ * feasible. Current bounds and prices are preserved. Other complete, priced
+ * catalogue ingredients are optional binary choices in a mixed-integer model,
+ * so this answers the setup screen's actual question: "what must I add to this
+ * list?" rather than returning a generic stage basket.
+ */
+export async function suggestFormulationAdditions(
+  phase: NutritionPhase,
+  energySystem: EnergySystem,
+  currentOptions: readonly FormulationIngredientOption[],
+  library: IngredientLibrary = INGREDIENT_LIBRARY,
+  priceForIngredient: FormulationIngredientPriceResolver = ingredientDefaultPricePerKg,
+): Promise<FormulationIngredientCompletionResult> {
+  const unsupportedRequirements = unsupportedRequirementsForPhase(phase);
+  const currentIds = new Set(currentOptions.map((option) => option.ingredientId));
+
+  try {
+    validateOptions(currentOptions, library);
+    const constraints = buildConstraintSpecs(phase, energySystem);
+    const currentById = new Map(
+      currentOptions.map((option) => [option.ingredientId, option]),
+    );
+    const options: FormulationIngredientOption[] = library.ingredients.flatMap(
+      (ingredient) => {
+        const current = currentById.get(ingredient.id);
+        if (current) return [current];
+        const pricePerKg = priceForIngredient(ingredient.id);
+        if (
+          pricePerKg === undefined ||
+          !Number.isFinite(pricePerKg) ||
+          pricePerKg < 0
+        ) {
+          return [];
+        }
+        return [{ ingredientId: ingredient.id, pricePerKg }];
+      },
+    );
+    const allPrepared = prepareIngredients(options, constraints, library, phase);
+    const missing = collectMissingData(allPrepared, constraints);
+    const missingIds = new Set(missing.map((row) => row.ingredientId));
+    const setAsideIngredientIds = currentOptions
+      .map((option) => option.ingredientId)
+      .filter((id) => missingIds.has(id));
+    const prepared = allPrepared.filter(
+      (ingredient) => !missingIds.has(ingredient.option.ingredientId),
+    );
+
+    if (prepared.length === 0) {
+      return {
+        status: "error",
+        candidateCount: 0,
+        setAsideIngredientIds,
+        unsupportedRequirements,
+        message:
+          "No loaded ingredient has both a planning price and complete data for every modeled formulation constraint.",
+      };
+    }
+
+    const glpk = await loadGlpk();
+    const solved = await solveMinimumAdditions(
+      glpk,
+      prepared,
+      constraints,
+      currentIds,
+    );
+    if (solved.status !== "optimal") {
+      return {
+        status: "infeasible",
+        candidateCount: prepared.length,
+        setAsideIngredientIds,
+        unsupportedRequirements,
+        message:
+          "No feasible additions were found from the complete, priced ingredient catalogue.",
+      };
+    }
+
+    const projectedInclusionPct = Object.fromEntries(
+      prepared
+        .map((ingredient) => [
+          ingredient.option.ingredientId,
+          Math.max(0, solved.vars[ingredient.variable] ?? 0) * 100,
+        ] as const)
+        .filter(([, pct]) => pct > 1e-7),
+    );
+    const ingredientIds = prepared
+      .filter((ingredient) => {
+        const id = ingredient.option.ingredientId;
+        return !currentIds.has(id) && (projectedInclusionPct[id] ?? 0) > 1e-7;
+      })
+      .sort(
+        (a, b) =>
+          (projectedInclusionPct[b.option.ingredientId] ?? 0) -
+          (projectedInclusionPct[a.option.ingredientId] ?? 0),
+      )
+      .map((ingredient) => ingredient.option.ingredientId);
+
+    return {
+      status: ingredientIds.length ? "suggested" : "complete",
+      ingredientIds,
+      projectedInclusionPct,
+      candidateCount: prepared.length,
+      setAsideIngredientIds,
+      unsupportedRequirements,
+    };
+  } catch (error) {
+    return {
+      status: "error",
+      candidateCount: 0,
+      setAsideIngredientIds: [],
       unsupportedRequirements,
       message: error instanceof Error ? error.message : String(error),
     };
@@ -965,6 +1101,116 @@ export async function solveStrict(
   }
 
   return { status: "optimal", vars: result.result.vars, dual: result.result.dual ?? {} };
+}
+
+async function solveMinimumAdditions(
+  glpk: GLPK,
+  ingredients: readonly PreparedIngredient[],
+  constraints: readonly ConstraintSpec[],
+  currentIds: ReadonlySet<string>,
+): Promise<
+  | { status: "optimal"; vars: Record<string, number> }
+  | { status: "infeasible" }
+> {
+  const { GLP_DB, GLP_FX, GLP_LO, GLP_MIN, GLP_MSG_OFF, GLP_OPT, GLP_UP } = glpk;
+  const optional = ingredients.filter(
+    (ingredient) => !currentIds.has(ingredient.option.ingredientId),
+  );
+  const binaryName = (ingredient: PreparedIngredient) =>
+    `add_${ingredient.variable}`;
+  const maxPrice = Math.max(
+    1,
+    ...ingredients.map((ingredient) => ingredient.option.pricePerKg),
+  );
+
+  const lp = {
+    name: "FeedSportMinimumIngredientAdditions",
+    objective: {
+      direction: GLP_MIN,
+      name: "number_of_additions",
+      vars: [
+        ...optional.map((ingredient) => ({
+          name: binaryName(ingredient),
+          coef: 1,
+        })),
+        ...ingredients.map((ingredient) => ({
+          name: ingredient.variable,
+          // Tie-breaks prefer using more of the farmer's list, then lower cost.
+          // Their combined weight stays far below one binary ingredient.
+          coef:
+            (currentIds.has(ingredient.option.ingredientId) ? 0 : 1e-4) +
+            (ingredient.option.pricePerKg / maxPrice) * 1e-6,
+        })),
+      ],
+    },
+    subjectTo: [
+      {
+        name: "total_inclusion",
+        vars: ingredients.map((ingredient) => ({
+          name: ingredient.variable,
+          coef: 1,
+        })),
+        bnds: { type: GLP_FX, lb: 1, ub: 1 },
+      },
+      ...constraints.map((constraint) => ({
+        name: `nutrient_${constraint.id}`,
+        vars: ingredients.map((ingredient) => ({
+          name: ingredient.variable,
+          coef: ingredient.coefficients.get(constraint.id) ?? 0,
+        })),
+        bnds:
+          constraint.relation === "min"
+            ? { type: GLP_LO, lb: constraint.bound, ub: 0 }
+            : { type: GLP_UP, lb: 0, ub: constraint.bound },
+      })),
+      ...optional.flatMap((ingredient) => [
+        {
+          name: `enable_${ingredient.variable}`,
+          vars: [
+            { name: ingredient.variable, coef: 1 },
+            { name: binaryName(ingredient), coef: -ingredient.maxFraction },
+          ],
+          bnds: { type: GLP_UP, lb: 0, ub: 0 },
+        },
+        ...(ingredient.minFraction > 1e-12
+          ? [
+              {
+                name: `minimum_${ingredient.variable}`,
+                vars: [
+                  { name: ingredient.variable, coef: 1 },
+                  {
+                    name: binaryName(ingredient),
+                    coef: -ingredient.minFraction,
+                  },
+                ],
+                bnds: { type: GLP_LO, lb: 0, ub: 0 },
+              },
+            ]
+          : []),
+      ]),
+    ],
+    bounds: ingredients.map((ingredient) => {
+      const current = currentIds.has(ingredient.option.ingredientId);
+      return {
+        name: ingredient.variable,
+        type:
+          current &&
+          Math.abs(ingredient.minFraction - ingredient.maxFraction) <= 1e-12
+            ? GLP_FX
+            : GLP_DB,
+        lb: current ? ingredient.minFraction : 0,
+        ub: ingredient.maxFraction,
+      };
+    }),
+    binaries: optional.map(binaryName),
+  };
+
+  const result = await glpk.solve(lp, {
+    msglev: GLP_MSG_OFF,
+    presol: true,
+  });
+  if (result.result.status !== GLP_OPT) return { status: "infeasible" };
+  return { status: "optimal", vars: result.result.vars };
 }
 
 

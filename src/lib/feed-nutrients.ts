@@ -297,7 +297,7 @@ export function nutrientRequirementValue(
   }
 }
 
-function ingredientValueForNutrient(
+export function ingredientValueForNutrient(
   nutrientId: string,
   ingredient: IngredientNutrientRecord,
 ): { value: number; unit: string } | undefined {

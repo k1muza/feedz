@@ -6,13 +6,27 @@ import { z } from "zod";
 import { ingredientDefaultPricePerKg } from "@/lib/feed-ingredient-prices";
 import { ingredientLibraryForPhase } from "@/lib/ingredient-nutrients";
 import { getIngredientPrices } from "@/lib/ingredient-prices";
-import { suggestFormulationIngredients } from "@/lib/feed-optimizer";
+import {
+  suggestFormulationAdditions,
+  suggestFormulationIngredients,
+  type FormulationIngredientOption,
+} from "@/lib/feed-optimizer";
 import { feedProgrammePhaseById } from "@/lib/feed-programmes";
 
 const requestSchema = z.object({
   programmeId: z.string().min(1),
   phaseId: z.string().min(1),
   energySystem: z.enum(["ME", "NE"]).default("ME"),
+  currentIngredients: z
+    .array(
+      z.object({
+        ingredientId: z.string().min(1),
+        pricePerKg: z.number().finite().nonnegative().optional(),
+        minInclusionPct: z.number().finite().min(0).max(100).optional(),
+        maxInclusionPct: z.number().finite().min(0).max(100).optional(),
+      }),
+    )
+    .optional(),
 });
 
 export async function POST(request: Request) {
@@ -28,7 +42,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const { programmeId, phaseId, energySystem } = parsed.data;
+  const { programmeId, phaseId, energySystem, currentIngredients } = parsed.data;
   const phase = feedProgrammePhaseById(programmeId, phaseId);
   if (!phase) {
     return NextResponse.json(
@@ -41,11 +55,46 @@ export async function POST(request: Request) {
   }
 
   const prices = await getIngredientPrices();
+  const planningPrice = (ingredientId: string) =>
+    ingredientDefaultPricePerKg(ingredientId, prices);
+  if (currentIngredients) {
+    const options: FormulationIngredientOption[] = currentIngredients.flatMap(
+      (ingredient) => {
+        const pricePerKg =
+          ingredient.pricePerKg ?? planningPrice(ingredient.ingredientId);
+        return pricePerKg === undefined ? [] : [{ ...ingredient, pricePerKg }];
+      },
+    );
+    const missingPriceIngredientIds = currentIngredients
+      .filter(
+        (ingredient) =>
+          ingredient.pricePerKg === undefined &&
+          planningPrice(ingredient.ingredientId) === undefined,
+      )
+      .map((ingredient) => ingredient.ingredientId);
+    if (missingPriceIngredientIds.length) {
+      return NextResponse.json({
+        status: "blocked",
+        ingredientIds: [],
+        missingPriceIngredientIds,
+        message:
+          "Set a price for every current ingredient before checking which additions make the list feasible.",
+      });
+    }
+    const result = await suggestFormulationAdditions(
+      phase,
+      energySystem,
+      options,
+      ingredientLibraryForPhase(phase),
+      planningPrice,
+    );
+    return NextResponse.json(result);
+  }
   const result = await suggestFormulationIngredients(
     phase,
     energySystem,
     ingredientLibraryForPhase(phase),
-    (ingredientId) => ingredientDefaultPricePerKg(ingredientId, prices),
+    planningPrice,
   );
   return NextResponse.json(result);
 }
