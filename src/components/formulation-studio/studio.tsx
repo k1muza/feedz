@@ -4,7 +4,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type CSSProperties, type FormEvent, type KeyboardEvent } from "react";
 
 import { useAuth } from "@/context/AuthContext";
-import type { IngredientList } from "@/lib/ingredient-lists";
+import type { IngredientList, IngredientListItemRuleInput } from "@/lib/ingredient-lists";
 import { createClient } from "@/lib/supabase/client";
 import { isSupabaseConfigured, supabaseKey, supabaseUrl } from "@/lib/supabase/config";
 import type { CatalogueIngredient, CatalogueNutrientId } from "@/lib/studio-catalogue";
@@ -18,6 +18,7 @@ import {
   fsLimit,
   guideline,
   phaseOf,
+  poolEntryFromListItem,
   priceOf,
   type EngineContext,
   type FormulateResult,
@@ -143,6 +144,9 @@ type Species = "swine" | "broiler";
 
 interface Draft {
   id: string;
+  /** Present when editing a reusable "My ingredients" rule instead of a formulation pool entry. */
+  listId?: string;
+  listRole?: Role;
   min: string;
   max: string;
   price: string;
@@ -386,15 +390,7 @@ function defaultProgramme(programmes: StudioProgrammeData) {
 /** A list's ingredients and settings, copied into a formulation. Later edits to the list don't reach it. */
 function poolFromList(list: IngredientList | null): Pool {
   const pool: Pool = {};
-  for (const it of list?.items ?? []) {
-    pool[it.ingredientId] = {
-      role: it.role,
-      ...(it.price != null ? { price: it.price } : {}),
-      ...(it.minPct != null ? { min: it.minPct } : {}),
-      ...(it.maxPct != null ? { max: it.maxPct } : {}),
-      ...(it.fixedPct != null ? { fixed: it.fixedPct } : {}),
-    };
-  }
+  for (const item of list?.items ?? []) pool[item.ingredientId] = poolEntryFromListItem(item);
   return pool;
 }
 
@@ -550,6 +546,9 @@ function stOfSum(s: Summary | undefined): StatusMark {
 function draftErr(d: Draft, fs: number) {
   const m = d.min === "" ? null : +d.min,
     mx = d.max === "" ? null : +d.max;
+  if (d.listRole === "excluded") return null;
+  if (d.listRole === "required" && !(m != null && m > 0)) return "A required ingredient needs a minimum above 0%.";
+  if (d.listRole === "fixed" && !(m != null && m > 0)) return "A fixed ingredient needs an inclusion above 0%.";
   if (m != null && m < 0) return "Minimum can’t be negative.";
   if (m != null && m > fs) return "Minimum is above the FeedSport limit of " + fs + "% for this stage.";
   if (mx != null && mx <= 0) return "Maximum must be above 0%. Use Remove to keep it out.";
@@ -908,7 +907,25 @@ function useStudio({ catalogue, nutrients, programmes, showSolverDetails = false
   };
   const applyDraft = (rerun: boolean) => {
     const d = S.drawer;
-    if (!d || draftErr(d, fsMax(d.id))) return;
+    const maxAllowed = d?.listId ? 100 : d ? fsMax(d.id) : 100;
+    if (!d || draftErr(d, maxAllowed)) return;
+    if (d.listId && d.listRole) {
+      const mn = d.min === "" ? 0 : +d.min;
+      const mx = d.max === "" ? null : +d.max;
+      const rule: IngredientListItemRuleInput =
+        d.listRole === "fixed"
+          ? { role: "fixed", fixedPct: mn }
+          : d.listRole === "required"
+            ? { role: "required", minPct: mn, maxPct: mx }
+            : d.listRole === "available"
+              ? { role: "available", maxPct: mx }
+              : { role: "excluded" };
+      update({ drawer: null });
+      void myLists.setRule(d.listId, d.id, rule).then((saved) => {
+        if (saved) flash(ingredientName(d.id) + " rule saved to your reusable list");
+      });
+      return;
+    }
     const price = d.price === "" ? undefined : d.unit === "t" ? +d.price : +d.price * 1000;
     const mn = d.min === "" ? 0 : +d.min,
       mx = d.max === "" ? null : +d.max;
@@ -924,6 +941,22 @@ function useStudio({ catalogue, nutrients, programmes, showSolverDetails = false
     if (price != null) e.price = Math.round(price * 100) / 100;
     update({ pool: { ...S.pool, [d.id]: e }, drawer: null });
     if (rerun && S.screen === "workspace") run();
+  };
+  const removeDraft = () => {
+    const d = S.drawer;
+    if (!d) return;
+    if (d.listId) {
+      void myLists.removeItem(d.listId, d.id);
+      update({ drawer: null });
+      flash(ingredientName(d.id) + " removed from this reusable list");
+      return;
+    }
+    update((state) => {
+      const pool = { ...state.pool };
+      delete pool[d.id];
+      return { pool, drawer: null };
+    });
+    flash(ingredientName(d.id) + " removed from this formulation");
   };
   const ingredientName = (id: string) => catalogueById.get(id)?.name ?? id;
   const addIng = (id: string) => {
@@ -1484,7 +1517,7 @@ function useStudio({ catalogue, nutrients, programmes, showSolverDetails = false
   const cmp = S.screen === "compare" && S.cmp ? compareVals(formulations.docs, S.cmp, openVersion, engine) : null;
 
   // ---- drawer, add, rules ----
-  const d = S.drawer ? drawerVals(S, S.drawer, optimal, { update, flash, applyDraft, engine, phase: PH }) : null;
+  const d = S.drawer ? drawerVals(S, S.drawer, optimal, { update, applyDraft, removeDraft, engine, phase: PH }) : null;
   const q = S.addQ.trim().toLowerCase();
   const addList = S.addTarget === "set" ? currentList(S, myLists) : null;
   const addResults = catalogue
@@ -1757,20 +1790,28 @@ function compareVals(saved: SavedDoc[], sel: string[], openVersion: (docId: stri
   };
 }
 
-function drawerVals(S: State, D: Draft, R: OptimalResult | null, ctx: { update: Update; flash: (m: string) => void; applyDraft: (rerun: boolean) => void; engine: EngineContext; phase: ReturnType<typeof phaseOf>["phase"] }) {
+function drawerVals(S: State, D: Draft, R: OptimalResult | null, ctx: { update: Update; applyDraft: (rerun: boolean) => void; removeDraft: () => void; engine: EngineContext; phase: ReturnType<typeof phaseOf>["phase"] }) {
   const { engine, phase } = ctx;
   const g = engine.catalogue.get(D.id);
-  const fs = fsLimit(engine, phase, D.id),
-    guide = guideline(engine, phase, D.id);
-  const inR = R?.recipe.find((r) => r.id === D.id);
+  const isListRule = !!D.listId;
+  const listRole = D.listRole ?? "available";
+  const fs = isListRule ? 100 : fsLimit(engine, phase, D.id),
+    guide = isListRule ? undefined : guideline(engine, phase, D.id);
+  const inR = isListRule ? undefined : R?.recipe.find((r) => r.id === D.id);
   const err = draftErr(D, fs);
   const upd = (patch: Partial<Draft>) => ctx.update((s) => ({ drawer: s.drawer && { ...s.drawer, ...patch } }));
-  const scale = Math.max(25, Math.min(100, (fs < 100 ? fs : 30) * 1.25));
+  const scale = isListRule ? 100 : Math.max(25, Math.min(100, (fs < 100 ? fs : 30) * 1.25));
   const px = (x: number) => Math.max(0, Math.min(100, (x / scale) * 100)) + "%";
   const userMax = D.max !== "" ? +D.max : null;
-  const effHi = userMax != null ? Math.min(userMax, fs) : Math.min(fs, scale);
   const effLo = +D.min || 0;
-  const lockHint = +D.min > 0 && userMax != null && +D.min === userMax ? "Minimum equals maximum, so this ingredient is locked at " + D.min + "%." : +D.min > 0 ? "The recipe must contain at least " + D.min + "%. The optimiser picks the exact amount." : "The optimiser may use any amount up to the maximum. Set the same minimum and maximum to lock an amount.";
+  const effHi = isListRule && listRole === "fixed" ? effLo : userMax != null ? Math.min(userMax, fs) : Math.min(fs, scale);
+  const lockHint = isListRule
+    ? listRole === "fixed"
+      ? "Every formulation started from this list will lock the ingredient at this percentage."
+      : listRole === "required"
+        ? "Every formulation started from this list must use at least this amount. Add a maximum if needed."
+        : "The optimiser may use this ingredient up to your optional maximum."
+    : +D.min > 0 && userMax != null && +D.min === userMax ? "Minimum equals maximum, so this ingredient is locked at " + D.min + "%." : +D.min > 0 ? "The recipe must contain at least " + D.min + "%. The optimiser picks the exact amount." : "The optimiser may use any amount up to the maximum. Set the same minimum and maximum to lock an amount.";
   const defP = g?.price?.usdPerTonne ?? null;
   const dispDef = defP == null ? null : D.unit === "t" ? defP : defP / 1000;
   const curPrice = D.price !== "" ? (D.unit === "t" ? +D.price : +D.price * 1000) : defP;
@@ -1792,11 +1833,23 @@ function drawerVals(S: State, D: Draft, R: OptimalResult | null, ctx: { update: 
   const meKey: CatalogueNutrientId = species === "broiler" ? "mePoultry" : "mePig";
   return {
     name: g?.name ?? D.id,
-    sub: (g?.category ?? "Not in the catalogue") + (inR ? " · in this recipe at " + fmt(inR.pct, inR.pct < 1 ? 2 : 1) + "%" : R ? " · not used in this recipe" : ""),
-    showLimits: true, limitsTitle: "Inclusion limits · hard", showMin: true, showMax: true, limitHint: lockHint,
+    sub: isListRule ? (g?.category ?? "Not in the catalogue") + " · reusable list rule" : (g?.category ?? "Not in the catalogue") + (inR ? " · in this recipe at " + fmt(inR.pct, inR.pct < 1 ? 2 : 1) + "%" : R ? " · not used in this recipe" : ""),
+    hasRolePicker: isListRule,
+    roleOptions: (["available", "required", "fixed", "excluded"] as Role[]).map((role) => ({
+      label: ROLE[role],
+      on: listRole === role,
+      pick: () => upd({
+        listRole: role,
+        ...(role === "available" || role === "excluded" ? { min: "" } : {}),
+        ...(role === "fixed" || role === "excluded" ? { max: "" } : {}),
+      }),
+    })),
+    showLimits: !isListRule || listRole !== "excluded", limitsTitle: isListRule ? "Reusable inclusion rule" : "Inclusion limits · hard",
+    showMin: !isListRule || listRole === "required" || listRole === "fixed", showMax: !isListRule || listRole === "available" || listRole === "required",
+    minLabel: isListRule && listRole === "fixed" ? "Fixed %" : "Minimum %", maxLabel: "Maximum %", limitHint: lockHint,
     min: D.min, max: D.max, maxPh: fs < 100 ? "Limit " + fs : "No limit", onMin: (e: InputEvent) => upd({ min: e.target.value }), onMax: (e: InputEvent) => upd({ max: e.target.value }),
-    zl: px(effLo), zw: Math.max(0, ((Math.min(effHi, scale) - effLo) / scale) * 100) + "%", fx: px(Math.min(fs, scale)), hasUserMax: userMax != null, ux: px(userMax || 0), userMaxTxt: (userMax || 0) + "%", hasGuide: guide != null, gx: px(guide || 0), guideTxt: (guide || 0) + "%", fsTxt: fs < 100 ? fs + "%" : "No", inRecipe: !!inR, cx: px(inR ? inR.pct : 0), cur: inR ? fmt(inR.pct, 1) : "", scaleMax: fmt(scale, 0) + "%",
-    price: D.price, pricePh: dispDef == null ? "No planning price — enter yours" : String(+dispDef.toFixed(3)), unitWord: D.unit === "t" ? "tonne" : "kg", onPrice: (e: InputEvent) => upd({ price: e.target.value }),
+    zl: px(effLo), zw: Math.max(0, ((Math.min(effHi, scale) - effLo) / scale) * 100) + "%", fx: px(Math.min(fs, scale)), hasUserMax: userMax != null, ux: px(userMax || 0), userMaxTxt: (userMax || 0) + "%", hasGuide: guide != null, gx: px(guide || 0), guideTxt: (guide || 0) + "%", fsTxt: isListRule ? "Per-stage" : fs < 100 ? fs + "%" : "No", fsNote: isListRule ? "FeedSport limits are applied when you formulate" : "FeedSport limit for this stage — you can tighten it, not exceed it", inRecipe: !!inR, cx: px(inR ? inR.pct : 0), cur: inR ? fmt(inR.pct, 1) : "", scaleMax: fmt(scale, 0) + "%",
+    showPrice: !isListRule, price: D.price, pricePh: dispDef == null ? "No planning price — enter yours" : String(+dispDef.toFixed(3)), unitWord: D.unit === "t" ? "tonne" : "kg", onPrice: (e: InputEvent) => upd({ price: e.target.value }),
     units: (
       [
         ["kg", "kg"],
@@ -1813,15 +1866,11 @@ function drawerVals(S: State, D: Draft, R: OptimalResult | null, ctx: { update: 
       return { name: n.id === meKey ? "Metabolisable energy (" + (species === "broiler" ? "poultry" : "pig") + ")" : n.name, val: x == null ? (missing ? "Missing" : "—") : n.unit === "%" ? fmt(x, n.dp) + "%" : fmt(x, n.dp) + " " + n.unit, color: missing ? "#a63d2a" : x == null ? "#64665c" : "#222420" };
     }),
     hasErr: !!err, err: err || "", applyBg: err ? "#b9b6ab" : "#2f5a3f",
+    applyOnlyLabel: isListRule ? "Save reusable rule" : "Apply only", showApplyRun: !isListRule,
+    footerNote: isListRule ? "New formulations copy this rule. Existing and saved formulations are unchanged." : "“Apply only” keeps the current recipe on screen and marks it out of date.",
     applyOnly: () => ctx.applyDraft(false), applyRun: () => ctx.applyDraft(true),
-    remove: () => {
-      ctx.update((s) => {
-        const pool = { ...s.pool };
-        delete pool[D.id];
-        return { pool, drawer: null };
-      });
-      ctx.flash((g?.name ?? "Ingredient") + " removed from this formulation");
-    },
+    removeLabel: isListRule ? "Remove from list" : "Remove",
+    remove: ctx.removeDraft,
   };
 }
 
@@ -1962,6 +2011,18 @@ function libraryVals(
           name: g?.name ?? it.ingredientId,
           cat: g?.category ?? "No longer in the catalogue",
           def: planning != null ? "$" + fmt(planning, 0) : "None",
+          rule: roleShort(poolEntryFromListItem(it)),
+          editRule: () => update({
+            drawer: {
+              id: it.ingredientId,
+              listId: cur.id,
+              listRole: it.role,
+              min: it.role === "fixed" ? String(it.fixedPct ?? "") : it.role === "required" ? String(it.minPct ?? "") : "",
+              max: it.role === "available" || it.role === "required" ? String(it.maxPct ?? "") : "",
+              price: "",
+              unit: "t",
+            },
+          }),
           price: myLists.priceText(cur.id, it.ingredientId, it.price),
           onPrice: (e: InputEvent) => myLists.setPrice(cur.id, it.ingredientId, e.target.value),
           age: !has ? (planning != null ? "Uses default" : "Needs a price") : age === 0 ? "Updated today" : "Updated " + age + " day" + (age === 1 ? "" : "s") + " ago",

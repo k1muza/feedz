@@ -11,9 +11,11 @@ import {
   removeIngredientListItem,
   renameIngredientList,
   setDefaultIngredientList,
+  setIngredientListItemRule,
   setIngredientListItemPrice,
   type IngredientList,
   type IngredientListItem,
+  type IngredientListItemRuleInput,
 } from "@/lib/ingredient-lists";
 
 // The signed-in user's ingredient lists for "My ingredients". Changes show at
@@ -255,6 +257,17 @@ export function useMyLists(userId: string | null, flash: (message: string) => vo
     );
   };
 
+  const setRule = async (listId: string, ingredientId: string, rule: IngredientListItemRuleInput) => {
+    try {
+      const item = await setIngredientListItemRule(listId, ingredientId, rule);
+      patchList(listId, (list) => ({ ...list, items: list.items.map((current) => (current.ingredientId === ingredientId ? item : current)) }));
+      return item;
+    } catch (error) {
+      failed("save the ingredient rule")(error);
+      return null;
+    }
+  };
+
   const removeItem = async (listId: string, ingredientId: string) => {
     priceSaves.current!.invalidate(listId + "|" + ingredientId);
     patchList(listId, (l) => ({ ...l, items: l.items.filter((item) => item.ingredientId !== ingredientId) }));
@@ -263,7 +276,7 @@ export function useMyLists(userId: string | null, flash: (message: string) => vo
 
   const priceText = (listId: string, ingredientId: string, price: number | null) => priceDrafts[listId + "|" + ingredientId] ?? (price == null ? "" : String(price));
 
-  return { status, lists, reload: load, createList, renameList, setDefault, deleteList, addItem, setPrice, removeItem, priceText, flushPrices: () => priceSaves.current!.flush() };
+  return { status, lists, reload: load, createList, renameList, setDefault, deleteList, addItem, setPrice, setRule, removeItem, priceText, flushPrices: () => priceSaves.current!.flush() };
 }
 
 export type MyLists = ReturnType<typeof useMyLists>;

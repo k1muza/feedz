@@ -1117,8 +1117,8 @@ function NewListForm({ v }: V) {
 
 // Each column keeps room for its header on one line; below that width the
 // table scrolls sideways (SET_MIN_WIDTH) instead of squashing.
-const SET_COLS = "display:grid;grid-template-columns:minmax(150px,1.8fr) minmax(80px,0.8fr) 120px minmax(110px,1.2fr) 32px;gap:10px";
-const SET_MIN_WIDTH = "min-width:560px";
+const SET_COLS = "display:grid;grid-template-columns:minmax(150px,1.6fr) minmax(105px,0.9fr) minmax(80px,0.7fr) 120px minmax(110px,1.1fr) 32px;gap:10px";
+const SET_MIN_WIDTH = "min-width:720px";
 
 function MyIngredients({ v }: V) {
   return (
@@ -1126,7 +1126,7 @@ function MyIngredients({ v }: V) {
       <div style={sx("display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap")}>
         <div style={sx("display:flex;flex-direction:column;gap:6px")}>
           <span style={sx("font:600 26px/1.2 'IBM Plex Sans',sans-serif;letter-spacing:-0.015em")}>My ingredients</span>
-          <span style={sx("font:400 14px/1.5 'IBM Plex Sans',sans-serif;color:#64665c;max-width:640px")}>Lists of what you can actually get, with what you pay. A formulation copies the list when it starts, so editing a list never changes saved work.</span>
+          <span style={sx("font:400 14px/1.5 'IBM Plex Sans',sans-serif;color:#64665c;max-width:640px")}>Lists of what you can actually get, with what you pay and reusable inclusion rules. A formulation copies the list when it starts, so editing a list never changes saved work.</span>
         </div>
         <button onClick={v.newSet} style={sx("font:600 14px/1 'IBM Plex Sans',sans-serif;padding:11px 16px;background:#2f5a3f;color:#fff;border:0;border-radius:7px")}>New list</button>
       </div>
@@ -1200,6 +1200,7 @@ function MyIngredients({ v }: V) {
             <div style={sx(SET_MIN_WIDTH)}>
               <div style={sx(`${SET_COLS};padding:10px 18px;font:500 11px/1 'IBM Plex Mono',monospace;color:#64665c;text-transform:uppercase;letter-spacing:0.04em;background:#faf8f3;white-space:nowrap`)}>
                 <span>Ingredient</span>
+                <span>Reusable rule</span>
                 <span style={sx("text-align:right")}>Default / t</span>
                 <span>Your price / t</span>
                 <span>Price status</span>
@@ -1211,6 +1212,7 @@ function MyIngredients({ v }: V) {
                     <span style={sx("font-weight:500")}>{r.name}</span>
                     <span style={sx("font-size:12px;color:#64665c")}>{r.cat}</span>
                   </span>
+                  <button onClick={r.editRule} style={sx("border:0;background:transparent;padding:4px 0;text-align:left;font:500 13px/1.2 'IBM Plex Sans',sans-serif;color:#2f5a3f;text-decoration:underline;text-decoration-color:#cfe0d2;text-underline-offset:3px")}>{r.rule}</button>
                   <span style={sx("text-align:right;color:#45473f")}>{r.def}</span>
                   <div style={sx("display:flex;align-items:center;gap:6px;padding:0 10px;border:1px solid #d0cdc3;border-radius:6px")}>
                     <span style={sx("color:#64665c")}>$</span>
@@ -1229,7 +1231,7 @@ function MyIngredients({ v }: V) {
             </div>
           </div>
           <div style={sx("display:flex;justify-content:space-between;gap:12px;padding:12px 18px;border-top:1px solid #e2dfd6;font:400 12px/1.5 'IBM Plex Sans',sans-serif;color:#64665c;flex-wrap:wrap")}>
-            <span>Leave a price blank to use the FeedSport default. Prices older than 30 days are flagged on Home and in formulations.{v.setIsDefault ? " Formulations start from your default list." : ""}</span>
+            <span>Click a reusable rule to set Available, Required, Fixed or Excluded and its inclusion limits. Leave a price blank to use the FeedSport default.{v.setIsDefault ? " Formulations start from your default list." : ""}</span>
           </div>
         </div>
       </div>
@@ -1560,19 +1562,29 @@ function Drawer({ v, d }: V & { d: NonNullable<StudioVals["d"]> }) {
           <button onClick={v.closeDrawer} aria-label="Close" style={sx("border:0;background:transparent;font:400 24px/1 'IBM Plex Sans',sans-serif;color:#64665c;padding:0 4px")}>×</button>
         </div>
         <div style={sx("flex:1;overflow-y:auto;padding:20px 26px;display:flex;flex-direction:column;gap:24px")}>
+          {d.hasRolePicker && (
+            <div style={sx("display:flex;flex-direction:column;gap:10px")}>
+              <span style={sx(MONO_LABEL)}>Reusable role</span>
+              <div style={sx("display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px")}>
+                {d.roleOptions.map((role) => (
+                  <button key={role.label} onClick={role.pick} style={sx(`text-align:left;border:1px solid ${role.on ? "#2f5a3f" : "#d0cdc3"};box-shadow:${role.on ? "inset 0 0 0 1px #2f5a3f" : "none"};background:${role.on ? "#eef3ee" : "#fff"};padding:10px 12px;border-radius:7px;font:600 13px/1 'IBM Plex Sans',sans-serif;color:#222420`)}>{role.label}</button>
+                ))}
+              </div>
+            </div>
+          )}
           {d.showLimits && (
             <div style={sx("display:flex;flex-direction:column;gap:12px")}>
               <span style={sx(MONO_LABEL)}>{d.limitsTitle}</span>
               <div style={sx("display:grid;grid-template-columns:1fr 1fr;gap:12px")}>
                 {d.showMin && (
                   <label style={sx("display:flex;flex-direction:column;gap:6px;font:500 13px/1 'IBM Plex Sans',sans-serif")}>
-                    Minimum %
+                    {d.minLabel}
                     <input type="number" step="0.1" min="0" value={d.min} onChange={d.onMin} placeholder="0" style={sx("padding:11px 12px;border:1px solid #d0cdc3;border-radius:7px;font:500 15px/1 'IBM Plex Sans',sans-serif")} />
                   </label>
                 )}
                 {d.showMax && (
                   <label style={sx("display:flex;flex-direction:column;gap:6px;font:500 13px/1 'IBM Plex Sans',sans-serif")}>
-                    Maximum %
+                    {d.maxLabel}
                     <input type="number" step="0.1" min="0" value={d.max} onChange={d.onMax} placeholder={d.maxPh} style={sx("padding:11px 12px;border:1px solid #d0cdc3;border-radius:7px;font:500 15px/1 'IBM Plex Sans',sans-serif")} />
                   </label>
                 )}
@@ -1607,7 +1619,7 @@ function Drawer({ v, d }: V & { d: NonNullable<StudioVals["d"]> }) {
                 <div style={sx("display:flex;gap:10px;align-items:center")}>
                   <span style={sx("flex:none;width:14px;border-top:2px solid #222420")} />
                   <span>
-                    <b style={sx("font-weight:600")}>{d.fsTxt}</b> FeedSport limit for this stage — you can tighten it, not exceed it
+                    <b style={sx("font-weight:600")}>{d.fsTxt}</b> {d.fsNote}
                   </span>
                 </div>
                 {d.hasGuide && (
@@ -1621,7 +1633,7 @@ function Drawer({ v, d }: V & { d: NonNullable<StudioVals["d"]> }) {
               </div>
             </div>
           )}
-          <div style={sx("display:flex;flex-direction:column;gap:10px")}>
+          {d.showPrice && <div style={sx("display:flex;flex-direction:column;gap:10px")}>
             <span style={sx(MONO_LABEL)}>Price</span>
             <div style={sx("display:flex;gap:10px;align-items:center")}>
               <div style={sx("flex:1;display:flex;align-items:center;gap:8px;padding:0 12px;border:1px solid #d0cdc3;border-radius:7px")}>
@@ -1642,7 +1654,7 @@ function Drawer({ v, d }: V & { d: NonNullable<StudioVals["d"]> }) {
               </span>
               {d.canReset && <button onClick={d.resetPrice} style={sx("border:0;background:transparent;padding:0;color:#2f5a3f;font:500 13px/1.4 'IBM Plex Sans',sans-serif")}>{d.resetLabel}</button>}
             </div>
-          </div>
+          </div>}
           {d.hasWhy && (
             <div style={sx("display:flex;flex-direction:column;gap:8px;padding:14px 16px;background:#faf8f3;border-radius:8px")}>
               <span style={sx("font:600 14px/1.3 'IBM Plex Sans',sans-serif")}>{d.whyTitle}</span>
@@ -1667,11 +1679,11 @@ function Drawer({ v, d }: V & { d: NonNullable<StudioVals["d"]> }) {
             </span>
           )}
           <div style={sx("display:flex;gap:10px")}>
-            <button onClick={d.remove} style={sx("border:0;background:transparent;font:500 14px/1 'IBM Plex Sans',sans-serif;color:#a63d2a;padding:0 6px")}>Remove</button>
-            <button onClick={d.applyOnly} disabled={d.hasErr} style={sx("flex:1;border:1px solid #d0cdc3;background:#fff;font:500 14px/1 'IBM Plex Sans',sans-serif;padding:13px;border-radius:8px;color:#222420")}>Apply only</button>
-            <button onClick={d.applyRun} disabled={d.hasErr} style={sx(`flex:1.4;border:0;background:${d.applyBg};color:#fff;font:600 14px/1 'IBM Plex Sans',sans-serif;padding:13px;border-radius:8px`)}>Apply and re-formulate</button>
+            <button onClick={d.remove} style={sx("border:0;background:transparent;font:500 14px/1 'IBM Plex Sans',sans-serif;color:#a63d2a;padding:0 6px")}>{d.removeLabel}</button>
+            <button onClick={d.applyOnly} disabled={d.hasErr} style={sx("flex:1;border:1px solid #d0cdc3;background:#fff;font:500 14px/1 'IBM Plex Sans',sans-serif;padding:13px;border-radius:8px;color:#222420")}>{d.applyOnlyLabel}</button>
+            {d.showApplyRun && <button onClick={d.applyRun} disabled={d.hasErr} style={sx(`flex:1.4;border:0;background:${d.applyBg};color:#fff;font:600 14px/1 'IBM Plex Sans',sans-serif;padding:13px;border-radius:8px`)}>Apply and re-formulate</button>}
           </div>
-          <span style={sx("font:400 12px/1.4 'IBM Plex Sans',sans-serif;color:#64665c")}>“Apply only” keeps the current recipe on screen and marks it out of date.</span>
+          <span style={sx("font:400 12px/1.4 'IBM Plex Sans',sans-serif;color:#64665c")}>{d.footerNote}</span>
         </div>
       </div>
     </>

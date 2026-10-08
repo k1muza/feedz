@@ -1,4 +1,5 @@
 import type { CatalogueIngredient } from "@/lib/studio-catalogue";
+import type { IngredientListItem } from "@/lib/ingredient-lists";
 import type { StudioPhase, StudioProgramme, StudioProgrammeData } from "@/lib/studio-programmes";
 import type {
   FormulationAlternative,
@@ -28,6 +29,18 @@ export interface PoolEntry {
   was?: Role;
 }
 export type Pool = Record<string, PoolEntry>;
+
+/** Restores a reusable list item's persisted price, role, and inclusion rule. */
+export function poolEntryFromListItem(item: Pick<IngredientListItem, "role" | "price" | "minPct" | "maxPct" | "fixedPct">): PoolEntry {
+  const entry: PoolEntry = {
+    role: item.role,
+    ...(item.price != null ? { price: item.price } : {}),
+  };
+  if (item.role === "fixed" && item.fixedPct != null) entry.fixed = item.fixedPct;
+  if (item.role === "required" && item.minPct != null) entry.min = item.minPct;
+  if ((item.role === "available" || item.role === "required") && item.maxPct != null) entry.max = item.maxPct;
+  return entry;
+}
 
 /** Everything needed to reproduce a formulation. */
 export interface Snapshot {

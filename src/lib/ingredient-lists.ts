@@ -19,6 +19,14 @@ export interface IngredientListItem {
   addedAt: string;
 }
 
+export type IngredientListItemRule = Pick<IngredientListItem, "role" | "minPct" | "maxPct" | "fixedPct">;
+
+export type IngredientListItemRuleInput =
+  | { role: "available"; maxPct?: number | null }
+  | { role: "required"; minPct: number; maxPct?: number | null }
+  | { role: "fixed"; fixedPct: number }
+  | { role: "excluded" };
+
 export interface IngredientList {
   id: string;
   label: string;
@@ -51,6 +59,16 @@ const ITEM_COLUMNS = "ingredient_id, role, price_usd_per_tonne, price_updated_at
 
 // numeric columns arrive as strings from PostgREST.
 const num = (value: number | string | null) => (value == null ? null : Number(value));
+
+/** Canonical database patch: fields from a previous role never leak into the next one. */
+export function ingredientRuleUpdate(rule: IngredientListItemRuleInput) {
+  return {
+    role: rule.role,
+    min_pct: rule.role === "required" ? rule.minPct : null,
+    max_pct: rule.role === "available" || rule.role === "required" ? rule.maxPct ?? null : null,
+    fixed_pct: rule.role === "fixed" ? rule.fixedPct : null,
+  };
+}
 
 const toItem = (row: ItemRow): IngredientListItem => ({
   ingredientId: row.ingredient_id,
@@ -127,6 +145,20 @@ export async function setIngredientListItemPrice(listId: string, ingredientId: s
     await createClient()
       .from("ingredient_list_items")
       .update({ price_usd_per_tonne: price })
+      .eq("list_id", listId)
+      .eq("ingredient_id", ingredientId)
+      .select(ITEM_COLUMNS)
+      .single(),
+  );
+  return toItem(row as ItemRow);
+}
+
+/** Persists the reusable role and inclusion rule for one list ingredient. */
+export async function setIngredientListItemRule(listId: string, ingredientId: string, rule: IngredientListItemRuleInput): Promise<IngredientListItem> {
+  const row = check(
+    await createClient()
+      .from("ingredient_list_items")
+      .update(ingredientRuleUpdate(rule))
       .eq("list_id", listId)
       .eq("ingredient_id", ingredientId)
       .select(ITEM_COLUMNS)
