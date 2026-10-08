@@ -432,7 +432,7 @@ function Setup({ v }: V) {
                       {v.completionPanel.complete && <span style={sx("width:16px;height:16px;border-radius:50%;background:#2f7a4a;color:#fff;font:600 11px/16px 'IBM Plex Sans',sans-serif;text-align:center;flex:none")}>✓</span>}
                       {v.completionPanel.title}
                     </div>
-                    {v.completionPanel.canAddAll && <button onClick={v.completionPanel.addAll} className={hv("green")} style={sx("border:0;background:#2f5a3f;color:#fff;font:600 12px/1 'IBM Plex Sans',sans-serif;padding:8px 11px;border-radius:6px")}>Add full set</button>}
+                    {v.completionPanel.canAddAll && <button onClick={v.completionPanel.addAll} className={hv("green")} style={sx("border:0;background:#2f5a3f;color:#fff;font:600 12px/1 'IBM Plex Sans',sans-serif;padding:8px 11px;border-radius:6px")}>{v.completionPanel.acceptLabel}</button>}
                   </div>
                   <div style={sx("font:400 12px/1.5 'IBM Plex Sans',sans-serif;color:#64665c;max-width:680px")}>{v.completionPanel.body}</div>
                   {v.completionPanel.ready && (
@@ -445,7 +445,7 @@ function Setup({ v }: V) {
                       ))}
                     </div>
                   )}
-                  {v.completionPanel.ready && <div style={sx("font:400 12px/1.4 'IBM Plex Sans',sans-serif;color:#64665c")}>Suggestions are only added when you choose them. Rechecked after every change.</div>}
+                  {v.completionPanel.ready && <div style={sx("font:400 12px/1.4 'IBM Plex Sans',sans-serif;color:#64665c")}>Practical-inclusion guidance and missing nutrient data still apply. Suggestions are only added when you choose them and are rechecked after every change.</div>}
                 </div>
               )}
             </>
@@ -755,6 +755,11 @@ function Optimal({ v, opt }: V & { opt: NonNullable<StudioVals["opt"]> }) {
   return (
     <div style={sx(`display:flex;flex-direction:column;gap:20px;opacity:${v.dimOpacity};transition:opacity .2s`)}>
       <div style={sx("display:flex;align-items:center;gap:14px;padding:13px 18px;background:#fff;border:1px solid #e2dfd6;border-radius:10px;font:400 14px/1.3 'IBM Plex Sans',sans-serif;flex-wrap:wrap")}>
+        <span style={sx(`display:flex;align-items:center;gap:8px;font-weight:600;color:${strip.recipe.color}`)}>
+          <span style={sx(`width:9px;height:9px;border-radius:${strip.recipe.r};background:${strip.recipe.bg}`)} />
+          {strip.recipe.label}
+        </span>
+        <span style={sx("width:1px;height:16px;background:#d0cdc3")} />
         <span style={sx(`display:flex;align-items:center;gap:8px;font-weight:600;color:${strip.color}`)}>
           <span style={sx(`width:9px;height:9px;border-radius:${strip.r};background:${strip.bg}`)} />
           {strip.label}
@@ -862,9 +867,12 @@ function Optimal({ v, opt }: V & { opt: NonNullable<StudioVals["opt"]> }) {
               </div>
             </div>
             {v.manualOff && (
-              <div style={sx("display:flex;gap:8px;align-items:center;font:500 13px/1.4 'IBM Plex Sans',sans-serif;color:#a63d2a")}>
-                <span style={sx("flex:none;width:8px;height:8px;background:#b2412e")} />
-                Amounts must add to 100% before saving or exporting. Failing requirements can be saved; they&apos;re labelled on the version.
+              <div style={sx("display:flex;gap:8px;align-items:flex-start;font:500 13px/1.45 'IBM Plex Sans',sans-serif;color:#a63d2a")}>
+                <span style={sx("flex:none;width:8px;height:8px;background:#b2412e;margin-top:5px")} />
+                <span>
+                  Recipe validity must pass before nutrition is evaluated, saved, or exported.
+                  {v.manualIssues.map((issue) => <span key={issue.title} style={sx("display:block;font-weight:400")}>{issue.title}: {issue.body}</span>)}
+                </span>
               </div>
             )}
             {opt.hasUnused && <div style={sx("font:400 13px/1.5 'IBM Plex Sans',sans-serif;color:#64665c")}>Available but not used: {opt.unusedText}. See “Why this recipe”.</div>}

@@ -13,6 +13,7 @@ import {
   setDefaultIngredientList,
   setIngredientListItemPrice,
   type IngredientList,
+  type IngredientListItem,
 } from "@/lib/ingredient-lists";
 
 // The signed-in user's ingredient lists for "My ingredients". Changes show at
@@ -22,6 +23,72 @@ import {
 
 const SAVE_DELAY_MS = 600;
 export const MAX_LIST_LABEL = 80;
+
+interface QueuedWrite<T> {
+  revision: number;
+  write: () => Promise<T>;
+  committed: (value: T) => void;
+  failed: (error: unknown) => void;
+}
+
+/** Serializes debounced writes per key and only reconciles the latest edit. */
+export class SerializedEditQueue<T> {
+  private revisions = new Map<string, number>();
+  private pending = new Map<string, QueuedWrite<T>>();
+  private running = new Map<string, Promise<void>>();
+  private timers = new Map<string, ReturnType<typeof setTimeout>>();
+
+  constructor(private readonly delayMs: number) {}
+
+  enqueue(key: string, write: () => Promise<T>, committed: (value: T) => void, failed: (error: unknown) => void) {
+    const revision = (this.revisions.get(key) ?? 0) + 1;
+    this.revisions.set(key, revision);
+    this.pending.set(key, { revision, write, committed, failed });
+    clearTimeout(this.timers.get(key));
+    this.timers.set(key, setTimeout(() => this.drain(key), this.delayMs));
+    return revision;
+  }
+
+  /** Supersedes both a pending value and any response already on the wire. */
+  invalidate(key: string) {
+    this.revisions.set(key, (this.revisions.get(key) ?? 0) + 1);
+    clearTimeout(this.timers.get(key));
+    this.timers.delete(key);
+    this.pending.delete(key);
+  }
+
+  private drain(key: string) {
+    clearTimeout(this.timers.get(key));
+    this.timers.delete(key);
+    if (this.running.has(key)) return;
+    const edit = this.pending.get(key);
+    if (!edit) return;
+    this.pending.delete(key);
+    const task = edit.write()
+      .then((value) => {
+        if (this.revisions.get(key) === edit.revision) edit.committed(value);
+      })
+      .catch((error: unknown) => {
+        if (this.revisions.get(key) === edit.revision) edit.failed(error);
+      })
+      .finally(() => {
+        this.running.delete(key);
+        this.drain(key);
+      });
+    this.running.set(key, task);
+  }
+
+  async flush(match: (key: string) => boolean = () => true): Promise<void> {
+    const keys = new Set([...this.pending.keys(), ...this.running.keys()].filter(match));
+    keys.forEach((key) => this.drain(key));
+    await Promise.all([...keys].map(async (key) => {
+      while (this.running.has(key) || this.pending.has(key)) {
+        this.drain(key);
+        await this.running.get(key);
+      }
+    }));
+  }
+}
 
 // What a new user starts with: common ingredients in Zimbabwean pig and
 // poultry feed, all with FeedSport planning prices. With the oil and the
@@ -59,7 +126,8 @@ export function useMyLists(userId: string | null, flash: (message: string) => vo
   const setLists = (update: (all: IngredientList[]) => IngredientList[]) => setListsRaw((all) => ordered(update(all)));
   // Raw text typed into price boxes, so "3" on the way to "320" isn't reformatted.
   const [priceDrafts, setPriceDrafts] = useState<Record<string, string>>({});
-  const timers = useRef(new Map<string, ReturnType<typeof setTimeout>>());
+  const priceSaves = useRef<SerializedEditQueue<IngredientListItem> | null>(null);
+  if (!priceSaves.current) priceSaves.current = new SerializedEditQueue(SAVE_DELAY_MS);
 
   const load = useCallback(async () => {
     if (!userId) return;
@@ -83,15 +151,24 @@ export function useMyLists(userId: string | null, flash: (message: string) => vo
   }, [userId]);
 
   useEffect(() => {
-    const pending = timers.current;
+    const saves = priceSaves.current!;
+    const flush = () => void saves.flush();
+    const flushWhenHidden = () => {
+      if (document.visibilityState === "hidden") flush();
+    };
+    window.addEventListener("pagehide", flush);
+    document.addEventListener("visibilitychange", flushWhenHidden);
     if (userId) void load();
     else {
       setListsRaw([]);
       setStatus("idle");
     }
     return () => {
-      pending.forEach(clearTimeout);
-      pending.clear();
+      window.removeEventListener("pagehide", flush);
+      document.removeEventListener("visibilitychange", flushWhenHidden);
+      // React cleanup cannot await, but starting the serialized flush here
+      // prevents a debounced edit from being silently discarded on teardown.
+      flush();
     };
   }, [userId, load]);
 
@@ -103,17 +180,6 @@ export function useMyLists(userId: string | null, flash: (message: string) => vo
     },
     [flash, load],
   );
-
-  const later = (key: string, save: () => Promise<void>) => {
-    clearTimeout(timers.current.get(key));
-    timers.current.set(
-      key,
-      setTimeout(() => {
-        timers.current.delete(key);
-        void save();
-      }, SAVE_DELAY_MS),
-    );
-  };
 
   const patchList = (id: string, patch: (list: IngredientList) => IngredientList) => setLists((all) => all.map((list) => (list.id === id ? patch(list) : list)));
 
@@ -143,6 +209,7 @@ export function useMyLists(userId: string | null, flash: (message: string) => vo
 
   /** Deletes a list; if it was the default, the next list takes over. */
   const deleteList = async (id: string) => {
+    await priceSaves.current!.flush((key) => key.startsWith(id + "|"));
     const wasDefault = lists.find((l) => l.id === id)?.isDefault;
     const next = lists.find((l) => l.id !== id);
     setLists((all) => all.filter((list) => list.id !== id).map((list) => (wasDefault && list.id === next?.id ? { ...list, isDefault: true } : list)));
@@ -170,28 +237,33 @@ export function useMyLists(userId: string | null, flash: (message: string) => vo
     setPriceDrafts((drafts) => ({ ...drafts, [key]: text }));
     const price = text.trim() === "" ? null : Number(text);
     // Wait for something storable: blank (use the planning price) or a positive number.
-    if (price !== null && !(price > 0)) return;
-    later("price:" + key, () =>
-      setIngredientListItemPrice(listId, ingredientId, price)
-        .then((item) => {
-          patchList(listId, (l) => ({ ...l, items: l.items.map((it) => (it.ingredientId === ingredientId ? item : it)) }));
-          setPriceDrafts((drafts) => {
-            const { [key]: _saved, ...rest } = drafts;
-            return rest;
-          });
-        })
-        .catch(failed("save the price")),
+    if (price !== null && !(price > 0)) {
+      priceSaves.current!.invalidate(key);
+      return;
+    }
+    priceSaves.current!.enqueue(
+      key,
+      () => setIngredientListItemPrice(listId, ingredientId, price),
+      (item) => {
+        patchList(listId, (l) => ({ ...l, items: l.items.map((it) => (it.ingredientId === ingredientId ? item : it)) }));
+        setPriceDrafts((drafts) => {
+          const { [key]: _saved, ...rest } = drafts;
+          return rest;
+        });
+      },
+      failed("save the price"),
     );
   };
 
   const removeItem = async (listId: string, ingredientId: string) => {
+    priceSaves.current!.invalidate(listId + "|" + ingredientId);
     patchList(listId, (l) => ({ ...l, items: l.items.filter((item) => item.ingredientId !== ingredientId) }));
     await removeIngredientListItem(listId, ingredientId).catch(failed("remove the ingredient"));
   };
 
   const priceText = (listId: string, ingredientId: string, price: number | null) => priceDrafts[listId + "|" + ingredientId] ?? (price == null ? "" : String(price));
 
-  return { status, lists, reload: load, createList, renameList, setDefault, deleteList, addItem, setPrice, removeItem, priceText };
+  return { status, lists, reload: load, createList, renameList, setDefault, deleteList, addItem, setPrice, removeItem, priceText, flushPrices: () => priceSaves.current!.flush() };
 }
 
 export type MyLists = ReturnType<typeof useMyLists>;

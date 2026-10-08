@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 
+import { safeAuthRedirect } from "@/lib/auth-redirect";
 import { createClient } from "@/lib/supabase/server";
 
 // Where Supabase sends people back to the site: Google sign-in, sign-up
@@ -10,13 +11,10 @@ import { createClient } from "@/lib/supabase/server";
 
 const DEFAULT_NEXT = "/studio";
 
-// Only same-site paths, so the next parameter can't send people elsewhere.
-const safeNext = (value: string | null) => (value && value.startsWith("/") && !value.startsWith("//") ? value : DEFAULT_NEXT);
-
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = request.nextUrl;
   const code = searchParams.get("code");
-  const next = safeNext(searchParams.get("next"));
+  const next = safeAuthRedirect(searchParams.get("next"), origin) ?? DEFAULT_NEXT;
 
   if (code) {
     const supabase = await createClient();

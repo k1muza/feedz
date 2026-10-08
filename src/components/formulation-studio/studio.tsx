@@ -489,12 +489,18 @@ function manualRecipe(S: State, catalogue: Map<string, CatalogueIngredient>) {
   const pct: Record<string, number> = {};
   Object.keys(S.manual).forEach((id) => {
     const v = +S.manual[id];
-    if (v > 0) pct[id] = v;
+    if (Number.isFinite(v) && v !== 0) pct[id] = v;
   });
   const cost = Object.keys(pct).reduce((t, id) => t + (pct[id] / 100) * (priceOf(id, S.pool, catalogue) ?? 0), 0);
   return { pct, cost, recipe: Object.keys(pct).map((id) => ({ id, pct: pct[id] })), total: Object.values(pct).reduce((t, v) => t + v, 0), sig: JSON.stringify(pct) };
 }
-type ManualView = ReturnType<typeof manualRecipe> & { nutrients: NutrientResult[]; advisories: ManualCheck["advisories"]; checking: boolean };
+type ManualView = ReturnType<typeof manualRecipe> & {
+  nutrients: NutrientResult[];
+  advisories: ManualCheck["advisories"];
+  recipeValidity: ManualCheck["recipeValidity"] | null;
+  nutrientAdequacy: ManualCheck["nutrientAdequacy"];
+  checking: boolean;
+};
 
 function summarise(r: FormulateResult, manual: ManualView | null): Summary {
   if (manual) return { status: "manual", costT: manual.cost, recipe: manual.recipe, met: manual.nutrients.filter((n) => n.status === "met").length, req: manual.nutrients.length, adv: manual.advisories.length, fail: manual.nutrients.filter((n) => n.status !== "met").length };
@@ -950,6 +956,24 @@ function useStudio({ catalogue, nutrients, programmes, showSolverDetails = false
         : ids.length + " recommended ingredients added as Available",
     );
   };
+  const acceptCompletionIngredients = (ids: string[]) => {
+    if (!ids.length) return;
+    update((state) => ({
+      pool: {
+        ...state.pool,
+        ...Object.fromEntries(ids.filter((id) => !state.pool[id]).map((id) => [id, { role: "available" as Role }])),
+      },
+      screen: "workspace",
+      docName: PH.label + " · feasibility additions",
+      tab: "recipe",
+      running: true,
+      runToken: state.runToken + 1,
+      drawer: null,
+      advisoriesOpen: false,
+      rulesOpen: false,
+    }));
+    flash("Feasibility additions accepted · running the normal " + GOALS[S.goal].label.toLowerCase() + " optimiser");
+  };
   const openVersion = (docId: string, v: number) => {
     const doc = formulations.docs.find((d) => d.id === docId);
     if (!doc) return;
@@ -968,13 +992,20 @@ function useStudio({ catalogue, nutrients, programmes, showSolverDetails = false
     S.mode === "manual" && S.result?.status === "optimal"
       ? (() => {
           const m = manualRecipe(S, catalogueById);
-          const check = S.manualCheck;
-          return { ...m, nutrients: check?.nutrients ?? S.result.nutrients, advisories: check?.advisories ?? [], checking: !check || check.sig !== m.sig };
+          const check = S.manualCheck?.sig === m.sig ? S.manualCheck : null;
+          return {
+            ...m,
+            nutrients: check?.nutrients ?? [],
+            advisories: check?.advisories ?? [],
+            recipeValidity: check?.recipeValidity ?? null,
+            nutrientAdequacy: check?.nutrientAdequacy ?? "not-checked",
+            checking: !check,
+          };
         })()
       : null;
   const save = async () => {
     if (stale || !S.result || S.running || S.saving) return;
-    if (manualView && (Math.abs(manualView.total - 100) > 0.05 || manualView.checking)) return;
+    if (manualView && (manualView.checking || !manualView.recipeValidity?.valid)) return;
     const name = S.docName.trim() || "Untitled formulation";
     update({ saving: true });
     try {
@@ -1181,7 +1212,7 @@ function useStudio({ catalogue, nutrients, programmes, showSolverDetails = false
       !completion || completion.status === "loading"
         ? "Checking what this list needs"
         : completion.status === "ready"
-          ? "Recommended additions for a feasible mix"
+          ? "Feasibility suggestions — not a finished formulation"
           : completion.status === "complete"
             ? "This list can meet the stage"
             : "This list needs attention first",
@@ -1189,9 +1220,11 @@ function useStudio({ catalogue, nutrients, programmes, showSolverDetails = false
       !completion || completion.status === "loading"
         ? "Testing your ingredients against every hard nutrient requirement and stage limit…"
         : completion.status === "ready"
-          ? "Add the full set below. Together with your list, it produced a feasible test mix for " +
+          ? "This is the smallest added set that produced a feasible test mix for " +
             PH.label +
-            "." +
+            ". The shown percentages only prove feasibility; they are not cost-optimised or an operational recipe. Accept the full set to run the normal " +
+            GOALS[S.goal].label.toLowerCase() +
+            " optimiser." +
             (completion.setAsideIds.length
               ? " " + completion.setAsideIds.length + " current ingredient" + (completion.setAsideIds.length === 1 ? " was" : "s were") + " set aside because required nutrient data is missing."
               : "")
@@ -1204,10 +1237,11 @@ function useStudio({ catalogue, nutrients, programmes, showSolverDetails = false
         completion?.projectedInclusionPct[id] != null
           ? "test mix " + fmt(completion.projectedInclusionPct[id], completion.projectedInclusionPct[id] < 1 ? 2 : 1) + "%"
           : catalogueById.get(id)?.category ?? "catalogue ingredient",
-      add: () => addCompletionIngredients([id]),
+      add: () => (completionIds.length === 1 ? acceptCompletionIngredients([id]) : addCompletionIngredients([id])),
     })),
-    canAddAll: completionIds.length > 1,
-    addAll: () => addCompletionIngredients(completionIds),
+    canAddAll: completionIds.length > 0,
+    addAll: () => acceptCompletionIngredients(completionIds),
+    acceptLabel: completionIds.length === 1 ? "Accept suggestion & optimise" : "Accept full set & optimise",
   };
   const steps = ["Animal and stage", "Ingredients", "Batch and goal"].map((label, i) => {
     const n = i + 1,
@@ -1289,7 +1323,7 @@ function useStudio({ catalogue, nutrients, programmes, showSolverDetails = false
       : stale
         ? { label: changes.length + " change" + (changes.length === 1 ? "" : "s") + " since last run", color: "#222420", bg: "#222420", r: "0", btn: "Re-formulate", btnBg: "#2f5a3f", btnFg: "#fff" }
         : { label: "Result is up to date", color: "#2b6a42", bg: "#2f7a4a", r: "50%", btn: "Re-formulate", btnBg: "#e2dfd6", btnFg: "#45473f" };
-  const manualOff = !!manualView && Math.abs(manualView.total - 100) > 0.05;
+  const manualOff = !!manualView && !manualView.checking && !manualView.recipeValidity?.valid;
   const saveDisabled = !R || stale || S.running || S.saving || R.status === "blocked" || R.status === "error" || manualOff || !!manualView?.checking;
   const exportDisabled = !optimal || stale || S.running || S.exporting || manualOff || !!manualView?.checking;
   const exportPdf = async () => {
@@ -1477,8 +1511,8 @@ function useStudio({ catalogue, nutrients, programmes, showSolverDetails = false
     goalOpts, goalLabel: GOALS[S.goal].label, goalDesc: GOALS[S.goal].desc, batchLabel, prog, poolCount: String(poolIds.length),
     canBack: S.step > 1, stepBack: () => update({ step: S.step - 1 }), stepNext, nextDisabled, nextBg: nextDisabled ? "#b9b6ab" : "#2f5a3f", nextLabel: S.step === 3 ? "Formulate" : "Continue",
     skipToWorkspace: () => update({ screen: "workspace" }),
-    docName: S.docName, onName: (e: InputEvent) => update({ docName: e.target.value }), saveState, save: () => void save(), saveDisabled, saveBg: saveDisabled ? "#b9b6ab" : "#2f5a3f", saveTitle: stale ? "Re-formulate first" : manualOff ? "Amounts must add to 100%" : "", manualOff,
-    exportDisabled, exportColor: exportDisabled ? "#8d8a80" : "#222420", exportLabel: S.exporting ? "Opening PDF…" : "Export PDF", exportTitle: !optimal ? "Formulate a valid recipe first" : stale ? "Re-formulate first" : manualOff ? "Amounts must add to 100%" : "Open recipe and nutrient report as PDF", doExport: () => void exportPdf(),
+    docName: S.docName, onName: (e: InputEvent) => update({ docName: e.target.value }), saveState, save: () => void save(), saveDisabled, saveBg: saveDisabled ? "#b9b6ab" : "#2f5a3f", saveTitle: stale ? "Re-formulate first" : manualOff ? "Resolve the manual recipe validity issues" : "", manualOff, manualIssues: manualView?.recipeValidity?.issues ?? [],
+    exportDisabled, exportColor: exportDisabled ? "#8d8a80" : "#222420", exportLabel: S.exporting ? "Opening PDF…" : "Export PDF", exportTitle: !optimal ? "Formulate a valid recipe first" : stale ? "Re-formulate first" : manualOff ? "Resolve the manual recipe validity issues" : "Open recipe and nutrient report as PDF", doExport: () => void exportPdf(),
     leftW: wide ? "300px" : "100%", programmeId: P.id, progList: programmes.programmes.map((p) => ({ id: p.id, name: p.name })),
     onProgramme: (e: InputEvent) => update(programmeChoice(e.target.value)),
     phaseList: P.phases.map((ph) => ({ id: ph.id, name: ph.label })), phaseId: PH.id, onPhase: (e: InputEvent) => update({ phaseId: e.target.value }),
@@ -1568,9 +1602,25 @@ function optimalVals(
   const failN = nList.filter((n) => n.status !== "met").length;
   const adv = mc ? mc.advisories : R.advisories.filter((a) => !S.dismissed[a.id]);
   const advTxt = adv.length + " practical advisor" + (adv.length === 1 ? "y" : "ies");
-  const strip = failN
-    ? { label: failN + " of " + nList.length + " requirements not met", color: "#a63d2a", bg: "#b2412e", r: "0", hasAdv: adv.length > 0, adv: advTxt, goal: "Manual recipe", solver: "" }
-    : { label: (mc?.checking ? "Checking… " : "") + "Meets all " + nList.length + " requirements", color: "#2b6a42", bg: "#2f7a4a", r: "50%", hasAdv: adv.length > 0, adv: advTxt, goal: mc ? "Manual recipe" : GOALS[runSnap.goal].label + (runSnap.goal === "least_cost" || R.goalUnavailable ? "" : " · within 3%"), solver: "FeedSport engine · " + R.nVars + " ingredients · " + R.nRows + " requirements · " + Math.round(R.ms) + " ms" };
+  const recipeInvalid = !!mc && !mc.checking && !mc.recipeValidity?.valid;
+  const recipeStatus = mc?.checking
+    ? { label: "Checking recipe validity…", color: "#64665c", bg: "#d0cdc3", r: "50%" }
+    : recipeInvalid
+      ? { label: "Recipe invalid", color: "#a63d2a", bg: "#b2412e", r: "0" }
+      : { label: "Recipe valid", color: "#2b6a42", bg: "#2f7a4a", r: "50%" };
+  const nutrientStatus = mc?.checking || recipeInvalid
+    ? { label: "Nutrition not checked", color: "#64665c", bg: "#d0cdc3", r: "50%" }
+    : failN
+      ? { label: failN + " of " + nList.length + " nutrient requirements not met", color: "#a63d2a", bg: "#b2412e", r: "0" }
+      : { label: "Meets all " + nList.length + " nutrient requirements", color: "#2b6a42", bg: "#2f7a4a", r: "50%" };
+  const strip = {
+    ...nutrientStatus,
+    recipe: recipeStatus,
+    hasAdv: adv.length > 0,
+    adv: advTxt,
+    goal: mc ? "Manual recipe" : GOALS[runSnap.goal].label + (runSnap.goal === "least_cost" || R.goalUnavailable ? "" : " · within 3%"),
+    solver: mc ? "" : "FeedSport engine · " + R.nVars + " ingredients · " + R.nRows + " requirements · " + Math.round(R.ms) + " ms",
+  };
   let goalCostNote = { show: false, text: "" };
   if (!mc && runSnap.goal !== "least_cost") {
     const dd = R.costT - R.leastCostT;

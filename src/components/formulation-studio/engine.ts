@@ -391,21 +391,86 @@ export async function formulate(snap: Snapshot, ctx: EngineContext): Promise<For
 }
 
 export interface ManualCheck {
+  recipeValidity: ManualRecipeValidity;
+  nutrientAdequacy: "met" | "not-met" | "not-checked";
   nutrients: NutrientResult[];
   advisories: Advisory[];
   cost: number;
 }
 
-/** Checks typed-in amounts (manual mode) against the phase with the engine's own constraints. */
+export interface ManualRecipeValidity {
+  valid: boolean;
+  total: number;
+  issues: Issue[];
+}
+
+const MANUAL_TOTAL_TOLERANCE = 0.05;
+const MANUAL_BOUND_TOLERANCE = 1e-6;
+
+/** Checks that a manual recipe is complete and obeys every configured hard ingredient bound. */
+export function validateManualRecipe(snap: Snapshot, pct: Record<string, number>, ctx: EngineContext): ManualRecipeValidity {
+  const { phase } = phaseOf(ctx.programmes, snap.programmeId, snap.phaseId);
+  const issues: Issue[] = [];
+  const values = Object.entries(pct);
+  const total = values.reduce((sum, [, value]) => sum + (Number.isFinite(value) ? value : 0), 0);
+
+  for (const [id, value] of values) {
+    if (!Number.isFinite(value) || value < 0) {
+      issues.push({ id, title: "Enter a valid amount for " + nameOf(ctx, id), body: "Ingredient amounts must be zero or a positive percentage." });
+    }
+  }
+  if (Math.abs(total - 100) > MANUAL_TOTAL_TOLERANCE) {
+    issues.push({ title: "Recipe total is " + fmt(total, 2) + "%", body: "A complete manual recipe must add to 100%." });
+  }
+
+  for (const [id, entry] of Object.entries(snap.pool)) {
+    const inclusion = pct[id] ?? 0;
+    if (entry.role === "excluded") {
+      if (inclusion > MANUAL_BOUND_TOLERANCE)
+        issues.push({ id, title: nameOf(ctx, id) + " is excluded", body: "Set its amount to 0%, or change its ingredient setting before using it." });
+      continue;
+    }
+    const { lo, hi, fsMax } = bounds(ctx, phase, id, entry);
+    if (entry.role === "fixed") {
+      if (Math.abs(inclusion - lo) > MANUAL_BOUND_TOLERANCE)
+        issues.push({ id, title: nameOf(ctx, id) + " must be fixed at " + fmt(lo, 3).replace(/\.?0+$/, "") + "%", body: "The manual amount is " + fmt(inclusion, 3).replace(/\.?0+$/, "") + "% and does not match its fixed inclusion." });
+      continue;
+    }
+    if (inclusion < lo - MANUAL_BOUND_TOLERANCE)
+      issues.push({ id, title: nameOf(ctx, id) + " is below its minimum", body: "Use at least " + fmt(lo, 3).replace(/\.?0+$/, "") + "%; the manual recipe uses " + fmt(inclusion, 3).replace(/\.?0+$/, "") + "%." });
+    if (inclusion > hi + MANUAL_BOUND_TOLERANCE) {
+      const source = hi === fsMax ? "FeedSport stage limit" : "configured maximum";
+      issues.push({ id, title: nameOf(ctx, id) + " is above its maximum", body: "The " + source + " is " + fmt(hi, 3).replace(/\.?0+$/, "") + "%; the manual recipe uses " + fmt(inclusion, 3).replace(/\.?0+$/, "") + "%." });
+    }
+  }
+
+  return { valid: issues.length === 0, total, issues };
+}
+
+/**
+ * Checks typed-in amounts (manual mode). Ingredient validity is established
+ * before the nutrition endpoint is called, so an incomplete/out-of-bounds
+ * recipe can never inherit or display an apparently satisfactory profile.
+ */
 export async function evaluateManual(snap: Snapshot, pct: Record<string, number>, ctx: EngineContext): Promise<ManualCheck> {
   const { programme, phase } = phaseOf(ctx.programmes, snap.programmeId, snap.phaseId);
+  const recipeValidity = validateManualRecipe(snap, pct, ctx);
+  const cost = Object.keys(pct).reduce((t, id) => t + (Math.max(0, pct[id]) / 100) * (priceOf(id, snap.pool, ctx.catalogue) ?? 0), 0);
+  if (!recipeValidity.valid) return { recipeValidity, nutrientAdequacy: "not-checked", nutrients: [], advisories: [], cost };
+
   const data = await post<{ status: string; nutrientProfile?: FormulationNutrientComparison[]; message?: string }>("/api/feed-formulation/evaluate", {
     programmeId: programme.id,
     phaseId: phase.id,
     energySystem: "ME",
-    ingredients: Object.keys(pct).map((id) => ({ ingredientId: id, inclusionPct: pct[id] })),
+    ingredients: Object.keys(pct).filter((id) => pct[id] > 0).map((id) => ({ ingredientId: id, inclusionPct: pct[id] })),
   });
   if (data.status !== "evaluated" || !data.nutrientProfile) throw new Error(data.message ?? "Couldn’t check this recipe.");
-  const cost = Object.keys(pct).reduce((t, id) => t + (pct[id] / 100) * (priceOf(id, snap.pool, ctx.catalogue) ?? 0), 0);
-  return { nutrients: nutrientRows(data.nutrientProfile), advisories: advisoriesFor(ctx, phase, pct), cost };
+  const nutrients = nutrientRows(data.nutrientProfile);
+  return {
+    recipeValidity,
+    nutrientAdequacy: nutrients.every((nutrient) => nutrient.status === "met") ? "met" : "not-met",
+    nutrients,
+    advisories: advisoriesFor(ctx, phase, pct),
+    cost,
+  };
 }
