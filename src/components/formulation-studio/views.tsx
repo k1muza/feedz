@@ -432,20 +432,23 @@ function Setup({ v }: V) {
                       {v.completionPanel.complete && <span style={sx("width:16px;height:16px;border-radius:50%;background:#2f7a4a;color:#fff;font:600 11px/16px 'IBM Plex Sans',sans-serif;text-align:center;flex:none")}>✓</span>}
                       {v.completionPanel.title}
                     </div>
-                    {v.completionPanel.canAddAll && <button onClick={v.completionPanel.addAll} className={hv("green")} style={sx("border:0;background:#2f5a3f;color:#fff;font:600 12px/1 'IBM Plex Sans',sans-serif;padding:8px 11px;border-radius:6px")}>{v.completionPanel.acceptLabel}</button>}
+                    {v.completionPanel.canAddAll && <button onClick={v.completionPanel.addAll} className={hv("green")} style={sx("border:0;background:#2f5a3f;color:#fff;font:600 12px/1 'IBM Plex Sans',sans-serif;padding:8px 11px;border-radius:6px")}>{v.completionPanel.actionLabel}</button>}
                   </div>
                   <div style={sx("font:400 12px/1.5 'IBM Plex Sans',sans-serif;color:#64665c;max-width:680px")}>{v.completionPanel.body}</div>
-                  {v.completionPanel.ready && (
-                    <div style={sx("display:flex;gap:8px;flex-wrap:wrap")}>
-                      {v.completionPanel.items.map((g) => (
-                        <button key={g.name} onClick={g.add} className={hv("chip")} style={sx("font:500 13px/1.15 'IBM Plex Sans',sans-serif;padding:8px 12px;border-radius:99px;border:1px solid #d0cdc3;background:#fff;color:#222420;display:flex;gap:7px;align-items:center")}>
-                          <span>+ {g.name}</span>
-                          <span style={sx("font:400 10px/1 'IBM Plex Mono',monospace;color:#64665c")}>{g.modelPct}</span>
-                        </button>
-                      ))}
+                  {v.completionPanel.hasItems && (
+                    <div style={sx("display:flex;flex-direction:column;gap:8px")}>
+                      {v.completionPanel.itemsTitle && <div style={sx("font:500 11px/1 'IBM Plex Mono',monospace;color:#64665c;text-transform:uppercase;letter-spacing:0.05em")}>{v.completionPanel.itemsTitle}</div>}
+                      <div style={sx("display:flex;gap:8px;flex-wrap:wrap")}>
+                        {v.completionPanel.items.map((g) => (
+                          <button key={g.name} onClick={g.add} className={hv("chip")} style={sx("font:500 13px/1.15 'IBM Plex Sans',sans-serif;padding:8px 12px;border-radius:99px;border:1px solid #d0cdc3;background:#fff;color:#222420;display:flex;gap:7px;align-items:center")}>
+                            <span>+ {g.name}</span>
+                            <span style={sx("font:400 10px/1 'IBM Plex Mono',monospace;color:#64665c")}>{g.modelPct}</span>
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   )}
-                  {v.completionPanel.ready && <div style={sx("font:400 12px/1.4 'IBM Plex Sans',sans-serif;color:#64665c")}>Practical-inclusion guidance and missing nutrient data still apply. Suggestions are only added when you choose them and are rechecked after every change.</div>}
+                  {(v.completionPanel.ready || v.completionPanel.complete) && <div style={sx("font:400 12px/1.4 'IBM Plex Sans',sans-serif;color:#64665c")}>Practical-inclusion guidance and missing nutrient data still apply. Suggestions are only added when you choose them and are rechecked after every change.</div>}
                 </div>
               )}
             </>

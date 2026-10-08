@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { analyzeDiet, type AnalyzedNutrient, type DietFormula } from '@/lib/diet-formula';
@@ -416,6 +417,7 @@ export default function FormulationsClient({ ingredientPrices, ingredientPackSiz
         </section>
       </div>
 
+      <section className="mt-6 flex flex-wrap items-center justify-between gap-4 rounded-[6px] border border-[#d9d4c7] bg-[#fbfaf6] px-6 py-[22px]"><div className="flex max-w-[640px] flex-col gap-1"><p className="fs-label m-0 text-[#4f524b]">Formulation Studio</p><span className="text-[18px] font-bold">Need more than a quick check?</span><span className="text-[15px] leading-[1.5] text-[#3d403a]">Use the full ingredient catalogue and nutrient model, set your own inclusion limits and prices, then save, version and compare formulations.</span></div><Link href="/studio" className="inline-flex h-[46px] items-center rounded-[4px] bg-[#1d3a2a] px-[18px] text-[15px] font-semibold text-white no-underline">Open Formulation Studio</Link></section>
       <div className="mt-6 flex flex-wrap items-center justify-between gap-4 rounded-[6px] bg-[#1d3a2a] px-6 py-[22px] text-white"><div className="flex flex-col gap-1"><span className="text-[18px] font-bold">Want a nutritionist to review it?</span><span className="text-[15px] text-[#dfe6dc]">Send the completed formula to FeedSport for a practical review.</span></div><a href="https://wa.me/263774684534?text=Please%20review%20my%20feed%20formulation" className="inline-flex h-[46px] items-center rounded-[4px] border border-[#dfe6dc] px-[18px] text-[15px] font-semibold text-white no-underline">Ask a nutritionist</a></div>
       <QuoteIngredientsDialog
         open={quoteDialogOpen}

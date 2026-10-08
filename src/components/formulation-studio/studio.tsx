@@ -990,24 +990,6 @@ function useStudio({ catalogue, nutrients, programmes, showSolverDetails = false
         : ids.length + " recommended ingredients added as Available",
     );
   };
-  const acceptCompletionIngredients = (ids: string[]) => {
-    if (!ids.length) return;
-    update((state) => ({
-      pool: {
-        ...state.pool,
-        ...Object.fromEntries(ids.filter((id) => !state.pool[id]).map((id) => [id, { role: "available" as Role }])),
-      },
-      screen: "workspace",
-      docName: PH.label + " · feasibility additions",
-      tab: "recipe",
-      running: true,
-      runToken: state.runToken + 1,
-      drawer: null,
-      advisoriesOpen: false,
-      rulesOpen: false,
-    }));
-    flash("Feasibility additions accepted · running the normal " + GOALS[S.goal].label.toLowerCase() + " optimiser");
-  };
   const openVersion = (docId: string, v: number) => {
     const doc = formulations.docs.find((d) => d.id === docId);
     if (!doc) return;
@@ -1236,6 +1218,11 @@ function useStudio({ catalogue, nutrients, programmes, showSolverDetails = false
       ? S.completionSuggestion
       : null;
   const completionIds = completion?.status === "ready" ? completion.ids : [];
+  const completionAlternativeIds =
+    completion?.status === "complete"
+      ? (suggestionReady?.ids ?? []).filter((id) => !S.pool[id]).slice(0, 6)
+      : [];
+  const completionItemIds = completion?.status === "complete" ? completionAlternativeIds : completionIds;
   const completionPanel = {
     show: !!completionKey,
     loading: !completion || completion.status === "loading",
@@ -1249,7 +1236,7 @@ function useStudio({ catalogue, nutrients, programmes, showSolverDetails = false
         : completion.status === "ready"
           ? "Feasibility suggestions — not a finished formulation"
           : completion.status === "complete"
-            ? "This list can meet the stage"
+            ? "This mix can now be optimised"
             : "This list needs attention first",
     body:
       !completion || completion.status === "loading"
@@ -1257,26 +1244,26 @@ function useStudio({ catalogue, nutrients, programmes, showSolverDetails = false
         : completion.status === "ready"
           ? "This is the smallest added set that produced a feasible test mix for " +
             PH.label +
-            ". The shown percentages only prove feasibility; they are not cost-optimised or an operational recipe. Accept the full set to run the normal " +
-            GOALS[S.goal].label.toLowerCase() +
-            " optimiser." +
+            ". The shown percentages only prove feasibility; they are not cost-optimised or an operational recipe. Add the full set to make this pool feasible, then continue to choose the batch and optimisation goal. Adding here does not formulate automatically." +
             (completion.setAsideIds.length
               ? " " + completion.setAsideIds.length + " current ingredient" + (completion.setAsideIds.length === 1 ? " was" : "s were") + " set aside because required nutrient data is missing."
               : "")
           : completion.status === "complete"
-            ? "FeedSport found a feasible test mix using this list and its current limits. No extra ingredients are needed."
+            ? "FeedSport found a feasible test mix using these ingredients and limits. Continue to choose the batch and goal, then formulate to calculate the optimal recipe. The optional alternatives below give the optimiser more choices; adding one does not guarantee it will be used."
             : completion.message ?? "FeedSport couldn’t verify additions for this list.",
-    items: completionIds.map((id) => ({
+    itemsTitle: completion?.status === "complete" && completionAlternativeIds.length ? "Other optional alternatives" : "",
+    items: completionItemIds.map((id) => ({
       name: ingredientName(id),
       modelPct:
-        completion?.projectedInclusionPct[id] != null
+        completion?.status !== "complete" && completion?.projectedInclusionPct[id] != null
           ? "test mix " + fmt(completion.projectedInclusionPct[id], completion.projectedInclusionPct[id] < 1 ? 2 : 1) + "%"
           : catalogueById.get(id)?.category ?? "catalogue ingredient",
-      add: () => (completionIds.length === 1 ? acceptCompletionIngredients([id]) : addCompletionIngredients([id])),
+      add: () => addCompletionIngredients([id]),
     })),
+    hasItems: completionItemIds.length > 0,
     canAddAll: completionIds.length > 0,
-    addAll: () => acceptCompletionIngredients(completionIds),
-    acceptLabel: completionIds.length === 1 ? "Accept suggestion & optimise" : "Accept full set & optimise",
+    addAll: () => addCompletionIngredients(completionIds),
+    actionLabel: completionIds.length === 1 ? "Add suggestion" : "Add full set",
   };
   const steps = ["Animal and stage", "Ingredients", "Batch and goal"].map((label, i) => {
     const n = i + 1,
