@@ -45,7 +45,11 @@ export function StudioView(props: { loading: true; shell: ShellVals } | { loadin
                 </button>
               ))}
             </div>
-            <div style={sx("margin-top:auto;display:flex;align-items:center;gap:10px;padding:12px 10px 0;border-top:1px solid #2b2d29")}>
+            <a href="/" className={hv("signout")} style={sx("margin-top:auto;display:flex;align-items:center;gap:8px;padding:9px 10px;color:#b9b6ab;font:400 14px/1.2 'IBM Plex Sans',sans-serif;text-decoration:none")}>
+              <span aria-hidden>←</span>
+              <span>Back to FeedSport site</span>
+            </a>
+            <div style={sx("margin-top:-12px;display:flex;align-items:center;gap:10px;padding:12px 10px 0;border-top:1px solid #2b2d29")}>
               <div style={sx("flex:none;width:28px;height:28px;border-radius:50%;background:#45473f;color:#faf8f3;font:500 12px/28px 'IBM Plex Sans',sans-serif;text-align:center")}>{shell.userInitials}</div>
               <div style={sx("display:flex;flex-direction:column;gap:3px;min-width:0;flex:1")}>
                 <span style={sx("font:500 13px/1.1 'IBM Plex Sans',sans-serif;color:#faf8f3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap")}>{shell.userName}</span>
@@ -59,6 +63,7 @@ export function StudioView(props: { loading: true; shell: ShellVals } | { loadin
         <div style={sx("flex:1;min-width:0;display:flex;flex-direction:column")}>
           {shell.narrow && (
             <div style={sx("display:flex;align-items:center;gap:14px;padding:12px 16px;background:#222420;color:#faf8f3;position:sticky;top:0;z-index:5")}>
+              <a href="/" title="Back to FeedSport site" aria-label="Back to FeedSport site" className={hv("signout")} style={sx("flex:none;color:#b9b6ab;font:400 18px/1 'IBM Plex Sans',sans-serif;padding:6px 2px;text-decoration:none")}>←</a>
               <div style={sx("width:20px;height:20px;border-radius:5px;background:#e3aa45")} />
               <button onClick={shell.goHome} style={sx("border:0;background:transparent;color:#faf8f3;font:600 15px/1 'IBM Plex Sans',sans-serif;padding:6px 0")}>FeedSport</button>
               <div data-navscroll="1" style={sx("display:flex;gap:16px;overflow-x:auto;min-width:0;flex:1;scrollbar-width:none;-ms-overflow-style:none")}>
@@ -126,9 +131,12 @@ function Auth({ a }: { a: NonNullable<StudioVals["auth"]> }) {
     <div style={sx("min-height:100vh;display:flex;flex-wrap:wrap;background:#faf8f3")}>
       {/* fs-auth-aside pins this panel to the viewport on desktop; see STUDIO_CSS. */}
       <div className="fs-auth-aside" style={sx("flex:1 1 420px;background:#2f5a3f;color:#faf8f3;padding:clamp(28px,5vw,64px);display:flex;flex-direction:column;justify-content:space-between;gap:40px;min-height:220px")}>
-        <div style={sx("display:flex;align-items:center;gap:10px")}>
-          <div style={sx("width:26px;height:26px;border-radius:7px;background:#e3aa45")} />
-          <span style={sx("font:600 18px/1 'IBM Plex Sans',sans-serif")}>FeedSport</span>
+        <div style={sx("display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap")}>
+          <div style={sx("display:flex;align-items:center;gap:10px")}>
+            <div style={sx("width:26px;height:26px;border-radius:7px;background:#e3aa45")} />
+            <span style={sx("font:600 18px/1 'IBM Plex Sans',sans-serif")}>FeedSport</span>
+          </div>
+          <a href="/" className={hv("signout")} style={sx("color:#dbe7dc;font:500 14px/1 'IBM Plex Sans',sans-serif;text-decoration:none")}>← Back to FeedSport site</a>
         </div>
         <div style={sx("display:flex;flex-direction:column;gap:18px;max-width:440px")}>
           <span style={sx("font:600 clamp(26px,3.2vw,38px)/1.15 'IBM Plex Sans',sans-serif;letter-spacing:-0.02em;text-wrap:balance")}>Balanced feed from the ingredients you actually have.</span>
