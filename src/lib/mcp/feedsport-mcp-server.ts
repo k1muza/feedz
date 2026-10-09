@@ -60,10 +60,10 @@ Advisor workflow: list_users or list_saved_formulations → get_saved_formulatio
 
 Advice rules:
 - add_formulation_advice is the only tool that writes, and the user reads the note in FeedSport Studio. Write it to the farmer, in plain language, and only after the nutritionist has agreed its content.
-- Propose ration changes through suggestion (ingredient roles, prices, limits, programme or goal), never as a recipe you calculated. FeedSport formulates the suggestion and returns suggestion_check; use dry_run first and do not save a suggestion that is not optimal.
+- Propose ration changes through suggestion (ingredient roles, prices, limits, programme or goal), never as a recipe you calculated. FeedSport formulates the suggestion and returns suggestion_check; check it with preview_formulation_advice first and do not save a suggestion that is not optimal.
 - Treat user data as confidential: share it only with the nutritionist.
 
-Featured formulations (the starting points on FeedSport Studio's Home screen): list_featured_formulations → save_featured_formulation (dry_run first) → set_featured_formulation_published. They are public, written in FeedSport's name, and formulated live at FeedSport planning prices, so they carry no prices. FeedSport refuses to save one that does not formulate to a valid recipe; never work around a rejection by inventing numbers.`;
+Featured formulations (the starting points on FeedSport Studio's Home screen): list_featured_formulations → preview_featured_formulation (read-only; use it freely) → save_featured_formulation → set_featured_formulation_published. They are public, written in FeedSport's name, and formulated live at FeedSport planning prices, so they carry no prices. FeedSport refuses to save one that does not formulate to a valid recipe; never work around a rejection by inventing numbers.`;
 
 const READ_ONLY = {
   readOnlyHint: true,
@@ -478,42 +478,55 @@ function registerAdvisorTools(
     async () => withFeatured((s) => listFeaturedTool(s)),
   );
 
+  const featuredShape = {
+    id: slug,
+    name: z.string().trim().min(1).max(120).describe("Card title, e.g. \"Sorghum finisher for maize-short seasons\"."),
+    description: z.string().trim().min(1).max(500).describe("One or two sentences for farmers: who it is for and why."),
+    programme_id: programmeId,
+    objective: z.enum(FORMULATION_OBJECTIVES).default("least_cost").describe("The Studio goal the card opens with."),
+    batch_kg: z.number().positive().max(100_000).default(1000).describe("Batch size the copy opens with."),
+    ingredients: z
+      .array(
+        z.object({
+          ingredient: z.string().min(1).describe("Ingredient id from search_ingredients."),
+          role: z
+            .enum(["available", "required", "fixed"])
+            .optional()
+            .describe("available (default) = optimizer may use it; required = at least min_percent; fixed = exactly fixed_percent."),
+          min_percent: z.number().min(0).max(100).optional(),
+          max_percent: z.number().min(0).max(100).optional(),
+          fixed_percent: z.number().min(0).max(100).optional(),
+        }),
+      )
+      .min(2)
+      .max(40)
+      .describe("The ingredient pool. Planning prices apply; every ingredient needs one."),
+    author: z.string().trim().min(1).max(120).optional().describe('Defaults to "FeedSport Nutrition Team".'),
+    author_role: z.string().trim().min(1).max(120).optional().describe('Defaults to "FeedSport nutritionist".'),
+    place: z.string().trim().min(1).max(120).optional().describe('Defaults to "Harare".'),
+    published: z.boolean().optional().describe("Defaults to true for a new one; keeps the current value when replacing."),
+    sort_order: z.number().int().min(0).max(10_000).optional().describe("Lower shows first. Defaults to 100 for a new one."),
+  };
+
+  server.registerTool(
+    "preview_featured_formulation",
+    {
+      title: "Preview a featured formulation",
+      description:
+        "Check a featured formulation without saving anything: FeedSport formulates it at planning prices exactly as Studio Home will, and returns whether it would be accepted and what its card will show (cost per tonne, requirements met, practical-inclusion advisories, recipe). Takes the same input as save_featured_formulation.",
+      inputSchema: z.object(featuredShape),
+      annotations: READ_ONLY,
+    },
+    async (args) => withFeatured((s) => saveFeaturedTool({ ...args, dry_run: true }, s, context)),
+  );
+
   server.registerTool(
     "save_featured_formulation",
     {
       title: "Save a featured formulation",
       description:
-        "Create or replace a featured formulation on Studio Home. FeedSport formulates it at planning prices first and refuses to save it unless the recipe is valid; the response shows what its Home card will display. Use dry_run to preview.",
-      inputSchema: z.object({
-        id: slug,
-        name: z.string().trim().min(1).max(120).describe("Card title, e.g. \"Sorghum finisher for maize-short seasons\"."),
-        description: z.string().trim().min(1).max(500).describe("One or two sentences for farmers: who it is for and why."),
-        programme_id: programmeId,
-        objective: z.enum(FORMULATION_OBJECTIVES).default("least_cost").describe("The Studio goal the card opens with."),
-        batch_kg: z.number().positive().max(100_000).default(1000).describe("Batch size the copy opens with."),
-        ingredients: z
-          .array(
-            z.object({
-              ingredient: z.string().min(1).describe("Ingredient id from search_ingredients."),
-              role: z
-                .enum(["available", "required", "fixed"])
-                .optional()
-                .describe("available (default) = optimizer may use it; required = at least min_percent; fixed = exactly fixed_percent."),
-              min_percent: z.number().min(0).max(100).optional(),
-              max_percent: z.number().min(0).max(100).optional(),
-              fixed_percent: z.number().min(0).max(100).optional(),
-            }),
-          )
-          .min(2)
-          .max(40)
-          .describe("The ingredient pool. Planning prices apply; every ingredient needs one."),
-        author: z.string().trim().min(1).max(120).optional().describe('Defaults to "FeedSport Nutrition Team".'),
-        author_role: z.string().trim().min(1).max(120).optional().describe('Defaults to "FeedSport nutritionist".'),
-        place: z.string().trim().min(1).max(120).optional().describe('Defaults to "Harare".'),
-        published: z.boolean().optional().describe("Defaults to true for a new one; keeps the current value when replacing."),
-        sort_order: z.number().int().min(0).max(10_000).optional().describe("Lower shows first. Defaults to 100 for a new one."),
-        dry_run: z.boolean().default(false),
-      }),
+        "Create or replace a featured formulation on Studio Home. FeedSport formulates it at planning prices first and refuses to save it unless the recipe is valid; the response shows what its Home card will display. Check it with preview_featured_formulation first.",
+      inputSchema: z.object(featuredShape),
       annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false },
     },
     async (args) => withFeatured((s) => saveFeaturedTool(args, s, context)),
@@ -575,20 +588,33 @@ function registerAdvisorTools(
     async (args) => withStore((s) => getSavedFormulationTool(args, s)),
   );
 
+  const adviceShape = {
+    formulation_id: z.string().min(1),
+    version: z.number().int().positive().optional().describe("The version the advice is about; defaults to the latest."),
+    author: z.string().trim().min(1).max(120).describe("Name the user sees, e.g. the nutritionist's name."),
+    advice: z.string().trim().min(1).max(10_000).describe("The note to the user, in plain language."),
+    suggestion: suggestionShape.optional(),
+  };
+
+  server.registerTool(
+    "preview_formulation_advice",
+    {
+      title: "Preview advice on a formulation",
+      description:
+        "Check advice before leaving it, without saving anything: applies the suggested revision to the saved version and formulates it with FeedSport, returning suggestion_check. Takes the same input as add_formulation_advice.",
+      inputSchema: z.object(adviceShape),
+      annotations: READ_ONLY,
+    },
+    async (args) => withStore((s) => addFormulationAdviceTool({ ...args, dry_run: true }, s, context)),
+  );
+
   server.registerTool(
     "add_formulation_advice",
     {
       title: "Leave advice on a formulation",
       description:
-        "Attach the nutritionist's advice to a user's saved formulation, optionally with a suggested revision that FeedSport formulates and checks first. The user sees it in FeedSport Studio. Use dry_run to preview without saving.",
-      inputSchema: z.object({
-        formulation_id: z.string().min(1),
-        version: z.number().int().positive().optional().describe("The version the advice is about; defaults to the latest."),
-        author: z.string().trim().min(1).max(120).describe("Name the user sees, e.g. the nutritionist's name."),
-        advice: z.string().trim().min(1).max(10_000).describe("The note to the user, in plain language."),
-        suggestion: suggestionShape.optional(),
-        dry_run: z.boolean().default(false).describe("Preview the suggestion check without saving anything."),
-      }),
+        "Attach the nutritionist's advice to a user's saved formulation, optionally with a suggested revision that FeedSport formulates and checks first. The user sees it in FeedSport Studio. Check it with preview_formulation_advice first.",
+      inputSchema: z.object(adviceShape),
       annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
     },
     async (args) => withStore((s) => addFormulationAdviceTool(args, s, context)),
