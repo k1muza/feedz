@@ -51,6 +51,7 @@ import type { EnergySystem } from "@/lib/nutrition-targets";
 import type { NutritionPhase, NutritionSpecies } from "@/lib/nutrition";
 import { PUBLIC_PREMIX_ID } from "@/lib/public-feed-premix";
 import { COMMERCIAL_PREMIXES, assertManufacturerRecipe, commercialPremixById, commercialPremixCompatibleWithProgramme, type CommercialPremix } from "@/lib/commercial-premixes";
+import { assessManufacturerRecipe } from "@/lib/manufacturer-recipe";
 
 export const SOLVER = "GLPK (glpk.js)";
 export const CURRENCY = "USD";
@@ -1155,6 +1156,39 @@ export async function formulate(input: FormulateInput, context: FeedSportService
   const { request, options, pricesPerTonne, inclusionLimits, common, notes } = formulateScenario(input, context);
   const { resolved, library, ingredientIds } = request;
 
+  const manufacturer = ingredientIds.map(commercialPremixById).find((premix) => premix?.manufacturerRecipe);
+  if (manufacturer?.manufacturerRecipe) {
+    const formula: DietFormula = {
+      ingredients: manufacturer.manufacturerRecipe.map((row) => ({
+        ingredientId: row.ingredientId, inclusionPct: row.percent,
+      })),
+    };
+    const assessment = assessManufacturerRecipe(manufacturer, formula, resolved.phase, request.energySystem, library);
+    const cost = formula.ingredients.reduce((sum, row) =>
+      sum + row.inclusionPct / 100 * pricesPerTonne.get(row.ingredientId)!, 0);
+    return {
+      status: "manufacturer_recipe" as const,
+      verification: "unverified" as const,
+      objective_applied: "manufacturer_fixed" as const,
+      message: "CJ manufacturer recipe reproduced exactly. Nutrient validation is incomplete: this is NOT a solver-optimal or complete-feed formulation.",
+      cost_per_tonne: round(cost, 2),
+      currency: CURRENCY,
+      ingredients: recipeRows(formula, pricesPerTonne, library),
+      manufacturer_recipe: manufacturer.manufacturerRecipe,
+      incomplete_requirements: assessment.incompleteRequirements.map((row) => ({
+        nutrient: snake(row.id), label: row.label, missing_data_for: row.missingIngredientIds,
+      })),
+      checked_shortfalls: assessment.checkedShortfalls.map((row) => ({
+        nutrient: snake(row.id), label: row.label, actual: round(row.actual),
+        requirement: round(row.requirement), unit: row.unit, relation: row.relation,
+      })),
+      unsupported_requirements: assessment.unsupportedRequirements,
+      premix_verification: "unverified" as const,
+      notes: [...notes, assessment.warning],
+      ...common,
+    };
+  }
+
   const result = await formulateLeastCostDiet(
     resolved.phase,
     request.energySystem,
@@ -1327,6 +1361,34 @@ export function analyseFormulation(input: AnalyseInput, context: FeedSportServic
   });
   const pricesPerTonne = new Map(prices.map((price) => [price.ingredient, price.price_per_tonne]));
   const unpriced = ingredientIds.filter((id) => !pricesPerTonne.has(id));
+
+  const manufacturer = ingredientIds.map(commercialPremixById).find((premix) => premix?.manufacturerRecipe);
+  if (manufacturer?.manufacturerRecipe) {
+    const assessment = assessManufacturerRecipe(manufacturer, formula, resolved.phase, request.energySystem, library);
+    return {
+      status: "manufacturer_recipe" as const,
+      passes: false,
+      verification: "unverified" as const,
+      cost_per_tonne: unpriced.length > 0 ? null : round(
+        formula.ingredients.reduce((sum, row) =>
+          sum + row.inclusionPct / 100 * pricesPerTonne.get(row.ingredientId)!, 0), 2),
+      ...(unpriced.length > 0 ? { unpriced_ingredients: unpriced } : {}),
+      currency: CURRENCY,
+      ingredients: recipeRows(formula, pricesPerTonne, library),
+      incomplete_requirements: assessment.incompleteRequirements.map((row) => ({
+        nutrient: snake(row.id), label: row.label, missing_data_for: row.missingIngredientIds,
+      })),
+      checked_shortfalls: assessment.checkedShortfalls.map((row) => ({
+        nutrient: snake(row.id), label: row.label, actual: round(row.actual),
+        requirement: round(row.requirement), unit: row.unit, relation: row.relation,
+      })),
+      unsupported_requirements: assessment.unsupportedRequirements,
+      premix_verification: "unverified" as const,
+      notes: [...formulationNotes(request), assessment.warning],
+      programme: programmeHeader(resolved),
+      data_sources: dataSources(resolved, library, ingredientIds, prices, request.energySystem, request.includesPremix),
+    };
+  }
 
   const evaluation = evaluateFormulation(resolved.phase, request.energySystem, formula, library, request.settings);
   const comparison = comparisonRows(evaluation.nutrientProfile);
