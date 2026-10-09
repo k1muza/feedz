@@ -51,7 +51,7 @@ import type { EnergySystem } from "@/lib/nutrition-targets";
 import type { NutritionPhase, NutritionSpecies } from "@/lib/nutrition";
 import { PUBLIC_PREMIX_ID } from "@/lib/public-feed-premix";
 import { COMMERCIAL_PREMIXES, assertManufacturerRecipe, commercialPremixById, commercialPremixCompatibleWithProgramme, type CommercialPremix } from "@/lib/commercial-premixes";
-import { buildManufacturerRecipeReport } from "@/lib/manufacturer-recipe";
+import { buildManufacturerRecipeReport, ManufacturerRecipeValidationError } from "@/lib/manufacturer-recipe";
 import { round, snake } from "@/lib/feed-number-format";
 export { round, snake } from "@/lib/feed-number-format";
 
@@ -1341,7 +1341,7 @@ export function analyseFormulation(input: AnalyseInput, context: FeedSportServic
         formula,
       );
     } catch (error) {
-      if (error instanceof Error && error.message.includes("restricted to CJ's published recipe")) {
+      if (error instanceof ManufacturerRecipeValidationError) {
         throw new FeedSportInputError(error.message);
       }
       throw error;
