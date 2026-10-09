@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
+import { FEED_PROGRAMMES } from "./feed-programmes";
 import {
   COMMERCIAL_PREMIXES,
   commercialPremixById,
@@ -28,6 +29,8 @@ describe("Sustar commercial premix catalogue", () => {
       "grow-finish-pig": "X912",
       "gestating-gilt-sow": "X913",
       "lactating-gilt-sow": "X913",
+      "growing-entire-immunocastrated-males-standard": "X912",
+      "growing-entire-immunocastrated-males-high-performance-hot": "X912",
       "broiler-standard": "X812",
       "layer-standard": "X811",
     };
@@ -37,6 +40,22 @@ describe("Sustar commercial premix catalogue", () => {
       assert.ok(selected && commercialPremixCompatibleWithProgramme(selected, programme));
     }
     assert.equal(commercialPremixForProgramme("cattle-growth"), undefined);
+  });
+
+  test("covers all loaded production families except mature boars without inventing a product", () => {
+    const unassigned = FEED_PROGRAMMES.filter((p) => p.status === "loaded")
+      .filter((p) => !commercialPremixForProgramme(p.id))
+      .map((p) => p.id);
+    assert.deepEqual(unassigned, ["mature-boar"]);
+  });
+
+  test("does not assign sow-only X913 to mature boars", () => {
+    assert.equal(commercialPremixForProgramme("mature-boar"), undefined);
+    assert.equal(commercialPremixForProgramme("mature-boar:pic-mature-boar"), undefined);
+    const sow = commercialPremixById("sustar-glypro-x913");
+    assert.ok(sow);
+    assert.equal(commercialPremixCompatibleWithProgramme(sow, "mature-boar"), false);
+    assert.equal(commercialPremixForProgramme("gestating-gilt-sow")?.id, sow.id);
   });
 
   test("does not substitute a broiler product for layers or pigs", () => {
