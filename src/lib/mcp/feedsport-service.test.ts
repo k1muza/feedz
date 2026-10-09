@@ -1,11 +1,12 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { analyseFormulation, formulate, type FeedSportServiceContext } from "./feedsport-service";
+import { analyseFormulation, formulate, FeedSportInputError, type FeedSportServiceContext } from "./feedsport-service";
+import { INGREDIENT_DEFAULT_PRICES } from "@/lib/feed-ingredient-prices";
 import { diagnoseInfeasibilityTool } from "./feedsport-diagnostics";
 import { commercialPremixById } from "@/lib/commercial-premixes";
 
-const context: FeedSportServiceContext = { prices: [] };
+const context: FeedSportServiceContext = { prices: INGREDIENT_DEFAULT_PRICES };
 const programme_id = "nursery-pig:br2024-5-32-35-49d-8.4-17.9kg";
 
 describe("FeedSport MCP automatic ingredient mode", () => {
@@ -173,7 +174,24 @@ describe("CJ S174 manufacturer-only mature-boar workflow", () => {
     assert.equal(result.cost_per_tonne, 376);
     assert.equal(result.verification, "unverified");
     assert.ok(result.incomplete_requirements.length > 0, "Premix macro-nutrient values are missing and must stay unknown.");
-    assert.ok(result.unsupported_requirements.includes("vitamin-trace-mineral-supplementation"));
+    assert.equal(result.premix_analysis.reason, "manufacturer_nutrient_analysis_incomplete");
+    assert.ok(!result.unsupported_requirements.includes("vitamin-trace-mineral-supplementation"),
+      "Do not confuse unverified CJ premix analysis with missing Brazilian phase guidance");
+  });
+
+  it("rejects a modified CJ recipe as a client input error with actionable mixing instructions", () => {
+    const altered = recipe.map((item) => ({
+      ingredient: item.ingredientId,
+      percentage: item.ingredientId === "corn-yellow-dent" ? item.percent + 1 :
+        item.ingredientId === "wheat-bran" ? item.percent - 1 : item.percent,
+    }));
+    assert.throws(() => analyseFormulation({
+      programme_id: request.programme_id,
+      recipe: altered,
+      prices: Object.fromEntries(recipe.map((item) =>
+        [item.ingredientId, item.ingredientId === product.id ? 2200 : 300])),
+    }, context), (error: unknown) => error instanceof FeedSportInputError &&
+      /Lock every ingredient to the manufacturer percentages/.test(error.message));
   });
 
   it("analyses the published boar ratios as unverified instead of a false nutrient pass", () => {
@@ -195,6 +213,7 @@ describe("CJ S174 manufacturer-only mature-boar workflow", () => {
     if (result.status !== "unverified") throw new Error("Expected CJ diagnostic, not solver optimisation");
     assert.ok(result.missing_data.length > 0);
     assert.deepEqual(result.fixes, []);
+    assert.equal(result.premix_analysis.reason, "manufacturer_nutrient_analysis_incomplete");
     assert.ok(result.findings.some((finding) => finding.includes("cannot be verified")));
     assert.ok(result.missing_data.every((row) => typeof row.nutrient === "string" && !row.nutrient.includes("Pct")));
     assert.ok(result.checked_shortfalls.every((row) =>
