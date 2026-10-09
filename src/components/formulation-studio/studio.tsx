@@ -1736,7 +1736,7 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
         }
         return lines.join("\n");
       },
-      docSub: optimal ? prog.name + " · " + money(optimal.costT) + "/t · settings, prices and result included" : prog.name + " · no valid recipe · settings and diagnosis included",
+      docSub: optimal ? prog.name + " · " + (optimal.costExcludesPremix ? "cost excludes premix quote" : money(optimal.costT) + "/t") + " · settings, prices and result included" : prog.name + " · no valid recipe · settings and diagnosis included",
     }),
     ...libraryVals(S, {
       update, flash, catalogue, nutrients, programmes, myLists, replaceUrl: () => (replaceNext.current = true),
@@ -1767,6 +1767,7 @@ function optimalVals(
   const { update, run, engine } = ctx;
   const runSnap = S.runSnap!;
   const costT = mc ? mc.cost : R.costT;
+  const partialCost = R.costExcludesPremix;
   const baseRows = mc ? ctx.poolIds.filter((id) => S.pool[id].role !== "excluded" && ctx.isEligible(id)).map((id) => ({ id, pct: +S.manual[id] || 0 })) : R.recipe.map((r) => ({ id: r.id, pct: r.pct }));
   const advIds = new Set((mc ? mc.advisories : R.advisories).map((a) => a.id));
   const rows = baseRows.map((r) => {
@@ -1775,11 +1776,11 @@ function optimalVals(
     const share = costT > 0 ? (((r.pct / 100) * (p || 0)) / costT) * 100 : 0;
     const rr = R.recipe.find((x) => x.id === r.id);
     const user = ctx.isUserPrice(r.id);
-    return { name: engine.catalogue.get(r.id)?.name ?? r.id, setting: roleShort(e) + (rr && rr.atMax ? " · at limit" : ""), pctTxt: fmt(r.pct, r.pct < 1 ? 2 : 1) + "%", barW: Math.min(100, r.pct) + "%", barC: e.role === "fixed" ? "#222420" : "#2f5a3f", kg: fmt((r.pct / 100) * S.batch, S.batch >= 1000 ? 0 : r.pct * S.batch < 100 ? 2 : 1), price: ctx.priceTxt(p), tag: user ? "YOURS" : "DEFAULT", tagFg: user ? "#8a5f18" : "#8d8a80", shareTxt: fmt(share, 1) + "%", shareW: share + "%", adv: advIds.has(r.id), bg: advIds.has(r.id) ? "#fdf9ef" : "#fff", manual: S.manual[r.id] ?? "", onManual: (ev: InputEvent) => update((s) => ({ manual: { ...s.manual, [r.id]: ev.target.value } })), open: () => ctx.openDrawer(r.id) };
+    return { name: engine.catalogue.get(r.id)?.name ?? r.id, setting: roleShort(e) + (rr && rr.atMax ? " · at limit" : ""), pctTxt: fmt(r.pct, r.pct < 1 ? 2 : 1) + "%", barW: Math.min(100, r.pct) + "%", barC: e.role === "fixed" ? "#222420" : "#2f5a3f", kg: fmt((r.pct / 100) * S.batch, S.batch >= 1000 ? 0 : r.pct * S.batch < 100 ? 2 : 1), price: ctx.priceTxt(p), tag: user ? "YOURS" : p === null ? "QUOTE" : "DEFAULT", tagFg: user ? "#8a5f18" : "#8d8a80", shareTxt: fmt(share, 1) + "%", shareW: share + "%", adv: advIds.has(r.id), bg: advIds.has(r.id) ? "#fdf9ef" : "#fff", manual: S.manual[r.id] ?? "", onManual: (ev: InputEvent) => update((s) => ({ manual: { ...s.manual, [r.id]: ev.target.value } })), open: () => ctx.openDrawer(r.id) };
   });
   const tp = mc ? mc.total : 100;
   const off = !!mc && Math.abs(tp - 100) > 0.05;
-  const total = { pct: fmt(tp, 1) + "%" + (off ? (tp > 100 ? " (+" : " (−") + fmt(Math.abs(tp - 100), 1) + ")" : ""), color: off ? "#a63d2a" : "#222420", kg: fmt((tp / 100) * S.batch, S.batch >= 1000 ? 0 : 1), cost: money(costT) };
+  const total = { pct: fmt(tp, 1) + "%" + (off ? (tp > 100 ? " (+" : " (−") + fmt(Math.abs(tp - 100), 1) + ")" : ""), color: off ? "#a63d2a" : "#222420", kg: fmt((tp / 100) * S.batch, S.batch >= 1000 ? 0 : 1), cost: (partialCost ? "≥ " : "") + money(costT) + (partialCost ? " + premix quote" : "") };
   const nList = mc ? mc.nutrients : R.nutrients;
   const failN = nList.filter((n) => n.status !== "met").length;
   const adv = mc ? mc.advisories : R.advisories.filter((a) => !S.dismissed[a.id]);
@@ -1798,7 +1799,7 @@ function optimalVals(
       ? { label: failN + " of " + nList.length + " checked nutrient requirements not met" + (mc?.incompleteRequirements.length ? " · " + mc.incompleteRequirements.length + " unknown" : ""), color: "#a63d2a", bg: "#b2412e", r: "0" }
       : mc?.nutrientAdequacy === "unknown"
         ? { label: mc.incompleteRequirements.length + " nutrient requirement" + (mc.incompleteRequirements.length === 1 ? " is" : "s are") + " unknown · missing ingredient data", color: "#8a5f18", bg: "#c98a1e", r: "0" }
-      : { label: "Meets all " + nList.length + " nutrient requirements", color: "#2b6a42", bg: "#2f7a4a", r: "50%" };
+      : { label: "Meets " + nList.length + " modelled basal targets · premix micronutrients unverified", color: "#2b6a42", bg: "#2f7a4a", r: "50%" };
   const strip = {
     ...nutrientStatus,
     recipe: recipeStatus,
@@ -1819,11 +1820,13 @@ function optimalVals(
           : "No cost difference from least cost for this formulation.",
     };
   }
+  const qualifier = partialCost ? " (excl. unpriced premix)" : "";
+  const showCost = (value: number, decimals = 2) => (partialCost ? "≥ " : "") + money(value, decimals);
   const figures = [
-    { label: "This batch · " + ctx.batchLabel, value: money((costT * S.batch) / 1000), bg: "#2f5a3f", fg: "#fff", sub: "#cfe0d2" },
-    { label: "Per kg", value: money(costT / 1000, 3), bg: "#fff", fg: "#222420", sub: "#64665c" },
-    { label: "Per 50 kg bag", value: money(costT / 20), bg: "#fff", fg: "#222420", sub: "#64665c" },
-    { label: "Per tonne", value: money(costT), bg: "#fff", fg: "#222420", sub: "#64665c" },
+    { label: "This batch · " + ctx.batchLabel + qualifier, value: showCost((costT * S.batch) / 1000), bg: "#2f5a3f", fg: "#fff", sub: "#cfe0d2" },
+    { label: "Per kg" + qualifier, value: showCost(costT / 1000, 3), bg: "#fff", fg: "#222420", sub: "#64665c" },
+    { label: "Per 50 kg bag" + qualifier, value: showCost(costT / 20), bg: "#fff", fg: "#222420", sub: "#64665c" },
+    { label: "Per tonne" + qualifier, value: showCost(costT), bg: "#fff", fg: "#222420", sub: "#64665c" },
   ];
   const nuts = nList.map((n) => {
     const base = n.status === "met" ? ST.met : ST[n.status];
@@ -1844,7 +1847,7 @@ function optimalVals(
   const strategies = R.strategies.map((g) => {
     const on = shownGoal === g.key;
     const dd = g.possible ? g.cost! - R.leastCostT : 0;
-    return { label: g.label, badge: on ? "CURRENT" : "", cost: g.possible ? money(g.cost) : "Not possible", note: g.possible && g.key === "least_cost" ? g.count + " ingredients" : g.possible ? g.count + " ingredients · " + g.note : g.note, delta: g.possible && g.key !== "least_cost" ? (dd > 0.005 ? "+" + money(dd) + "/t · +" + fmt((dd / R.leastCostT) * 100, 1) + "%" : "same cost") : "", deltaColor: dd > 0.005 ? "#a63d2a" : "#64665c", disabled: !g.possible || on, cursor: g.possible && !on ? "pointer" : "default", bs: g.possible ? "solid" : "dashed", bd: on ? "#2f5a3f" : g.possible ? "#e2dfd6" : "#b9b6ab", ring: on ? "inset 0 0 0 1px #2f5a3f" : "none", bg: on ? "#eef3ee" : g.possible ? "#fff" : "#faf8f3", pick: () => { if (!g.possible || on) return; update({ goal: g.key }); run(); } };
+    return { label: g.label, badge: on ? "CURRENT" : "", cost: g.possible ? (partialCost ? "≥ " : "") + money(g.cost) : "Not possible", note: g.possible && g.key === "least_cost" ? g.count + " ingredients" : g.possible ? g.count + " ingredients · " + g.note : g.note, delta: g.possible && g.key !== "least_cost" ? (dd > 0.005 ? "+" + money(dd) + "/t · +" + fmt((dd / R.leastCostT) * 100, 1) + "%" : "same cost") : "", deltaColor: dd > 0.005 ? "#a63d2a" : "#64665c", disabled: !g.possible || on, cursor: g.possible && !on ? "pointer" : "default", bs: g.possible ? "solid" : "dashed", bd: on ? "#2f5a3f" : g.possible ? "#e2dfd6" : "#b9b6ab", ring: on ? "inset 0 0 0 1px #2f5a3f" : "none", bg: on ? "#eef3ee" : g.possible ? "#fff" : "#faf8f3", pick: () => { if (!g.possible || on) return; update({ goal: g.key }); run(); } };
   });
   const unusedText = R.unused.map((id) => engine.catalogue.get(id)?.name ?? id).join(", ");
   return { rows, total, figures, strip, nuts, advisories, strategies, unusedText, hasUnused: !mc && !!unusedText, goalCostNote };
