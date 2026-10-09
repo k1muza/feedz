@@ -315,7 +315,6 @@ export async function diagnoseInfeasibilityTool(input: DiagnoseInput, context: F
     // substitute ingredients or relaxed-limit suggestions are generated.
     const report = buildManufacturerRecipeReport(
       restricted, built.scenario.phase, built.scenario.energySystem, library,
-      new Map(built.options.map((item) => [item.ingredientId, item.pricePerKg])),
     );
     const findings = [
       report.warning,
@@ -330,6 +329,7 @@ export async function diagnoseInfeasibilityTool(input: DiagnoseInput, context: F
       findings,
       missing_data: report.incomplete_requirements,
       checked_shortfalls: report.checked_shortfalls,
+      premix_analysis: report.premix_analysis,
       unsupported_requirements: report.unsupportedRequirements,
       fixes: [],
       notes: [
