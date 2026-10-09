@@ -1188,7 +1188,12 @@ export function FeedFormulationWorkbench({
           ) : null}
 
         {activeTab === "nutrition" && result?.status === "optimal" ? (
-            <NutritionPanel result={result} selectedRecipeId={selectedRecipeId} />
+            <>
+              <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 px-4 py-3 text-sm">
+                Commercial premix UNVERIFIED. The displayed nutrients exclude vitamin and trace-mineral verification.
+              </div>
+              <NutritionPanel result={result} selectedRecipeId={selectedRecipeId} />
+            </>
           ) : null}
       </div>
     </div>
@@ -1224,7 +1229,7 @@ function ResultPanel({
         <CardHeader>
           <div className="flex flex-wrap items-center gap-2">
             <CardTitle>{selectedRecipe.label}</CardTitle>
-            <Badge variant="secondary">Hard constraints satisfied</Badge>
+            <Badge variant="secondary">Basal constraints satisfied only</Badge>
           </div>
           <CardDescription>
             {selectedRecipe.description} Cost: {selectedRecipe.solution.costPerKg.toFixed(4)} per kg
@@ -1237,6 +1242,11 @@ function ResultPanel({
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-5">
+          <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 px-4 py-3 text-sm leading-6 text-ink">
+            <strong>Premix unverified:</strong> This recipe uses a real Sustar product at the published dose,
+            but vitamin and trace-mineral concentrations have not been validated against a supplier COA.
+            Only basal nutrient constraints were checked. Do not manufacture or feed without qualified nutritionist review.
+          </div>
           <FormulationBasisPanel basis={formulationBasis} />
           {recipes.length > 1 ? (
             <div className="space-y-2">
