@@ -58,6 +58,16 @@ export async function saveFormulationVersion<Snap, Sum>(id: string | null, name:
   return { id: row.formulation_id, version: row.version, createdAt: row.created_at };
 }
 
+/**
+ * Deletes a formulation with all its versions and advice (they cascade).
+ * Row-level security silently skips rows the user doesn't own, so a delete
+ * that matched nothing is reported as an error rather than a success.
+ */
+export async function deleteFormulation(id: string): Promise<void> {
+  const rows = check(await createClient().from("formulations").delete().eq("id", id).select("id")) as { id: string }[];
+  if (!rows.length) throw new Error("Formulation not found");
+}
+
 export interface FormulationAdviceRow<Snap> {
   id: string;
   formulationId: string;

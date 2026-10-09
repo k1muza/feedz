@@ -1155,6 +1155,24 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
       flash("Couldn’t save the formulation. Check your connection and try again.");
     }
   };
+  // Deleting removes every version and any advice on it, so confirm first. An
+  // open copy stays on screen as an unsaved draft; saving it starts afresh.
+  const deleteDoc = async (docId: string) => {
+    const doc = formulations.docs.find((d) => d.id === docId);
+    if (!doc) return;
+    const n = doc.versions.length;
+    if (!window.confirm("Delete “" + doc.name + "” and its " + n + " saved version" + (n === 1 ? "" : "s") + "? This can’t be undone.")) return;
+    const ofDoc = (key: string) => key.startsWith(docId + ":");
+    update((s) => ({ sel: s.sel.filter((k) => !ofDoc(k)) }));
+    try {
+      await formulations.remove(docId);
+      update((s) => ({ cmp: s.cmp?.some(ofDoc) ? null : s.cmp, ...(s.docId === docId ? { docId: null, savedSig: null } : {}) }));
+      flash("Deleted “" + doc.name + "”");
+    } catch (error) {
+      console.error("Failed to delete formulation:", error);
+      flash("Couldn’t delete the formulation. Check your connection and try again.");
+    }
+  };
 
   // Signing in lands on the page that asked for it (or Home), via the same
   // route entry a direct visit uses; the sign-in page itself leaves history.
@@ -1652,7 +1670,7 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
       .map((v, i) => {
         const key = d.id + ":" + v.v;
         const on = S.sel.includes(key);
-        return { name: i === 0 ? d.name : "↳ earlier version", indent: i === 0 ? "0" : "16px", nameColor: i === 0 ? "#222420" : "#64665c", prog: programmeLabel(programmes, v.snap), v: v.v, st: stOfSum(v.sum), cost: v.sum.costT != null ? money(v.sum.costT) : "—", date: new Date(v.date).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }), bg: on ? "#f4f8f4" : "#fff", check: on ? "✓" : "", cbBg: on ? "#2f5a3f" : "#fff", cbBd: on ? "#2f5a3f" : "#b9b6ab", toggle: () => update({ sel: on ? S.sel.filter((k) => k !== key) : [...S.sel, key].slice(-2) }), open: () => openVersion(d.id, v.v) };
+        return { name: i === 0 ? d.name : "↳ earlier version", indent: i === 0 ? "0" : "16px", nameColor: i === 0 ? "#222420" : "#64665c", prog: programmeLabel(programmes, v.snap), v: v.v, st: stOfSum(v.sum), cost: v.sum.costT != null ? money(v.sum.costT) : "—", date: new Date(v.date).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }), bg: on ? "#f4f8f4" : "#fff", check: on ? "✓" : "", cbBg: on ? "#2f5a3f" : "#fff", cbBd: on ? "#2f5a3f" : "#b9b6ab", toggle: () => update({ sel: on ? S.sel.filter((k) => k !== key) : [...S.sel, key].slice(-2) }), open: () => openVersion(d.id, v.v), canDelete: i === 0, deleteLabel: "Delete " + d.name, remove: () => void deleteDoc(d.id) };
       }),
   );
   const recent = formulations.docs.slice(0, 5).map((d) => {

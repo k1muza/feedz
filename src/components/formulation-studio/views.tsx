@@ -1385,7 +1385,7 @@ function Optimal({ v, opt }: V & { opt: NonNullable<StudioVals["opt"]> }) {
   );
 }
 
-const LIST_COLS = "display:grid;grid-template-columns:36px minmax(0,2fr) 1.5fr 60px 1.4fr 0.9fr 1fr 80px;gap:12px";
+const LIST_COLS = "display:grid;grid-template-columns:36px minmax(0,2fr) 1.5fr 60px 1.4fr 0.9fr 1fr 110px;gap:12px";
 
 function List({ v }: V) {
   return (
@@ -1422,7 +1422,16 @@ function List({ v }: V) {
               </span>
               <span style={sx("text-align:right")}>{d.cost}</span>
               <span style={sx("color:#45473f")}>{d.date}</span>
-              <button onClick={d.open} style={sx("border:0;background:transparent;font:600 13px/1 'IBM Plex Sans',sans-serif;color:#2f5a3f;text-align:right;padding:4px 0")}>Open</button>
+              <span style={sx("display:flex;align-items:center;justify-content:flex-end;gap:8px")}>
+                <button onClick={d.open} style={sx("border:0;background:transparent;font:600 13px/1 'IBM Plex Sans',sans-serif;color:#2f5a3f;text-align:right;padding:4px 0")}>Open</button>
+                {d.canDelete ? (
+                  <button onClick={d.remove} aria-label={d.deleteLabel} title="Delete this formulation and all its versions" className={hv("trash")} style={sx("display:flex;align-items:center;justify-content:center;width:30px;height:30px;border:0;border-radius:6px;background:transparent;padding:0;color:#a63d2a")}>
+                    <Trash2 size={16} strokeWidth={1.75} aria-hidden />
+                  </button>
+                ) : (
+                  <span style={sx("width:30px")} />
+                )}
+              </span>
             </div>
           ))}
         </div>

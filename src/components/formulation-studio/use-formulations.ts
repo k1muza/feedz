@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 
-import { fetchFormulationAdvice, fetchFormulations, markFormulationAdviceRead, saveFormulationVersion } from "@/lib/formulations";
+import { deleteFormulation, fetchFormulationAdvice, fetchFormulations, markFormulationAdviceRead, saveFormulationVersion } from "@/lib/formulations";
 
 import type { SavedDoc, Snapshot, Summary } from "./engine";
 
@@ -53,6 +53,20 @@ export function useFormulations(userId: string | null) {
     return saved;
   };
 
+  /** Removes the formulation straight away and puts it back if the delete fails. */
+  const remove = async (id: string) => {
+    const index = docs.findIndex((d) => d.id === id);
+    if (index < 0) return;
+    const doc = docs[index];
+    setDocs((all) => all.filter((d) => d.id !== id));
+    try {
+      await deleteFormulation(id);
+    } catch (error) {
+      setDocs((all) => (all.some((d) => d.id === id) ? all : [...all.slice(0, index), doc, ...all.slice(index)]));
+      throw error;
+    }
+  };
+
   /** Marks advice read straight away; the database catches up in the background. */
   const markAdviceRead = (ids: string[]) => {
     const unread = new Set(docs.flatMap((d) => d.advice.filter((a) => !a.read && ids.includes(a.id)).map((a) => a.id)));
@@ -61,7 +75,7 @@ export function useFormulations(userId: string | null) {
     markFormulationAdviceRead([...unread]).catch((error) => console.error("Failed to mark advice read:", error));
   };
 
-  return { status, docs, reload: load, save, markAdviceRead };
+  return { status, docs, reload: load, save, remove, markAdviceRead };
 }
 
 export type Formulations = ReturnType<typeof useFormulations>;
