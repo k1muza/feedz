@@ -2224,7 +2224,7 @@ function libraryVals(
   const catD = catSel
     ? {
         name: catSel.name,
-        sub: catSel.category + " · " + (catSel.price ? "planning price $" + fmt(catSel.price.usdPerTonne, 0) + " / t · " + catSel.price.market : "no planning price"),
+        sub: catSel.category + " · " + (catSel.verificationStatus ? "manufacturer analysis UNVERIFIED · supplier quote required" : catSel.price ? "planning price $" + fmt(catSel.price.usdPerTonne, 0) + " / t · " + catSel.price.market : "no planning price"),
         close: () => update({ catSel: null }),
         // Values the library doesn't publish read "Missing" only where this kind of ingredient should have one.
         profile: CAT_NUTRIENTS.map((n) => {
@@ -2235,7 +2235,7 @@ function libraryVals(
         limits: catSel.limits.map((l) => ({ name: l.stage, limit: "max " + l.maxPct + "%", guide: l.practicalPct != null ? "guideline " + l.practicalPct + "%" : "" })),
         noLimits: catSel.limits.length === 0,
         sets:
-          myLists.status !== "ready"
+          !canAddStudioIngredient(catSel.id, S.programmeId) || myLists.status !== "ready"
             ? []
             : lists.length
               ? lists.map((l) => {
@@ -2359,10 +2359,10 @@ function libraryVals(
       size: String(ps), onSize: (e: InputEvent) => update({ catPageSize: +e.target.value, catPage: 1 }),
     },
     catRows: catAll.slice(from, to).map((g) => {
-      const missing = g.expected.some((id) => g.nutrients[id] == null);
+      const missing = !!g.verificationStatus || g.expected.some((id) => g.nutrients[id] == null);
       const on = g.id === S.catSel;
       const num = (x: number | null, dp: number, unit = "") => (x == null ? "—" : fmt(x, dp) + unit);
-      return { id: g.id, name: g.name, cat: g.category, price: g.price ? "$" + fmt(g.price.usdPerTonne, 0) : "—", cp: num(g.nutrients.cp, 1, "%"), me: num(g.nutrients.mePig, 0), lys: num(g.nutrients.lys, 2, "%"), data: missing ? "Incomplete" : "Complete", dataColor: missing ? "#a63d2a" : "#2b6a42", dataDot: missing ? "#b2412e" : "#2f7a4a", dataR: missing ? "0" : "50%", bg: on ? "#f4f8f4" : "#fff", pick: () => update({ catSel: on ? null : g.id }) };
+      return { id: g.id, name: g.name, cat: g.category, price: g.price ? "$" + fmt(g.price.usdPerTonne, 0) : "—", cp: num(g.nutrients.cp, 1, "%"), me: num(g.nutrients.mePig, 0), lys: num(g.nutrients.lys, 2, "%"), data: g.verificationStatus ? "Unverified" : missing ? "Incomplete" : "Complete", dataColor: missing ? "#a63d2a" : "#2b6a42", dataDot: missing ? "#b2412e" : "#2f7a4a", dataR: missing ? "0" : "50%", bg: on ? "#f4f8f4" : "#fff", pick: () => update({ catSel: on ? null : g.id }) };
     }),
     catEmpty: catAll.length === 0,
     catD,
