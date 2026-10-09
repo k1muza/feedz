@@ -735,6 +735,11 @@ type NutrientFamily =
  * Premix vitamin/mineral content, for example, is unknown until a supplier
  * specification is loaded.
  */
+/**
+ * A commercial compound premix can contain salt, phosphorus, protein, amino
+ * acids and carriers. Absent analysis must remain UNKNOWN, never "zero by
+ * category", including for vitamin-mineral-labelled commercial products.
+ */
 function structuralZero(
   ingredient: IngredientNutrientRecord,
   family: NutrientFamily,
@@ -743,47 +748,40 @@ function structuralZero(
     case "energy":
       return (
         ingredient.category === "mineral" ||
-        ingredient.category === "amino_acid" ||
-        ingredient.category === "vitamin_mineral_premix"
+        ingredient.category === "amino_acid"
       );
     case "crudeProtein":
       return (
         ingredient.category === "mineral" ||
-        ingredient.category === "oil_fat" ||
-        ingredient.category === "vitamin_mineral_premix"
+        ingredient.category === "oil_fat"
       );
     case "digestibleProtein":
       return (
         ingredient.category === "mineral" ||
-        ingredient.category === "oil_fat" ||
-        ingredient.category === "vitamin_mineral_premix"
+        ingredient.category === "oil_fat"
       );
     case "fibre":
       return (
         ingredient.category === "mineral" ||
         ingredient.category === "oil_fat" ||
-        ingredient.category === "amino_acid" ||
-        ingredient.category === "vitamin_mineral_premix"
+        ingredient.category === "amino_acid"
       );
     case "fattyAcid":
       return (
         ingredient.category === "mineral" ||
-        ingredient.category === "amino_acid" ||
-        ingredient.category === "vitamin_mineral_premix"
+        ingredient.category === "amino_acid"
       );
     case "aminoAcid":
       return (
         ingredient.category === "mineral" ||
         ingredient.category === "oil_fat" ||
-        ingredient.category === "amino_acid" ||
-        ingredient.category === "vitamin_mineral_premix"
+        ingredient.category === "amino_acid"
       );
     case "macroMineral":
       return (
         ingredient.category === "oil_fat" ||
         ingredient.category === "amino_acid" ||
-        ingredient.category === "mineral" ||
-        ingredient.category === "vitamin_mineral_premix"
+        ingredient.category === "mineral"
       );
     case "traceMineral":
       return (
