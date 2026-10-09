@@ -11,7 +11,7 @@ import { isSupabaseConfigured, supabaseKey, supabaseUrl } from "@/lib/supabase/c
 import type { CatalogueIngredient, CatalogueNutrientId } from "@/lib/studio-catalogue";
 import type { StudioNutrientData } from "@/lib/studio-nutrients";
 import type { StudioProgrammeData } from "@/lib/studio-programmes";
-import { canAddStudioIngredient, poolWithProgrammePremix } from "@/lib/studio-commercial-premix";
+import { canAddStudioIngredient, selectStudioIngredient, poolWithProgrammePremix } from "@/lib/studio-commercial-premix";
 import { commercialPremixById } from "@/lib/commercial-premixes";
 
 import {
@@ -993,6 +993,20 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
       return;
     }
     const price = d.price === "" ? undefined : d.unit === "t" ? +d.price : +d.price * 1000;
+    const product = commercialPremixById(d.id);
+    if (product) {
+      // Price is editable but supplier dose / whole-recipe policy is not.
+      update((state) => {
+        const pool = poolWithProgrammePremix(state.pool, state.programmeId, d.id);
+        pool[d.id] = {
+          role: "fixed", fixed: product.inclusionPct,
+          ...(price !== undefined ? { price } : {}),
+        };
+        return { pool, drawer: null };
+      });
+      if (rerun && S.screen === "workspace") run();
+      return;
+    }
     const mn = d.min === "" ? 0 : +d.min,
       mx = d.max === "" ? null : +d.max;
     const e: PoolEntry = { role: "available" };
@@ -1020,6 +1034,8 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
     update((state) => {
       const pool = { ...state.pool };
       delete pool[d.id];
+      // Removing a premix is allowed; it does not auto-reappear until the
+      // farmer selects another product or changes the animal programme.
       return { pool, drawer: null };
     });
     flash(ingredientName(d.id) + " removed from this formulation");
@@ -1030,8 +1046,10 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
       flash("Premixes are selected automatically for your animal and stage.");
       return;
     }
-    update({ pool: { ...S.pool, [id]: { role: "available" } } });
-    flash(ingredientName(id) + " added as Available");
+    update((state) => ({ pool: selectStudioIngredient(state.pool, id, state.programmeId) }));
+    flash(commercialPremixById(id)
+      ? ingredientName(id) + " selected as the fixed manufacturer premix"
+      : ingredientName(id) + " added as Available");
   };
   const toggleAddPick = (id: string) => { if (canAddStudioIngredient(id, S.programmeId)) update((state) => ({ addPick: state.addPick.includes(id) ? state.addPick.filter((x) => x !== id) : [...state.addPick, id] })); };
   const addPicked = () => {
@@ -1048,21 +1066,18 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
       flash(what + " added to " + list.label);
       return;
     }
-    update((state) => ({ pool: poolWithProgrammePremix({ ...state.pool, ...Object.fromEntries(ids.map((id) => [id, { role: "available" as Role }])) }, state.programmeId), addOpen: false, addQ: "", addPick: [] }));
+    update((state) => ({
+      pool: ids.reduce((pool, id) => selectStudioIngredient(pool, id, state.programmeId), state.pool),
+      addOpen: false, addQ: "", addPick: [],
+    }));
     flash(what + " added as Available");
   };
   const addCompletionIngredients = (ids: string[]) => {
     ids = ids.filter((id) => canAddStudioIngredient(id, S.programmeId));
     if (!ids.length) return;
     update((state) => ({
-      pool: {
-        ...state.pool,
-        ...Object.fromEntries(
-          ids
-            .filter((id) => !state.pool[id])
-            .map((id) => [id, { role: "available" as Role }]),
-        ),
-      },
+      pool: ids.reduce((pool, id) =>
+        pool[id] ? pool : selectStudioIngredient(pool, id, state.programmeId), state.pool),
     }));
     flash(
       ids.length === 1
@@ -1287,7 +1302,7 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
         id, cat: g?.category ?? "Other", name: g?.name ?? id,
         check: on ? "✓" : "", cbBg: on ? "#2f5a3f" : "#fff", cbBd: on ? "#2f5a3f" : "#b9b6ab", cbLabel: (on ? "Untick " : "Tick ") + (g?.name ?? id), deco: on ? "none" : "line-through", opacity: on ? "1" : "0.55",
         hasNote: noPrice || incomplete,
-        note: noPrice ? isPremix ? "Supplier quote optional for formulation; costs will exclude this unpriced premix" : "No planning price — enter yours" : "Some nutrient data is missing — it may be set aside for this stage",
+        note: noPrice ? isPremix ? "Supplier quote optional; displayed cost excludes this premix" : "No planning price — enter yours" : g?.verificationStatus === "unverified" ? "Manufacturer nutrient analysis unverified" : "Some nutrient data is missing — it may be set aside for this stage",
         noteColor: noPrice ? "#a63d2a" : "#8a5f18",
         price: user ? String(e.price) : "", pricePh: planning != null ? String(Math.round(planning)) : isPremix ? "Optional quote" : "Required", tag: user ? "YOURS" : planning != null ? "DEFAULT" : "", tagFg: user ? "#8a5f18" : "#8d8a80",
         onPrice: (ev: InputEvent) => {
@@ -1296,7 +1311,10 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
             const cur = { ...s.pool[id] };
             if (value === "") delete cur.price;
             else cur.price = +value;
-            return { pool: { ...s.pool, [id]: cur } };
+            if (commercialPremixById(id) && cur.role !== "excluded") return {
+      pool: selectStudioIngredient(s.pool, id, s.programmeId),
+    };
+    return { pool: { ...s.pool, [id]: cur } };
           });
         },
         toggle: () =>
