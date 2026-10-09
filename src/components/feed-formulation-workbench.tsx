@@ -52,7 +52,7 @@ import {
 } from "@/lib/feed-formulation-report";
 import { PUBLIC_PREMIX_ID } from "@/lib/public-feed-premix";
 import { commercialPremixById, commercialPremixForProgramme } from "@/lib/commercial-premixes";
-import { restoreIngredientPool } from "@/lib/ingredient-pool-transition";
+import { mergeSuggestedIngredients, restoreIngredientPool } from "@/lib/ingredient-pool-transition";
 import type { ManufacturerRecipeReport } from "@/lib/manufacturer-recipe";
 import type {
   FormulationIngredientOption,
@@ -367,15 +367,8 @@ export function FeedFormulationWorkbench({
             ingredientId !== PUBLIC_PREMIX_ID && !commercialPremixById(ingredientId) &&
             ingredients.some((ingredient) => ingredient.id === ingredientId),
         );
-        setRows(
-          suggestedIds.map((ingredientId, index) => ({
-            key: index,
-            ingredientId,
-            price: defaultPriceInput(ingredientId, ingredients),
-            min: "",
-            max: "",
-            lockedPct: "",
-          })),
+        setRows((current) =>
+          mergeSuggestedIngredients(suggestedIds, current, (id) => defaultPriceInput(id, ingredients)),
         );
       } catch (error) {
         if (controller.signal.aborted) return;
