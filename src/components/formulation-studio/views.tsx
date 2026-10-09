@@ -890,7 +890,7 @@ function Workspace({ v }: V) {
           {v.hasAdvice && !v.pendingDoc && !v.opt && (
             <button type="button" onClick={v.openAdvisories} style={sx("display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:12px 16px;background:#eef3ee;border:1px solid #c5d8c8;border-radius:10px;font:600 14px/1.3 'IBM Plex Sans',sans-serif;color:#2f5a3f;cursor:pointer")}>
               <span style={sx("flex:none;width:8px;height:8px;border-radius:50%;background:#2f5a3f")} />
-              <span style={sx("flex:1")}>{v.adviceLabel}</span>
+              <span style={sx("flex:1")}>{v.advisoriesLabel}</span>
               <span style={sx("font-weight:500;text-decoration:underline;text-underline-offset:3px")}>View</span>
             </button>
           )}
@@ -1049,15 +1049,6 @@ function Optimal({ v, opt }: V & { opt: NonNullable<StudioVals["opt"]> }) {
             <button type="button" onClick={v.openAdvisories} aria-label={`Open ${strip.adv}`} style={sx("display:flex;align-items:center;gap:8px;color:#8a5f18;border:0;background:transparent;padding:2px 0;font:600 14px/1.3 'IBM Plex Sans',sans-serif;text-decoration:underline;text-decoration-color:#d7ad62;text-underline-offset:3px;cursor:pointer")}>
               <span style={sx("width:8px;height:8px;background:#c98a1e;transform:rotate(45deg)")} />
               {strip.adv}
-            </button>
-          </>
-        )}
-        {v.hasAdvice && (
-          <>
-            <span style={sx("width:1px;height:16px;background:#d0cdc3")} />
-            <button type="button" onClick={v.openAdvisories} aria-label={`Open ${v.adviceLabel}`} style={sx("display:flex;align-items:center;gap:8px;color:#2f5a3f;border:0;background:transparent;padding:2px 0;font:600 14px/1.3 'IBM Plex Sans',sans-serif;text-decoration:underline;text-decoration-color:#9fbfa6;text-underline-offset:3px;cursor:pointer")}>
-              <span style={sx("width:8px;height:8px;border-radius:50%;background:#2f5a3f")} />
-              {v.adviceLabel}
             </button>
           </>
         )}
@@ -1802,7 +1793,7 @@ function Compare({ v }: V) {
 function AdvisoryDrawer({ v }: V) {
   const advisories = v.opt?.advisories ?? [];
   const count = advisories.length;
-  const title = count ? count + " practical advisor" + (count === 1 ? "y" : "ies") : v.adviceLabel;
+  const title = v.advisoriesLabel;
   return (
     <>
       <div onClick={v.closeAdvisories} style={sx("position:fixed;inset:0;background:rgba(34,36,32,.38);z-index:20")} />

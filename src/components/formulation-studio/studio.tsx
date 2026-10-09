@@ -1568,7 +1568,7 @@ function useStudio({ catalogue, nutrients, programmes, showSolverDetails = false
         })()
       : null;
 
-  const opt = optimal ? optimalVals(S, optimal, manualView, { poolIds, isEligible, isUserPrice, priceTxt, batchLabel, openDrawer, update, run, engine, showSolverDetails }) : null;
+  const opt = optimal ? optimalVals(S, optimal, manualView, { poolIds, isEligible, isUserPrice, priceTxt, batchLabel, openDrawer, update, run, engine, showSolverDetails, adviceCount: doc?.advice.length ?? 0 }) : null;
 
   const tabs = (
     [
@@ -1659,7 +1659,7 @@ function useStudio({ catalogue, nutrients, programmes, showSolverDetails = false
     view, dimOpacity: S.running || stale ? "0.5" : "1", emptyTitle: activeCount ? "Ready to formulate" : "Before you can formulate", checklist, blockErrs, hasWarns: warns.length > 0 && !S.running, warns, inf,
     opt, showSolver: showSolverDetails, tabs, tabRecipe: S.tab === "recipe", tabNutrients: S.tab === "nutrients", tabWhy: S.tab === "why", tabHistory: S.tab === "history",
     advisoriesOpen: S.advisoriesOpen && (!!opt?.advisories.length || docAdvice.length > 0),
-    adviceLabel: docAdvice.length + (docAdvice.length === 1 ? " note" : " notes") + " from FeedSport",
+    advisoriesLabel: advisoryCount((opt?.advisories.length ?? 0) + docAdvice.length),
     openAdvisories: () => update({ advisoriesOpen: true, drawer: null, addOpen: false, rulesOpen: false }),
     closeAdvisories: () => update({ advisoriesOpen: false }),
     modeOpts: (
@@ -1724,11 +1724,13 @@ function useStudio({ catalogue, nutrients, programmes, showSolverDetails = false
 
 type Update = (patch: Partial<State> | ((s: State) => Partial<State>)) => void;
 
+const advisoryCount = (n: number) => n + " practical advisor" + (n === 1 ? "y" : "ies");
+
 function optimalVals(
   S: State,
   R: OptimalResult,
   mc: ManualView | null,
-  ctx: { poolIds: string[]; isEligible: (id: string) => boolean; isUserPrice: (id: string) => boolean; priceTxt: (p: number | null) => string; batchLabel: string; openDrawer: (id: string) => void; update: Update; run: () => void; engine: EngineContext; showSolverDetails: boolean },
+  ctx: { poolIds: string[]; isEligible: (id: string) => boolean; isUserPrice: (id: string) => boolean; priceTxt: (p: number | null) => string; batchLabel: string; openDrawer: (id: string) => void; update: Update; run: () => void; engine: EngineContext; showSolverDetails: boolean; adviceCount: number },
 ) {
   const { update, run, engine } = ctx;
   const runSnap = S.runSnap!;
@@ -1749,7 +1751,9 @@ function optimalVals(
   const nList = mc ? mc.nutrients : R.nutrients;
   const failN = nList.filter((n) => n.status !== "met").length;
   const adv = mc ? mc.advisories : R.advisories.filter((a) => !S.dismissed[a.id]);
-  const advTxt = adv.length + " practical advisor" + (adv.length === 1 ? "y" : "ies");
+  // The nutritionist's notes count as practical advisories; they share the drawer.
+  const advTotal = adv.length + ctx.adviceCount;
+  const advTxt = advisoryCount(advTotal);
   const recipeInvalid = !!mc && !mc.checking && !mc.recipeValidity?.valid;
   const recipeStatus = mc?.checking
     ? { label: "Checking recipe validity…", color: "#64665c", bg: "#d0cdc3", r: "50%" }
@@ -1766,7 +1770,7 @@ function optimalVals(
   const strip = {
     ...nutrientStatus,
     recipe: recipeStatus,
-    hasAdv: adv.length > 0,
+    hasAdv: advTotal > 0,
     adv: advTxt,
     goal: mc ? "Manual recipe" : GOALS[runSnap.goal].label + (runSnap.goal === "least_cost" || R.goalUnavailable ? "" : " · within 3%"),
     solver: mc ? "" : "FeedSport engine · " + R.nVars + " ingredients · " + R.nRows + " requirements · " + Math.round(R.ms) + " ms",
