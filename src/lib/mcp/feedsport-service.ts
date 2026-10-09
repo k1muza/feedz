@@ -50,7 +50,7 @@ import {
 import type { EnergySystem } from "@/lib/nutrition-targets";
 import type { NutritionPhase, NutritionSpecies } from "@/lib/nutrition";
 import { PUBLIC_PREMIX_ID } from "@/lib/public-feed-premix";
-import { COMMERCIAL_PREMIXES, commercialPremixById, commercialPremixCompatibleWithProgramme, type CommercialPremix } from "@/lib/commercial-premixes";
+import { COMMERCIAL_PREMIXES, assertManufacturerRecipe, commercialPremixById, commercialPremixCompatibleWithProgramme, type CommercialPremix } from "@/lib/commercial-premixes";
 
 export const SOLVER = "GLPK (glpk.js)";
 export const CURRENCY = "USD";
@@ -375,6 +375,7 @@ function premixSummary(premix: CommercialPremix, context: FeedSportServiceContex
     application: premix.application,
     verification_status: premix.verificationStatus,
     formulation_compatibility: premix.formulationCompatibility,
+    ...(premix.manufacturerRecipe ? { manufacturer_recipe: premix.manufacturerRecipe } : {}),
     specification_url: premix.specificationUrl,
     published_analysis: premix.publishedAnalysis,
     ...(premix.note ? { note: premix.note } : {}),
@@ -814,7 +815,7 @@ const SUPPLYING_INGREDIENTS: Array<{ match: (id: string) => boolean; category: s
   { match: (id) => id === "sodium" || id === "chloride", category: "mineral", examples: ["sodium-chloride"] },
   { match: (id) => id === "linoleic-acid", category: "oil_fat", examples: ["soybean-degummed-oil", "corn-oil"] },
   { match: (id) => id === "neutral-detergent-fibre", category: "byproduct", examples: ["wheat-bran", "soybean-hulls"] },
-  { match: (id) => id.startsWith("supplement-"), category: "vitamin_mineral_premix", examples: [PUBLIC_PREMIX_ID] },
+  { match: (id) => id.startsWith("supplement-"), category: "vitamin_mineral_premix", examples: [] },
 ];
 
 function missingIngredientHints(constraintIds: readonly string[], selected: ReadonlySet<string>) {
@@ -904,6 +905,9 @@ function formulationNotes(request: PreparedRequest): string[] {
     notes.push(
       "Commercial premix is UNVERIFIED; supplier dosage is fixed but vitamin and trace-mineral adequacy was NOT checked.",
     );
+    if (request.ingredientIds.some((id) => commercialPremixById(id)?.manufacturerRecipe)) {
+      notes.push("CJ S174 is limited to its published manufacturer recipe. This is not manufacturer approval of independent ingredient substitutions.");
+    }
   } else {
     notes.push(
       "No verified premix included: vitamin and trace-mineral supplementation has NOT been checked.",
@@ -975,6 +979,14 @@ export function buildScenario(
         : { minInclusionPct: constraint?.min_percent, maxInclusionPct: constraint?.max_percent }),
     };
   });
+
+  for (const id of ingredientIds) {
+    const premix = commercialPremixById(id);
+    if (premix) {
+      try { assertManufacturerRecipe(premix, options); }
+      catch (error) { throw new FeedSportInputError(error instanceof Error ? error.message : String(error)); }
+    }
+  }
 
   // Requests may only tighten FeedSport's static and phase-specific limits.
   // The optimizer resolves the same limits; this reports what it will use.
@@ -1284,6 +1296,21 @@ export function analyseFormulation(input: AnalyseInput, context: FeedSportServic
       inclusionPct: (input.recipe[index].percentage / total) * 100,
     })),
   };
+
+  for (const ingredientId of ingredientIds) {
+    const premix = commercialPremixById(ingredientId);
+    if (premix?.manufacturerRecipe) {
+      try {
+        assertManufacturerRecipe(premix, formula.ingredients.map((row) => ({
+          ingredientId: row.ingredientId,
+          minInclusionPct: row.inclusionPct,
+          maxInclusionPct: row.inclusionPct,
+        })));
+      } catch (error) {
+        throw new FeedSportInputError(error instanceof Error ? error.message : String(error));
+      }
+    }
+  }
 
   const priceOverrides = new Map<string, number>();
   for (const [key, value] of Object.entries(input.prices ?? {})) {
