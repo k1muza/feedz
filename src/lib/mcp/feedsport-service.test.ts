@@ -148,6 +148,7 @@ describe("CJ S174 manufacturer-only mature-boar workflow", () => {
         [item.ingredientId, item.ingredientId === product.id ? 2200 : 300])),
     }, context);
     assert.equal(result.status, "manufacturer_recipe");
+    if (result.status !== "manufacturer_recipe") throw new Error("Expected unverified CJ manufacturer recipe");
     assert.equal(result.passes, false);
     assert.ok(result.incomplete_requirements.length > 0);
   });
@@ -155,6 +156,7 @@ describe("CJ S174 manufacturer-only mature-boar workflow", () => {
   it("keeps diagnose_infeasibility available as a read-only explanation without suggesting substitutions", async () => {
     const result = await diagnoseInfeasibilityTool(request, context);
     assert.equal(result.status, "unverified");
+    if (result.status !== "unverified") throw new Error("Expected CJ diagnostic, not solver optimisation");
     assert.ok(result.missing_data.length > 0);
     assert.deepEqual(result.fixes, []);
     assert.ok(result.findings.some((finding) => finding.includes("cannot be verified")));
