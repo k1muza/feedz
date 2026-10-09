@@ -2035,6 +2035,18 @@ function Drawer({ v, d }: V & { d: NonNullable<StudioVals["d"]> }) {
               <span style={sx("font:400 13px/1.5 'IBM Plex Sans',sans-serif;color:#45473f")}>{d.why}</span>
             </div>
           )}
+          {d.nutritionalSource && (
+            <div style={sx("display:flex;flex-direction:column;gap:5px;padding:12px;background:#faf8f3;border:1px solid #e2dfd6;border-radius:7px")}>
+              <span style={sx("font:600 11px/1 'IBM Plex Mono',monospace;color:#64665c;text-transform:uppercase")}>Nutrient profile source</span>
+              <span style={sx("font:600 12px/1.4 'IBM Plex Sans',sans-serif")}>{d.nutritionalSource.publisher} · {d.nutritionalSource.title}</span>
+              <span style={sx("font:400 11px/1.4 'IBM Plex Sans',sans-serif;color:#8a5f18")}>
+                {d.nutritionalSource.verificationStatus.replaceAll("_", " ")}
+                {d.nutritionalSource.sourceTable ? " · " + d.nutritionalSource.sourceTable : ""}
+                {d.nutritionalSource.sourcePage != null ? " · p. " + d.nutritionalSource.sourcePage : ""}
+              </span>
+              {d.nutritionalSource.url && <a href={d.nutritionalSource.url} target="_blank" rel="noopener noreferrer" style={sx("font:600 12px/1.4 'IBM Plex Sans',sans-serif;color:#1f5c38;text-decoration:underline")}>Original source ↗</a>}
+            </div>
+          )}
           <div style={sx("display:flex;flex-direction:column;gap:0")}>
             <span style={sx("font:500 12px/1 'IBM Plex Mono',monospace;color:#64665c;text-transform:uppercase;letter-spacing:0.05em;padding-bottom:8px")}>Nutrient profile · as fed</span>
             {d.profile.map((p) => (
