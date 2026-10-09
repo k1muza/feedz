@@ -1323,20 +1323,7 @@ export function analyseFormulation(input: AnalyseInput, context: FeedSportServic
     })),
   };
 
-  for (const ingredientId of ingredientIds) {
-    const premix = commercialPremixById(ingredientId);
-    if (premix?.manufacturerRecipe) {
-      try {
-        assertManufacturerRecipe(premix, formula.ingredients.map((row) => ({
-          ingredientId: row.ingredientId,
-          minInclusionPct: row.inclusionPct,
-          maxInclusionPct: row.inclusionPct,
-        })));
-      } catch (error) {
-        throw new FeedSportInputError(error instanceof Error ? error.message : String(error));
-      }
-    }
-  }
+  // The shared manufacturer-recipe helper validates CJ's exact ratios.
 
   const priceOverrides = new Map<string, number>();
   for (const [key, value] of Object.entries(input.prices ?? {})) {
