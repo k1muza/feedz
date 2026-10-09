@@ -122,6 +122,13 @@ describe("Manufacturer-backed commercial premix catalogue", () => {
     const item = library.ingredients.find((record) => record.id === synthetic.id)!;
     assert.equal(item.aminoAcids.totalPct.lysine, 5);
     assert.equal(item.aminoAcids.sidPct.lysine, 4.2);
+    assert.equal(
+      item.provenance.nutrientSources["aminoAcids.sidPct.lysine"]?.url,
+      "https://example.com/fictional-test-only",
+      "Exact SID values must retain their supplier citation",
+    );
+    assert.equal(item.provenance.verificationStatus, "manufacturer_unverified",
+      "One verified AA value does not certify the entire premix matrix");
     const actual = ingredientLibraryWithCommercialPremixes([source], INGREDIENT_LIBRARY);
     const actualItem = actual.ingredients.find((record) => record.id === source.id)!;
     assert.equal(actualItem.aminoAcids.sidPct.lysine, undefined, "Do not fabricate Sustar SID lysine.");
