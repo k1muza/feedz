@@ -1,79 +1,105 @@
-import { commercialPremixById, commercialPremixForProgramme, commercialPremixCompatibleWithProgramme } from "./commercial-premixes";
+import {
+  commercialPremixById,
+  commercialPremixForProgramme,
+  commercialPremixCompatibleWithProgramme,
+} from "./commercial-premixes";
 import type { Pool, PoolEntry } from "@/components/formulation-studio/engine";
 
-/**
- * Studio uses the same real supplier catalogue as the public calculator/MCP.
- * Replace an old animal's commercial premix when the selected programme
- * changes. Never substitute a sow product for boars.
+/** Premixes participate in the same ingredient pool as maize, lysine or salt.
+ * Their additional species, dose and manufacturer-recipe rules belong to the
+ * ingredient, and are validated before the LP request AND on the server.
  */
-export function poolWithProgrammePremix(pool: Pool, programmeId: string): Pool {
-  const next: Pool = Object.fromEntries(Object.entries(pool).filter(([id]) => !commercialPremixById(id)));
-  const product = commercialPremixForProgramme(programmeId);
-  // Leaving CJ's restricted recipe: no basal ingredient may retain a locked
-  // percentage from the previous animal. Restore their availability and
-  // existing prices, then offer usual mineral/amino candidates for the new
-  // animal. These are optional candidates, NOT invented recipe amounts.
-  if (pool["cj-s174-boar-premix"] && product?.id !== "cj-s174-boar-premix") {
-    for (const item of commercialPremixById("cj-s174-boar-premix")?.manufacturerRecipe ?? []) {
-      if (item.ingredientId === "cj-s174-boar-premix") continue;
-      const prior = next[item.ingredientId];
-      if (prior) next[item.ingredientId] = {
-        role: "available",
-        ...(prior.price != null ? { price: prior.price } : {}),
-      };
-    }
-    for (const id of ["limestone-ground", "dicalcium-phosphate", "sodium-chloride", "l-lysine-hcl", "dl-methionine"]) {
-      if (!next[id]) next[id] = { role: "available" };
-    }
+function activeProduct(pool: Pool, programmeId: string) {
+  return Object.entries(pool)
+    .filter(([id, row]) => row.role !== "excluded" &&
+      commercialPremixById(id) && commercialPremixCompatibleWithProgramme(commercialPremixById(id)!, programmeId))
+    .map(([id]) => commercialPremixById(id)!)[0];
+}
+
+function unlockedAfterManufacturerRecipe(pool: Pool): Pool {
+  const next: Pool = { ...pool };
+  const former = Object.entries(pool)
+    .map(([id]) => commercialPremixById(id))
+    .find((p) => p?.manufacturerRecipe);
+  if (!former?.manufacturerRecipe) return next;
+  for (const item of former.manufacturerRecipe) {
+    if (item.ingredientId === former.id) continue;
+    const old = pool[item.ingredientId];
+    if (old?.role === "fixed") next[item.ingredientId] = {
+      role: "available",
+      ...(old.price != null ? { price: old.price } : {}),
+    };
   }
-  if (!product) return next;
-  if (product.manufacturerRecipe) {
-    // CJ authorises only the published recipe. Keep any existing prices; lock
-    // the source-provided proportions instead of inviting LP substitutions.
-    return Object.fromEntries(product.manufacturerRecipe.map((item): [string, PoolEntry] => [
-      item.ingredientId,
-      { role: "fixed", fixed: item.percent, ...(pool[item.ingredientId]?.price != null
-        ? { price: pool[item.ingredientId].price }
-        : {}) },
+  for (const id of ["limestone-ground", "dicalcium-phosphate", "sodium-chloride", "l-lysine-hcl", "dl-methionine"]) {
+    next[id] ??= { role: "available" };
+  }
+  return next;
+}
+
+export function poolWithProgrammePremix(pool: Pool, programmeId: string, preferredId?: string): Pool {
+  const previous = unlockedAfterManufacturerRecipe(pool);
+  const next: Pool = Object.fromEntries(Object.entries(previous)
+    .filter(([id]) => !commercialPremixById(id)));
+  const preferred = preferredId ? commercialPremixById(preferredId) : undefined;
+  const chosen = preferred && commercialPremixCompatibleWithProgramme(preferred, programmeId)
+    ? preferred
+    : activeProduct(pool, programmeId) ?? commercialPremixForProgramme(programmeId);
+  if (!chosen) return next;
+  if (chosen.manufacturerRecipe) {
+    // Manufacturer-restricted SKUs are still first-class ingredients, but
+    // choosing one imposes a fixed *whole recipe*, not merely a dose.
+    return Object.fromEntries(chosen.manufacturerRecipe.map((part): [string, PoolEntry] => [
+      part.ingredientId, {
+        role: "fixed", fixed: part.percent,
+        ...(pool[part.ingredientId]?.price != null ? { price: pool[part.ingredientId].price } : {}),
+      },
     ]));
   }
   return {
     ...next,
-    [product.id]: {
-      role: "fixed",
-      fixed: product.inclusionPct,
-      ...(pool[product.id]?.price != null ? { price: pool[product.id].price } : {}),
+    [chosen.id]: {
+      role: "fixed", fixed: chosen.inclusionPct,
+      ...(pool[chosen.id]?.price != null ? { price: pool[chosen.id].price } : {}),
     },
   };
 }
 
-/** A premix is a dedicated programme choice, never an unrestricted ingredient. */
+/** Ingredient-picker eligibility: cereals are unrestricted here (other limits
+ * apply later), while commercial products require stage-specific approval.
+ */
 export function canAddStudioIngredient(ingredientId: string, programmeId: string): boolean {
-  // All commercial premixes are auto-selected in the programme selector.
-  // Adding them through the regular ingredient picker bypasses required fixed
-  // dose, supplier restrictions and one-product-per-recipe checks.
-  return commercialPremixById(ingredientId) === undefined;
+  const product = commercialPremixById(ingredientId);
+  return !product || commercialPremixCompatibleWithProgramme(product, programmeId);
 }
 
-/** Validate old imported/saved snapshots before a network request. */
+export function selectStudioIngredient(pool: Pool, ingredientId: string, programmeId: string): Pool {
+  if (!canAddStudioIngredient(ingredientId, programmeId)) {
+    throw new Error(`Ingredient ${ingredientId} is not eligible for ${programmeId}.`);
+  }
+  if (commercialPremixById(ingredientId)) return poolWithProgrammePremix(pool, programmeId, ingredientId);
+  return poolWithProgrammePremix({
+    ...pool, [ingredientId]: pool[ingredientId] ?? { role: "available" },
+  }, programmeId);
+}
+
+/** Legacy stored formulations are never allowed to bypass product rules. */
 export function studioPremixProblems(pool: Pool, programmeId: string): string[] {
-  const products = Object.entries(pool).filter(([id, row]) =>
+  const selected = Object.entries(pool).filter(([id, row]) =>
     commercialPremixById(id) && row.role !== "excluded");
-  const chosen = commercialPremixForProgramme(programmeId);
-  if (products.length > 1) return ["Only one commercial premix may be included in a formulation."];
-  if (products.length === 0) return [];
-  const [id, row] = products[0];
+  if (selected.length > 1) return ["Only one commercial premix may be included in a formulation."];
+  if (selected.length === 0) return [];
+  const [id, row] = selected[0];
   const product = commercialPremixById(id)!;
   if (!commercialPremixCompatibleWithProgramme(product, programmeId))
-    return [`${product.name} is not suitable for this programme. Select the appropriate premix by changing programme.`];
+    return [`${product.name} is not suitable for ${programmeId}. Choose a compatible premix ingredient.`];
   if (row.role !== "fixed" || Math.abs(Number(row.fixed) - product.inclusionPct) > 1e-6)
     return [`${product.name} must be fixed at its manufacturer dose of ${product.inclusionKgPerTonne} kg/t.`];
-  if (chosen?.formulationCompatibility === "manufacturer_recipe_only") {
-    const recipe = chosen.manufacturerRecipe ?? [];
+  if (product.manufacturerRecipe) {
+    const recipe = product.manufacturerRecipe;
     if (Object.keys(pool).length !== recipe.length || !recipe.every((part) => {
       const entry = pool[part.ingredientId];
       return entry?.role === "fixed" && Math.abs(Number(entry.fixed) - part.percent) < 1e-6;
-    })) return [`${chosen.name} must use the manufacturer's complete fixed recipe. Do not alter ingredients or ratios.`];
+    })) return [`${product.name} requires the manufacturer's complete fixed recipe. Do not alter ratios or ingredients.`];
   }
   return [];
 }
