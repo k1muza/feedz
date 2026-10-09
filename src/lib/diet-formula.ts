@@ -737,11 +737,6 @@ type NutrientFamily =
  * specification is loaded.
  */
 /**
- * A commercial compound premix can contain salt, phosphorus, protein, amino
- * acids and carriers. Absent analysis must remain UNKNOWN, never "zero by
- * category", including for vitamin-mineral-labelled commercial products.
- */
-/**
  * Legacy formulation assumption: simple Sustar and custom vitamin/mineral
  * premixes carry zero basal macronutrients. The manufacturer-specific compound
  * CJ S174 is NOT covered: its nutrient contributions remain UNKNOWN until COA.
@@ -811,8 +806,7 @@ function structuralZero(
     case "vitamin":
       return (
         ingredient.category === "mineral" ||
-        ingredient.category === "amino_acid" ||
-        premixWithBasalZeroAssumption(ingredient)
+        ingredient.category === "amino_acid"
       );
   }
 }
