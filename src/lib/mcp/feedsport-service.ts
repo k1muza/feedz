@@ -1268,7 +1268,6 @@ export async function formulate(input: FormulateInput, context: FeedSportService
     unsupported_requirements: [...new Set([...result.unsupportedRequirements, "vitamin-trace-mineral-supplementation"])],
     premix_verification: request.includesPremix ? "unverified" : "not_included",
     premix_analysis: premixAnalysisForIds(ingredientIds),
-    premix_analysis: premixAnalysisForIds(ingredientIds),
     notes: [
       ...notes,
       ...(common.formulation_basis.ingredient_mode === "automatic"
@@ -1456,6 +1455,7 @@ export function analyseFormulation(input: AnalyseInput, context: FeedSportServic
       : {}),
     unsupported_requirements: [...new Set([...evaluation.unsupportedRequirements, "vitamin-trace-mineral-supplementation"])],
     premix_verification: request.includesPremix ? "unverified" : "not_included",
+    premix_analysis: premixAnalysisForIds(ingredientIds),
     notes,
     programme: programmeHeader(resolved),
     ...(request.resolvedNames.length > 0 ? { resolved_ingredient_names: request.resolvedNames } : {}),
