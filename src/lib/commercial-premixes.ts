@@ -30,7 +30,8 @@ export type CommercialPremix = {
    */
   verifiedAsFedAminoAcids?: {
     reference: string;
-    sourceUrl?: string;
+    /** Required citation for every asserted exact nutrient concentration. */
+    sourceUrl: string;
     totalPct?: Record<string, number>;
     sidPct?: Record<string, number>;
   };
