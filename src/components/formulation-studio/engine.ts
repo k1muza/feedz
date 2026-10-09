@@ -1,4 +1,5 @@
 import type { CatalogueIngredient } from "@/lib/studio-catalogue";
+import { commercialPremixById } from "@/lib/commercial-premixes";
 import type { IngredientListItem } from "@/lib/ingredient-lists";
 import type { StudioPhase, StudioProgramme, StudioProgrammeData } from "@/lib/studio-programmes";
 import type {
@@ -309,6 +310,16 @@ export async function formulate(snap: Snapshot, ctx: EngineContext): Promise<For
   const active = Object.keys(snap.pool).filter((id) => snap.pool[id].role !== "excluded");
   const errs: Issue[] = [];
   const warns: Issue[] = [];
+  const realPremix = active.map(commercialPremixById).find((product) => product !== undefined);
+  if (realPremix) {
+    warns.push({
+      id: realPremix.id,
+      title: `${realPremix.name} — manufacturer analysis unverified`,
+      body: `Included at the supplier's published dose of ${realPremix.inclusionKgPerTonne} kg/tonne. Vitamin and trace-mineral adequacy is NOT verified; basal solver status does not certify a complete feed. ${realPremix.specificationUrl}`,
+    });
+  } else {
+    warns.push({ title: "No commercial premix selected", body: "Basal nutrient formulation alone does not validate vitamin and trace-mineral supplementation." });
+  }
 
   if (!active.length) errs.push({ title: "Add at least one ingredient", body: "There is nothing for FeedSport to mix yet." });
   for (const id of active) {
@@ -339,7 +350,13 @@ export async function formulate(snap: Snapshot, ctx: EngineContext): Promise<For
   // Ingredients missing a value this phase needs are set aside and the rest re-solved,
   // rather than stopping the whole formulation.
   let usable = active;
-  let result: LeastCostFormulationResult;
+  let result: LeastCostFormulationResult | {
+    status: "manufacturer_recipe";
+    warning: string;
+    cost_per_tonne: number | null;
+    premix_analysis: { message: string };
+    recipe: { ingredients: Array<{ ingredientId: string; inclusionPct: number }> };
+  };
   for (;;) {
     const ingredients = usable.map((id) => {
       const b = bounds(ctx, phase, id, snap.pool[id]);
@@ -360,6 +377,16 @@ export async function formulate(snap: Snapshot, ctx: EngineContext): Promise<For
     usable = usable.filter((id) => !missing.has(id));
   }
 
+  if (result.status === "manufacturer_recipe") {
+    return {
+      status: "blocked",
+      warns,
+      errs: [{
+        title: "Manufacturer-only recipe: not a verified least-cost formulation",
+        body: `${result.warning} ${result.premix_analysis.message} ${result.cost_per_tonne === null ? "Supplier pricing is incomplete." : `Published mix costs ${result.cost_per_tonne.toFixed(2)}/tonne at the entered prices.`} The ingredient proportions must not be changed without manufacturer approval. The public /formulations calculator can display or export this prescribed mix.`,
+      }],
+    };
+  }
   if (result.status === "error") return { status: "error", warns, message: result.message };
   if (result.status === "infeasible") {
     return {
