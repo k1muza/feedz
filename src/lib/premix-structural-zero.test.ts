@@ -11,7 +11,7 @@ if (!nursery) throw new Error("Nursery phase unavailable");
 function withPremix(id: string) {
   const library = ingredientLibraryWithCustomPremixes(
     [{ id, name: id, vitamins: {}, traceMineralsPpm: {} }],
-    ingredientLibraryForPhase(nursery),
+    ingredientLibraryForPhase(nursery!),
   );
   return analyzeDiet(
     { ingredients: [
