@@ -1,11 +1,15 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { COMMERCIAL_PREMIXES } from "./commercial-premixes";
 
 import {
   INGREDIENT_LIBRARY,
   INGREDIENT_LIBRARY_SOURCE,
   ingredientLibraryForSpecies,
   ingredientLibraryWithCustomPremixes,
+  ingredientLibraryWithCommercialPremixes,
+  ingredientProfileAttribution,
+  nutrientValueSource,
   loadIngredientLibrarySource,
 } from "./ingredient-nutrients";
 
@@ -13,6 +17,8 @@ test("ingredient library is the single canonical ingredient dataset", () => {
   assert.equal(INGREDIENT_LIBRARY_SOURCE.schemaVersion, 2);
   assert.equal(INGREDIENT_LIBRARY_SOURCE.ingredients.length, 113);
   assert.equal(INGREDIENT_LIBRARY.ingredients.length, 113);
+  assert.ok(INGREDIENT_LIBRARY_SOURCE.ingredients.every((item) => item.provenance.source?.url && item.provenance.verificationStatus),
+    "All canonical ingredient records must explicitly carry a source and verification status");
 
   const ids = INGREDIENT_LIBRARY_SOURCE.ingredients.map((ingredient) => ingredient.id);
   assert.equal(new Set(ids).size, ids.length);
@@ -77,6 +83,58 @@ test("custom premixes are validated before reaching the optimizer", () => {
   );
 });
 
+
+test("all canonical species ingredient profiles carry a traceable nutrition source and verification status", () => {
+  for (const species of ["swine", "poultry"] as const) {
+    const library = ingredientLibraryForSpecies(species);
+    for (const ingredient of library.ingredients) {
+      const origin = ingredientProfileAttribution(ingredient);
+      assert.ok(origin.source?.url?.startsWith("https://"), ingredient.id);
+      assert.ok(origin.source?.title, ingredient.id);
+      assert.equal(origin.verificationStatus, "published_reference", ingredient.id);
+      assert.equal(origin.species, species);
+    }
+  }
+  const maize = INGREDIENT_LIBRARY.ingredients.find((item) => item.id === "corn-yellow-dent")!;
+  const source = nutrientValueSource(maize, "composition.crudeProteinPct");
+  assert.ok(source?.publisher && source.url, "Use per-nutrient source when present, otherwise the library reference");
+});
+
+test("dynamically selected supplier premixes carry source metadata without invented nutrient values", () => {
+  const product = COMMERCIAL_PREMIXES.find((item) => item.id === "sustar-glypro-x912")!;
+  const supplemented = ingredientLibraryWithCommercialPremixes([product], INGREDIENT_LIBRARY);
+  const record = supplemented.ingredients.find((item) => item.id === product.id)!;
+  const origin = ingredientProfileAttribution(record);
+  assert.equal(origin.source?.publisher, product.manufacturer);
+  assert.equal(origin.source?.url, product.specificationUrl);
+  assert.equal(origin.verificationStatus, "manufacturer_unverified");
+  assert.equal(record.aminoAcids.sidPct.lysine, undefined, "No unverified supplier guarantees credited as SID");
+});
+
+test("custom premix profiles explicitly disclose unsourced user-provided nutrient data", () => {
+  const supplemented = ingredientLibraryWithCustomPremixes([
+    { id: "farmer-mix-01", name: "Farmer supplied", vitamins: { vitaminAIuKg: 1000 }, traceMineralsPpm: {} },
+  ], INGREDIENT_LIBRARY);
+  const profile = ingredientProfileAttribution(supplemented.ingredients.at(-1)!);
+  assert.equal(profile.verificationStatus, "user_supplied_unverified");
+  assert.equal(profile.source, null, "Do not fabricate a publisher URL for user-entered values");
+  const withReference = ingredientLibraryWithCustomPremixes([
+    {
+      id: "farmer-supplier-mix", name: "Farmer with datasheet",
+      vitamins: { vitaminAIuKg: 2400 }, traceMineralsPpm: {},
+      source: {
+        publisher: "User-provided supplier",
+        title: "Supplier nutrient sheet (user supplied, unverified)",
+        url: "https://example.com/test-data-sheet",
+        basis: "as-fed",
+        priority: "supplier",
+      },
+    },
+  ], INGREDIENT_LIBRARY);
+  const cited = ingredientProfileAttribution(withReference.ingredients.at(-1)!);
+  assert.equal(cited.source?.url, "https://example.com/test-data-sheet");
+  assert.equal(cited.verificationStatus, "user_supplied_unverified", "A citation alone is not independent verification");
+});
 
 test("cottonseed meal 38 keeps published poultry ME and copper", () => {
   const cottonseed = INGREDIENT_LIBRARY_SOURCE.ingredients.find(

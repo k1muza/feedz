@@ -969,6 +969,27 @@ function Workspace({ v }: V) {
             </div>
           )}
 
+          {v.manufacturerResult && (
+            <section style={sx("background:#fff;border:1px solid #e2dfd6;border-radius:10px;padding:20px;display:flex;flex-direction:column;gap:14px")}>
+              <h2 style={sx("font:600 21px/1.3 'IBM Plex Sans',sans-serif;color:#222420;margin:0")}>
+                Manufacturer's fixed mixing recipe
+              </h2>
+              <p style={sx("font:400 14px/1.5 'IBM Plex Sans',sans-serif;color:#45473f;margin:0")}>
+                These are the supplier's prescribed proportions, not a FeedSport least-cost optimisation. Do not change the formulation without manufacturer approval.
+              </p>
+              <div style={sx("border:1px solid #ece8df;border-radius:6px;overflow:hidden")}>
+                {v.manufacturerResult.recipe.map((row: { id: string; name: string; pct: number }) => (
+                  <div key={row.id} style={sx("display:flex;justify-content:space-between;gap:16px;padding:11px 14px;border-bottom:1px solid #ece8df;font:400 14px/1.4 'IBM Plex Sans',sans-serif")}>
+                    <span>{row.name}</span><strong>{row.pct}%</strong>
+                  </div>
+                ))}
+              </div>
+              <strong style={sx("font:600 15px/1.4 'IBM Plex Sans',sans-serif")}>{v.manufacturerResult.costText}</strong>
+              <p style={sx("font:400 13px/1.5 'IBM Plex Sans',sans-serif;color:#8a5f18;margin:0")}>
+                {v.manufacturerResult.message}
+              </p>
+            </section>
+          )}
           {v.inf && <Infeasible v={v} inf={v.inf} />}
           {v.opt && <Optimal v={v} opt={v.opt} />}
 
@@ -1750,11 +1771,28 @@ function Catalogue({ v }: V) {
               </div>
               <button onClick={v.catD.close} aria-label="Close" style={sx("border:0;background:transparent;font:400 22px/1 'IBM Plex Sans',sans-serif;color:#64665c;padding:0")}>×</button>
             </div>
+            <div style={sx("padding:14px 18px;display:flex;flex-direction:column;gap:8px;border-bottom:1px solid #e2dfd6")}>
+              <span style={sx("font:500 11px/1 'IBM Plex Mono',monospace;color:#64665c;text-transform:uppercase;letter-spacing:0.05em")}>Nutritional profile provenance</span>
+              <strong style={sx("font:600 13px/1.4 'IBM Plex Sans',sans-serif")}>
+                {v.catD.nutritionSource.publisher}{v.catD.nutritionSource.year ? " · " + v.catD.nutritionSource.year : ""}
+              </strong>
+              <span style={sx("font:400 12px/1.4 'IBM Plex Sans',sans-serif;color:#45473f")}>{v.catD.nutritionSource.title}</span>
+              <span style={sx("font:400 12px/1.4 'IBM Plex Sans',sans-serif;color:#8a5f18")}>
+                {v.catD.nutritionSource.verification.replaceAll("_", " ")}
+                {" · "}{v.catD.nutritionSource.basis}
+                {v.catD.nutritionSource.table ? " · " + v.catD.nutritionSource.table : ""}
+                {v.catD.nutritionSource.page != null ? " · p. " + v.catD.nutritionSource.page : ""}
+              </span>
+              {v.catD.nutritionSource.url && <a href={v.catD.nutritionSource.url} target="_blank" rel="noopener noreferrer" style={sx("font:600 12px/1.3 'IBM Plex Sans',sans-serif;color:#1f5c38;text-decoration:underline")}>View original nutrient source ↗</a>}
+              {v.catD.nutritionSource.notes.map((note: string, i: number) => (
+                <span key={i} style={sx("font:400 11px/1.4 'IBM Plex Sans',sans-serif;color:#64665c")}>{note}</span>
+              ))}
+            </div>
             <div style={sx("padding:14px 18px;display:flex;flex-direction:column;gap:0")}>
               <span style={sx("font:500 11px/1 'IBM Plex Mono',monospace;color:#64665c;text-transform:uppercase;letter-spacing:0.05em;padding-bottom:8px")}>Nutrient profile · as fed</span>
               {v.catD.profile.map((p) => (
-                <div key={p.name} style={sx("display:flex;justify-content:space-between;padding:6px 0;border-top:1px solid #ece8df;font:400 13px/1.2 'IBM Plex Sans',sans-serif")}>
-                  <span style={sx("color:#45473f")}>{p.name}</span>
+                <div key={p.name} style={sx("display:flex;justify-content:space-between;gap:8px;padding:6px 0;border-top:1px solid #ece8df;font:400 13px/1.2 'IBM Plex Sans',sans-serif")}>
+                  <span style={sx("color:#45473f")}>{p.name}{p.attribution?.url && <a href={p.attribution.url} target="_blank" rel="noopener noreferrer" title={p.attribution.publisher + " — " + p.attribution.title} style={sx("margin-left:6px;font:500 10px/1.3 'IBM Plex Sans',sans-serif;color:#1f5c38;text-decoration:underline")}>source</a>}</span>
                   <span style={sx(`font-weight:500;color:${p.color}`)}>{p.val}</span>
                 </div>
               ))}
@@ -1995,6 +2033,18 @@ function Drawer({ v, d }: V & { d: NonNullable<StudioVals["d"]> }) {
             <div style={sx("display:flex;flex-direction:column;gap:8px;padding:14px 16px;background:#faf8f3;border-radius:8px")}>
               <span style={sx("font:600 14px/1.3 'IBM Plex Sans',sans-serif")}>{d.whyTitle}</span>
               <span style={sx("font:400 13px/1.5 'IBM Plex Sans',sans-serif;color:#45473f")}>{d.why}</span>
+            </div>
+          )}
+          {d.nutritionalSource && (
+            <div style={sx("display:flex;flex-direction:column;gap:5px;padding:12px;background:#faf8f3;border:1px solid #e2dfd6;border-radius:7px")}>
+              <span style={sx("font:600 11px/1 'IBM Plex Mono',monospace;color:#64665c;text-transform:uppercase")}>Nutrient profile source</span>
+              <span style={sx("font:600 12px/1.4 'IBM Plex Sans',sans-serif")}>{d.nutritionalSource.publisher} · {d.nutritionalSource.title}</span>
+              <span style={sx("font:400 11px/1.4 'IBM Plex Sans',sans-serif;color:#8a5f18")}>
+                {d.nutritionalSource.verificationStatus.replaceAll("_", " ")}
+                {d.nutritionalSource.sourceTable ? " · " + d.nutritionalSource.sourceTable : ""}
+                {d.nutritionalSource.sourcePage != null ? " · p. " + d.nutritionalSource.sourcePage : ""}
+              </span>
+              {d.nutritionalSource.url && <a href={d.nutritionalSource.url} target="_blank" rel="noopener noreferrer" style={sx("font:600 12px/1.4 'IBM Plex Sans',sans-serif;color:#1f5c38;text-decoration:underline")}>Original source ↗</a>}
             </div>
           )}
           <div style={sx("display:flex;flex-direction:column;gap:0")}>

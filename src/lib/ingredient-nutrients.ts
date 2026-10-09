@@ -178,6 +178,9 @@ const ingredientSourceSchema = z
         source: nutrientSourceSchema.optional(),
         nutrientSources: z.record(z.string(), nutrientSourceSchema).default({}),
         notes: z.array(z.string()).default([]),
+        /** Distinguishes a published reference from an unverified supplier or user profile. */
+        verificationStatus: z.enum(["published_reference", "manufacturer_unverified", "manufacturer_verified", "user_supplied_unverified"]).optional(),
+        profileBasis: z.enum(["as-fed", "dry-matter"]).optional(),
       })
       .default({ nutrientSources: {}, notes: [] }),
   })
@@ -235,7 +238,30 @@ export type IngredientLibrary = Omit<IngredientLibrarySource, "ingredients"> & {
 export function loadIngredientLibrarySource(input: unknown): IngredientLibrarySource {
   const library = ingredientLibrarySourceSchema.parse(input);
   assertUniqueIds(library.ingredients, "FeedSport ingredient library");
-  return library;
+  // Expand the canonical database-level citation into each ingredient record.
+  // The checked-in JSON can retain one shared publication citation, but
+  // consumers of INGREDIENT_LIBRARY_SOURCE always receive fully attributed
+  // per-ingredient profiles and per-nutrient overrides.
+  const fallbackSource: NutrientValueSource = {
+    publisher: library.source.publisher,
+    title: library.source.title,
+    year: library.source.year,
+    url: library.source.url,
+    basis: library.basis.nutrientComposition,
+    priority: "primary",
+  };
+  return {
+    ...library,
+    ingredients: library.ingredients.map((ingredient) => ({
+      ...ingredient,
+      provenance: {
+        ...ingredient.provenance,
+        source: ingredient.provenance.source ?? fallbackSource,
+        verificationStatus: ingredient.provenance.verificationStatus ?? "published_reference",
+        profileBasis: ingredient.provenance.profileBasis ?? library.basis.nutrientComposition,
+      },
+    })),
+  };
 }
 
 export const INGREDIENT_LIBRARY_SOURCE = loadIngredientLibrarySource(ingredientLibraryJson);
@@ -243,6 +269,7 @@ export const INGREDIENT_LIBRARY_SOURCE = loadIngredientLibrarySource(ingredientL
 function materializeIngredient(
   ingredient: IngredientSourceRecord,
   species: IngredientSpecies,
+  librarySource: IngredientLibrarySource = INGREDIENT_LIBRARY_SOURCE,
 ): IngredientNutrientRecord | undefined {
   const profile = ingredient.nutrition[species];
   if (!profile) return undefined;
@@ -252,7 +279,21 @@ function materializeIngredient(
     name: ingredient.name,
     aliases: ingredient.aliases,
     category: ingredient.category,
-    provenance: ingredient.provenance,
+    provenance: {
+      ...ingredient.provenance,
+      // The canonical library-level Brazilian Tables source applies unless
+      // an individual ingredient or nutrient declares a more specific source.
+      source: ingredient.provenance.source ?? {
+        publisher: librarySource.source.publisher,
+        title: librarySource.source.title,
+        year: librarySource.source.year,
+        url: librarySource.source.url,
+        basis: librarySource.basis.nutrientComposition,
+        priority: "primary" as const,
+      },
+      profileBasis: ingredient.provenance.profileBasis ?? "as-fed",
+      verificationStatus: ingredient.provenance.verificationStatus ?? "published_reference",
+    },
     nutrition: ingredient.nutrition,
     species,
     ...profile,
@@ -267,7 +308,7 @@ export function ingredientLibraryForSpecies(
     ...source,
     species,
     ingredients: source.ingredients.flatMap((ingredient) => {
-      const resolved = materializeIngredient(ingredient, species);
+      const resolved = materializeIngredient(ingredient, species, source);
       return resolved ? [resolved] : [];
     }),
   };
@@ -304,6 +345,13 @@ export type CustomPremixProfile = {
   name: string;
   vitamins: Partial<IngredientNutrientRecord["vitamins"]>;
   traceMineralsPpm: Record<string, number>;
+  /** Exact as-fed AA analysis: total is NOT a substitute for SID. */
+  aminoAcids?: {
+    totalPct?: Record<string, number>;
+    sidPct?: Record<string, number>;
+  };
+  /** Optional origin of user-provided analytical values; does not imply verification. */
+  source?: NutrientValueSource;
 };
 
 export function ingredientLibraryWithCustomPremixes(
@@ -322,7 +370,7 @@ export function ingredientLibraryWithCustomPremixes(
     const profile = nutritionProfileSchema.parse({
       composition: {},
       energy: {},
-      aminoAcids: { totalPct: {}, sidDigestibilityPct: {}, sidPct: {} },
+      aminoAcids: { totalPct: premix.aminoAcids?.totalPct ?? {}, sidDigestibilityPct: {}, sidPct: premix.aminoAcids?.sidPct ?? {} },
       macroMinerals: {},
       traceMineralsPpm: premix.traceMineralsPpm,
       vitamins: premix.vitamins,
@@ -336,8 +384,11 @@ export function ingredientLibraryWithCustomPremixes(
       category: "vitamin_mineral_premix",
       provenance: {
         nutrientSources: {},
+        ...(premix.source ? { source: nutrientSourceSchema.parse(premix.source) } : {}),
+        verificationStatus: "user_supplied_unverified",
+        profileBasis: "as-fed",
         notes: [
-          "User-entered commercial premix profile. Guaranteed label values should be used rather than inferred nutrient values.",
+          "User-provided nutrient values; original datasheet not supplied or independently verified. Never treat this as a published nutrient profile.",
         ],
       },
       nutrition: library.species === "swine" ? { swine: profile } : { poultry: profile },
@@ -364,8 +415,12 @@ export function ingredientLibraryWithCommercialPremixes(
 ): IngredientLibrary {
   if (premixes.length === 0) return library;
   const result = ingredientLibraryWithCustomPremixes(
-    premixes.map(({ id, name }) => ({
+    premixes.map(({ id, name, verifiedAsFedAminoAcids }) => ({
       id, name, vitamins: {}, traceMineralsPpm: {},
+      ...(verifiedAsFedAminoAcids ? { aminoAcids: {
+        totalPct: verifiedAsFedAminoAcids.totalPct ?? {},
+        sidPct: verifiedAsFedAminoAcids.sidPct ?? {},
+      } } : {}),
     })),
     library,
   );
@@ -379,8 +434,46 @@ export function ingredientLibraryWithCommercialPremixes(
         ...record,
         provenance: {
           ...record.provenance,
+          source: {
+            publisher: product.manufacturer,
+            title: product.name + " — manufacturer product specification",
+            url: product.specificationUrl,
+            priority: "supplier",
+            basis: "as-fed",
+            note: "Supplier marketing/guarantee material, not a verified batch COA or complete as-fed nutrient profile.",
+          },
+          verificationStatus: product.verificationStatus === "unverified" ? "manufacturer_unverified" : "manufacturer_verified",
+          profileBasis: "as-fed",
+          nutrientSources: {
+            ...record.provenance.nutrientSources,
+            ...Object.fromEntries(
+              Object.keys(product.verifiedAsFedAminoAcids?.totalPct ?? {}).map((name) => [
+                `aminoAcids.totalPct.${name}`,
+                {
+                  publisher: product.manufacturer,
+                  title: product.verifiedAsFedAminoAcids?.reference ?? "Manufacturer amino-acid specification",
+                  url: product.verifiedAsFedAminoAcids?.sourceUrl ?? product.specificationUrl,
+                  priority: "supplier" as const, basis: "as-fed",
+                },
+              ]),
+            ),
+            ...Object.fromEntries(
+              Object.keys(product.verifiedAsFedAminoAcids?.sidPct ?? {}).map((name) => [
+                `aminoAcids.sidPct.${name}`,
+                {
+                  publisher: product.manufacturer,
+                  title: product.verifiedAsFedAminoAcids?.reference ?? "Manufacturer SID specification",
+                  url: product.verifiedAsFedAminoAcids?.sourceUrl ?? product.specificationUrl,
+                  priority: "supplier" as const, basis: "as-fed",
+                },
+              ]),
+            ),
+          },
           notes: [
-            "Real manufacturer SKU; nutrient matrix remains unverified. Do not claim vitamin/trace-mineral sufficiency.",
+            "Real manufacturer SKU; vitamin/trace-mineral sufficiency remains unverified.",
+            ...(product.verifiedAsFedAminoAcids ? [
+              `Exact manufacturer as-fed amino-acid values only: ${product.verifiedAsFedAminoAcids.reference}. Total and SID are separate; incomplete fields are not inferred.`,
+            ] : ["No verified digestible amino-acid matrix. Manufacturer minimum total-AA label guarantees are not SID values."]),
             `Manufacturer: ${product.manufacturer}; model: ${product.sku}; reference: ${product.specificationUrl}`,
           ],
         },
@@ -439,5 +532,25 @@ export function nutrientValueSource(
   ingredient: IngredientNutrientRecord,
   nutrientPath: string,
 ): NutrientValueSource | undefined {
-  return ingredient.provenance.nutrientSources[nutrientPath];
+  return ingredient.provenance.nutrientSources[nutrientPath] ?? ingredient.provenance.source;
+}
+/** Profile-level source and status always materialized for canonical ingredients.
+ * User-entered profiles are explicitly flagged as lacking a citable source. */
+export function ingredientProfileAttribution(ingredient: IngredientNutrientRecord) {
+  const source = ingredient.provenance.source;
+  return {
+    source: source ? {
+      publisher: source.publisher,
+      title: source.title,
+      year: source.year ?? null,
+      url: source.url,
+      basis: source.basis ?? ingredient.provenance.profileBasis ?? "as-fed",
+    } : null,
+    sourcePage: ingredient.provenance.sourcePage ?? null,
+    sourceTable: ingredient.provenance.sourceTable ?? null,
+    verificationStatus: ingredient.provenance.verificationStatus ?? "published_reference",
+    species: ingredient.species,
+    nutrientSources: ingredient.provenance.nutrientSources,
+    notes: ingredient.provenance.notes,
+  };
 }

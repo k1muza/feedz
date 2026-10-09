@@ -11,6 +11,8 @@ import { isSupabaseConfigured, supabaseKey, supabaseUrl } from "@/lib/supabase/c
 import type { CatalogueIngredient, CatalogueNutrientId } from "@/lib/studio-catalogue";
 import type { StudioNutrientData } from "@/lib/studio-nutrients";
 import type { StudioProgrammeData } from "@/lib/studio-programmes";
+import { canAddStudioIngredient, selectStudioIngredient, poolWithProgrammePremix } from "@/lib/studio-commercial-premix";
+import { commercialPremixById } from "@/lib/commercial-premixes";
 
 import {
   evaluateManual,
@@ -419,7 +421,7 @@ const DEFAULT_PROGRAMME = "grow-finish-pig";
 
 function defaultProgramme(programmes: StudioProgrammeData) {
   const programme = programmes.programmes.find((p) => p.id === DEFAULT_PROGRAMME) ?? programmes.programmes[0];
-  return { programmeId: programme.id, phaseId: programme.phases[0].id, species: programme.species };
+  return { programmeId: programme.id, phaseId: programme.phases[0].id, species: programme.species, pool: poolWithProgrammePremix({}, programme.id) };
 }
 
 /** A list's ingredients and settings, copied into a formulation. Later edits to the list don't reach it. */
@@ -432,7 +434,7 @@ function poolFromList(list: IngredientList | null): Pool {
 const RESET_RESULT: Partial<State> = { result: null, runSig: null, runSnap: null, history: [], mode: "optimised", manual: {}, manualCheck: null, tab: "recipe", dismissed: {}, savedSig: null, drawer: null, advisoriesOpen: false };
 
 function freshDoc(programmeId: string, phaseId: string, species: Species, pool: Pool, docName: string): Partial<State> {
-  return { ...RESET_RESULT, programmeId, phaseId, species, pool, goal: "least_cost", batch: 100, batchMode: "100", customBatch: "", docName, docId: null, pendingDoc: null };
+  return { ...RESET_RESULT, programmeId, phaseId, species, pool: poolWithProgrammePremix(pool, programmeId), goal: "least_cost", batch: 100, batchMode: "100", customBatch: "", docName, docId: null, pendingDoc: null };
 }
 
 function versionState(doc: SavedDoc, programmes: StudioProgrammeData, v?: number): Partial<State> {
@@ -536,8 +538,9 @@ type ManualView = ReturnType<typeof manualRecipe> & {
 
 function summarise(r: FormulateResult, manual: ManualView | null): Summary {
   if (manual) return { status: "manual", costT: manual.cost, recipe: manual.recipe, met: manual.nutrients.filter((n) => n.status === "met").length, req: manual.nutrients.length + manual.incompleteRequirements.length, adv: manual.advisories.length, fail: manual.nutrients.filter((n) => n.status !== "met").length, unknown: manual.incompleteRequirements.length };
+  if (r.status === "manufacturer_recipe") return { status: r.status, recipe: r.recipe.map((row) => ({ id: row.id, pct: row.pct })), ...(r.costT === null ? {} : { costT: r.costT }) };
   if (r.status !== "optimal") return { status: r.status };
-  return { status: "optimal", costT: r.costT, recipe: r.recipe.map((x) => ({ id: x.id, pct: x.pct })), met: r.nutrients.filter((n) => n.status === "met").length, req: r.nutrients.length, adv: r.advisories.length, fail: 0 };
+  return { status: "optimal", ...(r.costExcludesPremix ? {} : { costT: r.costT }), recipe: r.recipe.map((x) => ({ id: x.id, pct: x.pct })), met: r.nutrients.filter((n) => n.status === "met").length, req: r.nutrients.length, adv: r.advisories.length, fail: 0 };
 }
 
 function programmeLabel(programmes: StudioProgrammeData, snap: Pick<Snapshot, "programmeId" | "phaseId">) {
@@ -633,7 +636,7 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
     let current = true;
     void formulate(snap, engine).then((r) => {
       if (!current) return;
-      const h: RunEntry = { t: new Date(), status: r.status, cost: r.status === "optimal" ? r.costT : undefined, goal: snap.goal, n: r.status === "optimal" ? r.recipe.length : 0 };
+      const h: RunEntry = { t: new Date(), status: r.status, cost: r.status === "optimal" && !r.costExcludesPremix ? r.costT : undefined, goal: snap.goal, n: (r.status === "optimal" || r.status === "manufacturer_recipe") ? r.recipe.length : 0 };
       update((s) => (s.runToken !== token ? {} : { running: false, result: r, runSig: sig, runSnap: snap, history: [h, ...s.history].slice(0, 12), mode: "optimised", manual: {}, manualCheck: null, dismissed: {} }));
     });
     return () => {
@@ -810,11 +813,11 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
   useEffect(() => {
     if (S.screen !== "setup" || S.step !== 2 || S.setKey !== "none" || !listsKnown) return;
     const list = myLists.lists[0] ?? null; // the default list comes first
-    if (list) update({ setKey: "list", setupListId: list.id, pool: poolFromList(list), ingQ: "" });
+    if (list) update({ setKey: "list", setupListId: list.id, pool: poolWithProgrammePremix(poolFromList(list), S.programmeId), ingQ: "" });
     else
       update((s) => {
         const ready = s.suggestion?.status === "ready" && s.suggestion.key === s.programmeId + "|" + s.phaseId ? s.suggestion.ids : [];
-        return { setKey: "system", pool: Object.fromEntries(ready.map((id) => [id, { role: "available" as Role }])), ingQ: "" };
+        return { setKey: "system", pool: poolWithProgrammePremix(Object.fromEntries(ready.map((id) => [id, { role: "available" as Role }])), s.programmeId), ingQ: "" };
       });
     // The step, the source still being unpicked and the lists arriving decide this.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -835,7 +838,7 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
           const ids = data.status === "suggested" && data.ingredientIds ? data.ingredientIds.filter((id) => catalogueById.has(id)) : [];
           const suggestion: Suggestion = { key: suggestionKey, status: data.status === "suggested" ? "ready" : "error", ids };
           // Already showing the suggested list? Refresh it for the new stage.
-          return s.setKey === "system" ? { suggestion, pool: Object.fromEntries(ids.map((id) => [id, { role: "available" as Role }])) } : { suggestion };
+          return s.setKey === "system" ? { suggestion, pool: poolWithProgrammePremix(Object.fromEntries(ids.map((id) => [id, { role: "available" as Role }])), s.programmeId) } : { suggestion };
         }),
       )
       .catch(() => update((s) => (s.suggestion?.key === suggestionKey ? { suggestion: { key: suggestionKey, status: "error", ids: [] } } : {})));
@@ -990,6 +993,20 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
       return;
     }
     const price = d.price === "" ? undefined : d.unit === "t" ? +d.price : +d.price * 1000;
+    const product = commercialPremixById(d.id);
+    if (product) {
+      // Price is editable but supplier dose / whole-recipe policy is not.
+      update((state) => {
+        const pool = poolWithProgrammePremix(state.pool, state.programmeId, d.id);
+        pool[d.id] = {
+          role: "fixed", fixed: product.inclusionPct,
+          ...(price !== undefined ? { price } : {}),
+        };
+        return { pool, drawer: null };
+      });
+      if (rerun && S.screen === "workspace") run();
+      return;
+    }
     const mn = d.min === "" ? 0 : +d.min,
       mx = d.max === "" ? null : +d.max;
     const e: PoolEntry = { role: "available" };
@@ -1017,18 +1034,30 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
     update((state) => {
       const pool = { ...state.pool };
       delete pool[d.id];
+      // Removing a premix is allowed; it does not auto-reappear until the
+      // farmer selects another product or changes the animal programme.
       return { pool, drawer: null };
     });
     flash(ingredientName(d.id) + " removed from this formulation");
   };
   const ingredientName = (id: string) => catalogueById.get(id)?.name ?? id;
   const addIng = (id: string) => {
-    update({ pool: { ...S.pool, [id]: { role: "available" } } });
-    flash(ingredientName(id) + " added as Available");
+    if (!canAddStudioIngredient(id, S.programmeId, S.pool)) {
+      flash(commercialPremixById(id) ? ingredientName(id) + " is not eligible for " + P.name + "." : "This ingredient is not allowed with the fixed manufacturer recipe.");
+      return;
+    }
+    update((state) => ({ pool: selectStudioIngredient(state.pool, id, state.programmeId) }));
+    flash(commercialPremixById(id)
+      ? ingredientName(id) + " selected as the fixed manufacturer premix"
+      : ingredientName(id) + " added as Available");
   };
-  const toggleAddPick = (id: string) => update((state) => ({ addPick: state.addPick.includes(id) ? state.addPick.filter((x) => x !== id) : [...state.addPick, id] }));
+  const toggleAddPick = (id: string) => { if (canAddStudioIngredient(id, S.programmeId, S.pool)) update((state) => ({ addPick: state.addPick.includes(id) ? state.addPick.filter((x) => x !== id) : [...state.addPick, id] })); };
   const addPicked = () => {
-    const ids = S.addPick;
+    const ids = S.addPick.filter((id) => canAddStudioIngredient(id, S.programmeId, S.pool));
+    if (ids.some((id) => commercialPremixById(id)?.manufacturerRecipe) && ids.length > 1) {
+      flash("Select a manufacturer-restricted premix by itself; its recipe is fixed.");
+      return;
+    }
     if (!ids.length) return;
     const what = ids.length === 1 ? ingredientName(ids[0]) : ids.length + " ingredients";
     if (S.addTarget === "set") {
@@ -1041,20 +1070,18 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
       flash(what + " added to " + list.label);
       return;
     }
-    update((state) => ({ pool: { ...state.pool, ...Object.fromEntries(ids.map((id) => [id, { role: "available" as Role }])) }, addOpen: false, addQ: "", addPick: [] }));
+    update((state) => ({
+      pool: ids.reduce((pool, id) => selectStudioIngredient(pool, id, state.programmeId), state.pool),
+      addOpen: false, addQ: "", addPick: [],
+    }));
     flash(what + " added as Available");
   };
   const addCompletionIngredients = (ids: string[]) => {
+    ids = ids.filter((id) => canAddStudioIngredient(id, S.programmeId, S.pool));
     if (!ids.length) return;
     update((state) => ({
-      pool: {
-        ...state.pool,
-        ...Object.fromEntries(
-          ids
-            .filter((id) => !state.pool[id])
-            .map((id) => [id, { role: "available" as Role }]),
-        ),
-      },
+      pool: ids.reduce((pool, id) =>
+        pool[id] ? pool : selectStudioIngredient(pool, id, state.programmeId), state.pool),
     }));
     flash(
       ids.length === 1
@@ -1250,7 +1277,8 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
   });
   const programmeChoice = (programmeId: string) => {
     const programme = programmes.programmes.find((p) => p.id === programmeId) ?? P;
-    return { programmeId: programme.id, phaseId: programme.phases[0].id, species: programme.species };
+    return { programmeId: programme.id, phaseId: programme.phases[0].id,
+      species: programme.species, pool: poolWithProgrammePremix(S.pool, programme.id) };
   };
 
   // ---- setup ----
@@ -1273,20 +1301,24 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
       const planning = g?.price?.usdPerTonne ?? null;
       const incomplete = !!g && g.expected.some((n) => g.nutrients[n] == null);
       const noPrice = !user && planning == null;
+      const isPremix = !!commercialPremixById(id);
       return {
         id, cat: g?.category ?? "Other", name: g?.name ?? id,
         check: on ? "✓" : "", cbBg: on ? "#2f5a3f" : "#fff", cbBd: on ? "#2f5a3f" : "#b9b6ab", cbLabel: (on ? "Untick " : "Tick ") + (g?.name ?? id), deco: on ? "none" : "line-through", opacity: on ? "1" : "0.55",
         hasNote: noPrice || incomplete,
-        note: noPrice ? "No planning price — enter yours" : "Some nutrient data is missing — it may be set aside for this stage",
+        note: noPrice ? isPremix ? "Supplier quote optional; displayed cost excludes this premix" : "No planning price — enter yours" : g?.verificationStatus === "unverified" ? "Manufacturer nutrient analysis unverified" : "Some nutrient data is missing — it may be set aside for this stage",
         noteColor: noPrice ? "#a63d2a" : "#8a5f18",
-        price: user ? String(e.price) : "", pricePh: planning != null ? String(Math.round(planning)) : "Required", tag: user ? "YOURS" : planning != null ? "DEFAULT" : "", tagFg: user ? "#8a5f18" : "#8d8a80",
+        price: user ? String(e.price) : "", pricePh: planning != null ? String(Math.round(planning)) : isPremix ? "Optional quote" : "Required", tag: user ? "YOURS" : planning != null ? "DEFAULT" : "", tagFg: user ? "#8a5f18" : "#8d8a80",
         onPrice: (ev: InputEvent) => {
           const value = ev.target.value;
           update((s) => {
             const cur = { ...s.pool[id] };
             if (value === "") delete cur.price;
             else cur.price = +value;
-            return { pool: { ...s.pool, [id]: cur } };
+            if (commercialPremixById(id) && cur.role !== "excluded") return {
+      pool: selectStudioIngredient(s.pool, id, s.programmeId),
+    };
+    return { pool: { ...s.pool, [id]: cur } };
           });
         },
         toggle: () =>
@@ -1310,7 +1342,7 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
   const ingGroups = [...CAT_ORDER, ...new Set(ingRows.map((r) => r.cat).filter((c) => !CAT_ORDER.includes(c)))].map((cat) => ({ cat, rows: ingRows.filter((r) => r.cat === cat) })).filter((g) => g.rows.length);
   const catMatches = iq
     ? catalogue
-        .filter((g) => !S.pool[g.id] && matchesQuery(g, g.id))
+        .filter((g) => canAddStudioIngredient(g.id, S.programmeId, S.pool) && !S.pool[g.id] && matchesQuery(g, g.id))
         .slice(0, 12)
         .map((g) => ({ name: g.name, sub: g.category + " · " + (g.price ? "$" + fmt(g.price.usdPerTonne, 0) + "/t planning price" : "no planning price"), subColor: g.price ? "#64665c" : "#a63d2a", add: () => { addIng(g.id); update({ ingQ: "" }); } }))
     : [];
@@ -1404,17 +1436,17 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
       k: "list" as const,
       label: "My list",
       sub: setupList ? "Your list “" + setupList.label + "” with your prices. Only these are used." : myLists.status === "ready" ? "You don’t have a list yet. Make one under My ingredients." : "Loading your lists…",
-      pool: () => poolFromList(setupList),
+      pool: () => poolWithProgrammePremix(poolFromList(setupList), S.programmeId),
     },
     {
       k: "system" as const,
       label: "FeedSport suggestion list",
       sub: suggestionReady ? suggestionReady.ids.length + " catalogue ingredients with complete data that can meet " + PH.label + ", at planning prices." : S.suggestion?.status === "error" ? "FeedSport couldn’t put a list together for this stage." : "Finding ingredients that can meet this stage…",
-      pool: (): Pool => Object.fromEntries((suggestionReady?.ids ?? []).map((id) => [id, { role: "available" as Role }])),
+      pool: (): Pool => poolWithProgrammePremix(Object.fromEntries((suggestionReady?.ids ?? []).map((id) => [id, { role: "available" as Role }])), S.programmeId),
     },
   ].map((o) => {
     const on = S.setKey === o.k;
-    return { label: o.label, sub: o.sub, segBg: on ? "#fff" : "transparent", segSh: on ? "0 1px 2px rgba(0,0,0,.1)" : "none", segW: on ? "600" : "500", pick: () => update({ setKey: o.k, pool: o.pool(), ingQ: "", ...(o.k === "list" && setupList ? { setupListId: setupList.id } : {}) }) };
+    return { label: o.label, sub: o.sub, segBg: on ? "#fff" : "transparent", segSh: on ? "0 1px 2px rgba(0,0,0,.1)" : "none", segW: on ? "600" : "500", pick: () => update({ setKey: o.k, pool: poolWithProgrammePremix(o.pool(), S.programmeId), ingQ: "", ...(o.k === "list" && setupList ? { setupListId: setupList.id } : {}) }) };
   });
   const setNote =
     S.setKey === "system"
@@ -1441,6 +1473,11 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
   const optimal = R && R.status === "optimal" ? R : null;
   const blockedLike = R?.status === "blocked" || R?.status === "error";
   const view = { none: !R && !S.running, blocked: blockedLike, infeasible: R?.status === "infeasible", optimal: !!optimal };
+  const manufacturerResult = R?.status === "manufacturer_recipe" ? {
+    recipe: R.recipe,
+    costText: R.costT == null ? "Supplier premix quote required — total cost unknown" : money(R.costT) + "/tonne",
+    message: R.message,
+  } : null;
   const changes = stale ? diff(S.runSnap!, snapOf(S), engine) : [];
   const runState = S.running
     ? { label: "Formulating…", color: "#45473f", bg: "#c98a1e", r: "50%", btn: "Formulating…", btnBg: "#e2dfd6", btnFg: "#64665c" }
@@ -1451,7 +1488,7 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
         : { label: "Result is up to date", color: "#2b6a42", bg: "#2f7a4a", r: "50%", btn: "Re-formulate", btnBg: "#e2dfd6", btnFg: "#45473f" };
   const manualOff = !!manualView && !manualView.checking && !manualView.recipeValidity?.valid;
   const saveDisabled = !R || stale || S.running || S.saving || R.status === "blocked" || R.status === "error" || manualOff || !!manualView?.checking;
-  const exportDisabled = !optimal || stale || S.running || S.exporting || manualOff || !!manualView?.checking;
+  const exportDisabled = !optimal || optimal.costExcludesPremix || stale || S.running || S.exporting || manualOff || !!manualView?.checking;
   const exportPdf = async () => {
     if (exportDisabled || !optimal) return;
     const viewerWindow = window.open("", "_blank");
@@ -1629,7 +1666,7 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
   const q = S.addQ.trim().toLowerCase();
   const addList = S.addTarget === "set" ? currentList(S, myLists) : null;
   const addResults = catalogue
-    .filter((g) => (addList ? !addList.items.some((it) => it.ingredientId === g.id) : !S.pool[g.id]) && (!q || [g.name, g.category, ...g.aliases].join(" ").toLowerCase().includes(q)))
+    .filter((g) => canAddStudioIngredient(g.id, S.programmeId, S.pool) && (addList ? !addList.items.some((it) => it.ingredientId === g.id) : !S.pool[g.id]) && (!q || [g.name, g.category, ...g.aliases].join(" ").toLowerCase().includes(q)))
     .map((g) => ({ name: g.name, sub: g.category + " · " + (g.price ? "$" + fmt(g.price.usdPerTonne, 0) + "/t planning price" : "no planning price"), subColor: g.price ? "#64665c" : "#a63d2a", picked: S.addPick.includes(g.id), toggle: () => toggleAddPick(g.id) }));
   const rules = programmes.requirementFields.flatMap((f, i) => {
     const value = PH.requirements[i];
@@ -1653,7 +1690,7 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
     canBack: S.step > 1, stepBack: () => update({ step: S.step - 1 }), stepNext, nextDisabled, nextBg: nextDisabled ? "#b9b6ab" : "#2f5a3f", nextLabel: S.step === 3 ? "Formulate" : "Continue",
     skipToWorkspace: () => update({ screen: "workspace" }),
     docName: S.docName, onName: (e: InputEvent) => update({ docName: e.target.value }), saveState, save: () => void save(), saveDisabled, saveBg: saveDisabled ? "#b9b6ab" : "#2f5a3f", saveTitle: stale ? "Re-formulate first" : manualOff ? "Resolve the manual recipe validity issues" : "", manualOff, manualIssues: manualView?.recipeValidity?.issues ?? [],
-    exportDisabled, exportColor: exportDisabled ? "#8d8a80" : "#222420", exportLabel: S.exporting ? "Opening PDF…" : "Export PDF", exportTitle: !optimal ? "Formulate a valid recipe first" : stale ? "Re-formulate first" : manualOff ? "Resolve the manual recipe validity issues" : "Open recipe and nutrient report as PDF", doExport: () => void exportPdf(),
+    exportDisabled, exportColor: exportDisabled ? "#8d8a80" : "#222420", exportLabel: S.exporting ? "Opening PDF…" : "Export PDF", exportTitle: !optimal ? "Formulate a valid recipe first" : optimal.costExcludesPremix ? "Enter the supplier premix quote before exporting a full-cost report" : stale ? "Re-formulate first" : manualOff ? "Resolve the manual recipe validity issues" : "Open recipe and nutrient report as PDF", doExport: () => void exportPdf(),
     leftW: wide ? "300px" : "100%", programmeId: P.id, progList: programmes.programmes.map((p) => ({ id: p.id, name: p.name })),
     onProgramme: (e: InputEvent) => update(programmeChoice(e.target.value)),
     phaseList: P.phases.map((ph) => ({ id: ph.id, name: ph.label })), phaseId: PH.id, onPhase: (e: InputEvent) => update({ phaseId: e.target.value }),
@@ -1672,7 +1709,7 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
     isStale: stale && !S.running, staleTitle: "You changed " + changes.length + " setting" + (changes.length === 1 ? "" : "s") + " since the last run", changes,
     undoChanges: () => { const s = S.runSnap!; const { programme } = phaseOf(programmes, s.programmeId, s.phaseId); update({ programmeId: s.programmeId, phaseId: s.phaseId, species: programme.species, pool: clone(s.pool), goal: s.goal }); },
     view, dimOpacity: S.running || stale ? "0.5" : "1", emptyTitle: activeCount ? "Ready to formulate" : "Before you can formulate", checklist, blockErrs, hasWarns: warns.length > 0 && !S.running, warns, inf,
-    opt, showSolver: showSolverDetails, tabs, tabRecipe: S.tab === "recipe", tabNutrients: S.tab === "nutrients", tabWhy: S.tab === "why", tabHistory: S.tab === "history",
+    opt, manufacturerResult, showSolver: showSolverDetails, tabs, tabRecipe: S.tab === "recipe", tabNutrients: S.tab === "nutrients", tabWhy: S.tab === "why", tabHistory: S.tab === "history",
     advisoriesOpen: S.advisoriesOpen && (!!opt?.advisories.length || docAdvice.length > 0),
     advisoriesLabel: advisoryCount((opt?.advisories.length ?? 0) + docAdvice.length),
     openAdvisories: () => {
@@ -1723,7 +1760,7 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
         }
         return lines.join("\n");
       },
-      docSub: optimal ? prog.name + " · " + money(optimal.costT) + "/t · settings, prices and result included" : prog.name + " · no valid recipe · settings and diagnosis included",
+      docSub: optimal ? prog.name + " · " + (optimal.costExcludesPremix ? "cost excludes premix quote" : money(optimal.costT) + "/t") + " · settings, prices and result included" : prog.name + " · no valid recipe · settings and diagnosis included",
     }),
     ...libraryVals(S, {
       update, flash, catalogue, nutrients, programmes, myLists, replaceUrl: () => (replaceNext.current = true),
@@ -1754,6 +1791,7 @@ function optimalVals(
   const { update, run, engine } = ctx;
   const runSnap = S.runSnap!;
   const costT = mc ? mc.cost : R.costT;
+  const partialCost = R.costExcludesPremix;
   const baseRows = mc ? ctx.poolIds.filter((id) => S.pool[id].role !== "excluded" && ctx.isEligible(id)).map((id) => ({ id, pct: +S.manual[id] || 0 })) : R.recipe.map((r) => ({ id: r.id, pct: r.pct }));
   const advIds = new Set((mc ? mc.advisories : R.advisories).map((a) => a.id));
   const rows = baseRows.map((r) => {
@@ -1762,11 +1800,11 @@ function optimalVals(
     const share = costT > 0 ? (((r.pct / 100) * (p || 0)) / costT) * 100 : 0;
     const rr = R.recipe.find((x) => x.id === r.id);
     const user = ctx.isUserPrice(r.id);
-    return { name: engine.catalogue.get(r.id)?.name ?? r.id, setting: roleShort(e) + (rr && rr.atMax ? " · at limit" : ""), pctTxt: fmt(r.pct, r.pct < 1 ? 2 : 1) + "%", barW: Math.min(100, r.pct) + "%", barC: e.role === "fixed" ? "#222420" : "#2f5a3f", kg: fmt((r.pct / 100) * S.batch, S.batch >= 1000 ? 0 : r.pct * S.batch < 100 ? 2 : 1), price: ctx.priceTxt(p), tag: user ? "YOURS" : "DEFAULT", tagFg: user ? "#8a5f18" : "#8d8a80", shareTxt: fmt(share, 1) + "%", shareW: share + "%", adv: advIds.has(r.id), bg: advIds.has(r.id) ? "#fdf9ef" : "#fff", manual: S.manual[r.id] ?? "", onManual: (ev: InputEvent) => update((s) => ({ manual: { ...s.manual, [r.id]: ev.target.value } })), open: () => ctx.openDrawer(r.id) };
+    return { name: engine.catalogue.get(r.id)?.name ?? r.id, setting: roleShort(e) + (rr && rr.atMax ? " · at limit" : ""), pctTxt: fmt(r.pct, r.pct < 1 ? 2 : 1) + "%", barW: Math.min(100, r.pct) + "%", barC: e.role === "fixed" ? "#222420" : "#2f5a3f", kg: fmt((r.pct / 100) * S.batch, S.batch >= 1000 ? 0 : r.pct * S.batch < 100 ? 2 : 1), price: ctx.priceTxt(p), tag: user ? "YOURS" : p === null ? "QUOTE" : "DEFAULT", tagFg: user ? "#8a5f18" : "#8d8a80", shareTxt: fmt(share, 1) + "%", shareW: share + "%", adv: advIds.has(r.id), bg: advIds.has(r.id) ? "#fdf9ef" : "#fff", manual: S.manual[r.id] ?? "", onManual: (ev: InputEvent) => update((s) => ({ manual: { ...s.manual, [r.id]: ev.target.value } })), open: () => ctx.openDrawer(r.id) };
   });
   const tp = mc ? mc.total : 100;
   const off = !!mc && Math.abs(tp - 100) > 0.05;
-  const total = { pct: fmt(tp, 1) + "%" + (off ? (tp > 100 ? " (+" : " (−") + fmt(Math.abs(tp - 100), 1) + ")" : ""), color: off ? "#a63d2a" : "#222420", kg: fmt((tp / 100) * S.batch, S.batch >= 1000 ? 0 : 1), cost: money(costT) };
+  const total = { pct: fmt(tp, 1) + "%" + (off ? (tp > 100 ? " (+" : " (−") + fmt(Math.abs(tp - 100), 1) + ")" : ""), color: off ? "#a63d2a" : "#222420", kg: fmt((tp / 100) * S.batch, S.batch >= 1000 ? 0 : 1), cost: (partialCost ? "≥ " : "") + money(costT) + (partialCost ? " + premix quote" : "") };
   const nList = mc ? mc.nutrients : R.nutrients;
   const failN = nList.filter((n) => n.status !== "met").length;
   const adv = mc ? mc.advisories : R.advisories.filter((a) => !S.dismissed[a.id]);
@@ -1785,7 +1823,7 @@ function optimalVals(
       ? { label: failN + " of " + nList.length + " checked nutrient requirements not met" + (mc?.incompleteRequirements.length ? " · " + mc.incompleteRequirements.length + " unknown" : ""), color: "#a63d2a", bg: "#b2412e", r: "0" }
       : mc?.nutrientAdequacy === "unknown"
         ? { label: mc.incompleteRequirements.length + " nutrient requirement" + (mc.incompleteRequirements.length === 1 ? " is" : "s are") + " unknown · missing ingredient data", color: "#8a5f18", bg: "#c98a1e", r: "0" }
-      : { label: "Meets all " + nList.length + " nutrient requirements", color: "#2b6a42", bg: "#2f7a4a", r: "50%" };
+      : { label: "Meets " + nList.length + " modelled basal targets · premix micronutrients unverified", color: "#2b6a42", bg: "#2f7a4a", r: "50%" };
   const strip = {
     ...nutrientStatus,
     recipe: recipeStatus,
@@ -1806,11 +1844,13 @@ function optimalVals(
           : "No cost difference from least cost for this formulation.",
     };
   }
+  const qualifier = partialCost ? " (excl. unpriced premix)" : "";
+  const showCost = (value: number, decimals = 2) => (partialCost ? "≥ " : "") + money(value, decimals);
   const figures = [
-    { label: "This batch · " + ctx.batchLabel, value: money((costT * S.batch) / 1000), bg: "#2f5a3f", fg: "#fff", sub: "#cfe0d2" },
-    { label: "Per kg", value: money(costT / 1000, 3), bg: "#fff", fg: "#222420", sub: "#64665c" },
-    { label: "Per 50 kg bag", value: money(costT / 20), bg: "#fff", fg: "#222420", sub: "#64665c" },
-    { label: "Per tonne", value: money(costT), bg: "#fff", fg: "#222420", sub: "#64665c" },
+    { label: "This batch · " + ctx.batchLabel + qualifier, value: showCost((costT * S.batch) / 1000), bg: "#2f5a3f", fg: "#fff", sub: "#cfe0d2" },
+    { label: "Per kg" + qualifier, value: showCost(costT / 1000, 3), bg: "#fff", fg: "#222420", sub: "#64665c" },
+    { label: "Per 50 kg bag" + qualifier, value: showCost(costT / 20), bg: "#fff", fg: "#222420", sub: "#64665c" },
+    { label: "Per tonne" + qualifier, value: showCost(costT), bg: "#fff", fg: "#222420", sub: "#64665c" },
   ];
   const nuts = nList.map((n) => {
     const base = n.status === "met" ? ST.met : ST[n.status];
@@ -1831,7 +1871,7 @@ function optimalVals(
   const strategies = R.strategies.map((g) => {
     const on = shownGoal === g.key;
     const dd = g.possible ? g.cost! - R.leastCostT : 0;
-    return { label: g.label, badge: on ? "CURRENT" : "", cost: g.possible ? money(g.cost) : "Not possible", note: g.possible && g.key === "least_cost" ? g.count + " ingredients" : g.possible ? g.count + " ingredients · " + g.note : g.note, delta: g.possible && g.key !== "least_cost" ? (dd > 0.005 ? "+" + money(dd) + "/t · +" + fmt((dd / R.leastCostT) * 100, 1) + "%" : "same cost") : "", deltaColor: dd > 0.005 ? "#a63d2a" : "#64665c", disabled: !g.possible || on, cursor: g.possible && !on ? "pointer" : "default", bs: g.possible ? "solid" : "dashed", bd: on ? "#2f5a3f" : g.possible ? "#e2dfd6" : "#b9b6ab", ring: on ? "inset 0 0 0 1px #2f5a3f" : "none", bg: on ? "#eef3ee" : g.possible ? "#fff" : "#faf8f3", pick: () => { if (!g.possible || on) return; update({ goal: g.key }); run(); } };
+    return { label: g.label, badge: on ? "CURRENT" : "", cost: g.possible ? (partialCost ? "≥ " : "") + money(g.cost) : "Not possible", note: g.possible && g.key === "least_cost" ? g.count + " ingredients" : g.possible ? g.count + " ingredients · " + g.note : g.note, delta: g.possible && g.key !== "least_cost" ? (dd > 0.005 ? "+" + money(dd) + "/t · +" + fmt((dd / R.leastCostT) * 100, 1) + "%" : "same cost") : "", deltaColor: dd > 0.005 ? "#a63d2a" : "#64665c", disabled: !g.possible || on, cursor: g.possible && !on ? "pointer" : "default", bs: g.possible ? "solid" : "dashed", bd: on ? "#2f5a3f" : g.possible ? "#e2dfd6" : "#b9b6ab", ring: on ? "inset 0 0 0 1px #2f5a3f" : "none", bg: on ? "#eef3ee" : g.possible ? "#fff" : "#faf8f3", pick: () => { if (!g.possible || on) return; update({ goal: g.key }); run(); } };
   });
   const unusedText = R.unused.map((id) => engine.catalogue.get(id)?.name ?? id).join(", ");
   return { rows, total, figures, strip, nuts, advisories, strategies, unusedText, hasUnused: !mc && !!unusedText, goalCostNote };
@@ -1934,6 +1974,7 @@ function drawerVals(S: State, D: Draft, R: OptimalResult | null, ctx: { update: 
   const { engine, phase } = ctx;
   const g = engine.catalogue.get(D.id);
   const isListRule = !!D.listId;
+  const commercialProduct = commercialPremixById(D.id);
   const listRole = D.listRole ?? "available";
   const fs = isListRule ? 100 : fsLimit(engine, phase, D.id),
     guide = isListRule ? undefined : guideline(engine, phase, D.id);
@@ -1984,9 +2025,15 @@ function drawerVals(S: State, D: Draft, R: OptimalResult | null, ctx: { update: 
         ...(role === "fixed" || role === "excluded" ? { max: "" } : {}),
       }),
     })),
-    showLimits: !isListRule || listRole !== "excluded", limitsTitle: isListRule ? "Reusable inclusion rule" : "Inclusion limits · hard",
-    showMin: !isListRule || listRole === "required" || listRole === "fixed", showMax: !isListRule || listRole === "available" || listRole === "required",
-    minLabel: isListRule && listRole === "fixed" ? "Fixed %" : "Minimum %", maxLabel: "Maximum %", limitHint: lockHint,
+    showLimits: !commercialProduct && (!isListRule || listRole !== "excluded"),
+    limitsTitle: isListRule ? "Reusable inclusion rule" : "Inclusion limits · hard",
+    showMin: !commercialProduct && (!isListRule || listRole === "required" || listRole === "fixed"),
+    showMax: !commercialProduct && (!isListRule || listRole === "available" || listRole === "required"),
+    minLabel: isListRule && listRole === "fixed" ? "Fixed %" : "Minimum %",
+    maxLabel: "Maximum %",
+    limitHint: commercialProduct
+      ? `Manufacturer-published dose: ${commercialProduct.inclusionKgPerTonne} kg/t (${commercialProduct.inclusionPct}%). Use a compatible alternative to change product; this dosage is not editable.`
+      : lockHint,
     min: D.min, max: D.max, maxPh: fs < 100 ? "Limit " + fs : "No limit", onMin: (e: InputEvent) => upd({ min: e.target.value }), onMax: (e: InputEvent) => upd({ max: e.target.value }),
     zl: px(effLo), zw: Math.max(0, ((Math.min(effHi, scale) - effLo) / scale) * 100) + "%", fx: px(Math.min(fs, scale)), hasUserMax: userMax != null, ux: px(userMax || 0), userMaxTxt: (userMax || 0) + "%", hasGuide: guide != null, gx: px(guide || 0), guideTxt: (guide || 0) + "%", fsTxt: isListRule ? "Per-stage" : fs < 100 ? fs + "%" : "No", fsNote: isListRule ? "FeedSport limits are applied when you formulate" : "FeedSport limit for this stage — you can tighten it, not exceed it", inRecipe: !!inR, cx: px(inR ? inR.pct : 0), cur: inR ? fmt(inR.pct, 1) : "", scaleMax: fmt(scale, 0) + "%",
     showPrice: !isListRule, price: D.price, pricePh: dispDef == null ? "No planning price — enter yours" : String(+dispDef.toFixed(3)), unitWord: D.unit === "t" ? "tonne" : "kg", onPrice: (e: InputEvent) => upd({ price: e.target.value }),
@@ -1997,9 +2044,12 @@ function drawerVals(S: State, D: Draft, R: OptimalResult | null, ctx: { update: 
       ] as const
     ).map(([k, label]) => ({ label, bg: D.unit === k ? "#fff" : "transparent", pick: () => D.unit !== k && upd({ unit: k, price: D.price === "" ? "" : String(+(k === "t" ? +D.price * 1000 : +D.price / 1000).toFixed(4)) }) })),
     tag: D.price !== "" ? "YOUR PRICE" : defP == null ? "NO PRICE" : "DEFAULT", tagBg: D.price !== "" ? "#faecd0" : defP == null ? "#f7e4df" : "#f3f0e8", tagFg: D.price !== "" ? "#5c4012" : defP == null ? "#7a2a1c" : "#45473f",
-    priceConv: curPrice == null ? "Least cost needs a price" : "= $" + fmt(curPrice, 0) + "/t · $" + fmt(curPrice / 1000, 3) + "/kg",
+    priceConv: curPrice == null
+      ? commercialProduct ? "Quote optional for solving · cost excludes this product" : "Least cost needs a price"
+      : "= $" + fmt(curPrice, 0) + "/t · $" + fmt(curPrice / 1000, 3) + "/kg",
     canReset: D.price !== "" && defP != null, resetLabel: defP == null ? "" : "Reset to $" + fmt(D.unit === "t" ? defP : defP / 1000, D.unit === "t" ? 0 : 3) + " planning price", resetPrice: () => upd({ price: "" }),
     hasWhy: !!why, whyTitle, why,
+    nutritionalSource: g?.nutritionSource ?? null,
     profile: CAT_NUTRIENTS.filter((n) => n.id !== (species === "broiler" ? "mePig" : "mePoultry")).map((n) => {
       const x = g?.nutrients[n.id] ?? null;
       const missing = x == null && !!g?.expected.includes(n.id);
@@ -2208,18 +2258,33 @@ function libraryVals(
   const catD = catSel
     ? {
         name: catSel.name,
-        sub: catSel.category + " · " + (catSel.price ? "planning price $" + fmt(catSel.price.usdPerTonne, 0) + " / t · " + catSel.price.market : "no planning price"),
+        sub: catSel.category + " · " + (catSel.verificationStatus ? "manufacturer analysis UNVERIFIED · supplier quote required" : catSel.price ? "planning price $" + fmt(catSel.price.usdPerTonne, 0) + " / t · " + catSel.price.market : "no planning price"),
+        nutritionSource: {
+          title: catSel.nutritionSource.title,
+          publisher: catSel.nutritionSource.publisher,
+          year: catSel.nutritionSource.year,
+          url: catSel.nutritionSource.url,
+          table: catSel.nutritionSource.sourceTable,
+          page: catSel.nutritionSource.sourcePage,
+          verification: catSel.nutritionSource.verificationStatus,
+          basis: catSel.nutritionSource.basis,
+          notes: catSel.nutritionSource.notes,
+        },
         close: () => update({ catSel: null }),
         // Values the library doesn't publish read "Missing" only where this kind of ingredient should have one.
         profile: CAT_NUTRIENTS.map((n) => {
           const x = catSel.nutrients[n.id];
           const missing = x == null && catSel.expected.includes(n.id);
-          return { name: n.name, val: x != null ? catVal(n, x) : missing ? "Missing" : "—", color: missing ? "#a63d2a" : x == null ? "#64665c" : "#222420" };
+          return {
+            name: n.name, val: x != null ? catVal(n, x) : missing ? "Missing" : "—",
+            color: missing ? "#a63d2a" : x == null ? "#64665c" : "#222420",
+            attribution: catSel.nutrientSources[n.id] ?? null,
+          };
         }),
         limits: catSel.limits.map((l) => ({ name: l.stage, limit: "max " + l.maxPct + "%", guide: l.practicalPct != null ? "guideline " + l.practicalPct + "%" : "" })),
         noLimits: catSel.limits.length === 0,
         sets:
-          myLists.status !== "ready"
+          !canAddStudioIngredient(catSel.id, S.programmeId) || myLists.status !== "ready"
             ? []
             : lists.length
               ? lists.map((l) => {
@@ -2343,10 +2408,10 @@ function libraryVals(
       size: String(ps), onSize: (e: InputEvent) => update({ catPageSize: +e.target.value, catPage: 1 }),
     },
     catRows: catAll.slice(from, to).map((g) => {
-      const missing = g.expected.some((id) => g.nutrients[id] == null);
+      const missing = !!g.verificationStatus || g.expected.some((id) => g.nutrients[id] == null);
       const on = g.id === S.catSel;
       const num = (x: number | null, dp: number, unit = "") => (x == null ? "—" : fmt(x, dp) + unit);
-      return { id: g.id, name: g.name, cat: g.category, price: g.price ? "$" + fmt(g.price.usdPerTonne, 0) : "—", cp: num(g.nutrients.cp, 1, "%"), me: num(g.nutrients.mePig, 0), lys: num(g.nutrients.lys, 2, "%"), data: missing ? "Incomplete" : "Complete", dataColor: missing ? "#a63d2a" : "#2b6a42", dataDot: missing ? "#b2412e" : "#2f7a4a", dataR: missing ? "0" : "50%", bg: on ? "#f4f8f4" : "#fff", pick: () => update({ catSel: on ? null : g.id }) };
+      return { id: g.id, name: g.name, cat: g.category, price: g.price ? "$" + fmt(g.price.usdPerTonne, 0) : "—", cp: num(g.nutrients.cp, 1, "%"), me: num(g.nutrients.mePig, 0), lys: num(g.nutrients.lys, 2, "%"), data: g.verificationStatus ? "Unverified" : missing ? "Incomplete" : "Complete", dataColor: missing ? "#a63d2a" : "#2b6a42", dataDot: missing ? "#b2412e" : "#2f7a4a", dataR: missing ? "0" : "50%", bg: on ? "#f4f8f4" : "#fff", pick: () => update({ catSel: on ? null : g.id }) };
     }),
     catEmpty: catAll.length === 0,
     catD,

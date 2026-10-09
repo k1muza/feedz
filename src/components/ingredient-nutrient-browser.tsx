@@ -36,7 +36,7 @@ function sourceLabel(ingredient: (typeof library.ingredients)[number]): string {
 }
 
 export function IngredientNutrientBrowser({
-  detailBasePath = "/dashboard/ingredients",
+  detailBasePath = "/studio/catalogue",
 }: {
   detailBasePath?: string;
 }) {
@@ -133,7 +133,7 @@ export function IngredientNutrientBrowser({
                   <TableRow key={ingredient.id} className="border-hairline hover:bg-raised/50">
                     <TableCell className="min-w-56 py-3">
                       <Link
-                        href={detailBasePath === "/dashboard/ingredients"
+                        href={detailBasePath === "/studio/catalogue"
                           ? feedIngredientHref(ingredient.id)
                           : `${detailBasePath}/${ingredient.id}`}
                         className="font-medium text-ink underline-offset-4 hover:underline"

@@ -13,6 +13,10 @@ export type CommercialPremix = {
   name: string;
   species: "pig" | "broiler" | "layer";
   application: string;
+  /** Prefixes for which the supplier/product policy permits this product. */
+  eligibleProgrammePrefixes: readonly string[];
+  /** One default supplier product per animal family; users may replace it. */
+  defaultForEligibleProgrammes?: boolean;
   inclusionPct: number;
   inclusionKgPerTonne: number;
   verificationStatus: "unverified";
@@ -21,6 +25,18 @@ export type CommercialPremix = {
   manufacturerRecipe?: readonly { ingredientId: string; percent: number }[];
   /** Manufacturer-listed per-kg-of-premix ranges/minima, not verified nutrient matrix entries. */
   publishedGuarantees?: readonly { nutrient: string; unit: "IU/kg" | "mg/kg" | "%"; min?: number; max?: number }[];
+  /**
+   * Exact source-verified as-fed concentrations, NOT minimum guarantees.
+   * Populate SID only when the manufacturer supplies a digestible value or
+   * source-validated digestibility. Never derive SID from total lysine minima.
+   */
+  verifiedAsFedAminoAcids?: {
+    reference: string;
+    /** Required citation for every asserted exact nutrient concentration. */
+    sourceUrl: string;
+    totalPct?: Record<string, number>;
+    sidPct?: Record<string, number>;
+  };
   pricePerTonne: null;
   specificationUrl: string;
   publishedAnalysis: {
@@ -37,6 +53,8 @@ export const COMMERCIAL_PREMIXES: readonly CommercialPremix[] = [
     manufacturer: "CJ (Tianjin) Feed", sku: "S174",
     name: "CJ Feed S174 — Breeding boar premix",
     species: "pig", application: "Mature breeding boars",
+    defaultForEligibleProgrammes: true,
+    eligibleProgrammePrefixes: ["mature-boar"],
     inclusionPct: 4, inclusionKgPerTonne: 40,
     verificationStatus: "unverified", formulationCompatibility: "manufacturer_recipe_only",
     pricePerTonne: null,
@@ -78,6 +96,8 @@ export const COMMERCIAL_PREMIXES: readonly CommercialPremix[] = [
     manufacturer: "Chengdu Sustar Feed", sku: "GlyPro X911",
     name: "Sustar GlyPro X911 — Piglet vitamin-mineral premix",
     species: "pig", application: "Piglets, approximately 5–25 kg",
+    defaultForEligibleProgrammes: true,
+    eligibleProgrammePrefixes: ["nursery-pig"],
     inclusionPct: 0.2, inclusionKgPerTonne: 2,
     verificationStatus: "unverified", formulationCompatibility: "unconfirmed",
     pricePerTonne: null,
@@ -93,6 +113,8 @@ export const COMMERCIAL_PREMIXES: readonly CommercialPremix[] = [
     manufacturer: "Chengdu Sustar Feed", sku: "GlyPro X912",
     name: "Sustar GlyPro X912 — Grower-finisher pig premix",
     species: "pig", application: "Growing and finishing pigs over 25 kg",
+    defaultForEligibleProgrammes: true,
+    eligibleProgrammePrefixes: ["grow-finish-pig", "growing-barrows", "growing-entire-immunocastrated-males", "developing-gilt"],
     inclusionPct: 0.2, inclusionKgPerTonne: 2,
     verificationStatus: "unverified", formulationCompatibility: "unconfirmed",
     pricePerTonne: null,
@@ -109,6 +131,8 @@ export const COMMERCIAL_PREMIXES: readonly CommercialPremix[] = [
     manufacturer: "Chengdu Sustar Feed", sku: "GlyPro X913",
     name: "Sustar GlyPro X913 — Sow vitamin-mineral premix",
     species: "pig", application: "Breeding, gestating and lactating sows",
+    defaultForEligibleProgrammes: true,
+    eligibleProgrammePrefixes: ["gestating-gilt-sow", "lactating-gilt-sow"],
     inclusionPct: 0.2, inclusionKgPerTonne: 2,
     verificationStatus: "unverified", formulationCompatibility: "unconfirmed",
     pricePerTonne: null,
@@ -124,6 +148,8 @@ export const COMMERCIAL_PREMIXES: readonly CommercialPremix[] = [
     manufacturer: "Chengdu Sustar Feed", sku: "GlyPro X812",
     name: "Sustar GlyPro X812 — Broiler vitamin-mineral premix",
     species: "broiler", application: "Broiler chickens",
+    defaultForEligibleProgrammes: true,
+    eligibleProgrammePrefixes: ["broiler-"],
     inclusionPct: 0.1, inclusionKgPerTonne: 1,
     verificationStatus: "unverified", formulationCompatibility: "unconfirmed",
     pricePerTonne: null,
@@ -139,6 +165,8 @@ export const COMMERCIAL_PREMIXES: readonly CommercialPremix[] = [
     manufacturer: "Chengdu Sustar Feed", sku: "GlyPro X811",
     name: "Sustar GlyPro X811 — Layer vitamin-mineral premix",
     species: "layer", application: "Laying hens",
+    defaultForEligibleProgrammes: true,
+    eligibleProgrammePrefixes: ["layer-"],
     inclusionPct: 0.1, inclusionKgPerTonne: 1,
     verificationStatus: "unverified", formulationCompatibility: "unconfirmed",
     pricePerTonne: null,
@@ -161,26 +189,17 @@ export function commercialPremixById(id: string): CommercialPremix | undefined {
  * These mappings remain UNVERIFIED manufacturer compatibility assumptions.
  */
 export function commercialPremixForProgramme(programmeId: string): CommercialPremix | undefined {
-  const programme = programmeId.split(":")[0].toLowerCase();
-  const sku =
-    programme === "mature-boar" ? "S174" :
-    programme.startsWith("nursery-pig") ? "X911" :
-    programme.startsWith("grow-finish-pig") ||
-    programme.startsWith("growing-barrows") ||
-    programme.startsWith("growing-entire-immunocastrated-males") ||
-    programme.startsWith("developing-gilt") ? "X912" :
-    programme.startsWith("gestating-gilt-sow") ||
-    programme.startsWith("lactating-gilt-sow") ? "X913" :
-    programme.startsWith("broiler-") ? "X812" :
-    programme.startsWith("layer-") ? "X811" :
-    undefined;
-
-  if (!sku) return undefined;
-  return COMMERCIAL_PREMIXES.find((p) => p.sku === (sku === "S174" ? sku : `GlyPro ${sku}`));
+  const eligible = eligibleCommercialPremixes(programmeId);
+  return eligible.find((product) => product.defaultForEligibleProgrammes) ?? eligible[0];
 }
 
 export function commercialPremixCompatibleWithProgramme(premix: CommercialPremix, programmeId: string): boolean {
-  return commercialPremixForProgramme(programmeId)?.id === premix.id;
+  const family = programmeId.split(":")[0].toLowerCase();
+  return premix.eligibleProgrammePrefixes.some((prefix) => family.startsWith(prefix));
+}
+
+export function eligibleCommercialPremixes(programmeId: string): CommercialPremix[] {
+  return COMMERCIAL_PREMIXES.filter((product) => commercialPremixCompatibleWithProgramme(product, programmeId));
 }
 
 /**
@@ -241,4 +260,49 @@ export function premixAnalysisForIds(ids: readonly string[]): CommercialPremixAn
     product_id: selected.id,
     message: `${selected.name}: manufacturer micronutrient analysis and feed compatibility remain unverified. This is a supplier specification gap, not missing programme guidance.`,
   };
+}
+
+/**
+ * Supplier label guarantees are NOT interchangeable with SID formulation
+ * concentrations. Example: CJ S174 publishes lysine >= 4% on the premix
+ * label, but no ileal digestibility; counting it as 4% SID lysine would
+ * overstate the guaranteed digestible contribution.
+ */
+export function publishedPremixAminoAcids(premix: CommercialPremix): Array<{
+  name: string;
+  basis: "total";
+  unit: "%";
+  minimumPct: number | null;
+  maximumPct: number | null;
+  usableAsSid: false;
+}> {
+  const aminoPattern = /\b(lysine|methionine|threonine|tryptophan|valine|isoleucine|leucine|arginine)\b/i;
+  return (premix.publishedGuarantees ?? [])
+    .filter((claim) => claim.unit === "%" && aminoPattern.test(claim.nutrient))
+    .map((claim) => ({
+      name: claim.nutrient,
+      basis: "total" as const,
+      unit: "%" as const,
+      minimumPct: claim.min ?? null,
+      maximumPct: claim.max ?? null,
+      usableAsSid: false as const,
+    }));
+}
+
+/** Conditional, supplier-label MINIMUM contribution to total (never SID) AA.
+ * Assumes the labelled SKU matches the product actually supplied, an
+ * outstanding verification issue for CJ S174 versus ST174A.
+ */
+export function publishedMinimumTotalAminoAcidsInFeed(premix: CommercialPremix): Array<{
+  name: string;
+  minTotalFeedPct: number;
+  usableAsSid: false;
+}> {
+  return publishedPremixAminoAcids(premix)
+    .filter((claim) => claim.minimumPct !== null)
+    .map((claim) => ({
+      name: claim.name,
+      minTotalFeedPct: Math.round((claim.minimumPct! * premix.inclusionPct / 100) * 10000) / 10000,
+      usableAsSid: false as const,
+    }));
 }

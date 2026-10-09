@@ -20,7 +20,18 @@
     "src/lib/mcp/feedsport-mcp-server.ts",
     "src/lib/mcp/feedsport-mcp-server.test.ts",
     "src/app/api/feed-formulation/optimize/route.ts",
-    "src/components/feed-formulation-workbench.tsx"
+    "src/components/feed-formulation-workbench.tsx",
+    "src/app/(main)/formulations/page.tsx",
+    "src/app/(main)/formulations/FormulationsClient.tsx",
+    "src/app/(main)/formulations/QuoteIngredientsDialog.tsx",
+    "src/components/formulation-studio/engine.ts",
+    "src/components/formulation-studio/studio.tsx",
+    "src/lib/studio-catalogue.ts"
   ],
-  "exclude": ["node_modules", ".next", "src/ai", "src/components/admin"]
+  "exclude": [
+    "node_modules",
+    ".next",
+    "src/ai",
+    "src/components/admin"
+  ]
 }

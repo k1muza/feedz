@@ -3,11 +3,15 @@ import "server-only";
 import {
   INGREDIENT_LIBRARY,
   POULTRY_INGREDIENT_LIBRARY,
+  ingredientLibraryWithCommercialPremixes,
+  ingredientProfileAttribution,
+  nutrientValueSource,
   sidAminoAcidPct,
   type IngredientNutrientRecord,
   type IngredientSourceRecord,
 } from "@/lib/ingredient-nutrients";
 import { getIngredientPrices } from "@/lib/ingredient-prices";
+import { COMMERCIAL_PREMIXES } from "@/lib/commercial-premixes";
 
 // The ingredient catalogue shown in the formulation studio (/studio/catalogue):
 // Brazilian Tables 2024 composition from the checked-in library, priced with
@@ -27,6 +31,22 @@ export interface CatalogueIngredient {
   /** Nutrients this kind of ingredient should have; a gap here is real missing data. */
   expected: CatalogueNutrientId[];
   limits: { stage: string; maxPct: number; practicalPct?: number }[];
+  manufacturerSpecificationUrl?: string;
+  verificationStatus?: "unverified";
+  /** Provenance belongs to the ingredient's actual nutrition profile, not price. */
+  nutritionSource: {
+    publisher: string;
+    title: string;
+    year: number | null;
+    url: string | null;
+    basis: string;
+    sourceTable: string | null;
+    sourcePage: number | null;
+    verificationStatus: "published_reference" | "manufacturer_unverified" | "manufacturer_verified" | "user_supplied_unverified";
+    notes: string[];
+  };
+  /** Specific references override profile-level source for individual values. */
+  nutrientSources: Partial<Record<CatalogueNutrientId, {publisher: string; title: string; url: string}>>;
 }
 
 const CATEGORY_LABELS: Record<IngredientSourceRecord["category"], string> = {
@@ -67,35 +87,93 @@ const STAGES: [string, (r: IngredientNutrientRecord["recommendedInclusionPct"]) 
 
 export async function getStudioCatalogue(): Promise<CatalogueIngredient[]> {
   const prices = new Map((await getIngredientPrices()).map((price) => [price.ingredientId, price]));
-  const poultry = new Map(POULTRY_INGREDIENT_LIBRARY.ingredients.map((record) => [record.id, record]));
+  const pigProducts = COMMERCIAL_PREMIXES.filter((product) => product.species === "pig");
+  const birdProducts = COMMERCIAL_PREMIXES.filter((product) => product.species !== "pig");
+  const swine = ingredientLibraryWithCommercialPremixes(pigProducts, INGREDIENT_LIBRARY);
+  const poultryRecords = ingredientLibraryWithCommercialPremixes(birdProducts, POULTRY_INGREDIENT_LIBRARY);
+  const poultry = new Map(poultryRecords.ingredients.map((record) => [record.id, record]));
+  const swineIds = new Set(swine.ingredients.map((item) => item.id));
+  const allRecords = [
+    ...swine.ingredients,
+    ...poultryRecords.ingredients.filter((record) => !swineIds.has(record.id)),
+  ];
 
-  return INGREDIENT_LIBRARY.ingredients.map((pig) => {
-    const bird = poultry.get(pig.id);
-    const price = prices.get(pig.id);
-    const limits = STAGES.flatMap(([stage, pick]) => {
-      const rec = pick(stage.startsWith("Broiler") ? bird?.recommendedInclusionPct : pig.recommendedInclusionPct);
-      return rec ? [{ stage, maxPct: rec.max, ...(rec.practical !== undefined ? { practicalPct: rec.practical } : {}) }] : [];
-    });
+  const PATHS: Record<CatalogueNutrientId, string> = {
+    mePig: "energy.metabolizableKcalKg",
+    mePoultry: "energy.metabolizableKcalKg",
+    cp: "composition.crudeProteinPct",
+    lys: "aminoAcids.sidPct.lysine",
+    mc: "aminoAcids.sidPct.methionineCysteine",
+    thr: "aminoAcids.sidPct.threonine",
+    ca: "macroMinerals.calciumPct",
+    ap: "macroMinerals.availablePhosphorusPct",
+    na: "macroMinerals.sodiumPct",
+    cf: "composition.crudeFibrePct",
+  };
+  return allRecords.map((ingredient): CatalogueIngredient => {
+    const bird = poultry.get(ingredient.id);
+    const pig = swine.ingredients.find((record) => record.id === ingredient.id);
+    const profile = pig ?? bird ?? ingredient;
+    const attribution = ingredientProfileAttribution(profile);
+    const product = COMMERCIAL_PREMIXES.find((item) => item.id === ingredient.id);
+    const price = prices.get(ingredient.id);
+    const limits = product
+      ? [{ stage: product.application, maxPct: product.inclusionPct }]
+      : STAGES.flatMap(([stage, pick]) => {
+        const rec = pick(stage.startsWith("Broiler") ? bird?.recommendedInclusionPct : pig?.recommendedInclusionPct);
+        return rec ? [{ stage, maxPct: rec.max, ...(rec.practical !== undefined ? { practicalPct: rec.practical } : {}) }] : [];
+      });
+    const nutrients: Record<CatalogueNutrientId, number | null> = {
+      mePig: pig?.energy.metabolizableKcalKg ?? null,
+      mePoultry: bird?.energy.metabolizableKcalKg ?? null,
+      cp: profile.composition.crudeProteinPct ?? null,
+      lys: sidAminoAcidPct(profile, "lysine") ?? null,
+      mc: sidAminoAcidPct(profile, "methionineCysteine") ?? null,
+      thr: sidAminoAcidPct(profile, "threonine") ?? null,
+      ca: profile.macroMinerals.calciumPct ?? null,
+      ap: profile.macroMinerals.availablePhosphorusPct ?? null,
+      na: profile.macroMinerals.sodiumPct ?? null,
+      cf: profile.composition.crudeFibrePct ?? null,
+    };
+    const nutrientSources: CatalogueIngredient["nutrientSources"] = {};
+    for (const [id, path] of Object.entries(PATHS) as [CatalogueNutrientId, string][]) {
+      if (nutrients[id] === null) continue;
+      const record = id === "mePoultry" ? bird : id === "mePig" ? pig : profile;
+      if (!record) continue;
+      const source = nutrientValueSource(record, path);
+      if (source) nutrientSources[id] = {
+        publisher: source.publisher,
+        title: source.title,
+        url: source.url,
+      };
+    }
     return {
-      id: pig.id,
-      name: pig.name,
-      aliases: pig.aliases,
-      category: CATEGORY_LABELS[pig.category],
-      price: price ? { usdPerTonne: price.usdPerTonne, market: price.market, asOf: price.asOf, sourceLabel: price.sourceLabel } : null,
-      nutrients: {
-        mePig: pig.energy.metabolizableKcalKg ?? null,
-        mePoultry: bird?.energy.metabolizableKcalKg ?? null,
-        cp: pig.composition.crudeProteinPct ?? null,
-        lys: sidAminoAcidPct(pig, "lysine") ?? null,
-        mc: sidAminoAcidPct(pig, "methionineCysteine") ?? null,
-        thr: sidAminoAcidPct(pig, "threonine") ?? null,
-        ca: pig.macroMinerals.calciumPct ?? null,
-        ap: pig.macroMinerals.availablePhosphorusPct ?? null,
-        na: pig.macroMinerals.sodiumPct ?? null,
-        cf: pig.composition.crudeFibrePct ?? null,
-      },
-      expected: EXPECTED[pig.category],
+      id: ingredient.id,
+      name: product?.name ?? ingredient.name,
+      aliases: product ? [product.sku, product.manufacturer] : ingredient.aliases,
+      category: product ? "Premix" : CATEGORY_LABELS[ingredient.category],
+      price: price ? {
+        usdPerTonne: price.usdPerTonne, market: price.market,
+        asOf: price.asOf, sourceLabel: price.sourceLabel,
+      } : null,
+      nutrients,
+      expected: product ? [] : EXPECTED[ingredient.category],
       limits,
+      ...(product ? { manufacturerSpecificationUrl: product.specificationUrl,
+        verificationStatus: "unverified" as const } : {}),
+      nutritionSource: {
+        publisher: attribution.source?.publisher ?? "User",
+        title: attribution.source?.title ?? "User-provided; no published reference supplied",
+        year: attribution.source?.year ?? null,
+        url: attribution.source?.url ?? null,
+        basis: attribution.source?.basis ?? "as-fed",
+        sourceTable: attribution.sourceTable,
+        sourcePage: attribution.sourcePage,
+        verificationStatus: attribution.verificationStatus,
+        notes: attribution.notes,
+      },
+      nutrientSources,
     };
   });
+
 }

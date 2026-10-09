@@ -1,12 +1,15 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import { FEED_PROGRAMMES } from "./feed-programmes";
+import { INGREDIENT_LIBRARY, ingredientLibraryWithCommercialPremixes } from "./ingredient-nutrients";
 import {
   COMMERCIAL_PREMIXES,
   commercialPremixById,
   assertManufacturerRecipe,
   commercialPremixCompatibleWithProgramme,
   commercialPremixForProgramme,
+  publishedPremixAminoAcids,
+  publishedMinimumTotalAminoAcidsInFeed,
 } from "./commercial-premixes";
 
 describe("Manufacturer-backed commercial premix catalogue", () => {
@@ -83,6 +86,52 @@ describe("Manufacturer-backed commercial premix catalogue", () => {
     assert.throws(() => assertManufacturerRecipe(cj, [...locked, {
       ingredientId: "sorghum-grain", minInclusionPct: 0, maxInclusionPct: 0,
     }]), /restricted/);
+  });
+
+  test("distinguishes CJ total lysine guarantee from digestible SID lysine and unknown Sustar values", () => {
+    const cj = commercialPremixById("cj-s174-boar-premix")!;
+    assert.deepEqual(publishedPremixAminoAcids(cj), [{
+      name: "Lysine",
+      basis: "total",
+      unit: "%",
+      minimumPct: 4,
+      maximumPct: null,
+      usableAsSid: false,
+    }]);
+    assert.deepEqual(publishedMinimumTotalAminoAcidsInFeed(cj), [
+      { name: "Lysine", minTotalFeedPct: 0.16, usableAsSid: false },
+    ]);
+    assert.deepEqual(publishedMinimumTotalAminoAcidsInFeed(commercialPremixById("sustar-glypro-x912")!), []);
+    assert.deepEqual(publishedPremixAminoAcids(commercialPremixById("sustar-glypro-x912")!), []);
+    assert.deepEqual(publishedPremixAminoAcids(commercialPremixById("sustar-glypro-x911")!), []);
+  });
+
+  test("verified exact amino acids can be credited, but unspecified amino acids remain unknown", () => {
+    const source = commercialPremixById("sustar-glypro-x912")!;
+    const synthetic = {
+      ...source,
+      id: "test-confirmed-aa-premix",
+      verifiedAsFedAminoAcids: {
+        reference: "test fixture only — not an actual supplier analysis",
+        sourceUrl: "https://example.com/fictional-test-only",
+        totalPct: { lysine: 5 },
+        sidPct: { lysine: 4.2 },
+      },
+    };
+    const library = ingredientLibraryWithCommercialPremixes([synthetic], INGREDIENT_LIBRARY);
+    const item = library.ingredients.find((record) => record.id === synthetic.id)!;
+    assert.equal(item.aminoAcids.totalPct.lysine, 5);
+    assert.equal(item.aminoAcids.sidPct.lysine, 4.2);
+    assert.equal(
+      item.provenance.nutrientSources["aminoAcids.sidPct.lysine"]?.url,
+      "https://example.com/fictional-test-only",
+      "Exact SID values must retain their supplier citation",
+    );
+    assert.equal(item.provenance.verificationStatus, "manufacturer_unverified",
+      "One verified AA value does not certify the entire premix matrix");
+    const actual = ingredientLibraryWithCommercialPremixes([source], INGREDIENT_LIBRARY);
+    const actualItem = actual.ingredients.find((record) => record.id === source.id)!;
+    assert.equal(actualItem.aminoAcids.sidPct.lysine, undefined, "Do not fabricate Sustar SID lysine.");
   });
 
   test("does not substitute a broiler product for layers or pigs", () => {
