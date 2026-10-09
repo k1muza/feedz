@@ -44,6 +44,23 @@ const pct = (value: number, digits?: number) =>
 
 type Scenario = ReturnType<typeof buildScenario>;
 
+/** The adviser must never optimise away from a supplier-restricted recipe. */
+function restrictedPremix(built: Scenario) {
+  return built.request.ingredientIds
+    .map((id) => commercialPremixById(id))
+    .find((premix) => premix?.formulationCompatibility === "manufacturer_recipe_only");
+}
+
+function refuseSupplierRecipeAlternatives(built: Scenario): void {
+  const premix = restrictedPremix(built);
+  if (premix) {
+    throw new FeedSportInputError(
+      `${premix.sku} requires its manufacturer's published fixed recipe; independent ingredient opportunities, relaxed limits and alternative ratios are not supported. Request a customised ration from CJ.`
+    );
+  }
+}
+
+
 function labelLookup(built: Scenario): (constraintId: string) => string {
   const labels = new Map(
     formulationRequirements(
@@ -290,6 +307,7 @@ export type DiagnoseInput = FormulationBaseInput & {
 
 export async function diagnoseInfeasibilityTool(input: DiagnoseInput, context: FeedSportServiceContext) {
   const built = buildScenario(input, context);
+  refuseSupplierRecipeAlternatives(built);
   const { library } = built.request;
   const label = labelLookup(built);
 
@@ -432,6 +450,12 @@ export async function runSensitivityAnalysisTool(input: SensitivityInput, contex
   const label = labelLookup(built);
   const basePrice = new Map(built.options.map((option) => [option.ingredientId, option.pricePerKg]));
 
+  if (restrictedPremix(built) && input.scenarios?.some((scenario) => scenario.changes.some(
+    (change) => change.min_percent !== undefined || change.max_percent !== undefined,
+  ))) {
+    throw new FeedSportInputError("CJ S174 is manufacturer-recipe-only; sensitivity analysis may vary prices but not any inclusion limits.");
+  }
+
   const variations: SensitivityScenario[] = input.scenarios
     ? input.scenarios.map((scenario, index) => ({
         name: scenario.name ?? `Scenario ${index + 1}`,
@@ -541,6 +565,7 @@ export type OpportunitiesInput = FormulationBaseInput & {
 
 export async function findIngredientOpportunitiesTool(input: OpportunitiesInput, context: FeedSportServiceContext) {
   const built = buildScenario(input, context);
+  refuseSupplierRecipeAlternatives(built);
   const { library } = built.request;
   const label = labelLookup(built);
   const candidates = candidateOptions(built, context, input.candidate_ingredients);
@@ -627,6 +652,7 @@ export type CompareInput = FormulationBaseInput & {
 
 export async function compareFormulationStrategiesTool(input: CompareInput, context: FeedSportServiceContext) {
   const built = buildScenario(input, context);
+  refuseSupplierRecipeAlternatives(built);
   const { library } = built.request;
   const extras: ExtraStrategy[] = [];
 
