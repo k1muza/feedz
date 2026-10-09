@@ -6,7 +6,7 @@
  * Anything reported as an actual cost change is confirmed by re-solving the
  * modified scenario rather than extrapolated from duals.
  */
-import type { GLPK } from "glpk.js";
+type GLPK = Awaited<ReturnType<typeof import("glpk.js/node")["default"]>>;
 
 import {
   buildConstraintSpecs,
