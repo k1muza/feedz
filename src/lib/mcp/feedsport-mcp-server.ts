@@ -35,7 +35,7 @@ import {
   type FeaturedStore,
 } from "./feedsport-featured";
 
-export const FEEDSPORT_MCP_VERSION = "0.5.0";
+export const FEEDSPORT_MCP_VERSION = "0.5.1";
 
 const INSTRUCTIONS = `FeedSport formulates and analyses pig and poultry feeds with its ingredient database, loaded programme phases and GLPK least-cost optimizer. Only formulate programmes listed by get_programmes; do not assume a layer programme exists.
 
@@ -43,12 +43,12 @@ Workflow: get_programmes → get_programme → search_ingredients → formulate.
 
 For explanations and counterfactuals, use the solver-backed diagnostics tools: explain_formulation, diagnose_infeasibility, run_sensitivity_analysis, find_ingredient_opportunities and compare_formulation_strategies. Quote their findings and numeric results rather than calculating your own.
 
-Premix workflow: search_ingredients with category="vitamin_mineral_premix" and available_only=false, then get_ingredient for the exact manufacturer SKU, stage, published fixed dose, source link and verification status. Current Sustar SKUs are X911 for piglets, X912 for growing/finishing pigs, X913 for sows, X812 for broilers and X811 for layers. A SKU can only be used for a compatible programme phase. Include exactly one compatible SKU in selected mode, and provide a REAL supplier quote as constraints.<sku_id>.price_per_tonne because the catalogue has no verified planning price. Do not infer or invent a price from other SKUs.
+Premix workflow: search_ingredients with category="vitamin_mineral_premix" and available_only=false, then get_ingredient for the exact manufacturer SKU, stage, published fixed dose, source link and verification status. Current Sustar SKUs are X911 for piglets, X912 for growing/finishing pigs, X913 for sows, X812 for broilers and X811 for layers. CJ Feed S174 is a 4% boar-specific premix. A SKU can only be used for a compatible programme phase. Include exactly one compatible SKU in selected mode, and provide a REAL supplier quote as constraints.<sku_id>.price_per_tonne because the catalogue has no verified planning price. Do not infer or invent a price from other SKUs.
 
 Rules:
 - Never invent or adjust feed recipes, nutrient values, supplier prices or requirement figures; report FeedSport tool results as returned.
 - The theoretical premix public-premix-salt-additives and generic aliases such as "premix" are RETIRED. They will be rejected; do not send them.
-- Mature boars have NO confirmed combined vitamin-mineral premix in the current catalogue; do not assign sow-only GlyPro X913. Treat mature-boar results as basal-only, with vitamin/mineral supplementation unsupported. The growing entire/immunocastrated male programmes can select the unverified grower/finisher candidate GlyPro X912.
+- Mature boars may use CJ Feed S174 (4% fixed inclusion), but ONLY with CJ's published ingredient ratios: maize 64.3%, wheat bran 12%, soybean meal 15.7%, fish meal 4%, S174 4%. The page identifies S174 but the recipe says ST174A; confirm identity with CJ. Do not assign sow-only X913 or permit arbitrary changes to the supplier ratios. This is UNVERIFIED and does not establish complete-feed adequacy. Growing entire/immunocastrated males use the unverified grower/finisher candidate GlyPro X912.
 - Commercial premix dosage is fixed at the manufacturer's published inclusion for the SKU. Never alter that dose or substitute a premix across species.
 - ALL current commercial premix profiles are UNVERIFIED. Published analysis ranges are metadata, not a guaranteed nutrient matrix. Vitamin and trace-mineral adequacy is NOT validated in either automatic or selected formulation mode.
 - Automatic mode selects priced basal ingredients only. Its optimal recipes do NOT include a premix and are NOT complete feeds.
@@ -197,7 +197,7 @@ export function createFeedSportMcpServer(
     {
       title: "Search ingredients",
       description:
-        "Find ingredients and real commercial premix SKUs by name, category, nutrient, price market, supplier or availability. Use category=vitamin_mineral_premix with available_only=false to see unpriced Sustar products and their published fixed inclusion rates.",
+        "Find ingredients and real commercial premix SKUs by name, category, nutrient, price market, supplier or availability. Use category=vitamin_mineral_premix with available_only=false to see unpriced manufacturer products and their published fixed inclusion rates.",
       inputSchema: z.object({
         query: z.string().optional().describe('Name, alias or id, e.g. "wheat bran", "maize", "soybean meal".'),
         category: z.enum(INGREDIENT_CATEGORIES).optional(),
@@ -223,7 +223,7 @@ export function createFeedSportMcpServer(
     {
       title: "Get ingredient",
       description:
-        "Get nutrient and price information where available. For Sustar premixes, returns manufacturer specification metadata, fixed dosage and UNVERIFIED status; verified nutrient values and prices are not yet available.",
+        "Get nutrient and price information where available. For commercial premixes, returns manufacturer specification metadata, fixed dosage and UNVERIFIED status; verified nutrient values and prices are not yet available.",
       inputSchema: z.object({
         id: z.string().min(1).describe("Ingredient id from search_ingredients."),
         programme_id: programmeId
