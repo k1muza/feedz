@@ -1342,11 +1342,19 @@ export function analyseFormulation(input: AnalyseInput, context: FeedSportServic
 
   const manufacturer = ingredientIds.map(commercialPremixById).find((premix) => premix?.manufacturerRecipe);
   if (manufacturer?.manufacturerRecipe) {
-    const report = buildManufacturerRecipeReport(
-      manufacturer, resolved.phase, request.energySystem, library,
-      new Map([...pricesPerTonne].map(([id, price]) => [id, price / 1000])),
-      formula,
-    );
+    let report: ReturnType<typeof buildManufacturerRecipeReport>;
+    try {
+      report = buildManufacturerRecipeReport(
+        manufacturer, resolved.phase, request.energySystem, library,
+        new Map([...pricesPerTonne].map(([id, price]) => [id, price / 1000])),
+        formula,
+      );
+    } catch (error) {
+      if (error instanceof Error && error.message.includes("restricted to CJ's published recipe")) {
+        throw new FeedSportInputError(error.message);
+      }
+      throw error;
+    }
     return {
       status: "manufacturer_recipe" as const,
       passes: false,
