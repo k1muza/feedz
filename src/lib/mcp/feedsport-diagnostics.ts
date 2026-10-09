@@ -329,7 +329,6 @@ export async function diagnoseInfeasibilityTool(input: DiagnoseInput, context: F
       findings,
       missing_data: report.incomplete_requirements,
       checked_shortfalls: report.checked_shortfalls,
-      premix_analysis: report.premix_analysis,
       unsupported_requirements: report.unsupported_requirements,
       fixes: [],
       notes: [
