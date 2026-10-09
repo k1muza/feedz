@@ -2,7 +2,7 @@ import {
   INGREDIENT_LIBRARY,
   type IngredientNutrientRecord,
 } from '@/lib/ingredient-nutrients';
-import { PUBLIC_PREMIX_ID, PUBLIC_PREMIX_KG_PER_TONNE } from '@/lib/public-feed-premix';
+import { PUBLIC_PREMIX_ID } from '@/lib/public-feed-premix';
 import { BRAZILIAN_2024_SOURCE } from '@/lib/brazilian-source';
 import {
   feedProductCatalog,
@@ -148,10 +148,17 @@ export function enrichProduct(item: FeedProductCatalogItem): FeedProduct {
   }
 
   if (nutritionIngredientId === PUBLIC_PREMIX_ID) {
+    // Tolerate any old DB row before the retirement migration is applied, but
+    // never advertise its invented price, inclusion or nutrient coverage.
     return {
       ...catalogue,
-      grade: gradeFallback,
-      specs: [{ label: 'Inclusion', value: String(PUBLIC_PREMIX_KG_PER_TONNE), unit: 'kg/t' }],
+      name: 'Retired theoretical premix',
+      grade: 'Retired — not a supplier product',
+      status: 'Limited',
+      price: undefined,
+      currency: undefined,
+      description: 'This theoretical premix was withdrawn because it has no manufacturer specification. Select a named product in FeedSport Studio.',
+      specs: [{ label: 'Status', value: 'Retired — do not use for feed formulation', unit: '' }],
     };
   }
 
