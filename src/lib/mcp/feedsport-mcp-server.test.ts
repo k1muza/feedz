@@ -81,7 +81,7 @@ async function rpc(handler: ReturnType<typeof createMcpHandler>, method: string,
     }),
   );
   const text = await response.text();
-  const line = text.split("\\n").find((row) => row.startsWith("data:"));
+  const line = text.split("\n").find((row) => row.startsWith("data:"));
   assert.ok(line, `Expected an MCP SSE result for ${method}, got: ${text}`);
   const message = JSON.parse(line.slice(5)) as {
     result?: {
