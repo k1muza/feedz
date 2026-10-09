@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { formulate, type FeedSportServiceContext } from "./feedsport-service";
+import { analyseFormulation, formulate, type FeedSportServiceContext } from "./feedsport-service";
+import { diagnoseInfeasibilityTool } from "./feedsport-diagnostics";
+import { commercialPremixById } from "@/lib/commercial-premixes";
 
 const context: FeedSportServiceContext = { prices: [] };
 const programme_id = "nursery-pig:br2024-5-32-35-49d-8.4-17.9kg";
@@ -106,5 +108,55 @@ describe("FeedSport MCP automatic ingredient mode", () => {
       automatic.cost_per_tonne <= selected.cost_per_tonne + 0.01,
       `automatic ${automatic.cost_per_tonne} should not exceed selected ${selected.cost_per_tonne}`,
     );
+  });
+});
+
+
+describe("CJ S174 manufacturer-only mature-boar workflow", () => {
+  const product = commercialPremixById("cj-s174-boar-premix");
+  if (!product?.manufacturerRecipe) throw new Error("CJ boar manufacturer recipe missing from product catalogue");
+  const recipe = product.manufacturerRecipe;
+  const constraints = Object.fromEntries(recipe.map(({ ingredientId, percent }) => [
+    ingredientId,
+    { min_percent: percent, max_percent: percent, price_per_tonne: ingredientId === product.id ? 2200 : 300 },
+  ]));
+  const request = {
+    programme_id: "mature-boar:pic-mature-boar",
+    ingredient_mode: "selected" as const,
+    energy_system: "ME" as const,
+    ingredients: recipe.map((row) => row.ingredientId),
+    constraints,
+  };
+
+  it("returns the manufacturer's actual recipe and cost without falsely claiming optimal nutrient coverage", async () => {
+    const result = await formulate(request, context);
+    assert.equal(result.status, "manufacturer_recipe");
+    if (result.status !== "manufacturer_recipe") return;
+    assert.deepEqual(result.ingredients.map((row) => [row.ingredient, row.percentage]),
+      recipe.slice().sort((a,b) => b.percent - a.percent).map((row) => [row.ingredientId, row.percent]));
+    assert.equal(result.cost_per_tonne, 376);
+    assert.equal(result.verification, "unverified");
+    assert.ok(result.incomplete_requirements.length > 0, "Premix macro-nutrient values are missing and must stay unknown.");
+    assert.ok(result.unsupported_requirements.includes("vitamin-trace-mineral-supplementation"));
+  });
+
+  it("analyses the published boar ratios as unverified instead of a false nutrient pass", () => {
+    const result = analyseFormulation({
+      programme_id: request.programme_id,
+      recipe: recipe.map((item) => ({ ingredient: item.ingredientId, percentage: item.percent })),
+      prices: Object.fromEntries(recipe.map((item) =>
+        [item.ingredientId, item.ingredientId === product.id ? 2200 : 300])),
+    }, context);
+    assert.equal(result.status, "manufacturer_recipe");
+    assert.equal(result.passes, false);
+    assert.ok(result.incomplete_requirements.length > 0);
+  });
+
+  it("keeps diagnose_infeasibility available as a read-only explanation without suggesting substitutions", async () => {
+    const result = await diagnoseInfeasibilityTool(request, context);
+    assert.equal(result.status, "unverified");
+    assert.ok(result.missing_data.length > 0);
+    assert.deepEqual(result.fixes, []);
+    assert.ok(result.findings.some((finding) => finding.includes("cannot be verified")));
   });
 });
