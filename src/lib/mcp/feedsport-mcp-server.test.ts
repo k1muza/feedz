@@ -115,6 +115,8 @@ describe("MCP premix guidance", () => {
     assert.match(instructions, /public-premix-salt-additives.*RETIRED/);
     assert.match(instructions, /vitamin and trace-mineral adequacy is NOT validated/i);
     assert.match(instructions, /price_per_tonne/);
+    assert.match(instructions, /CJ Feed S174/);
+    assert.match(instructions, /supplier ratios/);
     assert.doesNotMatch(instructions, /automatic ingredient mode includes the FeedSport premix/i);
     assert.doesNotMatch(instructions, /include the FeedSport premix .* to cover/i);
   });
@@ -130,7 +132,7 @@ describe("MCP premix guidance", () => {
     };
     assert.match(find("formulate"), /BASAL ingredients only/);
     assert.match(find("formulate"), /UNVERIFIED/);
-    assert.match(find("search_ingredients"), /unpriced Sustar/);
+    assert.match(find("search_ingredients"), /unpriced manufacturer products/);
     assert.match(find("get_ingredient"), /manufacturer specification metadata/);
     assert.doesNotMatch(find("formulate"), /including its fixed premix/i);
   });
