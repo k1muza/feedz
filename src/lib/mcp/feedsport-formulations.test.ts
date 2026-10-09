@@ -38,7 +38,7 @@ const snapshot: Snapshot = {
     "l-threonine": { role: "available" },
     "l-tryptophan": { role: "available" },
     "l-valine": { role: "available" },
-    "public-premix-salt-additives": { role: "fixed", fixed: 0.5 },
+    "sustar-glypro-x911": { role: "fixed", fixed: 0.2, price: 1500 }, // mocked supplier quote for tests only
   },
 };
 
@@ -86,7 +86,7 @@ describe("saved formulations for the advisor", () => {
     assert.ok(!inputs.ingredients.includes("corn-oil"), "excluded ingredients are not offered");
     assert.deepEqual(inputs.constraints["corn-yellow-dent"], { price_per_tonne: 320 });
     assert.deepEqual(inputs.constraints["soybean-meal-dehulled-solvent-extracted"], { max_percent: 30 });
-    assert.equal(inputs.constraints["public-premix-salt-additives"], undefined, "the engine fixes the premix itself");
+    assert.deepEqual(inputs.constraints["sustar-glypro-x911"], { price_per_tonne: 1500, min_percent: 0.2, max_percent: 0.2 });
     assert.equal(snapshotToolInputs({ ...snapshot, goal: "less_sbm" }).objective, "low_soy");
   });
 
