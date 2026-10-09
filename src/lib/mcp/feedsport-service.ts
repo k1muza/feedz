@@ -52,6 +52,8 @@ import type { NutritionPhase, NutritionSpecies } from "@/lib/nutrition";
 import { PUBLIC_PREMIX_ID } from "@/lib/public-feed-premix";
 import { COMMERCIAL_PREMIXES, assertManufacturerRecipe, commercialPremixById, commercialPremixCompatibleWithProgramme, type CommercialPremix } from "@/lib/commercial-premixes";
 import { buildManufacturerRecipeReport } from "@/lib/manufacturer-recipe";
+import { round, snake } from "@/lib/feed-number-format";
+export { round, snake } from "@/lib/feed-number-format";
 
 export const SOLVER = "GLPK (glpk.js)";
 export const CURRENCY = "USD";
@@ -66,18 +68,6 @@ export type FeedSportServiceContext = {
 
 // ---------------------------------------------------------------------------
 // Shared helpers
-
-export function round(value: number, digits = 4): number {
-  const factor = 10 ** digits;
-  return Math.round(value * factor) / factor;
-}
-
-export function snake(value: string): string {
-  return value
-    .replace(/([a-z0-9])([A-Z])/g, "$1_$2")
-    .replace(/-/g, "_")
-    .toLowerCase();
-}
 
 const UNIT_SUFFIXES: ReadonlyArray<[string, string]> = [
   ["KcalKg", "kcal/kg"],
