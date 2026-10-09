@@ -50,7 +50,7 @@ import {
 import type { EnergySystem } from "@/lib/nutrition-targets";
 import type { NutritionPhase, NutritionSpecies } from "@/lib/nutrition";
 import { PUBLIC_PREMIX_ID } from "@/lib/public-feed-premix";
-import { COMMERCIAL_PREMIXES, assertManufacturerRecipe, commercialPremixById, commercialPremixCompatibleWithProgramme, type CommercialPremix } from "@/lib/commercial-premixes";
+import { COMMERCIAL_PREMIXES, assertManufacturerRecipe, commercialPremixById, commercialPremixCompatibleWithProgramme, premixAnalysisForIds, type CommercialPremix } from "@/lib/commercial-premixes";
 import { buildManufacturerRecipeReport, ManufacturerRecipeValidationError } from "@/lib/manufacturer-recipe";
 import { round, snake } from "@/lib/feed-number-format";
 export { round, snake } from "@/lib/feed-number-format";
@@ -1017,6 +1017,7 @@ export function buildScenario(
       },
       ...(request.resolvedNames.length > 0 ? { resolved_ingredient_names: request.resolvedNames } : {}),
       data_sources: dataSources(resolved, library, ingredientIds, prices, request.energySystem, request.includesPremix),
+      premix_analysis: premixAnalysisForIds(ingredientIds),
     },
     notes: [...formulationNotes(request), ...relaxedRequests],
   };
@@ -1157,7 +1158,7 @@ export async function formulate(input: FormulateInput, context: FeedSportService
       verification: "unverified" as const,
       objective_applied: "manufacturer_fixed" as const,
       message: "Manufacturer's published formula reproduced. Nutrient validation is incomplete; NOT a solver-optimal or complete-feed formulation.",
-      cost_per_tonne: report.costPerTonne,
+      cost_per_tonne: report.cost_per_tonne,
       currency: CURRENCY,
       ingredients: recipeRows(report.recipe, pricesPerTonne, library),
       manufacturer_recipe: manufacturer.manufacturerRecipe,
@@ -1266,6 +1267,8 @@ export async function formulate(input: FormulateInput, context: FeedSportService
     ...(advisories.length > 0 ? { above_practical_inclusion: advisories } : {}),
     unsupported_requirements: [...new Set([...result.unsupportedRequirements, "vitamin-trace-mineral-supplementation"])],
     premix_verification: request.includesPremix ? "unverified" : "not_included",
+    premix_analysis: premixAnalysisForIds(ingredientIds),
+    premix_analysis: premixAnalysisForIds(ingredientIds),
     notes: [
       ...notes,
       ...(common.formulation_basis.ingredient_mode === "automatic"
@@ -1350,8 +1353,8 @@ export function analyseFormulation(input: AnalyseInput, context: FeedSportServic
       status: "manufacturer_recipe" as const,
       passes: false,
       verification: "unverified" as const,
-      cost_per_tonne: report.costPerTonne,
-      ...(report.unpricedIngredients.length ? { unpriced_ingredients: report.unpricedIngredients } : {}),
+      cost_per_tonne: report.cost_per_tonne,
+      ...(report.unpriced_ingredients.length ? { unpriced_ingredients: report.unpriced_ingredients } : {}),
       currency: CURRENCY,
       ingredients: recipeRows(report.recipe, pricesPerTonne, library),
       incomplete_requirements: report.incomplete_requirements,
