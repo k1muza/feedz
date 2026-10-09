@@ -577,6 +577,7 @@ export function getIngredient(
     ...premixSummary(commercial, context),
     nutrients: null,
     source: commercial.specificationUrl,
+    source_url: commercial.specificationUrl,
     note: "Published specification ranges are for reference only. No unverified concentration is treated as a feed guarantee; request a supplier COA.",
   };
 
