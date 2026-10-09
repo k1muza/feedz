@@ -35,7 +35,7 @@ import {
   type FeaturedStore,
 } from "./feedsport-featured";
 
-export const FEEDSPORT_MCP_VERSION = "0.4.0";
+export const FEEDSPORT_MCP_VERSION = "0.5.0";
 
 const INSTRUCTIONS = `FeedSport formulates and analyses pig and poultry feeds with its ingredient database, loaded programme phases and GLPK least-cost optimizer. Only formulate programmes listed by get_programmes; do not assume a layer programme exists.
 
