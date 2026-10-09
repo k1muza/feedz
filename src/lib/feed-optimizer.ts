@@ -1,4 +1,4 @@
-import type { GLPK } from "glpk.js";
+type GLPK = Awaited<ReturnType<typeof import("glpk.js/node")["default"]>>;
 
 import {
   analyzeDiet,
