@@ -93,7 +93,7 @@ export type IngredientOption = {
 type IngredientPoolMode = "automatic" | "selected";
 
 type ManufacturerWorkbenchResult = ManufacturerRecipeAssessment & {
-  costPerKg: number;
+  costPerKg: number | null;
   productId: string;
   manufacturer: string;
 };
@@ -379,7 +379,7 @@ export function FeedFormulationWorkbench({
         );
       } catch (error) {
         if (controller.signal.aborted) return;
-        setRows([]);
+        // Preserve usable ingredient rows even if suggesting the new pool fails.
         setSuggestionError(error instanceof Error ? error.message : String(error));
       } finally {
         if (!controller.signal.aborted) {
@@ -426,7 +426,11 @@ export function FeedFormulationWorkbench({
       const original = priorEditablePool.current;
       priorEditablePool.current = null;
       setIngredientPoolMode(original?.mode ?? "automatic");
-      setRows(original?.rows ?? []);
+      // Direct boar-to-grower navigation has no previous editable snapshot.
+      // Retain baseline ingredient rows while automatic phase suggestions load.
+      setRows(original?.rows ?? rows.map((row) => ({
+        ...row, min: "", max: "", lockedPct: "",
+      })));
     }
     // Otherwise preserve the selected ingredient pool and its price/limits.
     setProgrammeId(value);
@@ -1346,8 +1350,8 @@ function ResultPanel({
           </div>
           <CardDescription>
             {result.manufacturer} · Published ingredients only ·
-            {" "}${result.costPerKg.toFixed(4)}/kg
-            {" · "}${(result.costPerKg * batchWeightKg).toFixed(2)} for {batchWeightKg.toFixed(1)} kg
+            {" "}{result.costPerKg === null ? "Quote missing" : `${result.costPerKg.toFixed(4)}/kg`}
+            {result.costPerKg === null ? null : ` · ${(result.costPerKg * batchWeightKg).toFixed(2)} for ${batchWeightKg.toFixed(1)} kg`}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -1380,7 +1384,11 @@ function ResultPanel({
               ))}
             </div>
           ) : null}
-          <Unsupported requirements={result.unsupportedRequirements as Extract<LeastCostFormulationResult, {status:"optimal"}>["unsupportedRequirements"]} />
+          <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 p-3 text-sm">
+            Vitamin and trace-mineral adequacy is <strong>not verified</strong> because
+            CJ S174&apos;s nutrient analysis is unverified. This is a supplier data
+            gap, not missing Brazilian Tables guidance for mature boars.
+          </div>
         </CardContent>
       </Card>
     );
@@ -1418,7 +1426,7 @@ function ResultPanel({
           <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 px-4 py-3 text-sm leading-6 text-ink">
             <strong>{formulationBasis?.fixedPremix ? "Premix unverified:" : "Basal-only formulation:"}</strong>
             {formulationBasis?.fixedPremix
-              ? " The selected Sustar product is included at its published dose, but vitamin and trace-mineral concentrations have not been verified against a supplier COA."
+              ? ` The selected ${commercialPremixById(formulationBasis.fixedPremix.id)?.manufacturer ?? "commercial"} product is included at its published dose, but vitamin and trace-mineral concentrations have not been verified against a supplier COA.`
               : " No commercial premix was included. This recipe does not cover vitamin and trace-mineral supplementation."}
             {" "}Only basal nutrient constraints were checked. Do not manufacture or feed without qualified nutritionist review.
           </div>
