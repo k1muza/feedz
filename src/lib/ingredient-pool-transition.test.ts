@@ -8,12 +8,13 @@ describe("programme switching from a manufacturer-locked recipe", () => {
     { ingredientId: "fish-meal-54", price: "0.71", min: "", max: "", lockedPct: "4" },
   ];
 
-  test("on first visit to mature-boar, leaving for grower keeps starting ingredients but unlocks CJ ratios", () => {
+  test("starting on boar then switching preserves edited prices in selected mode, without automatic overwrite", () => {
     const restored = restoreIngredientPool(null, cjRows);
-    assert.equal(restored.mode, "automatic");
+    assert.equal(restored.mode, "selected");
     assert.equal(restored.rows.length, 2);
     assert.deepEqual(restored.rows.map((row) => row.lockedPct), ["", ""]);
     assert.equal(restored.rows[0].price, "0.24");
+    assert.equal(restored.rows[1].price, "0.71");
     assert.equal(cjRows[0].lockedPct, "64.3", "Original CJ ration remains unchanged");
   });
 
