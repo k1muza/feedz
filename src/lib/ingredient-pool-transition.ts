@@ -6,9 +6,9 @@ export type EditableIngredientPool<Row extends { min: string; max: string; locke
 
 /**
  * Restore a saved editable pool unchanged. When Studio was initially opened
- * on a manufacturer-only programme there is no saved pool; keep its baseline
- * ingredient prices but remove the supplier's locked ratios while automatic
- * suggestions rebuild the target programme's normal starting pool.
+ * on a manufacturer-only programme there is no saved pool; preserve the
+ * farmer's current ingredient prices and unlock supplier-specific ratios,
+ * staying in selected mode so automatic suggestions cannot overwrite edits.
  */
 export function restoreIngredientPool<Row extends { min: string; max: string; lockedPct: string }>(
   original: EditableIngredientPool<Row> | null,
@@ -19,7 +19,7 @@ export function restoreIngredientPool<Row extends { min: string; max: string; lo
     rows: original.rows.map((row) => ({ ...row })),
   };
   return {
-    mode: "automatic",
+    mode: "selected",
     rows: manufacturerRows.map((row) => ({
       ...row,
       min: "",
