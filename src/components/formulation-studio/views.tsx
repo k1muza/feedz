@@ -98,7 +98,7 @@ export function StudioView(props: { loading: true; shell: ShellVals } | { loadin
         </div>
 
         {v && v.d && <Drawer v={v} d={v.d} />}
-        {v && v.advisoriesOpen && v.opt && <AdvisoryDrawer v={v} opt={v.opt} />}
+        {v && v.advisoriesOpen && <AdvisoryDrawer v={v} />}
         {v && v.addOpen && <AddIngredient v={v} />}
         {v && v.rulesOpen && <Rules v={v} />}
         {v && v.cOpen && <Contact v={v} />}
@@ -887,6 +887,14 @@ function Workspace({ v }: V) {
             </div>
           )}
 
+          {v.hasAdvice && !v.pendingDoc && !v.opt && (
+            <button type="button" onClick={v.openAdvisories} style={sx("display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:12px 16px;background:#eef3ee;border:1px solid #c5d8c8;border-radius:10px;font:600 14px/1.3 'IBM Plex Sans',sans-serif;color:#2f5a3f;cursor:pointer")}>
+              <span style={sx("flex:none;width:8px;height:8px;border-radius:50%;background:#2f5a3f")} />
+              <span style={sx("flex:1")}>{v.adviceLabel}</span>
+              <span style={sx("font-weight:500;text-decoration:underline;text-underline-offset:3px")}>View</span>
+            </button>
+          )}
+
           {v.pendingDoc && (
             <div style={sx("display:flex;align-items:center;gap:10px;padding:20px;font:400 14px/1.3 'IBM Plex Sans',sans-serif;color:#64665c")}>
               {v.spinnerDark}Opening your formulation…
@@ -1041,6 +1049,15 @@ function Optimal({ v, opt }: V & { opt: NonNullable<StudioVals["opt"]> }) {
             <button type="button" onClick={v.openAdvisories} aria-label={`Open ${strip.adv}`} style={sx("display:flex;align-items:center;gap:8px;color:#8a5f18;border:0;background:transparent;padding:2px 0;font:600 14px/1.3 'IBM Plex Sans',sans-serif;text-decoration:underline;text-decoration-color:#d7ad62;text-underline-offset:3px;cursor:pointer")}>
               <span style={sx("width:8px;height:8px;background:#c98a1e;transform:rotate(45deg)")} />
               {strip.adv}
+            </button>
+          </>
+        )}
+        {v.hasAdvice && (
+          <>
+            <span style={sx("width:1px;height:16px;background:#d0cdc3")} />
+            <button type="button" onClick={v.openAdvisories} aria-label={`Open ${v.adviceLabel}`} style={sx("display:flex;align-items:center;gap:8px;color:#2f5a3f;border:0;background:transparent;padding:2px 0;font:600 14px/1.3 'IBM Plex Sans',sans-serif;text-decoration:underline;text-decoration-color:#9fbfa6;text-underline-offset:3px;cursor:pointer")}>
+              <span style={sx("width:8px;height:8px;border-radius:50%;background:#2f5a3f")} />
+              {v.adviceLabel}
             </button>
           </>
         )}
@@ -1289,24 +1306,6 @@ function Optimal({ v, opt }: V & { opt: NonNullable<StudioVals["opt"]> }) {
             </>
           )}
         </>
-      )}
-
-      {v.tabHistory && v.hasAdvice && (
-        <div style={sx("background:#fff;border:1px solid #e2dfd6;border-radius:10px;overflow:hidden")}>
-          <div style={sx("padding:14px 18px;font:600 15px/1 'IBM Plex Sans',sans-serif;border-bottom:1px solid #e2dfd6")}>Advice from FeedSport</div>
-          {v.docAdvice.map((a) => (
-            <div key={a.id} style={sx("padding:14px 18px;border-top:1px solid #ece8df;display:flex;flex-direction:column;gap:8px")}>
-              <div style={sx("display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;font:400 13px/1.3 'IBM Plex Sans',sans-serif;color:#64665c")}>
-                <span style={sx("font-weight:600;color:#222420")}>{a.author}</span>
-                <span style={sx("font:400 12px/1.3 'IBM Plex Mono',monospace")}>{a.meta}</span>
-              </div>
-              <div style={sx("font:400 14px/1.55 'IBM Plex Sans',sans-serif;color:#222420;white-space:pre-wrap;overflow-wrap:anywhere")}>{a.body}</div>
-              {a.hasSuggestion && (
-                <button onClick={a.openSuggestion} style={sx("align-self:flex-start;border:1px solid #2f5a3f;background:#eef3ee;color:#2f5a3f;border-radius:6px;padding:8px 12px;font:600 13px/1 'IBM Plex Sans',sans-serif")}>Open suggested revision</button>
-              )}
-            </div>
-          ))}
-        </div>
       )}
 
       {v.tabHistory && (
@@ -1800,9 +1799,10 @@ function Compare({ v }: V) {
   );
 }
 
-function AdvisoryDrawer({ v, opt }: V & { opt: NonNullable<StudioVals["opt"]> }) {
-  const count = opt.advisories.length;
-  const title = count + " practical advisor" + (count === 1 ? "y" : "ies");
+function AdvisoryDrawer({ v }: V) {
+  const advisories = v.opt?.advisories ?? [];
+  const count = advisories.length;
+  const title = count ? count + " practical advisor" + (count === 1 ? "y" : "ies") : v.adviceLabel;
   return (
     <>
       <div onClick={v.closeAdvisories} style={sx("position:fixed;inset:0;background:rgba(34,36,32,.38);z-index:20")} />
@@ -1811,12 +1811,12 @@ function AdvisoryDrawer({ v, opt }: V & { opt: NonNullable<StudioVals["opt"]> })
           <div style={sx("display:flex;flex-direction:column;gap:7px")}>
             <span style={sx("font:500 11px/1 'IBM Plex Mono',monospace;color:#8a5f18;text-transform:uppercase;letter-spacing:.06em")}>Practical guidance</span>
             <h2 id="advisories-title" style={sx("margin:0;font:600 22px/1.2 'IBM Plex Sans',sans-serif;color:#222420")}>{title}</h2>
-            <span style={sx("font:400 13px/1.5 'IBM Plex Sans',sans-serif;color:#64665c")}>Your recipe is valid. These are practical inclusion guidelines, not hard formulation limits.</span>
+            {count > 0 && <span style={sx("font:400 13px/1.5 'IBM Plex Sans',sans-serif;color:#64665c")}>Your recipe is valid. These are practical inclusion guidelines, not hard formulation limits.</span>}
           </div>
           <button onClick={v.closeAdvisories} aria-label="Close advisories" style={sx("flex:none;border:0;background:transparent;font:400 24px/1 'IBM Plex Sans',sans-serif;color:#64665c;padding:0 4px")}>×</button>
         </div>
         <div style={sx("flex:1;overflow-y:auto;padding:20px 26px;display:flex;flex-direction:column;gap:14px")}>
-          {opt.advisories.map((a, i) => (
+          {advisories.map((a, i) => (
             <article key={i} style={sx("background:#fdf6e8;border:1px solid #f0c97f;border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:9px")}>
               <div style={sx("display:flex;align-items:center;gap:8px;font:600 13px/1.3 'IBM Plex Sans',sans-serif;color:#5c4012")}>
                 <span style={sx("width:8px;height:8px;background:#c98a1e;transform:rotate(45deg)")} />
@@ -1832,6 +1832,26 @@ function AdvisoryDrawer({ v, opt }: V & { opt: NonNullable<StudioVals["opt"]> })
               )}
             </article>
           ))}
+          {v.hasAdvice && (
+            <>
+              {count > 0 && <h3 style={sx("margin:10px 0 0;font:600 15px/1.3 'IBM Plex Sans',sans-serif;color:#222420")}>Advice from FeedSport</h3>}
+              {v.docAdvice.map((a) => (
+                <article key={a.id} style={sx("background:#eef3ee;border:1px solid #c5d8c8;border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:9px")}>
+                  <div style={sx("display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap")}>
+                    <span style={sx("display:flex;align-items:center;gap:8px;font:600 13px/1.3 'IBM Plex Sans',sans-serif;color:#2f5a3f")}>
+                      <span style={sx("width:8px;height:8px;border-radius:50%;background:#2f5a3f")} />
+                      {a.author}
+                    </span>
+                    <span style={sx("font:400 12px/1.3 'IBM Plex Mono',monospace;color:#64665c")}>{a.meta}</span>
+                  </div>
+                  <div style={sx("font:400 15px/1.55 'IBM Plex Sans',sans-serif;color:#222420;white-space:pre-wrap;overflow-wrap:anywhere")}>{a.body}</div>
+                  {a.hasSuggestion && (
+                    <button onClick={a.openSuggestion} style={sx("align-self:flex-start;font:600 13px/1.2 'IBM Plex Sans',sans-serif;padding:10px 12px;background:#fff;border:1px solid #2f5a3f;border-radius:6px;color:#2f5a3f")}>Open suggested revision</button>
+                  )}
+                </article>
+              ))}
+            </>
+          )}
         </div>
       </aside>
     </>

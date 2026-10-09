@@ -1575,7 +1575,7 @@ function useStudio({ catalogue, nutrients, programmes, showSolverDetails = false
       ["recipe", "Recipe"],
       ["nutrients", "Nutrients"],
       ["why", "Why this recipe"],
-      ["history", doc?.advice.length ? "History · " + doc.advice.length + " advice" : "History"],
+      ["history", "History"],
     ] as [Tab, string][]
   ).map(([k, label]) => ({ label, bd: S.tab === k ? "#222420" : "transparent", color: S.tab === k ? "#222420" : "#64665c", go: () => update({ tab: k }) }));
   const why = optimal ? whyVals(S, optimal, { update, run, engine, phase: PH }) : { limiting: [], held: [], opps: [], misses: [], none: false };
@@ -1658,7 +1658,8 @@ function useStudio({ catalogue, nutrients, programmes, showSolverDetails = false
     undoChanges: () => { const s = S.runSnap!; const { programme } = phaseOf(programmes, s.programmeId, s.phaseId); update({ programmeId: s.programmeId, phaseId: s.phaseId, species: programme.species, pool: clone(s.pool), goal: s.goal }); },
     view, dimOpacity: S.running || stale ? "0.5" : "1", emptyTitle: activeCount ? "Ready to formulate" : "Before you can formulate", checklist, blockErrs, hasWarns: warns.length > 0 && !S.running, warns, inf,
     opt, showSolver: showSolverDetails, tabs, tabRecipe: S.tab === "recipe", tabNutrients: S.tab === "nutrients", tabWhy: S.tab === "why", tabHistory: S.tab === "history",
-    advisoriesOpen: S.advisoriesOpen && !!opt?.advisories.length,
+    advisoriesOpen: S.advisoriesOpen && (!!opt?.advisories.length || docAdvice.length > 0),
+    adviceLabel: docAdvice.length + (docAdvice.length === 1 ? " note" : " notes") + " from FeedSport",
     openAdvisories: () => update({ advisoriesOpen: true, drawer: null, addOpen: false, rulesOpen: false }),
     closeAdvisories: () => update({ advisoriesOpen: false }),
     modeOpts: (
