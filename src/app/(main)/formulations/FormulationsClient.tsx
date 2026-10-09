@@ -65,8 +65,6 @@ export default function FormulationsClient({ ingredientPrices, ingredientPackSiz
   const [formulationPriority, setFormulationPriority] = useState<FormulationPriority>('simple');
   const [formulationNote, setFormulationNote] = useState<string | null>(null);
   const [downloadableFormulation, setDownloadableFormulation] = useState<DownloadableFormulation | null>(null);
-  const [downloadingPdf, setDownloadingPdf] = useState(false);
-  const [downloadError, setDownloadError] = useState<string | null>(null);
   const [quoteDialogOpen, setQuoteDialogOpen] = useState(false);
   const [programmeId, setProgrammeId] = useState(programmeChoices[0].id);
   const selectedProgramme = programmeChoices.find((choice) => choice.id === programmeId) ?? programmeChoices[0];
@@ -192,21 +190,18 @@ export default function FormulationsClient({ ingredientPrices, ingredientPackSiz
     setFormulationNote(null);
     setBalanceError(null);
     setDownloadableFormulation(null);
-    setDownloadError(null);
-  }
+    }
 
   function changePhase(nextPhaseId: string) {
     setPhaseId(nextPhaseId);
     setFormulationNote(null);
     setBalanceError(null);
     setDownloadableFormulation(null);
-    setDownloadError(null);
-  }
+    }
 
   function markFormulaEdited() {
     setDownloadableFormulation(null);
-    setDownloadError(null);
-    setFormulationNote('Ingredient amounts changed. Select “Optimize this recipe” to validate the mix and enable the formula download.');
+      setFormulationNote('Ingredient amounts changed. Select “Optimize this recipe” to validate the mix and enable the formula download.');
   }
 
   async function calculateFormula() {
@@ -323,37 +318,31 @@ export default function FormulationsClient({ ingredientPrices, ingredientPackSiz
     }
   }
 
-  async function openDetailedPdf() {
-    if (!downloadableFormulation || !selectedPhase) return;
-    const viewerWindow = window.open('', '_blank');
-    if (!viewerWindow) {
-      setDownloadError('Your browser blocked the PDF tab. Allow pop-ups for this site and try again.');
-      return;
-    }
-    viewerWindow.opener = null;
-    viewerWindow.document.title = 'Preparing formulation PDF…';
-    viewerWindow.document.body.textContent = 'Preparing your detailed formulation PDF…';
-    setDownloadingPdf(true);
-    setDownloadError(null);
-    try {
-      const response = await fetch('/api/feed-formulation/report', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ programmeId, phaseId, ...downloadableFormulation }),
-      });
-      if (!response.ok) {
-        const error = await response.json().catch(() => null) as { message?: string } | null;
-        throw new Error(error?.message ?? 'Could not open the formulation PDF.');
-      }
-      const pdfUrl = URL.createObjectURL(await response.blob());
-      viewerWindow.location.replace(pdfUrl);
-      window.setTimeout(() => URL.revokeObjectURL(pdfUrl), 10 * 60 * 1000);
-    } catch (error) {
-      viewerWindow.close();
-      setDownloadError(error instanceof Error ? error.message : String(error));
-    } finally {
-      setDownloadingPdf(false);
-    }
+  function downloadFormula() {
+    if (!downloadableFormulation || !selectedPremix) return;
+    const cell = (parts: Array<string | number>) =>
+      parts.map((part) => `"${String(part).replaceAll('"', '""')}"`).join(',');
+    const labels = new Map(INGREDIENT_LIBRARY.ingredients.map((item) => [item.id, item.name]));
+    const csv = [
+      cell(['FeedSport public formulation', selectedProgramme.label, selectedPhase?.label ?? '']),
+      cell(['Commercial premix', selectedPremix.name, 'UNVERIFIED']),
+      cell(['Manufacturer reference', selectedPremix.specificationUrl]),
+      cell(['Important', 'Micronutrient coverage not verified; NOT certified as complete feed']),
+      ...(manufacturerOnly ? [cell(['Restriction', 'Fixed manufacturer recipe. No substitutions permitted.'])] : []),
+      cell(['Ingredient', 'ID', 'Inclusion %', 'Kilograms per tonne']),
+      ...downloadableFormulation.formula.ingredients.map((row) => cell([
+        labels.get(row.ingredientId) ?? (row.ingredientId === selectedPremix.id ? selectedPremix.name : row.ingredientId),
+        row.ingredientId,
+        row.inclusionPct.toFixed(3),
+        (row.inclusionPct * 10).toFixed(2),
+      ])),
+    ].join('\r\n');
+    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = `feedsport-${programmeId}-${phaseId}-recipe.csv`;
+    anchor.click();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
 
   return (
@@ -372,7 +361,7 @@ export default function FormulationsClient({ ingredientPrices, ingredientPackSiz
         <div className="grid gap-4 md:grid-cols-3">
           <label className="flex flex-col gap-2"><span className="text-[13px] font-semibold text-[#4f524b]">Production track</span><select value={programmeId} onChange={(event) => changeProgramme(event.target.value)} className="h-12 rounded-[4px] border border-[#bdb7a9] bg-white px-3 text-[15px] font-semibold text-[#191b18]">{programmeChoices.map((choice) => <option key={choice.id} value={choice.id}>{choice.label}</option>)}</select></label>
           <label className="flex flex-col gap-2"><span className="text-[13px] font-semibold text-[#4f524b]">Feeding phase</span><select value={selectedPhase?.id ?? ''} onChange={(event) => changePhase(event.target.value)} className="h-12 rounded-[4px] border border-[#bdb7a9] bg-white px-3 text-[15px] font-semibold text-[#191b18]">{selectedProgramme.programme.phases.map((phase) => <option key={phase.id} value={phase.id}>{phase.label.charAt(0).toUpperCase() + phase.label.slice(1)}</option>)}</select></label>
-          <label className="flex flex-col gap-2"><span className="text-[13px] font-semibold text-[#4f524b]">Formulation priority</span><select value={formulationPriority} onChange={(event) => { setFormulationPriority(event.target.value as FormulationPriority); setFormulationNote(null); setDownloadableFormulation(null); setDownloadError(null); }} className="h-12 rounded-[4px] border border-[#bdb7a9] bg-white px-3 text-[15px] font-semibold text-[#191b18]">{priorityChoices.map((priority) => <option key={priority.id} value={priority.id}>{priority.label}</option>)}</select></label>
+          <label className="flex flex-col gap-2"><span className="text-[13px] font-semibold text-[#4f524b]">Formulation priority</span><select value={formulationPriority} onChange={(event) => { setFormulationPriority(event.target.value as FormulationPriority); setFormulationNote(null); setDownloadableFormulation(null); }} className="h-12 rounded-[4px] border border-[#bdb7a9] bg-white px-3 text-[15px] font-semibold text-[#191b18]">{priorityChoices.map((priority) => <option key={priority.id} value={priority.id}>{priority.label}</option>)}</select></label>
         </div>
         <p className="mb-0 mt-3 text-[13px] leading-5 text-[#4f524b]">{selectedProgramme.programme.description} {selectedPhase ? `Source: Table ${selectedPhase.sourceTable}${selectedPhase.periodLabel ? ` · ${selectedPhase.periodLabel}` : ''}.` : ''} <b className="text-[#191b18]">Priority:</b> {selectedPriority.description}</p>
       </section>
@@ -385,7 +374,7 @@ export default function FormulationsClient({ ingredientPrices, ingredientPackSiz
           <div className="grid grid-cols-[minmax(110px,1fr)_minmax(100px,2fr)_64px] items-center gap-3.5 px-5 py-3"><span className="text-[15px] font-semibold">Vitamin-mineral premix</span><span className="text-[13px] text-[#4f524b]">Fixed · {PUBLIC_PREMIX_KG_PER_TONNE} kg/tonne</span><span className="text-right text-[16px] font-semibold tabular-nums">{PUBLIC_PREMIX_INCLUSION_PCT.toFixed(1)}%</span></div>
           {!totalIsValid ? <div className="border-t border-[#ece8de] bg-[#fff8eb] px-5 py-3 text-[13px] leading-5 text-[#6d4b12]"><b>{Math.abs(balanceAmount).toFixed(1)}% {balanceAmount > 0 ? 'still unallocated' : 'over 100%'}.</b> The preview is normalized for comparison. “Optimize this recipe” will calculate a new 100% formula for this phase.</div> : null}
           {balanceError ? <div className="border-t border-[#ece8de] bg-[#f6e0d9] px-5 py-3 text-[13px] leading-5 text-[#8f3420]">{balanceError}</div> : null}
-          {downloadError ? <div className="border-t border-[#ece8de] bg-[#f6e0d9] px-5 py-3 text-[13px] leading-5 text-[#8f3420]">{downloadError}</div> : null}
+          
           {formulationNote ? <div className="border-t border-[#ece8de] bg-[#e3eadf] px-5 py-3 text-[13px] leading-5 text-[#1f5c38]">{formulationNote}</div> : null}
           <div className="flex flex-wrap gap-2.5 border-t border-[#d9d4c7] px-5 py-4"><button type="button" onClick={() => void calculateFormula()} disabled={balancing || !selectedPhase} className="h-[42px] rounded-[4px] border-[1.5px] border-[#191b18] bg-transparent px-4 text-[14px] font-semibold disabled:cursor-not-allowed disabled:opacity-40">{balancing ? 'Optimizing…' : 'Optimize this recipe'}</button><button type="button" onClick={() => void openDetailedPdf()} disabled={!downloadableFormulation || balancing || downloadingPdf} title={downloadableFormulation ? 'Open the detailed formulation PDF in a new tab' : 'Optimize the recipe before downloading the formula'} className="h-[42px] rounded-[4px] border-[1.5px] border-[#191b18] bg-[#fbfaf6] px-4 text-[14px] font-semibold text-[#191b18] disabled:cursor-not-allowed disabled:opacity-40">{downloadingPdf ? 'Preparing formula…' : 'Download Formula'}</button><button type="button" onClick={() => setQuoteDialogOpen(true)} disabled={balancing} className="inline-flex h-[42px] items-center rounded-[4px] bg-[#d99a2b] px-4 text-[14px] font-semibold text-[#191b18] disabled:cursor-not-allowed disabled:opacity-40">Quote ingredients</button></div>
         </section>
