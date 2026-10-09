@@ -182,7 +182,10 @@ export function FeedFormulationWorkbench({
         lockedPct: "",
       })) ??
     [];
-  const initialResult = initialFormulaSet
+  const legacySavedPremix = Boolean(initialFormulaSet) &&
+    initialFormulaSet?.setup?.fixedPremixName !== commercialPremixForProgramme(initialProgramme?.id ?? "")?.name;
+  // Old recipes were approved by a fictional premix: they must be regenerated.
+  const initialResult = initialFormulaSet && !legacySavedPremix
     ? savedFeedFormulaResult(initialFormulaSet)
     : null;
   const [programmeId, setProgrammeId] = useState(initialProgramme?.id ?? "");
@@ -264,6 +267,15 @@ export function FeedFormulationWorkbench({
       ? parsedTargetBatchKg
       : 1000;
   const selectedPremix = commercialPremixForProgramme(programmeId);
+  const previousPremixId = useRef(commercialPremixForProgramme(initialProgramme?.id ?? "")?.id);
+  useEffect(() => {
+    if (previousPremixId.current !== selectedPremix?.id) {
+      previousPremixId.current = selectedPremix?.id;
+      // A supplier quote for one SKU is never carried over to another.
+      setFixedPremixPricePerKg("");
+      setResult(null);
+    }
+  }, [selectedPremix?.id]);
   const displayFixedPremixKgPerTonne = selectedPremix?.inclusionKgPerTonne ?? 0;
   const fixedPremixBatchKg =
     (displayBatchKg * displayFixedPremixKgPerTonne) / 1000;
@@ -1158,6 +1170,11 @@ export function FeedFormulationWorkbench({
             </div>
           ) : null}
 
+          {legacySavedPremix ? (
+            <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 p-3 text-sm text-ink">
+              This saved formulation used the retired hypothetical premix. Its previous nutrient verification has been withdrawn; enter a real premix price and generate a new recipe.
+            </div>
+          ) : null}
           {requestError ? (
             <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
               {requestError}
