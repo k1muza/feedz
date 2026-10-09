@@ -6,7 +6,7 @@ insert into public.articles
 values (
   'broilers-not-reaching-target-weight', 'Why your broilers aren''t reaching target weight (and how to fix it)', 'Why Your Broilers Aren''t Reaching Target Weight (and How to Fix It)', 'The common reasons broilers grow slowly or unevenly, from feed and water to brooding, housing and disease, with target weights, a simple FCR check and a troubleshooting checklist.', 'Poultry nutrition',
   'https://images.unsplash.com/photo-1694854038360-56b29a16fb0c', 'Broiler chicks under brooder lamps with feeders and drinkers', 'Muhammed Minhaj VP',
-  array['soybean-meal', 'methionine', 'lysine', 'premix']::text[], array['broilers not growing', 'broiler target weight', 'broiler weight by age', 'slow broiler growth', 'broiler feed conversion ratio', 'broiler brooding temperature']::text[], array['A modern broiler should weigh about 2 kg by day 35, and the 7-day weight matters most.', 'Slow growth almost always comes down to feed, water, brooding, housing or disease, often more than one.', 'Feed is 65–75% of the cost of a broiler, so the cheapest bag is rarely the cheapest chicken.', 'Weigh birds weekly and track feed conversion ratio (FCR) for every batch.']::text[],
+  array['soybean-meal', 'methionine', 'lysine']::text[], array['broilers not growing', 'broiler target weight', 'broiler weight by age', 'slow broiler growth', 'broiler feed conversion ratio', 'broiler brooding temperature']::text[], array['A modern broiler should weigh about 2 kg by day 35, and the 7-day weight matters most.', 'Slow growth almost always comes down to feed, water, brooding, housing or disease, often more than one.', 'Feed is 65–75% of the cost of a broiler, so the cheapest bag is rarely the cheapest chicken.', 'Weigh birds weekly and track feed conversion ratio (FCR) for every batch.']::text[],
   'If your broilers are taking seven or eight weeks to reach a weight that should come at five or six, you are losing money every extra day they stay on the farm. Each extra day means more feed, more labour, more risk of disease, and a later sale.
 
 Slow, uneven growth is one of the most common complaints from broiler farmers in Zimbabwe, from backyard batches of 50 birds to commercial houses of 5,000. The good news is that the causes are usually few and fixable. In most cases it comes down to feed, water, brooding, housing or disease, and often a combination of them.
@@ -64,7 +64,7 @@ Common feed mistakes:
 
 The cheapest feed per bag is rarely the cheapest feed per kilogram of chicken. A feed that costs 10% less but makes birds eat 15% more to reach the same weight is a loss, not a saving. To compare feeds properly, see [feed cost per kg of gain](/knowledge/feed-cost-per-kg-gain).
 
-**Home mixing.** Mixing your own feed from maize, [soya cake](/products/soybean-meal) and a concentrate can work, but only if the recipe is properly balanced and the ingredients are measured accurately. Common problems are too much maize (too little protein), poor-quality soya, and missing vitamins, minerals or amino acids. If you mix at home, use a tested formulation with a broiler [premix](/products/premix), and weigh every ingredient. You can check a recipe before you mix in our [formulation tool](/formulations).
+**Home mixing.** Mixing your own feed from maize, [soya cake](/products/soybean-meal) and a concentrate can work, but only if the recipe is properly balanced and the ingredients are measured accurately. Common problems are too much maize (too little protein), poor-quality soya, and missing vitamins, minerals or amino acids. If you mix at home, use a tested formulation with a broiler [premix](/products/categories/premixes-additives), and weigh every ingredient. You can check a recipe before you mix in our [formulation tool](/formulations).
 
 **Ingredient quality.** Maize and soya vary from batch to batch. Mouldy or poorly stored grain can carry aflatoxins, which damage the liver, weaken immunity and slow growth even when you cannot see mould in the feed.
 
@@ -206,7 +206,7 @@ insert into public.articles
 values (
   'feeding-pigs-by-stage-phase-feeding', 'Feeding pigs by stage: a practical guide to phase feeding', 'Feeding Pigs by Stage: A Practical Guide to Phase Feeding', 'How to match feed to each stage of a pig''s life, from creep feed to finisher and the breeding herd, and how to use feed conversion ratio to check your feeding pays.', 'Pig nutrition',
   'https://images.unsplash.com/photo-1655307550020-3eb7efdef723', 'Litter of piglets suckling a sow', 'Veronica White',
-  array['soybean-meal', 'sorghum', 'lysine', 'premix']::text[], array['phase feeding pigs', 'pig feeding stages', 'pig starter grower finisher feed', 'sow feeding', 'pig feed conversion ratio']::text[], array['Feed is usually 60–75% of the cost of raising a pig to market, so how you feed drives profit.', 'Step pigs down to lower-protein diets as they grow: pre-starter, starter, grower, then finisher.', 'Sows and boars need their own gestation, lactation and breeder feeds.', 'Track feed conversion ratio (FCR) per pen to see whether your feeding is paying off.']::text[],
+  array['soybean-meal', 'sorghum', 'lysine']::text[], array['phase feeding pigs', 'pig feeding stages', 'pig starter grower finisher feed', 'sow feeding', 'pig feed conversion ratio']::text[], array['Feed is usually 60–75% of the cost of raising a pig to market, so how you feed drives profit.', 'Step pigs down to lower-protein diets as they grow: pre-starter, starter, grower, then finisher.', 'Sows and boars need their own gestation, lactation and breeder feeds.', 'Track feed conversion ratio (FCR) per pen to see whether your feeding is paying off.']::text[],
   'Feed is the single biggest cost in pig production, usually around 60 to 75% of what it costs to raise a pig to market. That means the way you feed has more effect on your profit than almost any other decision on the farm.
 
 Many smallholder and commercial farmers still give one feed to pigs of all ages. It seems simpler, but it wastes money in two directions. Young pigs get too little protein to grow well, while older pigs get more protein than they can use and simply excrete the expensive surplus.
@@ -267,7 +267,7 @@ The grower phase runs from roughly 25 kg to 60 kg. This is when pigs convert fee
 
 Growers should have feed available at all times, or be fed enough that a little is left in the feeder at each meal. Restricting feed at this stage usually slows growth more than it saves money.
 
-The diet can now rely more on locally available ingredients like maize and soybean meal, balanced with a vitamin and mineral [premix](/products/premix). Protein drops a little from the starter feed, but amino acid balance still matters. A grower feed short of lysine will produce a fatter, slower-growing pig even if the crude protein figure on the label looks fine. For more on this, see [feeding growers: protein, energy and lysine in practice](/knowledge/feeding-grower-pigs-protein-energy-lysine).
+The diet can now rely more on locally available ingredients like maize and soybean meal, balanced with a vitamin and mineral [premix](/products/categories/premixes-additives). Protein drops a little from the starter feed, but amino acid balance still matters. A grower feed short of lysine will produce a fatter, slower-growing pig even if the crude protein figure on the label looks fine. For more on this, see [feeding growers: protein, energy and lysine in practice](/knowledge/feeding-grower-pigs-protein-energy-lysine).
 
 Water is just as important as feed. A growing pig drinks roughly two to three litres of water for every kilogram of feed it eats, more in hot weather. If drinkers are blocked or the water is warm and dirty, feed intake and growth drop.
 
@@ -350,7 +350,7 @@ insert into public.articles
 values (
   'how-to-formulate-pig-feed', 'How to formulate pig feed: a step-by-step guide', 'How to Formulate Pig Feed: Step-by-Step Guide for Farmers', 'A practical method for formulating pig feed from local ingredients: set nutrient targets, balance energy and lysine, add minerals and premix, then check the result.', 'Feed formulation',
   'https://images.unsplash.com/photo-1697027948105-902321ea8e29', 'Grower pigs in a pen', 'Stefanie Poepken',
-  array['sorghum', 'soybean-meal', 'lysine', 'dcp', 'limestone', 'premix']::text[], array['pig feed formulation', 'how to make pig feed', 'pig feed formula Zimbabwe', 'Pearson square pig feed', 'grower pig diet']::text[], array['Formulate for one class of pig at a time: weaner, grower, finisher, dry sow or lactating sow.', 'Balance energy and digestible lysine first. Crude protein follows.', 'Reserve 3–4% of the mix for minerals, salt and premix before you balance the main ingredients.', 'Check the finished diet against every target, not only protein.']::text[],
+  array['sorghum', 'soybean-meal', 'lysine', 'dcp', 'limestone']::text[], array['pig feed formulation', 'how to make pig feed', 'pig feed formula Zimbabwe', 'Pearson square pig feed', 'grower pig diet']::text[], array['Formulate for one class of pig at a time: weaner, grower, finisher, dry sow or lactating sow.', 'Balance energy and digestible lysine first. Crude protein follows.', 'Reserve 3–4% of the mix for minerals, salt and premix before you balance the main ingredients.', 'Check the finished diet against every target, not only protein.']::text[],
   'Formulating pig feed means choosing ingredients and inclusion rates so that every kilogram of feed supplies what the pig needs for its stage of production, at the lowest practical cost. You can do it with a calculator and a notebook, but the steps are the same whether you use paper, a spreadsheet or our [formulation tool](/formulations).
 
 ## Step 1: Decide which pig you are feeding
@@ -389,7 +389,7 @@ Before balancing the main ingredients, set aside the small-inclusion items. A ty
 - [Dicalcium phosphate](/products/dcp) for phosphorus and calcium
 - [Feed limestone](/products/limestone) for calcium
 - Salt
-- [Vitamin and trace-mineral premix](/products/premix) at the manufacturer''s stated inclusion
+- [Vitamin and trace-mineral premix](/products/categories/premixes-additives) at the manufacturer''s stated inclusion
 
 That leaves about 96–97% of the mix for energy and protein ingredients.
 
@@ -613,7 +613,7 @@ insert into public.articles
 values (
   'calcium-phosphorus-laying-hens', 'Calcium and phosphorus for laying hens', 'Calcium and Phosphorus for Laying Hens: Eggshell Quality Guide', 'How much calcium and phosphorus laying hens need, why limestone particle size matters, and how DCP and limestone support strong eggshells.', 'Poultry nutrition',
   'https://images.unsplash.com/photo-1553531009-c4605f302b47', 'Brown laying hens at a coop door', 'Brett Jordan',
-  array['limestone', 'dcp', 'premix']::text[], array['layer feed calcium', 'eggshell quality', 'limestone for layers', 'layer feed phosphorus', 'thin egg shells chickens']::text[], array['A laying hen needs roughly 4 g of calcium a day, so layer feed usually contains about 3.5–4.2% calcium.', 'Feed a good share of the limestone as coarse particles (about 2–4 mm) so calcium is available overnight, when the shell forms.', 'Phosphorus needs fall as hens age. Too much phosphorus late in lay can weaken shells.', 'Do not feed layer diets to pullets before they start laying.']::text[],
+  array['limestone', 'dcp']::text[], array['layer feed calcium', 'eggshell quality', 'limestone for layers', 'layer feed phosphorus', 'thin egg shells chickens']::text[], array['A laying hen needs roughly 4 g of calcium a day, so layer feed usually contains about 3.5–4.2% calcium.', 'Feed a good share of the limestone as coarse particles (about 2–4 mm) so calcium is available overnight, when the shell forms.', 'Phosphorus needs fall as hens age. Too much phosphorus late in lay can weaken shells.', 'Do not feed layer diets to pullets before they start laying.']::text[],
   'Every eggshell is almost pure calcium carbonate. A hen in full lay deposits around 2 grams of calcium in shell every day, which is a large share of all the calcium in her body. Getting calcium and phosphorus right is the single biggest nutritional lever for shell quality.
 
 ## How much calcium do layers need?
@@ -650,7 +650,7 @@ Do not feed full layer diets to young pullets before they start laying. The high
 
 ## Vitamin D3
 
-Hens cannot absorb calcium properly without vitamin D3. It is supplied in the [vitamin and mineral premix](/products/premix). Use the premix at the full stated inclusion, and store it cool and dry, since vitamin activity declines over time.
+Hens cannot absorb calcium properly without vitamin D3. It is supplied in the [vitamin and mineral premix](/products/categories/premixes-additives). Use the premix at the full stated inclusion, and store it cool and dry, since vitamin activity declines over time.
 
 ## When shells are still poor
 
@@ -760,14 +760,14 @@ insert into public.articles
 values (
   'on-farm-feed-mixing', 'Mixing on farm: getting an even mix', 'On-Farm Feed Mixing: How to Get an Even Mix', 'Order of addition, mixing time, pre-blending premix and how to check mix uniformity. A practical guide to mixing livestock feed on farm.', 'Feed manufacturing',
   'https://images.unsplash.com/photo-1781711281462-ede4f05a6e70', 'Hand holding grain above a full mixing bin', 'Emma Renly',
-  array['premix', 'lysine', 'methionine', 'sorghum']::text[], array['how to mix animal feed', 'on farm feed mixing', 'feed mixer', 'premix mixing', 'feed mixing order']::text[], array['Pre-blend premix, amino acids and salt with a carrier before adding them to the main batch.', 'Add ingredients in a set order: part of the grain, then the pre-blend, then protein meals, then the rest of the grain, then liquids last.', 'Follow the mixer manufacturer''s mixing time. Under-mixing is common, and over-mixing can cause separation.', 'Grind ingredients to a similar particle size to reduce separation after mixing.']::text[],
+  array['lysine', 'methionine', 'sorghum']::text[], array['how to mix animal feed', 'on farm feed mixing', 'feed mixer', 'premix mixing', 'feed mixing order']::text[], array['Pre-blend premix, amino acids and salt with a carrier before adding them to the main batch.', 'Add ingredients in a set order: part of the grain, then the pre-blend, then protein meals, then the rest of the grain, then liquids last.', 'Follow the mixer manufacturer''s mixing time. Under-mixing is common, and over-mixing can cause separation.', 'Grind ingredients to a similar particle size to reduce separation after mixing.']::text[],
   'A diet is only as good as the mix. If premix, amino acids or minerals are not evenly distributed, some animals get too much and others too little, even though the formula is correct on paper.
 
 ## Why small ingredients are the problem
 
 Major ingredients like [sorghum](/products/sorghum) and soybean meal make up most of the batch and spread easily. The difficult ones are the small-inclusion items:
 
-- [Vitamin and mineral premix](/products/premix), often 0.25–0.5% of the diet
+- [Vitamin and mineral premix](/products/categories/premixes-additives), often 0.25–0.5% of the diet
 - Crystalline [lysine](/products/lysine) and [methionine](/products/methionine)
 - Salt
 - Any medication or additive
@@ -974,7 +974,7 @@ insert into public.articles
 values (
   'broiler-starter-grower-finisher-feed', 'Broiler starter, grower and finisher feed explained', 'Broiler Starter, Grower and Finisher Feed: What Changes and When', 'What changes between broiler starter, grower and finisher feeds, when to switch, and why each phase matters for growth and feed conversion.', 'Poultry nutrition',
   'https://images.unsplash.com/photo-1569466593977-94ee7ed02ec9', 'Hens gathered around a feeder', 'Arisa Chattasa',
-  array['soybean-meal', 'sorghum', 'methionine', 'lysine', 'dcp', 'limestone', 'premix']::text[], array['broiler starter feed', 'broiler grower feed', 'broiler finisher feed', 'broiler feeding programme', 'broiler feed protein']::text[], array['Broiler feeding programmes usually use three phases: starter, grower and finisher.', 'Protein, amino acid, calcium and phosphorus levels fall from one phase to the next, while energy stays similar or rises.', 'The starter phase has the biggest effect on final performance. Do not cut it short.', 'Methionine is typically the first limiting amino acid in broiler diets, with lysine close behind.']::text[],
+  array['soybean-meal', 'sorghum', 'methionine', 'lysine', 'dcp', 'limestone']::text[], array['broiler starter feed', 'broiler grower feed', 'broiler finisher feed', 'broiler feeding programme', 'broiler feed protein']::text[], array['Broiler feeding programmes usually use three phases: starter, grower and finisher.', 'Protein, amino acid, calcium and phosphorus levels fall from one phase to the next, while energy stays similar or rises.', 'The starter phase has the biggest effect on final performance. Do not cut it short.', 'Methionine is typically the first limiting amino acid in broiler diets, with lysine close behind.']::text[],
   'Modern broilers grow extremely fast. Their nutrient needs change week by week, so feeding programmes are split into phases. Each feed is matched to the bird''s stage, which keeps growth on track without paying for nutrients the bird no longer needs.
 
 ## The three phases
@@ -1020,7 +1020,7 @@ Starter feed is the most expensive per kilogram but the smallest share of total 
 
 ## Minerals and premix
 
-Calcium and phosphorus build the skeleton that carries a fast-growing bird. [Dicalcium phosphate](/products/dcp) and [feed limestone](/products/limestone) supply them. A broiler-specific [vitamin and mineral premix](/products/premix) supplies vitamins, including D3, and trace minerals. Use a premix designed for broilers and the correct phase where the supplier makes separate products.
+Calcium and phosphorus build the skeleton that carries a fast-growing bird. [Dicalcium phosphate](/products/dcp) and [feed limestone](/products/limestone) supply them. A broiler-specific [vitamin and mineral premix](/products/categories/premixes-additives) supplies vitamins, including D3, and trace minerals. Use a premix designed for broilers and the correct phase where the supplier makes separate products.
 
 ## Switching between feeds
 
