@@ -64,7 +64,7 @@ Advisor access: you are connected as FeedSport's advising nutritionist and can r
 Advisor workflow: list_users or list_saved_formulations → get_saved_formulation → pass its tool_inputs to formulate or any diagnostics tool (or its analyse_formulation_input to analyse_formulation) to review it → add_formulation_advice. Saved results are what the user saw when they saved. Legacy snapshots with the retired theoretical premix cannot be replayed as valid new formulations; select a compatible real SKU and obtain a price quote. Re-run tools when pricing or assumptions may have changed.
 
 Advice rules:
-- add_formulation_advice is the only tool that writes, and the user reads the note in FeedSport Studio. Write it to the farmer, in plain language, and only after the nutritionist has agreed its content.
+- add_formulation_advice is the tool for writing nutritionist advice notes (featured-card save/publish tools separately modify public cards). The user reads the advice in FeedSport Studio. Write it to the farmer, in plain language, and only after the nutritionist has agreed its content.
 - Propose ration changes through suggestion (ingredient roles, prices, limits, programme or goal), never as a recipe you calculated. FeedSport formulates the suggestion and returns suggestion_check; check it with preview_formulation_advice first and do not save a suggestion that is not optimal.
 - Treat user data as confidential: share it only with the nutritionist.
 
@@ -97,7 +97,7 @@ const ingredientConstraints = z
         .number()
         .nonnegative()
         .optional()
-        .describe("Override the FeedSport planning price (USD per tonne)."),
+        .describe("Price in USD per tonne. For unpriced commercial Sustar SKUs, provide a REAL supplier quote here; never invent a price."),
     }),
   )
   .optional()
@@ -184,7 +184,7 @@ export function createFeedSportMcpServer(
     {
       title: "Get programme requirements",
       description:
-        "Nutritional requirements and source metadata for one programme phase — exactly the constraints FeedSport enforces when formulating.",
+        "Programme phase nutrient targets and source metadata. Some targets (including vitamin/trace-mineral supplementation) are NOT enforced when no verified premix profile exists; check unsupported_requirements in formulation results.",
       inputSchema: z.object({ programme_id: programmeId, energy_system: energySystem }),
       annotations: READ_ONLY,
     },
@@ -196,7 +196,7 @@ export function createFeedSportMcpServer(
     {
       title: "Search ingredients",
       description:
-        "Find FeedSport ingredients by name, category, nutrient, price market, supplier or availability. Returns ids, planning prices and default inclusion limits.",
+        "Find ingredients and real commercial premix SKUs by name, category, nutrient, price market, supplier or availability. Use category=vitamin_mineral_premix with available_only=false to see unpriced Sustar products and their published fixed inclusion rates.",
       inputSchema: z.object({
         query: z.string().optional().describe('Name, alias or id, e.g. "wheat bran", "maize", "soybean meal".'),
         category: z.enum(INGREDIENT_CATEGORIES).optional(),
