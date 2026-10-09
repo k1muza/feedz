@@ -514,8 +514,8 @@ export function FeedFormulationWorkbench({
         };
       });
 
-      // Mature boars have no supported combined vitamin-mineral premix SKU.
-      // Allow basal-only nutrition planning, never silently substitute sow X913.
+      // Include the stage-compatible real product when available.
+      // CJ S174 is manufacturer-recipe-only; its entire basal ration is locked.
       if (selectedPremix) {
         // CJ S174: reject edits to the manufacturer's ingredient pool/proportions.
         if (selectedPremix.manufacturerRecipe) {
