@@ -174,6 +174,7 @@ export interface SavedAdvice {
   date: number;
   /** A suggested revision the user can open and save as a new version. */
   suggestion: Snapshot | null;
+  read: boolean;
 }
 export interface SavedDoc {
   id: string;

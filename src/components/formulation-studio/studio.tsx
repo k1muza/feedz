@@ -262,6 +262,8 @@ interface State {
   sIdx: number;
   /** Account menu open. */
   uOpen: boolean;
+  /** Notifications (advice from FeedSport) menu open. */
+  nOpen: boolean;
   featFilter: "all" | Species;
   /** "Talk to a nutritionist" request. */
   cOpen: boolean;
@@ -591,7 +593,7 @@ function draftErr(d: Draft, fs: number) {
 }
 
 const INITIAL: State = {
-  w: 1400, screen: "home", step: 1, species: "swine", programmeId: DEFAULT_PROGRAMME, phaseId: "", setKey: "none", setupListId: null, pool: {}, goal: "least_cost", batch: 100, batchMode: "100", customBatch: "", unit: "t", docName: "Untitled formulation", docId: null, pendingDoc: null, pendingCmp: null, result: null, runSig: null, runSnap: null, running: false, runToken: 0, tab: "recipe", drawer: null, advisoriesOpen: false, addOpen: false, addQ: "", addPick: [], mode: "optimised", manual: {}, manualCheck: null, rulesOpen: false, history: [], sel: [], cmp: null, toast: null, dismissed: {}, savedSig: null, saving: false, exporting: false, suggestion: null, completionSuggestion: null, ingQ: "", catQ: "", catSel: null, catPage: 1, catPageSize: CAT_DEFAULT_PAGE_SIZE, progSel: null, progPhase: null, progAllLimits: false, addTarget: "pool", auth: null, authNext: null, af: { email: "", password: "", name: "", org: "", role: "farmer" }, aShow: false, aErr: {}, aBusy: false, aGoogleBusy: false, aSent: null, myListSel: null, listRename: null, listCreate: null, sq: "", sOpen: false, sIdx: 0, uOpen: false, featFilter: "all", cOpen: false, cTopic: "review", cPhone: "", cMsg: "", cAttach: true, cBusy: false, cSent: false, cErr: "",
+  w: 1400, screen: "home", step: 1, species: "swine", programmeId: DEFAULT_PROGRAMME, phaseId: "", setKey: "none", setupListId: null, pool: {}, goal: "least_cost", batch: 100, batchMode: "100", customBatch: "", unit: "t", docName: "Untitled formulation", docId: null, pendingDoc: null, pendingCmp: null, result: null, runSig: null, runSnap: null, running: false, runToken: 0, tab: "recipe", drawer: null, advisoriesOpen: false, addOpen: false, addQ: "", addPick: [], mode: "optimised", manual: {}, manualCheck: null, rulesOpen: false, history: [], sel: [], cmp: null, toast: null, dismissed: {}, savedSig: null, saving: false, exporting: false, suggestion: null, completionSuggestion: null, ingQ: "", catQ: "", catSel: null, catPage: 1, catPageSize: CAT_DEFAULT_PAGE_SIZE, progSel: null, progPhase: null, progAllLimits: false, addTarget: "pool", auth: null, authNext: null, af: { email: "", password: "", name: "", org: "", role: "farmer" }, aShow: false, aErr: {}, aBusy: false, aGoogleBusy: false, aSent: null, myListSel: null, listRename: null, listCreate: null, sq: "", sOpen: false, sIdx: 0, uOpen: false, nOpen: false, featFilter: "all", cOpen: false, cTopic: "review", cPhone: "", cMsg: "", cAttach: true, cBusy: false, cSent: false, cErr: "",
 };
 
 const spinnerStyle = (track: string, head: string): CSSProperties => ({ width: 16, height: 16, borderRadius: "50%", border: "2px solid " + track, borderTopColor: head, display: "inline-block", animation: "fsspin .8s linear infinite", flex: "none" });
@@ -767,8 +769,8 @@ function useStudio({ catalogue, nutrients, programmes, showSolverDetails = false
         if (!searchRef.current) return;
         e.preventDefault();
         searchRef.current.focus();
-        update({ sOpen: true, uOpen: false });
-      } else if (e.key === "Escape") update((s) => (s.uOpen ? { uOpen: false } : {}));
+        update({ sOpen: true, uOpen: false, nOpen: false });
+      } else if (e.key === "Escape") update((s) => (s.uOpen || s.nOpen ? { uOpen: false, nOpen: false } : {}));
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -1063,6 +1065,17 @@ function useStudio({ catalogue, nutrients, programmes, showSolverDetails = false
     if (!doc) return;
     update(versionState(doc, programmes, v));
     run();
+  };
+  /** Opens the version a note is about, with the advisories drawer showing it. */
+  const openAdvice = (docId: string, adviceId: string) => {
+    const doc = formulations.docs.find((d) => d.id === docId);
+    const advice = doc?.advice.find((a) => a.id === adviceId);
+    if (!doc || !advice) return;
+    const v = doc.versions.some((x) => x.v === advice.v) ? advice.v! : doc.versions[doc.versions.length - 1].v;
+    openVersion(docId, v);
+    // After openVersion, whose run closes drawers.
+    update({ advisoriesOpen: true });
+    formulations.markAdviceRead(doc.advice.map((a) => a.id));
   };
   /** Opens a nutritionist's suggested revision as unsaved changes to its formulation. */
   const openSuggestion = (docId: string, adviceId: string) => {
@@ -1660,7 +1673,10 @@ function useStudio({ catalogue, nutrients, programmes, showSolverDetails = false
     opt, showSolver: showSolverDetails, tabs, tabRecipe: S.tab === "recipe", tabNutrients: S.tab === "nutrients", tabWhy: S.tab === "why", tabHistory: S.tab === "history",
     advisoriesOpen: S.advisoriesOpen && (!!opt?.advisories.length || docAdvice.length > 0),
     advisoriesLabel: advisoryCount((opt?.advisories.length ?? 0) + docAdvice.length),
-    openAdvisories: () => update({ advisoriesOpen: true, drawer: null, addOpen: false, rulesOpen: false }),
+    openAdvisories: () => {
+      update({ advisoriesOpen: true, drawer: null, addOpen: false, rulesOpen: false });
+      if (doc) formulations.markAdviceRead(doc.advice.map((a) => a.id));
+    },
     closeAdvisories: () => update({ advisoriesOpen: false }),
     modeOpts: (
       [
@@ -1686,7 +1702,8 @@ function useStudio({ catalogue, nutrients, programmes, showSolverDetails = false
     d, closeDrawer: () => update({ drawer: null }),
     hasToast: !!S.toast, toast: S.toast || "",
     ...topBarVals(S, {
-      update, searchRef, startGuided, startBlank: () => openWorkspace({}, "Untitled formulation"), openVersion, openDrawer,
+      update, searchRef, startGuided, startBlank: () => openWorkspace({}, "Untitled formulation"), openVersion, openDrawer, openAdvice,
+      markAllAdviceRead: () => formulations.markAdviceRead(formulations.docs.flatMap((d) => d.advice.map((a) => a.id))),
       docs: formulations.docs, catalogue, myLists, programmes, nutrients,
     }),
     ...featuredVals(S, featured, { update, run, flash, programmes }),
@@ -2351,6 +2368,8 @@ function topBarVals(
     startBlank: () => void;
     openVersion: (docId: string, v: number) => void;
     openDrawer: (id: string) => void;
+    openAdvice: (docId: string, adviceId: string) => void;
+    markAllAdviceRead: () => void;
     docs: SavedDoc[];
     catalogue: CatalogueIngredient[];
     myLists: MyLists;
@@ -2360,7 +2379,7 @@ function topBarVals(
 ) {
   const { update, myLists, programmes } = ctx;
   const close = () => {
-    update({ sOpen: false, sq: "", sIdx: 0, uOpen: false });
+    update({ sOpen: false, sq: "", sIdx: 0, uOpen: false, nOpen: false });
     ctx.searchRef.current?.blur();
   };
   const nav = (patch: Partial<State>) => () => {
@@ -2436,11 +2455,11 @@ function topBarVals(
 
   return {
     showTop: !!S.auth, searchRef: ctx.searchRef, sq: S.sq, sOpen: S.sOpen, sGroups, sEmpty: !!toks.length && !flat.length, sEmptyTitle: "No matches for “" + S.sq.trim() + "”",
-    onSq: (e: InputEvent) => update({ sq: e.target.value, sOpen: true, sIdx: 0, uOpen: false }),
-    onSFocus: () => update((s) => (s.sOpen ? {} : { sOpen: true, uOpen: false })),
+    onSq: (e: InputEvent) => update({ sq: e.target.value, sOpen: true, sIdx: 0, uOpen: false, nOpen: false }),
+    onSFocus: () => update((s) => (s.sOpen ? {} : { sOpen: true, uOpen: false, nOpen: false })),
     onSKey,
     sBd: S.sOpen ? "#2f5a3f" : "#d0cdc3", sBg: S.sOpen ? "#fff" : "#faf8f3", sRing: S.sOpen ? "0 0 0 3px #dbe7dc" : "none",
-    uOpen: S.uOpen, toggleUser: () => update((s) => ({ uOpen: !s.uOpen, sOpen: false })), uBtnBg: S.uOpen ? "#f3f0e8" : "transparent", uBtnBd: S.uOpen ? "#d0cdc3" : "transparent",
+    uOpen: S.uOpen, toggleUser: () => update((s) => ({ uOpen: !s.uOpen, sOpen: false, nOpen: false })), uBtnBg: S.uOpen ? "#f3f0e8" : "transparent", uBtnBd: S.uOpen ? "#d0cdc3" : "transparent",
     userEmail: S.auth?.email ?? "", siteLabel: S.w >= 700 ? "Main site" : "Site",
     uUnits: ([["kg", "per kg"], ["t", "per tonne"]] as const).map(([k, label]) => ({ label, ...segOpt(S.unit === k), pick: () => update({ unit: k }) })),
     uItems: [
@@ -2448,7 +2467,37 @@ function topBarVals(
       { label: "My ingredient lists", sub: myLists.status === "ready" ? myLists.lists.length + (myLists.lists.length === 1 ? " list" : " lists") : "", go: nav({ screen: "ingredients" }) },
       { label: "Saved formulations", sub: String(ctx.docs.length), go: nav({ screen: "list" }) },
     ],
-    anyMenu: S.sOpen || S.uOpen, closeMenus: () => update({ sOpen: false, uOpen: false }),
+    anyMenu: S.sOpen || S.uOpen || S.nOpen, closeMenus: () => update({ sOpen: false, uOpen: false, nOpen: false }),
+    ...notificationVals(S, ctx),
+  };
+}
+
+// The bell: advice FeedSport's nutritionist left on the user's formulations, newest first.
+const NOTIFICATION_LIMIT = 20;
+function notificationVals(S: State, ctx: { update: Update; docs: SavedDoc[]; openAdvice: (docId: string, adviceId: string) => void; markAllAdviceRead: () => void }) {
+  const all = ctx.docs.flatMap((d) => d.advice.map((a) => ({ d, a }))).sort((x, y) => y.a.date - x.a.date);
+  const unread = all.filter((x) => !x.a.read).length;
+  const excerpt = (body: string) => (body.length > 140 ? body.slice(0, 137).trimEnd() + "…" : body);
+  return {
+    nOpen: S.nOpen,
+    nUnread: unread,
+    nBadge: unread > 9 ? "9+" : String(unread),
+    nLabel: unread ? unread + " unread " + (unread === 1 ? "advisory" : "advisories") : "Notifications",
+    toggleNotifications: () => ctx.update((s) => ({ nOpen: !s.nOpen, uOpen: false, sOpen: false })),
+    nItems: all.slice(0, NOTIFICATION_LIMIT).map(({ d, a }) => ({
+      key: a.id,
+      title: d.name,
+      author: a.author,
+      text: excerpt(a.body),
+      date: new Date(a.date).toLocaleDateString("en-GB", { day: "numeric", month: "short" }),
+      unread: !a.read,
+      go: () => {
+        ctx.update({ nOpen: false });
+        ctx.openAdvice(d.id, a.id);
+      },
+    })),
+    nEmpty: all.length === 0,
+    markAllRead: ctx.markAllAdviceRead,
   };
 }
 

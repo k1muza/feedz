@@ -180,6 +180,42 @@ function TopBar({ v, shell }: V & { shell: ShellVals }) {
           {v.siteLabel}
         </a>
         <div style={sx("position:relative;flex:none")}>
+          <button onClick={v.toggleNotifications} aria-haspopup="menu" aria-expanded={v.nOpen} aria-label={v.nLabel} title={v.nLabel} className={hv("soft")} style={sx(`position:relative;display:flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:99px;border:1px solid ${v.nOpen ? "#d0cdc3" : "transparent"};background:${v.nOpen ? "#f3f0e8" : "transparent"};color:#45473f`)}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
+              <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
+            </svg>
+            {v.nUnread > 0 && (
+              <span style={sx("position:absolute;top:2px;right:1px;min-width:18px;height:18px;padding:0 5px;border-radius:99px;background:#b2412e;color:#fff;border:2px solid #fff;font:600 10px/14px 'IBM Plex Sans',sans-serif;text-align:center;box-sizing:border-box")}>{v.nBadge}</span>
+            )}
+          </button>
+          {v.nOpen && (
+            <div role="menu" style={sx("position:absolute;right:0;top:calc(100% + 6px);width:360px;max-width:92vw;max-height:min(70vh,520px);display:flex;flex-direction:column;background:#fff;border:1px solid #e2dfd6;border-radius:10px;box-shadow:0 16px 40px rgba(34,36,32,.18);overflow:hidden;animation:fsin .15s ease-out;z-index:5")}>
+              <div style={sx("display:flex;justify-content:space-between;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid #ece8df")}>
+                <span style={sx("font:600 15px/1.2 'IBM Plex Sans',sans-serif")}>Advice from FeedSport</span>
+                {v.nUnread > 0 && <button onClick={v.markAllRead} style={sx("border:0;background:transparent;padding:0;font:500 13px/1 'IBM Plex Sans',sans-serif;color:#2f5a3f")}>Mark all read</button>}
+              </div>
+              <div style={sx("overflow-y:auto")}>
+                {v.nItems.map((n) => (
+                  <button key={n.key} onClick={n.go} role="menuitem" className={hv("row")} style={sx(`width:100%;border:0;border-top:1px solid #ece8df;background:${n.unread ? "#f4f8f4" : "#fff"};text-align:left;display:flex;gap:10px;padding:12px 16px;color:#222420`)}>
+                    <span style={sx(`flex:none;margin-top:5px;width:8px;height:8px;border-radius:50%;background:${n.unread ? "#2f5a3f" : "transparent"}`)} />
+                    <span style={sx("flex:1;min-width:0;display:flex;flex-direction:column;gap:4px")}>
+                      <span style={sx("display:flex;justify-content:space-between;gap:10px")}>
+                        <span style={sx(`font:${n.unread ? 600 : 500} 14px/1.25 'IBM Plex Sans',sans-serif;overflow:hidden;text-overflow:ellipsis;white-space:nowrap`)}>{n.title}</span>
+                        <span style={sx("flex:none;font:400 12px/1.25 'IBM Plex Sans',sans-serif;color:#64665c")}>{n.date}</span>
+                      </span>
+                      <span style={sx("font:400 13px/1.45 'IBM Plex Sans',sans-serif;color:#45473f;overflow-wrap:anywhere")}>
+                        <b style={sx("font-weight:600")}>{n.author}:</b> {n.text}
+                      </span>
+                    </span>
+                  </button>
+                ))}
+                {v.nEmpty && <div style={sx("padding:18px 16px;font:400 13px/1.5 'IBM Plex Sans',sans-serif;color:#64665c")}>No advice yet. When a FeedSport nutritionist reviews one of your formulations, their notes appear here.</div>}
+              </div>
+            </div>
+          )}
+        </div>
+        <div style={sx("position:relative;flex:none")}>
           <button onClick={v.toggleUser} aria-haspopup="menu" aria-expanded={v.uOpen} className={hv("pool")} style={sx(`display:flex;align-items:center;gap:10px;border:1px solid ${v.uBtnBd};background:${v.uBtnBg};padding:4px 10px 4px 4px;border-radius:99px;color:#222420`)}>
             <span style={sx("flex:none;width:30px;height:30px;border-radius:50%;background:#2f5a3f;color:#faf8f3;font:600 12px/30px 'IBM Plex Sans',sans-serif;text-align:center")}>{shell.userInitials}</span>
             {shell.wide && (

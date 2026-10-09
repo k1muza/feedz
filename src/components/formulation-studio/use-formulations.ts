@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 
-import { fetchFormulationAdvice, fetchFormulations, saveFormulationVersion } from "@/lib/formulations";
+import { fetchFormulationAdvice, fetchFormulations, markFormulationAdviceRead, saveFormulationVersion } from "@/lib/formulations";
 
 import type { SavedDoc, Snapshot, Summary } from "./engine";
 
@@ -24,7 +24,7 @@ export function useFormulations(userId: string | null) {
           id: r.id,
           name: r.name,
           versions: r.versions.map((v) => ({ v: v.version, date: Date.parse(v.createdAt), snap: v.snapshot, sum: v.summary })),
-          advice: advice.filter((a) => a.formulationId === r.id).map((a) => ({ id: a.id, v: a.version, author: a.author, body: a.body, date: Date.parse(a.createdAt), suggestion: a.suggestedSnapshot })),
+          advice: advice.filter((a) => a.formulationId === r.id).map((a) => ({ id: a.id, v: a.version, author: a.author, body: a.body, date: Date.parse(a.createdAt), suggestion: a.suggestedSnapshot, read: a.readAt != null })),
         })),
       );
       setStatus("ready");
@@ -53,7 +53,15 @@ export function useFormulations(userId: string | null) {
     return saved;
   };
 
-  return { status, docs, reload: load, save };
+  /** Marks advice read straight away; the database catches up in the background. */
+  const markAdviceRead = (ids: string[]) => {
+    const unread = new Set(docs.flatMap((d) => d.advice.filter((a) => !a.read && ids.includes(a.id)).map((a) => a.id)));
+    if (!unread.size) return;
+    setDocs((all) => all.map((d) => (d.advice.some((a) => unread.has(a.id)) ? { ...d, advice: d.advice.map((a) => (unread.has(a.id) ? { ...a, read: true } : a)) } : d)));
+    markFormulationAdviceRead([...unread]).catch((error) => console.error("Failed to mark advice read:", error));
+  };
+
+  return { status, docs, reload: load, save, markAdviceRead };
 }
 
 export type Formulations = ReturnType<typeof useFormulations>;

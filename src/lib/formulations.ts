@@ -66,6 +66,7 @@ export interface FormulationAdviceRow<Snap> {
   body: string;
   suggestedSnapshot: Snap | null;
   createdAt: string;
+  readAt: string | null;
 }
 
 /**
@@ -76,13 +77,13 @@ export interface FormulationAdviceRow<Snap> {
 export async function fetchFormulationAdvice<Snap>(): Promise<FormulationAdviceRow<Snap>[]> {
   const { data, error } = await createClient()
     .from("formulation_advice")
-    .select("id, formulation_id, version, author, body, suggested_snapshot, created_at")
+    .select("id, formulation_id, version, author, body, suggested_snapshot, created_at, read_at")
     .order("created_at", { ascending: false });
   if (error) {
     console.error("Failed to load formulation advice:", error.message);
     return [];
   }
-  return (data as { id: string; formulation_id: string; version: number | null; author: string; body: string; suggested_snapshot: unknown; created_at: string }[]).map((row) => ({
+  return (data as { id: string; formulation_id: string; version: number | null; author: string; body: string; suggested_snapshot: unknown; created_at: string; read_at: string | null }[]).map((row) => ({
     id: row.id,
     formulationId: row.formulation_id,
     version: row.version,
@@ -90,5 +91,12 @@ export async function fetchFormulationAdvice<Snap>(): Promise<FormulationAdviceR
     body: row.body,
     suggestedSnapshot: row.suggested_snapshot as Snap | null,
     createdAt: row.created_at,
+    readAt: row.read_at,
   }));
+}
+
+/** Marks advice notes read; row-level security limits it to the user's own formulations. */
+export async function markFormulationAdviceRead(ids: string[]): Promise<void> {
+  if (!ids.length) return;
+  check(await createClient().from("formulation_advice").update({ read_at: new Date().toISOString() }).in("id", ids).is("read_at", null));
 }
