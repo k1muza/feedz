@@ -146,6 +146,8 @@ export interface OptimalResult {
 }
 
 export type FormulateResult =
+  | { status: "manufacturer_recipe"; recipe: Array<{ id: string; name: string; pct: number }>;
+      costT: number | null; message: string; warns: Issue[] }
   | { status: "blocked"; errs: Issue[]; warns: Issue[] }
   | { status: "infeasible"; warns: Issue[]; shortfalls: Shortfall[]; activeCount: number; setAside: string[] }
   | { status: "error"; warns: Issue[]; message: string }
@@ -391,12 +393,15 @@ export async function formulate(snap: Snapshot, ctx: EngineContext): Promise<For
 
   if (result.status === "manufacturer_recipe") {
     return {
-      status: "blocked",
+      status: "manufacturer_recipe",
       warns,
-      errs: [{
-        title: "Manufacturer-only recipe: not a verified least-cost formulation",
-        body: `${result.warning} ${result.premix_analysis.message} ${result.cost_per_tonne === null ? "Supplier pricing is incomplete." : `Published mix costs ${result.cost_per_tonne.toFixed(2)}/tonne at the entered prices.`} The ingredient proportions must not be changed without manufacturer approval. The public /formulations calculator can display or export this prescribed mix.`,
-      }],
+      recipe: result.recipe.ingredients.map((row) => ({
+        id: row.ingredientId,
+        name: nameOf(ctx, row.ingredientId),
+        pct: row.inclusionPct,
+      })),
+      costT: missingPremixPrice ? null : result.cost_per_tonne,
+      message: `${result.warning} ${result.premix_analysis.message} This is a fixed supplier recipe, NOT a least-cost-optimised or verified complete feed. No ingredient changes are authorised without manufacturer approval.`,
     };
   }
   if (result.status === "error") return { status: "error", warns, message: result.message };
