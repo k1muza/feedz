@@ -420,7 +420,7 @@ const DEFAULT_PROGRAMME = "grow-finish-pig";
 
 function defaultProgramme(programmes: StudioProgrammeData) {
   const programme = programmes.programmes.find((p) => p.id === DEFAULT_PROGRAMME) ?? programmes.programmes[0];
-  return { programmeId: programme.id, phaseId: programme.phases[0].id, species: programme.species, pool: poolWithProgrammePremix(S.pool, programme.id) };
+  return { programmeId: programme.id, phaseId: programme.phases[0].id, species: programme.species, pool: poolWithProgrammePremix({}, programme.id) };
 }
 
 /** A list's ingredients and settings, copied into a formulation. Later edits to the list don't reach it. */
@@ -1251,7 +1251,8 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
   });
   const programmeChoice = (programmeId: string) => {
     const programme = programmes.programmes.find((p) => p.id === programmeId) ?? P;
-    return { programmeId: programme.id, phaseId: programme.phases[0].id, species: programme.species };
+    return { programmeId: programme.id, phaseId: programme.phases[0].id,
+      species: programme.species, pool: poolWithProgrammePremix(S.pool, programme.id) };
   };
 
   // ---- setup ----
