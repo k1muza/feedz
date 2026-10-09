@@ -50,12 +50,8 @@ import {
   feedRecipeReportFilename,
   type FeedRecipeReportInput,
 } from "@/lib/feed-formulation-report";
-import {
-  PUBLIC_PREMIX_ID,
-  PUBLIC_PREMIX_INCLUSION_PCT,
-  PUBLIC_PREMIX_KG_PER_TONNE,
-  PUBLIC_PREMIX_NAME,
-} from "@/lib/public-feed-premix";
+import { PUBLIC_PREMIX_ID } from "@/lib/public-feed-premix";
+import { commercialPremixById, commercialPremixForProgramme } from "@/lib/commercial-premixes";
 import type {
   FormulationIngredientOption,
   FormulationIngredientSuggestionResult,
@@ -168,7 +164,7 @@ export function FeedFormulationWorkbench({
     firstProgramme;
   const initialRows: Omit<Row, "key">[] =
     initialFormulaSet?.setup?.rows.filter(
-      (row) => row.ingredientId !== PUBLIC_PREMIX_ID,
+      (row) => row.ingredientId !== PUBLIC_PREMIX_ID && !commercialPremixById(row.ingredientId),
     ).map((row) => ({
       ingredientId: row.ingredientId,
       price: row.price,
@@ -177,7 +173,7 @@ export function FeedFormulationWorkbench({
       lockedPct: row.lockedPct ?? "",
     })) ??
     initialFormulaSet?.ingredients
-      .filter((ingredient) => ingredient.ingredientId !== PUBLIC_PREMIX_ID)
+      .filter((ingredient) => ingredient.ingredientId !== PUBLIC_PREMIX_ID && !commercialPremixById(ingredient.ingredientId))
       .map((ingredient) => ({
         ingredientId: ingredient.ingredientId,
         price: String(ingredient.pricePerKg),
@@ -215,12 +211,12 @@ export function FeedFormulationWorkbench({
     String(initialFormulaSet?.targetBatchKg ?? 1000),
   );
   const savedPremixPrice =
-    initialFormulaSet?.setup?.fixedPremixName === PUBLIC_PREMIX_NAME &&
+    initialFormulaSet?.setup?.fixedPremixName === commercialPremixForProgramme(initialProgramme?.id ?? "")?.name &&
     initialFormulaSet.setup.fixedPremixPricePerKg.trim() !== ""
       ? initialFormulaSet.setup.fixedPremixPricePerKg
       : undefined;
   const [fixedPremixPricePerKg, setFixedPremixPricePerKg] = useState(
-    savedPremixPrice ?? defaultPriceInput(PUBLIC_PREMIX_ID, ingredients),
+    savedPremixPrice ?? "",
   );
   const [nextKey, setNextKey] = useState(100);
   const [addIngredientId, setAddIngredientId] = useState("");
@@ -267,7 +263,8 @@ export function FeedFormulationWorkbench({
     Number.isFinite(parsedTargetBatchKg) && parsedTargetBatchKg > 0
       ? parsedTargetBatchKg
       : 1000;
-  const displayFixedPremixKgPerTonne = PUBLIC_PREMIX_KG_PER_TONNE;
+  const selectedPremix = commercialPremixForProgramme(programmeId);
+  const displayFixedPremixKgPerTonne = selectedPremix?.inclusionKgPerTonne ?? 0;
   const fixedPremixBatchKg =
     (displayBatchKg * displayFixedPremixKgPerTonne) / 1000;
   const baseMixBatchKg = displayBatchKg - fixedPremixBatchKg;
@@ -280,7 +277,7 @@ export function FeedFormulationWorkbench({
 
   const availableToAdd = ingredients.filter(
     (ingredient) =>
-      ingredient.id !== PUBLIC_PREMIX_ID &&
+      ingredient.id !== PUBLIC_PREMIX_ID && !commercialPremixById(ingredient.id) &&
       !rows.some((row) => row.ingredientId === ingredient.id),
   );
 
@@ -328,7 +325,7 @@ export function FeedFormulationWorkbench({
 
         const suggestedIds = payload.ingredientIds.filter(
           (ingredientId) =>
-            ingredientId !== PUBLIC_PREMIX_ID &&
+            ingredientId !== PUBLIC_PREMIX_ID && !commercialPremixById(ingredientId) &&
             ingredients.some((ingredient) => ingredient.id === ingredientId),
         );
         setRows(
@@ -416,7 +413,7 @@ export function FeedFormulationWorkbench({
     let requestIngredients: FormulationIngredientOption[];
     try {
       requestIngredients = rows
-        .filter((row) => row.ingredientId !== PUBLIC_PREMIX_ID)
+        .filter((row) => row.ingredientId !== PUBLIC_PREMIX_ID && !commercialPremixById(row.ingredientId))
         .map((row) => {
         const pricePerKg = Number(row.price);
         if (!Number.isFinite(pricePerKg) || pricePerKg < 0 || row.price.trim() === "") {
@@ -450,19 +447,20 @@ export function FeedFormulationWorkbench({
         };
       });
 
+      if (!selectedPremix) throw new Error("No commercial premix is mapped to this programme.");
       const premixPricePerKg = Number(fixedPremixPricePerKg);
       if (
         !Number.isFinite(premixPricePerKg) ||
         premixPricePerKg < 0 ||
         fixedPremixPricePerKg.trim() === ""
       ) {
-        throw new Error("Enter a valid FeedSport premix price per kg.");
+        throw new Error("Enter a supplier-quoted price per kg for the selected Sustar premix.");
       }
       requestIngredients.push({
-        ingredientId: PUBLIC_PREMIX_ID,
+        ingredientId: selectedPremix.id,
         pricePerKg: premixPricePerKg,
-        minInclusionPct: PUBLIC_PREMIX_INCLUSION_PCT,
-        maxInclusionPct: PUBLIC_PREMIX_INCLUSION_PCT,
+        minInclusionPct: selectedPremix.inclusionPct,
+        maxInclusionPct: selectedPremix.inclusionPct,
       });
     } catch (error) {
       setRequestError(error instanceof Error ? error.message : String(error));
@@ -478,7 +476,7 @@ export function FeedFormulationWorkbench({
           programmeId,
           phaseId,
           energySystem,
-          includeSupplementationTargets: true,
+          includeSupplementationTargets: false, // Unverified manufacturer spec: do not claim micronutrient coverage.
           customPremixes: [],
           ingredients: requestIngredients,
         }),
@@ -529,14 +527,14 @@ export function FeedFormulationWorkbench({
             ingredientPoolMode,
             solverObjective: "least-cost-with-alternatives",
             settings: {
-              includeSupplementationTargets: true,
+              includeSupplementationTargets: false,
               traceMineralBasis: "inorganic",
             },
             ingredients: basisIngredients,
             fixedPremix: {
-              id: PUBLIC_PREMIX_ID,
-              name: PUBLIC_PREMIX_NAME,
-              inclusionKgPerTonne: PUBLIC_PREMIX_KG_PER_TONNE,
+              id: selectedPremix!.id,
+              name: selectedPremix!.name,
+              inclusionKgPerTonne: selectedPremix!.inclusionKgPerTonne,
               pricePerKg: Number(fixedPremixPricePerKg),
             },
           }),
@@ -605,10 +603,10 @@ export function FeedFormulationWorkbench({
         };
       }),
       {
-        ingredientId: PUBLIC_PREMIX_ID,
-        name: PUBLIC_PREMIX_NAME,
+        ingredientId: selectedPremix?.id ?? "premix-not-selected",
+        name: selectedPremix?.name ?? "No premix selected",
         pricePerKg: Number(fixedPremixPricePerKg),
-        maxInclusionPct: PUBLIC_PREMIX_INCLUSION_PCT,
+        maxInclusionPct: selectedPremix?.inclusionPct ?? 0,
       },
     ],
   };
@@ -657,8 +655,8 @@ export function FeedFormulationWorkbench({
             })),
             ingredientPoolMode,
             useFixedPremix: true,
-            fixedPremixName: PUBLIC_PREMIX_NAME,
-            fixedPremixKgPerTonne: String(PUBLIC_PREMIX_KG_PER_TONNE),
+            fixedPremixName: selectedPremix?.name ?? "Unspecified premix",
+            fixedPremixKgPerTonne: String(selectedPremix?.inclusionKgPerTonne ?? 0),
             fixedPremixPricePerKg,
             selectedRecipeId,
           },
@@ -729,9 +727,8 @@ export function FeedFormulationWorkbench({
           <DialogHeader className="border-b border-hairline px-5 py-4 pr-14 sm:px-6">
             <DialogTitle>Finished mix</DialogTitle>
             <DialogDescription className="max-w-3xl leading-6">
-              Set the final batch weight and FeedSport premix price. The phase-specific premix is
-              always included at 10 kg/t so vitamin and trace-mineral supplementation is validated
-              together with the basal diet requirements.
+              The recommended Sustar product is included at its published dose, not at a universal 10 kg/t.
+              This product is UNVERIFIED: vitamin and trace-mineral coverage is not checked. Enter a real supplier quote to estimate cost.
             </DialogDescription>
           </DialogHeader>
 
@@ -750,7 +747,7 @@ export function FeedFormulationWorkbench({
                   }}
                 />
               </Field>
-              <Field label="FeedSport premix price / kg">
+              <Field label={`Supplier price / kg — ${selectedPremix?.sku ?? "premix"} (USD)`}>
                 <Input
                   type="number"
                   min="0"
@@ -770,10 +767,10 @@ export function FeedFormulationWorkbench({
               <div className="rounded-lg border border-hairline bg-background px-4 py-3 text-sm">
                 <div className="font-medium text-ink">Required supplementation</div>
                 <div className="mt-1 leading-6 text-ink-muted">
-                  {PUBLIC_PREMIX_NAME} is fixed at{" "}
-                  <strong className="text-ink">{PUBLIC_PREMIX_KG_PER_TONNE} kg/t</strong>.
-                  FeedSport validates the selected phase&apos;s vitamin and inorganic trace-mineral
-                  supplementation targets.
+                  {selectedPremix?.name ?? "No corresponding commercial premix"} is included at{" "}
+                  <strong className="text-ink">{selectedPremix?.inclusionKgPerTonne ?? 0} kg/t</strong>.
+                  Unverified manufacturer product: vitamin and trace-mineral supplementation is
+                  NOT checked. The result cannot be represented as a nutritionally complete feed.
                 </div>
               </div>
 
