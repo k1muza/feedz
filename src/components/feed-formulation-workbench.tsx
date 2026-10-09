@@ -183,6 +183,17 @@ export function FeedFormulationWorkbench({
       })) ??
     [];
   const initialPremix = commercialPremixForProgramme(initialProgramme?.id ?? "");
+  const initialManufacturerRows = !initialFormulaSet && initialPremix?.manufacturerRecipe
+    ? initialPremix.manufacturerRecipe
+        .filter((item) => item.ingredientId !== initialPremix.id)
+        .map((item) => ({
+          ingredientId: item.ingredientId,
+          price: defaultPriceInput(item.ingredientId, ingredients),
+          min: "",
+          max: "",
+          lockedPct: String(item.percent),
+        }))
+    : undefined;
   const legacySavedPremix = Boolean(initialFormulaSet) && (
     initialFormulaSet!.ingredients.some((ingredient) => ingredient.ingredientId === PUBLIC_PREMIX_ID) ||
     (initialPremix
@@ -213,7 +224,7 @@ export function FeedFormulationWorkbench({
     initialFormulaSet?.energySystem ?? "ME",
   );
   const [ingredientPoolMode, setIngredientPoolMode] = useState<IngredientPoolMode>(
-    initialFormulaSet?.setup?.ingredientPoolMode ?? "automatic",
+    initialFormulaSet?.setup?.ingredientPoolMode ?? (initialManufacturerRows ? "selected" : "automatic"),
   );
   const [targetBatchWeight, setTargetBatchWeight] = useState(
     String(initialFormulaSet?.targetBatchKg ?? 1000),
@@ -229,7 +240,7 @@ export function FeedFormulationWorkbench({
   const [nextKey, setNextKey] = useState(100);
   const [addIngredientId, setAddIngredientId] = useState("");
   const [rows, setRows] = useState<Row[]>(
-    initialRows.map((row, index) => ({ ...row, key: index })),
+    (initialManufacturerRows ?? initialRows).map((row, index) => ({ ...row, key: index })),
   );
   const [result, setResult] = useState<LeastCostFormulationResult | null>(
     initialResult,
@@ -370,6 +381,7 @@ export function FeedFormulationWorkbench({
   }, [programmeId, phaseId, energySystem, ingredients, ingredientPoolMode]);
 
   function changeIngredientPoolMode(value: IngredientPoolMode) {
+    if (selectedPremix?.manufacturerRecipe) return; // CJ supplies a fixed ingredient list.
     requirementsWereEdited.current = true;
     setIngredientPoolMode(value);
     setSuggestionError(null);
@@ -379,6 +391,24 @@ export function FeedFormulationWorkbench({
   function changeProgramme(value: string) {
     requirementsWereEdited.current = true;
     const programme = programmes.find((candidate) => candidate.id === value);
+    const premix = commercialPremixForProgramme(value);
+    if (premix?.manufacturerRecipe) {
+      // No discretionary ingredient selection: use only CJ's published mix.
+      setIngredientPoolMode("selected");
+      setRows(premix.manufacturerRecipe
+        .filter((item) => item.ingredientId !== premix.id)
+        .map((item, index) => ({
+          key: index,
+          ingredientId: item.ingredientId,
+          price: defaultPriceInput(item.ingredientId, ingredients),
+          min: "",
+          max: "",
+          lockedPct: String(item.percent),
+        })));
+      setSuggestionError(null);
+    } else {
+      setIngredientPoolMode("automatic");
+    }
     setProgrammeId(value);
     setPhaseId(programme?.phases[0]?.id ?? "");
     setResult(null);
@@ -467,13 +497,25 @@ export function FeedFormulationWorkbench({
       // Mature boars have no supported combined vitamin-mineral premix SKU.
       // Allow basal-only nutrition planning, never silently substitute sow X913.
       if (selectedPremix) {
+        // CJ S174: reject edits to the manufacturer's ingredient pool/proportions.
+        if (selectedPremix.manufacturerRecipe) {
+          const standard = selectedPremix.manufacturerRecipe.filter((item) => item.ingredientId !== selectedPremix.id);
+          if (requestIngredients.length !== standard.length || standard.some((item) => {
+            const offered = requestIngredients.find((row) => row.ingredientId === item.ingredientId);
+            return !offered ||
+              Math.abs((offered.minInclusionPct ?? -1) - item.percent) > 0.000001 ||
+              Math.abs((offered.maxInclusionPct ?? -1) - item.percent) > 0.000001;
+          })) {
+            throw new Error("CJ S174 permits the manufacturer recipe only. Use the published ingredient amounts or request a customised ration from CJ.");
+          }
+        }
         const premixPricePerKg = Number(fixedPremixPricePerKg);
         if (
           !Number.isFinite(premixPricePerKg) ||
           premixPricePerKg < 0 ||
           fixedPremixPricePerKg.trim() === ""
         ) {
-          throw new Error("Enter a supplier-quoted price per kg for the selected Sustar premix.");
+          throw new Error("Enter a supplier-quoted price per kg for the selected commercial premix.");
         }
         requestIngredients.push({
           ingredientId: selectedPremix.id,
@@ -750,7 +792,9 @@ export function FeedFormulationWorkbench({
             <DialogTitle>Finished mix</DialogTitle>
             <DialogDescription className="max-w-3xl leading-6">
               {selectedPremix
-                ? "The specified Sustar premix is included at its published dose (not a universal 10 kg/t). Its micronutrient contribution is UNVERIFIED; enter a real supplier quote."
+                ? selectedPremix.manufacturerRecipe
+                  ? "CJ S174 is a manufacturer-recipe-only premix. Use only the published maize, wheat bran, soybean meal and fish meal proportions until CJ approves another formula. Its nutrient profile remains UNVERIFIED."
+                  : "The specified commercial premix is included at its published dose (not a universal 10 kg/t). Its micronutrient contribution is UNVERIFIED; enter a real supplier quote."
                 : "No compatible commercial premix has been established for this programme. You can plan the basal ingredients only; this is NOT complete feed and must not be manufactured or fed as a finished recipe."}
             </DialogDescription>
           </DialogHeader>
@@ -940,7 +984,7 @@ export function FeedFormulationWorkbench({
         {activeTab === "setup" ? (
           <Card>
         <CardHeader>
-          <CardTitle>Least-cost formulation</CardTitle>
+          <CardTitle>{selectedPremix?.manufacturerRecipe ? "Manufacturer's fixed recipe" : "Least-cost formulation"}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-5">
           <div className="grid gap-4 md:grid-cols-3">
@@ -990,6 +1034,17 @@ export function FeedFormulationWorkbench({
             </Field>
           </div>
 
+          {selectedPremix?.manufacturerRecipe ? (
+            <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 p-3 text-sm leading-6">
+              <strong>{selectedPremix.sku}: manufacturer's prescribed ration only.</strong>{" "}
+              The ingredient list and percentages below are locked to CJ's published recipe.
+              No independent least-cost substitutions are authorised. A matching recipe still
+              does not establish vitamin/mineral adequacy until its specifications are verified.{" "}
+              <a href={selectedPremix.specificationUrl} target="_blank" rel="noopener noreferrer" className="underline">
+                Manufacturer specification
+              </a>
+            </div>
+          ) : null}
           <div className="rounded-lg border border-hairline bg-raised/20 p-3">
             <div className="text-sm font-medium text-ink">Ingredient pool</div>
             <div className="mt-1 text-xs leading-5 text-ink-muted">
@@ -1002,6 +1057,7 @@ export function FeedFormulationWorkbench({
                   name="ingredient-pool-mode"
                   value="automatic"
                   checked={ingredientPoolMode === "automatic"}
+                  disabled={Boolean(selectedPremix?.manufacturerRecipe)}
                   onChange={() => changeIngredientPoolMode("automatic")}
                   className="mt-0.5 h-4 w-4"
                 />
@@ -1018,6 +1074,7 @@ export function FeedFormulationWorkbench({
                   name="ingredient-pool-mode"
                   value="selected"
                   checked={ingredientPoolMode === "selected"}
+                  disabled={Boolean(selectedPremix?.manufacturerRecipe)}
                   onChange={() => changeIngredientPoolMode("selected")}
                   className="mt-0.5 h-4 w-4"
                 />
@@ -1128,6 +1185,7 @@ export function FeedFormulationWorkbench({
                           value={row.lockedPct}
                           placeholder="—"
                           title="Set an exact inclusion percentage. This overrides Min % and Max % for this ingredient."
+                          disabled={Boolean(selectedPremix?.manufacturerRecipe)}
                           onChange={(event) => updateRow(row.key, "lockedPct", event.target.value)}
                         />
                       </td>
@@ -1137,6 +1195,7 @@ export function FeedFormulationWorkbench({
                           variant="ghost"
                           size="icon"
                           aria-label={`Remove ${ingredient?.name ?? row.ingredientId}`}
+                          disabled={Boolean(selectedPremix?.manufacturerRecipe)}
                           onClick={() => {
                             setRows((current) => current.filter((candidate) => candidate.key !== row.key));
                             setResult(null);
@@ -1160,6 +1219,7 @@ export function FeedFormulationWorkbench({
           <div className="flex flex-wrap gap-2">
             <select
               value={addIngredientId}
+              disabled={Boolean(selectedPremix?.manufacturerRecipe)}
               onChange={(event) => setAddIngredientId(event.target.value)}
               className="h-9 min-w-72 rounded-md border border-hairline bg-background px-3 text-sm text-ink"
             >
@@ -1170,7 +1230,7 @@ export function FeedFormulationWorkbench({
                 </option>
               ))}
             </select>
-            <Button type="button" variant="outline" onClick={addIngredient} disabled={!addIngredientId}>
+            <Button type="button" variant="outline" onClick={addIngredient} disabled={!addIngredientId || Boolean(selectedPremix?.manufacturerRecipe)}>
               <Plus size={15} />
               Add ingredient
             </Button>
