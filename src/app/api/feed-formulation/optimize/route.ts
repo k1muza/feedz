@@ -26,6 +26,15 @@ const requestSchema = z.object({
     z.object({
       id: z.string().min(1),
       name: z.string().min(1),
+      source: z.object({
+        publisher: z.string().min(1),
+        title: z.string().min(1),
+        year: z.number().int().optional(),
+        url: z.string().url(),
+        basis: z.string().optional(),
+        priority: z.enum(["primary", "fallback", "supplier"]).optional(),
+        note: z.string().optional(),
+      }).optional(),
       vitamins: z.object({
         vitaminAIuKg: optionalNutrient,
         vitaminDIuKg: optionalNutrient,
