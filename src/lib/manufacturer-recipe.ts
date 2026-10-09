@@ -78,3 +78,60 @@ export function assessManufacturerRecipe(
     warning: `${premix.sku} is a manufacturer-prescribed recipe, NOT an optimized or nutritionally verified feed. Missing fish-meal/compound-premix analytical values prevent complete nutrient checking. Known nutrient shortfalls, if any, are listed; missing values are NOT treated as zero. Confirm the exact product, technical data sheet and recipe suitability with the manufacturer before feeding.`,
   };
 }
+
+/**
+ * Single canonical CJ manufacturer recipe/cost/validation result used by
+ * Studio, optimize API, MCP formulate, analyse and diagnostics.
+ * Pricing is optional for analysis; missing prices never silently become $0.
+ */
+export function buildManufacturerRecipeReport(
+  premix: CommercialPremix,
+  phase: NutritionPhase,
+  energySystem: EnergySystem,
+  library: IngredientLibrary,
+  pricesPerKg: ReadonlyMap<string, number> = new Map(),
+  suppliedFormula?: DietFormula,
+) {
+  if (!premix.manufacturerRecipe) throw new Error(`No manufacturer recipe for ${premix.sku}`);
+  const recipe: DietFormula = suppliedFormula ?? {
+    ingredients: premix.manufacturerRecipe.map(({ ingredientId, percent }) => ({
+      ingredientId, inclusionPct: percent,
+    })),
+  };
+  const assessment = assessManufacturerRecipe(premix, recipe, phase, energySystem, library);
+  const unpricedIngredients = recipe.ingredients
+    .filter((row) => !pricesPerKg.has(row.ingredientId))
+    .map((row) => row.ingredientId);
+  const costPerKg = unpricedIngredients.length
+    ? null
+    : recipe.ingredients.reduce((sum, row) =>
+      sum + row.inclusionPct / 100 * pricesPerKg.get(row.ingredientId)!, 0);
+  const snake = (value: string) => value
+    .replace(/([a-z0-9])([A-Z])/g, "$1_$2")
+    .replace(/-/g, "_")
+    .toLowerCase();
+  const round = (value: number, digits = 4) =>
+    Math.round(value * 10 ** digits) / 10 ** digits;
+  return {
+    ...assessment,
+    recipe,
+    costPerKg,
+    costPerTonne: costPerKg === null ? null : round(costPerKg * 1000, 2),
+    unpricedIngredients,
+    incomplete_requirements: assessment.incompleteRequirements.map((row) => ({
+      nutrient: snake(row.id),
+      label: row.label,
+      unit: row.unit,
+      requirement: round(row.requirement),
+      missing_data_for: row.missingIngredientIds,
+    })),
+    checked_shortfalls: assessment.checkedShortfalls.map((row) => ({
+      nutrient: snake(row.id),
+      label: row.label,
+      unit: row.unit,
+      relation: row.relation,
+      requirement: round(row.requirement),
+      actual: round(row.actual),
+    })),
+  };
+}
