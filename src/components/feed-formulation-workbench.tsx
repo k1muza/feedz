@@ -52,6 +52,7 @@ import {
 } from "@/lib/feed-formulation-report";
 import { PUBLIC_PREMIX_ID } from "@/lib/public-feed-premix";
 import { commercialPremixById, commercialPremixForProgramme } from "@/lib/commercial-premixes";
+import { restoreIngredientPool } from "@/lib/ingredient-pool-transition";
 import type { ManufacturerRecipeAssessment } from "@/lib/manufacturer-recipe";
 import type {
   FormulationIngredientOption,
@@ -423,14 +424,10 @@ export function FeedFormulationWorkbench({
         })));
       setSuggestionError(null);
     } else if (wasManufacturerLocked) {
-      const original = priorEditablePool.current;
+      const restored = restoreIngredientPool(priorEditablePool.current, rows);
       priorEditablePool.current = null;
-      setIngredientPoolMode(original?.mode ?? "automatic");
-      // Direct boar-to-grower navigation has no previous editable snapshot.
-      // Retain baseline ingredient rows while automatic phase suggestions load.
-      setRows(original?.rows ?? rows.map((row) => ({
-        ...row, min: "", max: "", lockedPct: "",
-      })));
+      setIngredientPoolMode(restored.mode);
+      setRows(restored.rows);
     }
     // Otherwise preserve the selected ingredient pool and its price/limits.
     setProgrammeId(value);
