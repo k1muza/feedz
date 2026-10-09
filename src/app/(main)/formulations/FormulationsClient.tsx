@@ -10,6 +10,7 @@ import type { FormulationAlternativeKind, FormulationIngredientSuggestionResult,
 import { feedProgrammeById, feedProgrammePhaseById } from '@/lib/feed-programmes';
 import { INGREDIENT_LIBRARY, ingredientLibraryForPhase, ingredientLibraryWithCommercialPremixes } from '@/lib/ingredient-nutrients';
 import { commercialPremixForProgramme } from '@/lib/commercial-premixes';
+import { initialFeedMix } from '@/lib/public-formulation-defaults';
 import { FEED_PROGRAMMES } from '@/lib/feed-programmes';
 import { resolveNutritionTargets } from '@/lib/nutrition-targets';
 
@@ -56,7 +57,7 @@ type DownloadableFormulation = {
 };
 
 export default function FormulationsClient({ ingredientPrices, ingredientPackSizes }: { ingredientPrices: IngredientDefaultPrice[]; ingredientPackSizes: IngredientPackSize[] }) {
-  const [inclusions, setInclusions] = useState<Inclusion>(defaults);
+  const [inclusions, setInclusions] = useState<Inclusion>(() => initialFeedMix(defaults, "sorghum", commercialPremixForProgramme(programmeChoices[0].id)?.inclusionPct ?? 0));
   const [visibleIngredientIds, setVisibleIngredientIds] = useState<IngredientId[]>(defaultVisibleIngredientIds);
   const [extraVisibleIngredientIds, setExtraVisibleIngredientIds] = useState<string[]>([]);
   const [extraInclusions, setExtraInclusions] = useState<Record<string, number>>({});
@@ -182,7 +183,7 @@ export default function FormulationsClient({ ingredientPrices, ingredientPackSiz
       setExtraVisibleIngredientIds(extra.map((item) => item.ingredientId));
       setExtraInclusions(Object.fromEntries(extra.map((item) => [item.ingredientId, item.percent])));
     } else {
-      setInclusions(defaults);
+      setInclusions(initialFeedMix(defaults, "sorghum", nextProduct?.inclusionPct ?? 0));
       setVisibleIngredientIds(defaultVisibleIngredientIds);
       setExtraVisibleIngredientIds([]);
       setExtraInclusions({});
