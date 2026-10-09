@@ -9,7 +9,7 @@ import {
   ingredientLibraryForPhase,
   ingredientLibraryWithCustomPremixes,
 } from "@/lib/ingredient-nutrients";
-import { commercialPremixById, commercialPremixCompatibleWithProgramme } from "@/lib/commercial-premixes";
+import { assertManufacturerRecipe, commercialPremixById, commercialPremixCompatibleWithProgramme } from "@/lib/commercial-premixes";
 import { PUBLIC_PREMIX_ID } from "@/lib/public-feed-premix";
 
 const optionalNutrient = z.number().finite().nonnegative().optional();
@@ -109,6 +109,12 @@ export async function POST(request: Request) {
       return [premix];
     });
     if (selectedCommercial.length > 1) throw new Error("Select only one commercial premix for a formulation.");
+    // CJ S174 is not an unrestricted component: enforce the manufacturer's
+    // EXACT formula on the server, even if the UI is bypassed.
+    for (const premix of selectedCommercial) assertManufacturerRecipe(premix, ingredients);
+    if (programmeId === "mature-boar" && selectedCommercial.length === 0) {
+      // Preserve existing basal-only planning, but never imply a complete diet.
+    }
     if (customPremixes.some((premix) => premix.id === PUBLIC_PREMIX_ID || commercialPremixById(premix.id))) {
       throw new Error("Do not override manufacturer products with user-supplied nutrient profiles.");
     }
