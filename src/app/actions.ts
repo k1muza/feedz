@@ -45,7 +45,7 @@ export async function generateBlogPostAudio(_input: unknown): Promise<any> { ret
 export async function startOrGetConversation(_uid: string): Promise<Conversation | null> { return null; }
 export async function addMessage(uid: string, content: string): Promise<Conversation> {
   const message = { role: 'user' as const, content, timestamp: Date.now() };
-  return { id: uid, messages: [message], lastMessage: message };
+  return { id: uid, startTime: message.timestamp, messages: [message], lastMessage: message };
 }
 export async function addAdminMessage(_uid: string, _content: string) { return unavailable(); }
 export async function markConversationAsRead(_uid: string) { return unavailable(); }
