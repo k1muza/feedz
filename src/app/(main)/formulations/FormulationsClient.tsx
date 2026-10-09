@@ -1,21 +1,17 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useState } from 'react';
 
 import { analyzeDiet, type AnalyzedNutrient, type DietFormula } from '@/lib/diet-formula';
 import { ingredientDefaultPricePerKg, type IngredientDefaultPrice } from '@/lib/feed-ingredient-prices';
 import type { IngredientPackSize } from '@/lib/ingredient-pack-sizes';
 import type { FormulationAlternativeKind, FormulationIngredientSuggestionResult, LeastCostFormulationResult } from '@/lib/feed-optimizer';
 import { feedProgrammeById, feedProgrammePhaseById } from '@/lib/feed-programmes';
-import { INGREDIENT_LIBRARY, ingredientLibraryWithCustomPremixes } from '@/lib/ingredient-nutrients';
+import { INGREDIENT_LIBRARY, ingredientLibraryForPhase, ingredientLibraryWithCommercialPremixes } from '@/lib/ingredient-nutrients';
+import { commercialPremixForProgramme } from '@/lib/commercial-premixes';
+import { FEED_PROGRAMMES } from '@/lib/feed-programmes';
 import { resolveNutritionTargets } from '@/lib/nutrition-targets';
-import {
-  PUBLIC_PREMIX_ID,
-  PUBLIC_PREMIX_INCLUSION_PCT,
-  PUBLIC_PREMIX_KG_PER_TONNE,
-  publicPremixProfileForPhase,
-} from '@/lib/public-feed-premix';
 
 import QuoteIngredientsDialog, { type QuoteLine } from './QuoteIngredientsDialog';
 
@@ -40,15 +36,10 @@ const defaultVisibleIngredientIds = rows
   .filter((row) => defaults[row.id] > 0)
   .map((row) => row.id);
 
-const programmeChoices = [
-  { id: 'grow-finish-pig', label: 'Pig · Standard performance' },
-  { id: 'grow-finish-pig-high-performance', label: 'Pig · High performance' },
-  { id: 'broiler-standard', label: 'Broiler · Standard performance' },
-].map((choice) => {
-  const programme = feedProgrammeById(choice.id);
-  if (!programme) throw new Error(`Missing formulation programme ${choice.id}.`);
-  return { ...choice, programme };
-});
+const programmeChoices = FEED_PROGRAMMES
+  .filter((programme) => programme.status === 'loaded' && programme.phases.length > 0 &&
+    commercialPremixForProgramme(programme.id) !== undefined)
+  .map((programme) => ({ id: programme.id, label: programme.name, programme }));
 
 const priorityChoices: { id: FormulationPriority; label: string; description: string }[] = [
   { id: 'least-cost', label: 'Lowest cost', description: 'Minimizes the total ingredient cost using current planning prices.' },
@@ -77,13 +68,17 @@ export default function FormulationsClient({ ingredientPrices, ingredientPackSiz
   const [downloadingPdf, setDownloadingPdf] = useState(false);
   const [downloadError, setDownloadError] = useState<string | null>(null);
   const [quoteDialogOpen, setQuoteDialogOpen] = useState(false);
-  const lastAutomaticFormulaKey = useRef<string | null>(null);
   const [programmeId, setProgrammeId] = useState(programmeChoices[0].id);
   const selectedProgramme = programmeChoices.find((choice) => choice.id === programmeId) ?? programmeChoices[0];
   const [phaseId, setPhaseId] = useState(selectedProgramme.programme.phases[0]?.id ?? '');
+  const selectedPremix = commercialPremixForProgramme(programmeId);
+  const [premixPrices, setPremixPrices] = useState<Record<string, string>>({});
+  const premixPriceInput = selectedPremix ? (premixPrices[selectedPremix.id] ?? '') : '';
+  const premixPrice = premixPriceInput.trim() ? Number(premixPriceInput) : undefined;
+  const manufacturerOnly = Boolean(selectedPremix?.manufacturerRecipe);
   const selectedPhase = selectedProgramme.programme.phases.find((phase) => phase.id === phaseId) ?? selectedProgramme.programme.phases[0];
   const selectedPriority = priorityChoices.find((priority) => priority.id === formulationPriority) ?? priorityChoices[0];
-  const total = Object.values(inclusions).reduce((sum, value) => sum + value, 0) + Object.values(extraInclusions).reduce((sum, value) => sum + value, 0) + PUBLIC_PREMIX_INCLUSION_PCT;
+  const total = Object.values(inclusions).reduce((sum, value) => sum + value, 0) + Object.values(extraInclusions).reduce((sum, value) => sum + value, 0) + (selectedPremix?.inclusionPct ?? 0);
   const totalIsValid = Math.abs(total - 100) < .05;
   const balanceAmount = 100 - total;
 
@@ -94,7 +89,7 @@ export default function FormulationsClient({ ingredientPrices, ingredientPackSiz
     const energyTarget = phase.requirements.metabolizableEnergyKcalKg;
     if (energyTarget === undefined) throw new Error(`Missing energy target for ${phaseId}.`);
 
-    const publicIngredientLibrary = ingredientLibraryWithCustomPremixes([publicPremixProfileForPhase(phase)]);
+    const publicIngredientLibrary = ingredientLibraryWithCommercialPremixes(selectedPremix ? [selectedPremix] : [], ingredientLibraryForPhase(phase));
     const scale = total > 0 ? 100 / total : 0;
     const formulaIngredients = total > 0
       ? [
@@ -107,9 +102,9 @@ export default function FormulationsClient({ ingredientPrices, ingredientPackSiz
           ...Object.entries(extraInclusions)
             .filter(([, inclusionPct]) => inclusionPct > 0)
             .map(([ingredientId, inclusionPct]) => ({ ingredientId, inclusionPct: inclusionPct * scale })),
-          { ingredientId: PUBLIC_PREMIX_ID, inclusionPct: PUBLIC_PREMIX_INCLUSION_PCT * scale },
+          ...(selectedPremix ? [{ ingredientId: selectedPremix.id, inclusionPct: selectedPremix.inclusionPct * scale }] : []),
         ]
-      : [{ ingredientId: PUBLIC_PREMIX_ID, inclusionPct: 100 }];
+      : [];
     const calculated = analyzeDiet({
       ingredients: formulaIngredients,
     }, [], publicIngredientLibrary);
@@ -152,14 +147,14 @@ export default function FormulationsClient({ ingredientPrices, ingredientPackSiz
         delta: !definition.measure.complete ? 'Source data incomplete' : belowTarget ? `${formatted(minimum - value)} under` : 'Target met',
       }];
     });
-  }, [extraInclusions, inclusions, phaseId, programmeId, total]);
+  }, [extraInclusions, inclusions, phaseId, programmeId, total, selectedPremix]);
 
   const within = analysis.filter((item) => item.status === 'Meets').length;
   const ingredientByEngineId = new Map(INGREDIENT_LIBRARY.ingredients.map((ingredient) => [ingredient.id, ingredient]));
   const mix = [
     ...rows.filter((row) => inclusions[row.id] > 0).map((row) => ({ name: row.name, value: inclusions[row.id], colour: colours[row.id] })),
     ...Object.entries(extraInclusions).filter(([, value]) => value > 0).map(([id, value]) => ({ name: ingredientByEngineId.get(id)?.name ?? id, value, colour: '#65735f' })),
-    { name: 'Vitamin-mineral premix', value: PUBLIC_PREMIX_INCLUSION_PCT, colour: colours.fixed },
+    ...(selectedPremix ? [{ name: selectedPremix.name, value: selectedPremix.inclusionPct, colour: colours.fixed }] : []),
   ];
   const mixTotal = total > 0 ? total : 1;
   const visibleRows = rows.filter((row) => visibleIngredientIds.includes(row.id));
@@ -171,20 +166,29 @@ export default function FormulationsClient({ ingredientPrices, ingredientPackSiz
     ...Object.entries(extraInclusions)
       .filter(([, value]) => value > 0)
       .map(([id, value]) => ({ ingredientId: id, name: ingredientByEngineId.get(id)?.name ?? id, inclusionPct: value })),
-    { ingredientId: PUBLIC_PREMIX_ID, name: 'Vitamin-mineral premix', inclusionPct: PUBLIC_PREMIX_INCLUSION_PCT },
+    ...(selectedPremix ? [{ ingredientId: selectedPremix.id, name: selectedPremix.name, inclusionPct: selectedPremix.inclusionPct }] : []),
   ];
 
-  useEffect(() => {
-    const automaticFormulaKey = `${programmeId}:${phaseId}:${formulationPriority}`;
-    if (!selectedPhase || lastAutomaticFormulaKey.current === automaticFormulaKey) return;
-    lastAutomaticFormulaKey.current = automaticFormulaKey;
-    void calculateFormula();
-  }, [formulationPriority, phaseId, programmeId]);
 
   function changeProgramme(nextProgrammeId: string) {
     const nextProgramme = programmeChoices.find((choice) => choice.id === nextProgrammeId) ?? programmeChoices[0];
     setProgrammeId(nextProgramme.id);
     setPhaseId(nextProgramme.programme.phases[0]?.id ?? '');
+    const nextProduct = commercialPremixForProgramme(nextProgramme.id);
+    const published = nextProduct?.manufacturerRecipe;
+    if (published) {
+      const mix = new Map(published.map((item) => [item.ingredientId, item.percent]));
+      setInclusions(Object.fromEntries(rows.map((row) => [row.id, mix.get(row.engineId) ?? 0])) as Inclusion);
+      setVisibleIngredientIds(rows.filter((row) => (mix.get(row.engineId) ?? 0) > 0).map((row) => row.id));
+      const extra = published.filter((item) => item.ingredientId !== nextProduct.id && !rows.some((row) => row.engineId === item.ingredientId));
+      setExtraVisibleIngredientIds(extra.map((item) => item.ingredientId));
+      setExtraInclusions(Object.fromEntries(extra.map((item) => [item.ingredientId, item.percent])));
+    } else {
+      setInclusions(defaults);
+      setVisibleIngredientIds(defaultVisibleIngredientIds);
+      setExtraVisibleIngredientIds([]);
+      setExtraInclusions({});
+    }
     setFormulationNote(null);
     setBalanceError(null);
     setDownloadableFormulation(null);
