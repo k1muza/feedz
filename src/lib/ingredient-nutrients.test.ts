@@ -118,6 +118,22 @@ test("custom premix profiles explicitly disclose unsourced user-provided nutrien
   const profile = ingredientProfileAttribution(supplemented.ingredients.at(-1)!);
   assert.equal(profile.verificationStatus, "user_supplied_unverified");
   assert.equal(profile.source, null, "Do not fabricate a publisher URL for user-entered values");
+  const withReference = ingredientLibraryWithCustomPremixes([
+    {
+      id: "farmer-supplier-mix", name: "Farmer with datasheet",
+      vitamins: { vitaminAIuKg: 2400 }, traceMineralsPpm: {},
+      source: {
+        publisher: "User-provided supplier",
+        title: "Supplier nutrient sheet (user supplied, unverified)",
+        url: "https://example.com/test-data-sheet",
+        basis: "as-fed",
+        priority: "supplier",
+      },
+    },
+  ], INGREDIENT_LIBRARY);
+  const cited = ingredientProfileAttribution(withReference.ingredients.at(-1)!);
+  assert.equal(cited.source?.url, "https://example.com/test-data-sheet");
+  assert.equal(cited.verificationStatus, "user_supplied_unverified", "A citation alone is not independent verification");
 });
 
 test("cottonseed meal 38 keeps published poultry ME and copper", () => {
