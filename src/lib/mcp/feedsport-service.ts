@@ -270,7 +270,7 @@ export function nutritionalValidationReport(validation: CompleteFeedValidation) 
     ? "verified" as const
     : hasNotMet
       ? "targets_not_met" as const
-      : "verification_pending" as const;
+      : "not_assessed" as const;
   return {
     overall_status: overallStatus,
     formulation_feasibility: validation.formulationFeasibility,
@@ -282,7 +282,7 @@ export function nutritionalValidationReport(validation: CompleteFeedValidation) 
       checked_requirements: category.checked,
       required_requirements: category.required,
       failed_nutrients: category.failedNutrientIds.map(snake),
-      unverified_nutrients: category.unverifiedNutrientIds.map(snake),
+      missing_data_nutrients: category.missingDataNutrientIds.map(snake),
       note: category.note,
     })),
     note: validation.note,
@@ -410,7 +410,7 @@ function premixSummary(premix: CommercialPremix, context: FeedSportServiceContex
       verificationStatus: profile.status === "included" && profile.nutrient_profile?.status === "manufacturer_verified"
         ? "manufacturer_verified"
         : "manufacturer_unverified",
-      notes: ["Supplier label minima are calculated conservatively; unverified profiles cannot support a verified nutritional claim."],
+      notes: ["Supplier label minima are credited conservatively at the fixed dose."],
     },
     verification_status: profile.status === "included" && profile.nutrient_profile?.status === "manufacturer_verified"
       ? "manufacturer_verified"

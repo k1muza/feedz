@@ -5,8 +5,8 @@ import type { Vitamins } from "./nutrition";
  * An online product page is NOT a batch COA, price quotation, or confirmation
  * that its manufacturer's recommended basal ration may be reformulated.
  *
- * Label minima are retained as conservative, manufacturer-unverified nutrient
- * contributions; they are not exact analytical matrices or batch COAs.
+ * Label minima are credited as conservative nutrient contributions; they are
+ * not exact analytical matrices or batch COAs.
  * Never fabricate concentrations from programme requirements.
  */
 export type PremixMicronutrientProfile = {
@@ -39,11 +39,10 @@ export type CommercialPremix = {
   /**
    * Conservative, as-fed label minima in the engine's canonical units. These
    * values let FeedSport calculate the premix's contribution to the finished
-   * ration. They remain manufacturer-unverified and therefore cannot, by
-   * themselves, produce a complete-feed validation pass.
+   * ration and count towards vitamin and trace-mineral targets.
    */
   guaranteedMinimumAsFed?: PremixMicronutrientProfile;
-  /** Approved exact analysis/COA values; the only commercial profile that may earn a verified pass. */
+  /** Approved exact analysis/COA values; preferred over label minima when present. */
   verifiedAsFedMicronutrients?: PremixMicronutrientProfile & { reference: string };
   /**
    * Exact source-verified as-fed concentrations, NOT minimum guarantees.
@@ -462,7 +461,7 @@ export function premixAnalysisForIds(ids: readonly string[]): CommercialPremixAn
     status: "included",
     reason: "commercial_premix_selected",
     product_id: selected.id,
-    message: `${selected.name} is included at its supplier dose of ${selected.inclusionKgPerTonne} kg/t. Its label-minimum contribution is calculated, but remains unverified until a matching product specification or batch certificate is approved.`,
+    message: `${selected.name} is included at its supplier dose of ${selected.inclusionKgPerTonne} kg/t. Its label-minimum contribution is credited towards vitamin and trace-mineral targets.`,
     manufacturer: selected.manufacturer,
     sku: selected.sku,
     permitted_species: selected.species,

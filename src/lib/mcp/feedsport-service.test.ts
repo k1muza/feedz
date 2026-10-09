@@ -50,10 +50,10 @@ describe("FeedSport MCP automatic ingredient mode", () => {
     assert.equal(result.formulation_basis.ingredient_mode, "automatic");
     assert.ok(result.formulation_basis.candidate_count > 1);
     assert.ok(!result.formulation_basis.candidate_ingredients.includes("public-premix-salt-additives"));
-    assert.equal(result.nutritional_validation.overall_status, "verification_pending");
+    assert.equal(result.nutritional_validation.overall_status, "targets_not_met");
     assert.equal(result.nutritional_validation.complete_feed_claim, "not_supported");
-    assert.equal(result.nutritional_validation.categories.find((row) => row.id === "vitamins")?.status, "not_verified");
-    assert.equal(result.nutritional_validation.categories.find((row) => row.id === "trace_minerals")?.status, "not_verified");
+    assert.equal(result.nutritional_validation.categories.find((row) => row.id === "vitamins")?.status, "not_met");
+    assert.equal(result.nutritional_validation.categories.find((row) => row.id === "trace_minerals")?.status, "not_met");
     assert.equal(result.premix_analysis.status, "not_included");
 
     const analysis = analyseFormulation({
@@ -64,7 +64,7 @@ describe("FeedSport MCP automatic ingredient mode", () => {
         percentage: row.percentage,
       })),
     }, context);
-    assert.ok(["verification_pending", "targets_not_met"].includes(analysis.nutritional_validation.overall_status));
+    assert.ok(["not_assessed", "targets_not_met"].includes(analysis.nutritional_validation.overall_status));
     assert.equal(analysis.nutritional_validation.complete_feed_claim, "not_supported");
   });
 
@@ -99,7 +99,7 @@ describe("FeedSport MCP automatic ingredient mode", () => {
     assert.notEqual(result.status, "missing_data", "Sustar's omitted basal-macro values must not block solving");
     assert.equal(result.status, "optimal");
     if (result.status === "optimal") {
-      assert.equal(result.nutritional_validation.overall_status, "verification_pending");
+      assert.equal(result.nutritional_validation.overall_status, "targets_not_met");
       assert.equal(result.premix_analysis.status, "included");
       assert.equal(result.premix_analysis.product_id, "sustar-glypro-x911");
       assert.equal(result.premix_analysis.reason, "commercial_premix_selected");

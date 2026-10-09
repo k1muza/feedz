@@ -1073,7 +1073,7 @@ function Infeasible({ v, inf }: V & { inf: NonNullable<StudioVals["inf"]> }) {
         )}
         {inf.possible.map((p, i) => (
           <div key={i} style={sx("display:flex;flex-direction:column;gap:6px;padding:14px 16px;border:1px dashed #b9b6ab;border-radius:10px")}>
-            <span style={sx("font:600 14px/1.3 'IBM Plex Sans',sans-serif")}>Possibly contributing · not verified</span>
+            <span style={sx("font:600 14px/1.3 'IBM Plex Sans',sans-serif")}>Possibly contributing</span>
             <span style={sx("font:400 13px/1.5 'IBM Plex Sans',sans-serif;color:#45473f")}>{p}</span>
           </div>
         ))}

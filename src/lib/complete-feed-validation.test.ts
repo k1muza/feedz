@@ -29,7 +29,7 @@ describe("complete-feed validation", () => {
     }, { unit: "ppm", concentration: 40_000, contribution: 80 });
   });
 
-  test("does not turn a feasible basal formulation into a complete-feed claim", () => {
+  test("credits manufacturer label minima towards micronutrient targets", () => {
     const library = ingredientLibraryWithCommercialPremixes(
       [premix],
       ingredientLibraryForPhase(phase),
@@ -68,13 +68,49 @@ describe("complete-feed validation", () => {
     assert.deepEqual(result.categories.map(({ label, status }) => ({ label, status })), [
       { label: "Energy, protein and amino acids", status: "met" },
       { label: "Major minerals", status: "met" },
-      { label: "Vitamins", status: "not_verified" },
-      { label: "Trace minerals", status: "not_verified" },
+      { label: "Vitamins", status: "met" },
+      { label: "Trace minerals", status: "met" },
     ]);
+    assert.equal(result.completeFeed, "complete");
+  });
+
+  test("counts nutrients no ingredient declares as not met", () => {
+    const library = ingredientLibraryWithCommercialPremixes([premix], ingredientLibraryForPhase(phase));
+    const result = buildCompleteFeedValidation(
+      phase,
+      "ME",
+      { ingredients: [
+        { ingredientId: "sorghum-grain", inclusionPct: 100 - premix.inclusionPct },
+        { ingredientId: premix.id, inclusionPct: premix.inclusionPct },
+      ] },
+      library,
+    );
+    const vitamins = result.categories.find((row) => row.id === "vitamins");
+    assert.equal(vitamins?.status, "not_met");
+    assert.ok(vitamins?.missingDataNutrientIds.includes("supplement-vitamin-e"));
+    assert.ok(result.categories.every((row) => row.status === "met" || row.status === "not_met"));
     assert.equal(result.completeFeed, "incomplete");
   });
 
-  test("allows micronutrient categories to pass only with an approved exact profile", () => {
+  test("omits categories without loaded targets but makes no complete-feed claim", () => {
+    const nursery = feedProgrammePhaseById("nursery-pig", "br2024-5-32-14-21d-4.4-6.2kg");
+    assert.ok(nursery);
+    const required = formulationRequirements(nursery, "ME", { includeSupplementationTargets: true, traceMineralBasis: "inorganic" });
+    const evaluation = {
+      analysis: {} as FormulationEvaluation["analysis"],
+      nutrientProfile: required.map((row) => ({
+        id: row.id, label: row.label, unit: row.unit, relation: row.relation,
+        requirement: row.bound, actual: row.bound, margin: 0, marginPct: 0, binding: true,
+      })),
+      incompleteRequirements: [],
+      unsupportedRequirements: [],
+    } satisfies FormulationEvaluation;
+    const result = buildCompleteFeedValidation(nursery, "ME", { ingredients: [] }, ingredientLibraryForPhase(nursery), evaluation);
+    assert.deepEqual(result.categories.map((row) => row.id), ["energy-protein-amino-acids", "major-minerals"]);
+    assert.equal(result.completeFeed, "incomplete");
+  });
+
+  test("prefers an approved exact profile over label minima", () => {
     const verified = {
       ...premix,
       id: "verified-x912-test-fixture",

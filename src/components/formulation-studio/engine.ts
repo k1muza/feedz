@@ -274,7 +274,7 @@ function conservativeValidationFallback(nutrients: NutrientResult[]): CompleteFe
     checked: ids.length,
     required: ids.length,
     failedNutrientIds: ids.filter((row) => row.status !== "met").map((row) => row.id),
-    unverifiedNutrientIds: [],
+    missingDataNutrientIds: [],
     note: ids.some((row) => row.status !== "met") ? "One or more checked requirements are not met." : "All checked requirements are met.",
   });
   const major = nutrients.filter((row) => majorIds.has(row.id));
@@ -284,32 +284,10 @@ function conservativeValidationFallback(nutrients: NutrientResult[]): CompleteFe
     categories: [
       category("energy-protein-amino-acids", "Energy, protein and amino acids", core),
       category("major-minerals", "Major minerals", major),
-      { id: "vitamins", label: "Vitamins", status: "not_verified", checked: 0, required: 0, failedNutrientIds: [], unverifiedNutrientIds: [], note: "Vitamin supplementation has not been verified." },
-      { id: "trace-minerals", label: "Trace minerals", status: "not_verified", checked: 0, required: 0, failedNutrientIds: [], unverifiedNutrientIds: [], note: "Trace-mineral supplementation has not been verified." },
     ],
     completeFeed: "incomplete",
-    note: "Nutritional verification has not been completed for every category.",
+    note: "Vitamin and trace-mineral targets were not assessed.",
   };
-}
-
-/**
- * Studio currently treats an included premix as sufficient for its
- * micronutrient status display. Keep the engine's underlying verification
- * result intact so reports and other consumers can continue to use it.
- */
-export function studioValidationCategories(
-  categories: readonly NutritionalValidationCategory[],
-  premixIncluded: boolean,
-): NutritionalValidationCategory[] {
-  return categories.map((item) => {
-    const isMicronutrient = item.id === "vitamins" || item.id === "trace-minerals";
-    if (!premixIncluded || !isMicronutrient || item.status !== "not_verified") return item;
-    return {
-      ...item,
-      status: "met",
-      note: "Covered by the included vitamin-mineral premix.",
-    };
-  });
 }
 
 export function bounds(ctx: EngineContext, phase: StudioPhase, id: string, e: PoolEntry) {

@@ -739,7 +739,7 @@ export function FeedFormulationWorkbench({
             })),
             ingredientPoolMode,
             useFixedPremix: Boolean(selectedPremix),
-            fixedPremixName: selectedPremix?.name ?? "No verified commercial premix",
+            fixedPremixName: selectedPremix?.name ?? "No commercial premix",
             fixedPremixKgPerTonne: String(selectedPremix?.inclusionKgPerTonne ?? 0),
             fixedPremixPricePerKg,
             selectedRecipeId,
@@ -1395,10 +1395,10 @@ function ResultPanel({
                 : selectedRecipe.label}</CardTitle>
             <Badge variant="secondary">
               {result.validation?.completeFeed === "complete"
-                ? "Nutritional requirements verified"
+                ? "Nutritional requirements met"
                 : result.validation?.categories.some((category) => category.status === "not_met")
                   ? "Formulation feasible · nutrition targets not met"
-                  : "Formulation feasible · nutritional verification pending"}
+                  : "Formulation feasible · loaded nutrition targets met"}
             </Badge>
           </div>
           <CardDescription>
@@ -1562,13 +1562,13 @@ function CompleteFeedValidationPanel({
   validation: NonNullable<Extract<LeastCostFormulationResult, { status: "optimal" }>["validation"]>;
 }) {
   const label = (status: (typeof validation.categories)[number]["status"]) =>
-    status === "met" ? "Met" : status === "not_met" ? "Not met" : "Not verified";
+    status === "met" ? "Met" : "Not met";
   const hasNotMet = validation.categories.some((category) => category.status === "not_met");
   const overallLabel = validation.completeFeed === "complete"
-    ? "Overall · Verified"
+    ? "Overall · Targets met"
     : hasNotMet
       ? "Overall · Targets not met"
-      : "Overall · Verification pending";
+      : "Overall · Loaded targets met";
   return (
     <div className="overflow-hidden rounded-lg border border-hairline">
       <div className="flex items-center justify-between gap-3 bg-raised/30 px-4 py-3 text-sm font-medium text-ink">

@@ -23,7 +23,6 @@ import {
   phaseOf,
   poolEntryFromListItem,
   priceOf,
-  studioValidationCategories,
   type EngineContext,
   type FormulateResult,
   type GoalKey,
@@ -1885,10 +1884,9 @@ function optimalVals(
   const recipeInvalid = !!mc && !mc.checking && !mc.recipeValidity?.valid;
   const validation = mc?.validation ?? R.validation;
   const premixIncluded = baseRows.some((row) => row.pct > 0 && !!engine.catalogue.get(row.id)?.premix);
-  const displayedValidationCategories = studioValidationCategories(validation?.categories ?? [], premixIncluded);
+  const displayedValidationCategories = validation?.categories ?? [];
   const validationHasNotMet = displayedValidationCategories.some((item) => item.status === "not_met");
-  const displayedValidationComplete = displayedValidationCategories.length > 0 &&
-    displayedValidationCategories.every((item) => item.status === "met");
+  const displayedValidationComplete = validation?.completeFeed === "complete";
   const recipeStatus = mc?.checking
     ? { label: "Checking recipe validity…", color: "#64665c", bg: "#d0cdc3", r: "50%" }
     : recipeInvalid
@@ -1896,7 +1894,6 @@ function optimalVals(
       : { label: mc ? "Recipe valid" : "Feasible · all hard requirements met", color: "#2b6a42", bg: "#2f7a4a", r: "50%" };
   const categories = (n: number, what: string) => n + " categor" + (n === 1 ? "y " : "ies ") + what;
   const notMetN = displayedValidationCategories.filter((item) => item.status === "not_met").length;
-  const unverifiedN = displayedValidationCategories.filter((item) => item.status !== "met" && item.status !== "not_met").length;
   const nutrientStatus = mc?.checking || recipeInvalid
     ? { label: "Nutrition not checked", color: "#64665c", bg: "#d0cdc3", r: "50%" }
     : !validation
@@ -1905,7 +1902,7 @@ function optimalVals(
       ? { label: "Nutrition targets met", color: "#2b6a42", bg: "#2f7a4a", r: "50%" }
       : validationHasNotMet
         ? { label: categories(notMetN, "not met"), color: "#a63d2a", bg: "#b2412e", r: "0" }
-        : { label: unverifiedN ? categories(unverifiedN, "not verified") : "Verification pending", color: "#8a5f18", bg: "#c98a1e", r: "0" };
+        : { label: "Loaded nutrition targets met", color: "#2b6a42", bg: "#2f7a4a", r: "50%" };
   const strip = {
     ...nutrientStatus,
     recipe: recipeStatus,
@@ -1947,9 +1944,7 @@ function optimalVals(
   const validationRows = displayedValidationCategories.map((item) => {
     const st = item.status === "met"
       ? { label: "Met", color: "#2b6a42", bg: "#2f7a4a", r: "50%" }
-      : item.status === "not_met"
-        ? { label: "Not met", color: "#a63d2a", bg: "#b2412e", r: "0" }
-        : { label: "Not verified", color: "#8a5f18", bg: "#c98a1e", r: "0" };
+      : { label: "Not met", color: "#a63d2a", bg: "#b2412e", r: "0" };
     return { label: item.label, status: st, note: item.note };
   });
   const validationView = {
@@ -1958,8 +1953,8 @@ function optimalVals(
       ? "Overall · Targets met"
       : validationHasNotMet
         ? "Overall · Targets not met"
-        : "Overall · Verification pending",
-    overallColor: displayedValidationComplete ? "#2b6a42" : validationHasNotMet ? "#a63d2a" : "#8a5f18",
+        : "Overall · Loaded targets met",
+    overallColor: validationHasNotMet ? "#a63d2a" : "#2b6a42",
     note: displayedValidationComplete && premixIncluded
       ? "All formulation targets are met, including micronutrients supplied by the premix."
       : validation?.note ?? "Nutritional completeness has not been assessed.",

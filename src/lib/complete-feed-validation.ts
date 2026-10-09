@@ -16,7 +16,7 @@ export type NutritionalValidationCategoryId =
   | "vitamins"
   | "trace-minerals";
 
-export type NutritionalValidationStatus = "met" | "not_met" | "not_verified";
+export type NutritionalValidationStatus = "met" | "not_met";
 
 export type NutritionalValidationCategory = {
   id: NutritionalValidationCategoryId;
@@ -25,7 +25,8 @@ export type NutritionalValidationCategory = {
   checked: number;
   required: number;
   failedNutrientIds: string[];
-  unverifiedNutrientIds: string[];
+  /** Requirements no ingredient supplies data for; they count as not met. */
+  missingDataNutrientIds: string[];
   note: string;
 };
 
@@ -75,32 +76,29 @@ function category(
   requiredIds: readonly string[],
   comparisons: ReadonlyMap<string, FormulationNutrientComparison>,
   incomplete: ReadonlyMap<string, FormulationIncompleteRequirement>,
-  micronutrientProfileUnverified: boolean,
 ): NutritionalValidationCategory {
   const rows = requiredIds.flatMap((nutrientId) => {
     const row = comparisons.get(nutrientId);
     return row ? [row] : [];
   });
   const failedNutrientIds = rows.filter(failed).map((row) => row.id);
-  const unverifiedNutrientIds = requiredIds.filter(
+  // A nutrient no ingredient (including the premix label) declares is not
+  // supplied by the formula, so it cannot count towards a met target.
+  const missingDataNutrientIds = requiredIds.filter(
     (nutrientId) => incomplete.has(nutrientId) || !comparisons.has(nutrientId),
   );
-  const isMicro = id === "vitamins" || id === "trace-minerals";
-  const status: NutritionalValidationStatus =
-    requiredIds.length === 0 || unverifiedNutrientIds.length || (isMicro && micronutrientProfileUnverified)
-      ? "not_verified"
-      : failedNutrientIds.length
-        ? "not_met"
-        : "met";
-  const note = requiredIds.length === 0
-    ? "No verified target set is loaded for this stage."
-    : status === "not_met"
-      ? `${failedNutrientIds.length} verified requirement${failedNutrientIds.length === 1 ? " is" : "s are"} not met.`
-      : status === "not_verified"
-        ? micronutrientProfileUnverified && isMicro
-          ? "The premix contribution is supplier-published but not independently verified; no complete-feed pass is claimed."
-          : `${unverifiedNutrientIds.length} requirement${unverifiedNutrientIds.length === 1 ? " cannot" : "s cannot"} be checked from the loaded ingredient profiles.`
-        : `All ${requiredIds.length} loaded requirements are met.`;
+  const shortfalls = failedNutrientIds.length + missingDataNutrientIds.length;
+  const status: NutritionalValidationStatus = shortfalls ? "not_met" : "met";
+  const missingLabels = missingDataNutrientIds
+    .map((nutrientId) => incomplete.get(nutrientId)?.label ?? nutrientId.replace(/^supplement-/, "").replace(/-/g, " "));
+  const notes = [
+    failedNutrientIds.length
+      ? `${failedNutrientIds.length} requirement${failedNutrientIds.length === 1 ? " is" : "s are"} not met.`
+      : "",
+    missingLabels.length
+      ? `No ingredient declares ${missingLabels.join(", ")}.`
+      : "",
+  ].filter(Boolean);
   return {
     id,
     label: CATEGORY_LABELS[id],
@@ -108,8 +106,8 @@ function category(
     checked: rows.length,
     required: requiredIds.length,
     failedNutrientIds,
-    unverifiedNutrientIds,
-    note,
+    missingDataNutrientIds,
+    note: status === "met" ? `All ${requiredIds.length} requirements are met.` : notes.join(" "),
   };
 }
 
@@ -142,46 +140,29 @@ export function buildCompleteFeedValidation(
   }
   const comparisons = new Map(fullEvaluation.nutrientProfile.map((row) => [row.id, row]));
   const incomplete = new Map(fullEvaluation.incompleteRequirements.map((row) => [row.id, row]));
-  const premixRecords = formula.ingredients.flatMap((row) => {
-    if (row.inclusionPct <= 0) return [];
-    const ingredient = library.ingredients.find((candidate) => candidate.id === row.ingredientId);
-    return ingredient?.category === "vitamin_mineral_premix" ? [ingredient] : [];
-  });
-  const micronutrientProfileUnverified =
-    premixRecords.length === 0 ||
-    premixRecords.some((ingredient) => ![
-      "manufacturer_verified",
-      "published_reference",
-    ].includes(ingredient.provenance.verificationStatus ?? ""));
-
   const categoryIds: NutritionalValidationCategoryId[] = [
     "energy-protein-amino-acids",
     "major-minerals",
     "vitamins",
     "trace-minerals",
   ];
-  const categories = categoryIds.map((id) => category(
-    id,
-    requiredByCategory.get(id) ?? [],
-    comparisons,
-    incomplete,
-    micronutrientProfileUnverified,
-  ));
-  const completeFeed = categories.every((item) => item.status === "met")
-    ? "complete" as const
-    : "incomplete" as const;
-  const hasNotMet = categories.some((item) => item.status === "not_met");
-  const hasNotVerified = categories.some((item) => item.status === "not_verified");
+  // Categories without loaded targets for this stage are not assessed, so they
+  // are omitted; they still prevent a complete-feed claim.
+  const unassessed = categoryIds.filter((id) => (requiredByCategory.get(id) ?? []).length === 0);
+  const categories = categoryIds
+    .filter((id) => !unassessed.includes(id))
+    .map((id) => category(id, requiredByCategory.get(id) ?? [], comparisons, incomplete));
+  const allMet = categories.every((item) => item.status === "met");
+  const completeFeed = allMet && unassessed.length === 0 ? "complete" as const : "incomplete" as const;
+  const unassessedLabels = unassessed.map((id) => CATEGORY_LABELS[id].toLowerCase()).join(" and ");
   return {
     formulationFeasibility: "feasible",
     categories,
     completeFeed,
     note: completeFeed === "complete"
-      ? "All modeled nutritional categories meet their targets using verified nutrient data."
-      : hasNotMet && hasNotVerified
-        ? "Some nutrient targets are not met, while other categories still need verified data. Correct the shortfalls and verify the missing data before making a complete-feed claim."
-        : hasNotMet
-          ? "One or more nutrient targets are not met. Adjust the formulation before making a complete-feed claim."
-          : "Some categories still need verified nutrient data. “Not verified” does not mean the nutrients are absent; it means the available data cannot confirm that their targets are met.",
+      ? "All modeled nutritional categories meet their targets."
+      : !allMet
+        ? "One or more nutrient targets are not met. Adjust the formulation before making a complete-feed claim."
+        : `All loaded targets are met. No ${unassessedLabels} targets are loaded for this stage, so no complete-feed claim is made.`,
   };
 }

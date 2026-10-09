@@ -289,7 +289,7 @@ export async function renderPublicFormulationPdf(input: PublicFormulationPdfInpu
   }
   text(input.phase.sourceWeightRange, M, 11, 'regular', C.muted);
   const badge = input.validation.completeFeed === 'complete'
-    ? 'Complete feed: verified'
+    ? 'All nutrition targets met'
     : `${passed}/${input.nutrientProfile.length} constraints met`;
   const badgeWidth = width(badge, 'semibold', 8) + 22;
   page.drawRectangle({ x: W - M - badgeWidth, y: y - 5, width: badgeWidth, height: 23, color: C.greenTint });
@@ -372,7 +372,7 @@ export async function renderPublicFormulationPdf(input: PublicFormulationPdfInpu
     { fontSize: 7.4 },
   );
 
-  sectionHeading('Nutritional completeness', input.validation.completeFeed === 'complete' ? 'Complete' : 'Not a verified complete feed');
+  sectionHeading('Nutritional completeness', input.validation.completeFeed === 'complete' ? 'All targets met' : 'Targets not met');
   paragraph(input.validation.note, 8);
   drawTable(
     [
@@ -383,7 +383,7 @@ export async function renderPublicFormulationPdf(input: PublicFormulationPdfInpu
     ],
     input.validation.categories.map((category) => [
       category.label,
-      category.status === 'met' ? 'Met' : category.status === 'not_met' ? 'Not met' : 'Not verified',
+      category.status === 'met' ? 'Met' : 'Not met',
       `${category.checked}/${category.required}`,
       category.note,
     ]),
@@ -401,9 +401,7 @@ export async function renderPublicFormulationPdf(input: PublicFormulationPdfInpu
       ['Manufacturer · SKU', `${premix.manufacturer} · ${premix.sku}`],
       ['Application', premix.application],
       ['Dose', premix.inclusionInstructions],
-      ['Nutrient data', premixVerified
-        ? 'Manufacturer-verified analysis.'
-        : 'Supplier label minima, not independently verified. No complete-feed micronutrient pass is claimed.'],
+      ['Nutrient data', premixVerified ? 'Manufacturer analysis.' : 'Manufacturer label minima.'],
       ...(input.manufacturerRecipe ? [['Restriction', 'Fixed manufacturer recipe. No ingredient substitutions or ratio changes are permitted without a customised formula from the manufacturer.']] : []),
       ['Specification', premix.specificationUrl],
     ],
@@ -432,7 +430,7 @@ export async function renderPublicFormulationPdf(input: PublicFormulationPdfInpu
       { label: 'In finished feed', width: 100, align: 'right' },
       { label: 'Suggested addition', width: 100, align: 'right' },
     ];
-    const basis = premixVerified ? 'Verified analysis' : 'Label minimum · unverified';
+    const basis = premixVerified ? 'Manufacturer analysis' : 'Label minimum';
     if (vitaminRows.length) {
       sectionHeading('Premix vitamin contribution', basis);
       paragraph(`Concentrations are taken from the ${premix.manufacturer} label (${premixProfile.sourceUrl}) and scaled by the ${premix.inclusionKgPerTonne} kg/t dose. Suggested additions are the programme's published supplementation guidance.`, 8);
