@@ -14,6 +14,11 @@ import type { NutritionPhase } from "./nutrition";
 import { assertManufacturerRecipe, type CommercialPremix } from "./commercial-premixes";
 import { round, snake } from "./feed-number-format";
 
+/** Client supplied ingredients or ratios that conflict with a fixed manufacturer's recipe. */
+export class ManufacturerRecipeValidationError extends Error {
+  name = "ManufacturerRecipeValidationError";
+}
+
 export type ManufacturerRecipeShortfall = {
   id: string;
   label: string;
@@ -41,14 +46,18 @@ export function assessManufacturerRecipe(
   library: IngredientLibrary,
 ): ManufacturerRecipeAssessment {
   if (!premix.manufacturerRecipe) throw new Error("No manufacturer recipe is published for this premix.");
-  assertManufacturerRecipe(
-    premix,
-    formula.ingredients.map((row) => ({
-      ingredientId: row.ingredientId,
-      minInclusionPct: row.inclusionPct,
-      maxInclusionPct: row.inclusionPct,
-    })),
-  );
+  try {
+    assertManufacturerRecipe(
+      premix,
+      formula.ingredients.map((row) => ({
+        ingredientId: row.ingredientId,
+        minInclusionPct: row.inclusionPct,
+        maxInclusionPct: row.inclusionPct,
+      })),
+    );
+  } catch (error) {
+    throw new ManufacturerRecipeValidationError(error instanceof Error ? error.message : String(error));
+  }
   const evaluation = evaluateFormulation(
     phase, energySystem, formula, library,
     { includeSupplementationTargets: false, traceMineralBasis: "inorganic" },
