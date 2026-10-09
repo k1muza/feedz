@@ -11,6 +11,7 @@ import { isSupabaseConfigured, supabaseKey, supabaseUrl } from "@/lib/supabase/c
 import type { CatalogueIngredient, CatalogueNutrientId } from "@/lib/studio-catalogue";
 import type { StudioNutrientData } from "@/lib/studio-nutrients";
 import type { StudioProgrammeData } from "@/lib/studio-programmes";
+import { poolWithProgrammePremix } from "@/lib/studio-commercial-premix";
 
 import {
   evaluateManual,
@@ -419,7 +420,7 @@ const DEFAULT_PROGRAMME = "grow-finish-pig";
 
 function defaultProgramme(programmes: StudioProgrammeData) {
   const programme = programmes.programmes.find((p) => p.id === DEFAULT_PROGRAMME) ?? programmes.programmes[0];
-  return { programmeId: programme.id, phaseId: programme.phases[0].id, species: programme.species };
+  return { programmeId: programme.id, phaseId: programme.phases[0].id, species: programme.species, pool: poolWithProgrammePremix(S.pool, programme.id) };
 }
 
 /** A list's ingredients and settings, copied into a formulation. Later edits to the list don't reach it. */
@@ -432,7 +433,7 @@ function poolFromList(list: IngredientList | null): Pool {
 const RESET_RESULT: Partial<State> = { result: null, runSig: null, runSnap: null, history: [], mode: "optimised", manual: {}, manualCheck: null, tab: "recipe", dismissed: {}, savedSig: null, drawer: null, advisoriesOpen: false };
 
 function freshDoc(programmeId: string, phaseId: string, species: Species, pool: Pool, docName: string): Partial<State> {
-  return { ...RESET_RESULT, programmeId, phaseId, species, pool, goal: "least_cost", batch: 100, batchMode: "100", customBatch: "", docName, docId: null, pendingDoc: null };
+  return { ...RESET_RESULT, programmeId, phaseId, species, pool: poolWithProgrammePremix(pool, programmeId), goal: "least_cost", batch: 100, batchMode: "100", customBatch: "", docName, docId: null, pendingDoc: null };
 }
 
 function versionState(doc: SavedDoc, programmes: StudioProgrammeData, v?: number): Partial<State> {
@@ -810,11 +811,11 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
   useEffect(() => {
     if (S.screen !== "setup" || S.step !== 2 || S.setKey !== "none" || !listsKnown) return;
     const list = myLists.lists[0] ?? null; // the default list comes first
-    if (list) update({ setKey: "list", setupListId: list.id, pool: poolFromList(list), ingQ: "" });
+    if (list) update({ setKey: "list", setupListId: list.id, pool: poolWithProgrammePremix(poolFromList(list), S.programmeId), ingQ: "" });
     else
       update((s) => {
         const ready = s.suggestion?.status === "ready" && s.suggestion.key === s.programmeId + "|" + s.phaseId ? s.suggestion.ids : [];
-        return { setKey: "system", pool: Object.fromEntries(ready.map((id) => [id, { role: "available" as Role }])), ingQ: "" };
+        return { setKey: "system", pool: poolWithProgrammePremix(Object.fromEntries(ready.map((id) => [id, { role: "available" as Role }])), s.programmeId), ingQ: "" };
       });
     // The step, the source still being unpicked and the lists arriving decide this.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -835,7 +836,7 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
           const ids = data.status === "suggested" && data.ingredientIds ? data.ingredientIds.filter((id) => catalogueById.has(id)) : [];
           const suggestion: Suggestion = { key: suggestionKey, status: data.status === "suggested" ? "ready" : "error", ids };
           // Already showing the suggested list? Refresh it for the new stage.
-          return s.setKey === "system" ? { suggestion, pool: Object.fromEntries(ids.map((id) => [id, { role: "available" as Role }])) } : { suggestion };
+          return s.setKey === "system" ? { suggestion, pool: poolWithProgrammePremix(Object.fromEntries(ids.map((id) => [id, { role: "available" as Role }])), s.programmeId) } : { suggestion };
         }),
       )
       .catch(() => update((s) => (s.suggestion?.key === suggestionKey ? { suggestion: { key: suggestionKey, status: "error", ids: [] } } : {})));
@@ -1404,17 +1405,17 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
       k: "list" as const,
       label: "My list",
       sub: setupList ? "Your list “" + setupList.label + "” with your prices. Only these are used." : myLists.status === "ready" ? "You don’t have a list yet. Make one under My ingredients." : "Loading your lists…",
-      pool: () => poolFromList(setupList),
+      pool: () => poolWithProgrammePremix(poolFromList(setupList), S.programmeId),
     },
     {
       k: "system" as const,
       label: "FeedSport suggestion list",
       sub: suggestionReady ? suggestionReady.ids.length + " catalogue ingredients with complete data that can meet " + PH.label + ", at planning prices." : S.suggestion?.status === "error" ? "FeedSport couldn’t put a list together for this stage." : "Finding ingredients that can meet this stage…",
-      pool: (): Pool => Object.fromEntries((suggestionReady?.ids ?? []).map((id) => [id, { role: "available" as Role }])),
+      pool: (): Pool => poolWithProgrammePremix(Object.fromEntries((suggestionReady?.ids ?? []).map((id) => [id, { role: "available" as Role }])), S.programmeId),
     },
   ].map((o) => {
     const on = S.setKey === o.k;
-    return { label: o.label, sub: o.sub, segBg: on ? "#fff" : "transparent", segSh: on ? "0 1px 2px rgba(0,0,0,.1)" : "none", segW: on ? "600" : "500", pick: () => update({ setKey: o.k, pool: o.pool(), ingQ: "", ...(o.k === "list" && setupList ? { setupListId: setupList.id } : {}) }) };
+    return { label: o.label, sub: o.sub, segBg: on ? "#fff" : "transparent", segSh: on ? "0 1px 2px rgba(0,0,0,.1)" : "none", segW: on ? "600" : "500", pick: () => update({ setKey: o.k, pool: poolWithProgrammePremix(o.pool(), S.programmeId), ingQ: "", ...(o.k === "list" && setupList ? { setupListId: setupList.id } : {}) }) };
   });
   const setNote =
     S.setKey === "system"
