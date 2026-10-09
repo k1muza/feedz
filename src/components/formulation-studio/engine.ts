@@ -1,5 +1,5 @@
 import type { CatalogueIngredient } from "@/lib/studio-catalogue";
-import { commercialPremixById, publishedPremixAminoAcids } from "@/lib/commercial-premixes";
+import { commercialPremixById, publishedPremixAminoAcids, publishedMinimumTotalAminoAcidsInFeed } from "@/lib/commercial-premixes";
 import { studioPremixProblems } from "@/lib/studio-commercial-premix";
 import type { IngredientListItem } from "@/lib/ingredient-lists";
 import type { StudioPhase, StudioProgramme, StudioProgrammeData } from "@/lib/studio-programmes";
@@ -321,10 +321,13 @@ export async function formulate(snap: Snapshot, ctx: EngineContext): Promise<For
   const realPremix = active.map(commercialPremixById).find((product) => product !== undefined);
   if (realPremix) {
     const guarantees = publishedPremixAminoAcids(realPremix);
+    const lowerBounds = publishedMinimumTotalAminoAcidsInFeed(realPremix);
     const aminoNote = guarantees.length
-      ? " Published amino-acid guarantee: " + guarantees.map((g) =>
-          `${g.name} ${g.minimumPct === null ? "" : "≥ " + g.minimumPct + "%"} total in premix`,
-        ).join(", ") + ". Total amino-acid guarantees cannot be counted as SID without digestibility data."
+      ? " Published label guarantees: " + guarantees.map((claim) =>
+          `${claim.name} ${claim.minimumPct === null ? "" : "≥ " + claim.minimumPct + "%"} TOTAL in premix`,
+        ).join(", ") + ". Conditional total amino-acid contributions at this inclusion: " +
+        lowerBounds.map((claim) => `${claim.name} ≥${claim.minTotalFeedPct}% of finished feed`).join(", ") +
+        ". Supplier SKU identity and label must be confirmed. These are NOT SID values; no SID contribution is credited without digestibility data."
       : " This manufacturer has not published a verified SID amino-acid analysis for this SKU.";
     warns.push({
       id: realPremix.id,
