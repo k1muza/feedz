@@ -17,13 +17,18 @@ with its own attribution. Price provenance is separate from nutrient provenance.
   Studio's ingredient detail shows the individual citation for every
   displayed non-null nutrient and the profile-level source.
 * **Missing data** — `undefined` remains unknown. Manufacturer label
-  guarantees expressed as **minimums or ranges** are *not* silently converted
-  into an exact nutrient concentration. SID amino acid values require a
+  guarantees expressed as **minimums or ranges** are never presented as exact
+  analytical concentrations. A published minimum may be retained explicitly
+  as a conservative `minimum_guarantee` and multiplied by the premix inclusion
+  rate to report a minimum finished-feed contribution. That contribution stays
+  `manufacturer_unverified` and cannot produce a complete-feed pass. SID amino
+  acid values require a
   supplier-provided SID analysis or sufficiently documented total-AA value
   and digestibility coefficient.
 * **Supplier products** — manufacturer SKU, stage eligibility, inclusion rule,
-  specification URL, and formula restrictions are additional **ingredient
-  constraints**, not a separate formulation engine.
+  mixing instructions, specification URL, nutrient contribution and formula
+  restrictions are additional **ingredient constraints**, not a separate
+  formulation engine.
 * **User-entered premixes** — a source can be attached to the request; a
   user-provided profile stays unverified until separately validated. Without
   a URL, the source is explicitly reported as user-supplied without an
@@ -35,8 +40,8 @@ with its own attribution. Price provenance is separate from nutrient provenance.
    original datasheet or certificate, its version/date, and any bag/lot
    identification that governs the specification.
 2. Preserve **minimum**, **maximum** and **exact analytical value** as separate
-   data semantics. Do not set nutrient matrices from minima/ranges as though
-   they were exact.
+   data semantics. A minimum can be used only as a conservative lower-bound
+   contribution, never as an exact analysis or independent verification.
 3. Record exact per-kg nutrient concentrations only where evidence supports
    them. For amino acids, store total and SID distinctly; never treat a
    minimum total lysine label as SID lysine.
@@ -45,6 +50,17 @@ with its own attribution. Price provenance is separate from nutrient provenance.
    source in `provenance.nutrientSources`.
 5. Retain product-level verification warnings until all relevant nutrient
    guarantees, practical dosage restrictions and compatibility are verified.
+
+## Formulation versus complete-feed validation
+
+The least-cost solver reports whether a recipe is feasible against its active
+hard constraints. Complete-feed validation is a separate assessment with four
+categories: energy/protein/amino acids, major minerals, vitamins, and trace
+minerals. Vitamins and trace minerals use supplemented targets separately from
+total-diet requirements where the source publishes supplementation guidance.
+Any missing target, missing ingredient value, or unverified premix profile keeps
+the category at `not_verified` and the complete-feed result at `incomplete`,
+even when the basal formulation is feasible.
 
 ## Interfaces
 
@@ -58,7 +74,11 @@ with its own attribution. Price provenance is separate from nutrient provenance.
   listing midpoints and multiplied by two; they are not represented as supplier
   quotations and should be replaced by current quotes when available.
 * `getIngredient()` / MCP outputs profile-source attribution for both
-  Brazilian Tables ingredients and commercial products.
+  Brazilian Tables ingredients and commercial products. MCP `formulate`,
+  `analyse_formulation`, manufacturer-recipe diagnostics, featured-formulation
+  previews and advisor suggestion checks expose `nutritional_validation`
+  separately from solver status. Its overall status is `verified`,
+  `targets_not_met`, or `verification_pending`.
 
 CJ S174/ST174A remains **manufacturer-recipe restricted**.
 Its declared minimum total lysine can be reported conditionally, but does not

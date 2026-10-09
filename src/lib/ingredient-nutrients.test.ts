@@ -100,7 +100,7 @@ test("all canonical species ingredient profiles carry a traceable nutrition sour
   assert.ok(source?.publisher && source.url, "Use per-nutrient source when present, otherwise the library reference");
 });
 
-test("dynamically selected supplier premixes carry source metadata without invented nutrient values", () => {
+test("supplier premixes retain sourced label minima without inventing digestible values", () => {
   const product = COMMERCIAL_PREMIXES.find((item) => item.id === "sustar-glypro-x912")!;
   const supplemented = ingredientLibraryWithCommercialPremixes([product], INGREDIENT_LIBRARY);
   const record = supplemented.ingredients.find((item) => item.id === product.id)!;
@@ -108,6 +108,9 @@ test("dynamically selected supplier premixes carry source metadata without inven
   assert.equal(origin.source?.publisher, product.manufacturer);
   assert.equal(origin.source?.url, product.specificationUrl);
   assert.equal(origin.verificationStatus, "manufacturer_unverified");
+  assert.equal(record.vitamins.vitaminAIuKg, 28_000_000);
+  assert.equal(record.traceMineralsPpm.zinc, 40_000);
+  assert.equal(record.provenance.nutrientSources["vitamins.vitaminAIuKg"]?.url, product.specificationUrl);
   assert.equal(record.aminoAcids.sidPct.lysine, undefined, "No unverified supplier guarantees credited as SID");
 });
 

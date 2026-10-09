@@ -113,7 +113,8 @@ describe("MCP premix guidance", () => {
     const instructions = result?.instructions ?? "";
     assert.match(instructions, /Automatic mode does not include any premix/);
     assert.match(instructions, /public-premix-salt-additives.*RETIRED/);
-    assert.doesNotMatch(instructions, /unverified|premix_verification/i);
+    assert.match(instructions, /unverified supplier profile/i);
+    assert.match(instructions, /nutritional_validation/);
     assert.match(instructions, /price_per_tonne/);
     assert.match(instructions, /CJ Feed S174/);
     assert.match(instructions, /explain_formulation/);
@@ -136,7 +137,8 @@ describe("MCP premix guidance", () => {
       return tool.description ?? "";
     };
     assert.match(find("formulate"), /BASAL ingredients only/);
-    assert.doesNotMatch(find("formulate"), /unverified/i);
+    assert.match(find("formulate"), /nutritional_validation/);
+    assert.match(find("formulate"), /verification_pending/);
     assert.match(find("formulate"), /fixed manufacturer inclusion dose/);
     assert.match(find("search_ingredients"), /Alibaba-derived planning prices/);
     assert.match(find("get_ingredient"), /manufacturer specification metadata/);

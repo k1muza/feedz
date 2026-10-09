@@ -50,9 +50,9 @@ Rules:
 - The theoretical premix public-premix-salt-additives and generic aliases such as "premix" are RETIRED. They will be rejected; do not send them.
 - Mature boars may use CJ Feed S174 (4% fixed inclusion), but ONLY with CJ's published ingredient ratios: maize 64.3%, wheat bran 12%, soybean meal 15.7%, fish meal 4%, S174 4%. Do not assign sow-only X913 or permit arbitrary changes to the supplier ratios. Growing entire/immunocastrated males use the grower/finisher premix GlyPro X912.
 - Commercial premix dosage is fixed at the manufacturer's published inclusion for the SKU. Never alter that dose or substitute a premix across species.
-- Published premix analysis ranges are metadata, not a nutrient matrix; premix nutrients are not credited against requirements.
+- Supplier label minima are credited conservatively at the SKU's fixed dose, with their provenance and verification status. An unverified supplier profile can show a calculated contribution but cannot produce a verified nutritional claim.
 - Automatic mode selects priced basal ingredients only. Its optimal recipes do NOT include a premix and are NOT complete feeds.
-- In selected mode, use a real SKU and a supplier price if available. Even with a selected premix, status="optimal" or analysis status="pass" only means the constraints actually checked were met. Examine unsupported_requirements and notes, and never claim manufacturer approval or feeding safety.
+- In selected mode, use a real SKU and a supplier price if available. status="optimal" reports solver feasibility and analysis status="pass" reports the checked formulation constraints; neither is a nutritional-completeness claim. Always read nutritional_validation: verified supports the modeled complete-feed claim, targets_not_met identifies a shortfall, and verification_pending means the available nutrient data cannot confirm every category. Never claim manufacturer approval or feeding safety.
 - FeedSport programme requirements and ingredient inclusion ceilings cannot be relaxed; caller constraints can only tighten them.
 - Status "manufacturer_recipe" is a reproducible manufacturer-provided mixing recipe for costing/review, NOT a least-cost formulation. Read premix_analysis, incomplete_requirements, checked_shortfalls and unsupported_requirements. diagnose_infeasibility returns status "manufacturer_recipe" with data gaps/shortfalls for CJ S174 and no substitution fixes. Status "infeasible", "missing_data", "error" or "fail" is not a valid nutrition pass.
 - For a generic request, let automatic mode choose basal ingredients; do not arbitrarily shrink the ingredient pool. Clearly distinguish Alibaba-derived planning defaults from product-backed supplier quotations.
@@ -185,7 +185,7 @@ export function createFeedSportMcpServer(
     {
       title: "Get programme requirements",
       description:
-        "Programme phase nutrient targets and source metadata. Some targets (including vitamin/trace-mineral supplementation) are NOT enforced because premix nutrients are not credited; check unsupported_requirements in formulation results.",
+        "Programme phase nutrient targets and source metadata. Supplemental vitamin and trace-mineral targets are evaluated separately from basal solver feasibility; read nutritional_validation in formulation and analysis results.",
       inputSchema: z.object({ programme_id: programmeId, energy_system: energySystem }),
       annotations: READ_ONLY,
     },
@@ -240,7 +240,7 @@ export function createFeedSportMcpServer(
     {
       title: "Formulate a feed",
       description:
-        "Formulate with GLPK for unrestricted programmes, or reproduce CJ S174 fixed boar recipe without optimisation. Automatic mode selects priced BASAL ingredients only. In selected mode, choose a real manufacturer SKU; its Alibaba-derived planning price is used unless a supplier quote overrides it. All commercial premixes have a fixed manufacturer inclusion dose; do not change it. CJ S174 requires every ingredient at the manufacturer ratio and returns status=manufacturer_recipe, NOT a least-cost result.",
+        "Formulate with GLPK for unrestricted programmes, or reproduce CJ S174 fixed boar recipe without optimisation. Automatic mode selects priced BASAL ingredients only. nutritional_validation separately reports verified, targets_not_met or verification_pending; status=optimal only means the formulation solve is feasible. In selected mode, choose a real manufacturer SKU; its Alibaba-derived planning price is used unless a supplier quote overrides it. All commercial premixes have a fixed manufacturer inclusion dose; do not change it. CJ S174 requires every ingredient at the manufacturer ratio and returns status=manufacturer_recipe, NOT a least-cost result.",
       inputSchema: z.object({
         programme_id: programmeId,
         energy_system: energySystem,

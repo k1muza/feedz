@@ -12,7 +12,7 @@ import {
 } from "@/lib/ingredient-nutrients";
 import { getIngredientPrices } from "@/lib/ingredient-prices";
 import { ingredientDefaultPlanningPricePerTonne } from "@/lib/feed-ingredient-prices";
-import { COMMERCIAL_PREMIXES } from "@/lib/commercial-premixes";
+import { COMMERCIAL_PREMIXES, premixFinishedFeedContributions } from "@/lib/commercial-premixes";
 
 // The ingredient catalogue shown in the formulation studio (/studio/catalogue):
 // Brazilian Tables 2024 composition from the checked-in library, priced with
@@ -33,7 +33,18 @@ export interface CatalogueIngredient {
   expected: CatalogueNutrientId[];
   limits: { stage: string; maxPct: number; practicalPct?: number }[];
   manufacturerSpecificationUrl?: string;
-  verificationStatus?: "unverified";
+  verificationStatus?: "unverified" | "verified";
+  premix?: {
+    manufacturer: string;
+    sku: string;
+    application: string;
+    permittedSpecies: string;
+    permittedProgrammePrefixes: readonly string[];
+    inclusionPct: number;
+    inclusionKgPerTonne: number;
+    inclusionInstructions: string;
+    contributions: ReturnType<typeof premixFinishedFeedContributions>;
+  };
   /** Provenance belongs to the ingredient's actual nutrition profile, not price. */
   nutritionSource: {
     publisher: string;
@@ -165,7 +176,18 @@ export async function getStudioCatalogue(): Promise<CatalogueIngredient[]> {
       expected: product ? [] : EXPECTED[ingredient.category],
       limits,
       ...(product ? { manufacturerSpecificationUrl: product.specificationUrl,
-        verificationStatus: "unverified" as const } : {}),
+        verificationStatus: product.verificationStatus,
+        premix: {
+          manufacturer: product.manufacturer,
+          sku: product.sku,
+          application: product.application,
+          permittedSpecies: product.species,
+          permittedProgrammePrefixes: product.eligibleProgrammePrefixes,
+          inclusionPct: product.inclusionPct,
+          inclusionKgPerTonne: product.inclusionKgPerTonne,
+          inclusionInstructions: product.inclusionInstructions,
+          contributions: premixFinishedFeedContributions(product),
+        } } : {}),
       nutritionSource: {
         publisher: attribution.source?.publisher ?? "User",
         title: attribution.source?.title ?? "User-provided; no published reference supplied",

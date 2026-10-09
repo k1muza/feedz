@@ -1340,6 +1340,7 @@ function ResultPanel({
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          <CompleteFeedValidationPanel validation={result.validation} />
           <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 p-4 text-sm leading-6">
             <strong>Manufacturer recipe.</strong> {result.warning}{" "}
             No GLPK optimisation was performed and no complete-feed pass is claimed.
@@ -1392,7 +1393,13 @@ function ResultPanel({
               commercialPremixById(formulationBasis.fixedPremix.id)?.manufacturerRecipe
                 ? "CJ published boar ration (fixed proportions)"
                 : selectedRecipe.label}</CardTitle>
-            <Badge variant="secondary">Basal constraints satisfied only</Badge>
+            <Badge variant="secondary">
+              {result.validation?.completeFeed === "complete"
+                ? "Nutritional requirements verified"
+                : result.validation?.categories.some((category) => category.status === "not_met")
+                  ? "Formulation feasible · nutrition targets not met"
+                  : "Formulation feasible · nutritional verification pending"}
+            </Badge>
           </div>
           <CardDescription>
             {formulationBasis?.fixedPremix &&
@@ -1408,6 +1415,7 @@ function ResultPanel({
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-5">
+          {result.validation ? <CompleteFeedValidationPanel validation={result.validation} /> : null}
           <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 px-4 py-3 text-sm leading-6 text-ink">
             <strong>{formulationBasis?.fixedPremix ? "Commercial premix:" : "Basal-only formulation:"}</strong>
             {formulationBasis?.fixedPremix
@@ -1545,6 +1553,40 @@ function ResultPanel({
         <CardDescription>{result.message}</CardDescription>
       </CardHeader>
     </Card>
+  );
+}
+
+function CompleteFeedValidationPanel({
+  validation,
+}: {
+  validation: NonNullable<Extract<LeastCostFormulationResult, { status: "optimal" }>["validation"]>;
+}) {
+  const label = (status: (typeof validation.categories)[number]["status"]) =>
+    status === "met" ? "Met" : status === "not_met" ? "Not met" : "Not verified";
+  const hasNotMet = validation.categories.some((category) => category.status === "not_met");
+  const overallLabel = validation.completeFeed === "complete"
+    ? "Overall · Verified"
+    : hasNotMet
+      ? "Overall · Targets not met"
+      : "Overall · Verification pending";
+  return (
+    <div className="overflow-hidden rounded-lg border border-hairline">
+      <div className="flex items-center justify-between gap-3 bg-raised/30 px-4 py-3 text-sm font-medium text-ink">
+        <span>Nutritional validation</span>
+        <span className={validation.completeFeed === "complete" ? "text-emerald-700" : "text-amber-700"}>
+          {overallLabel}
+        </span>
+      </div>
+      {validation.categories.map((category) => (
+        <div key={category.id} title={category.note} className="grid grid-cols-[minmax(0,1fr)_8rem] gap-3 border-t border-hairline px-4 py-2.5 text-sm">
+          <span>{category.label}</span>
+          <span className={category.status === "met" ? "font-medium text-emerald-700" : category.status === "not_met" ? "font-medium text-red-700" : "font-medium text-amber-700"}>
+            {label(category.status)}
+          </span>
+        </div>
+      ))}
+      <div className="border-t border-hairline px-4 py-3 text-xs leading-5 text-ink-muted">{validation.note}</div>
+    </div>
   );
 }
 

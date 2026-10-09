@@ -511,6 +511,7 @@ export async function addFormulationAdviceTool(input: AddAdviceInput, store: For
             cost_per_tonne: result.cost_per_tonne,
             ...(base.summary.costT != null ? { saved_cost_per_tonne: round(base.summary.costT, 2) } : {}),
             recipe: result.ingredients,
+            nutritional_validation: result.nutritional_validation,
           }
         : { ...result };
   }

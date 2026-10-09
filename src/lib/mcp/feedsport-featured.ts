@@ -244,6 +244,7 @@ async function checkFeatured(snapshot: Snapshot, context: FeedSportServiceContex
         : {}),
       recipe: result.ingredients,
       unused_ingredients: result.unused_ingredients,
+      nutritional_validation: result.nutritional_validation,
     },
   };
 }

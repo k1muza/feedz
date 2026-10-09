@@ -13,6 +13,7 @@ import type { EnergySystem } from "./nutrition-targets";
 import type { NutritionPhase } from "./nutrition";
 import { assertManufacturerRecipe, premixAnalysisForIds, type CommercialPremix } from "./commercial-premixes";
 import { round, snake } from "./feed-number-format";
+import { buildCompleteFeedValidation, type CompleteFeedValidation } from "./complete-feed-validation";
 
 /** Client supplied ingredients or ratios that conflict with a fixed manufacturer's recipe. */
 export class ManufacturerRecipeValidationError extends Error {
@@ -34,6 +35,7 @@ export type ManufacturerRecipeAssessment = {
   incompleteRequirements: FormulationIncompleteRequirement[];
   checkedShortfalls: ManufacturerRecipeShortfall[];
   unsupportedRequirements: string[];
+  validation: CompleteFeedValidation;
   warning: string;
 };
 
@@ -59,7 +61,7 @@ export function assessManufacturerRecipe(
   }
   const evaluation = evaluateFormulation(
     phase, energySystem, formula, library,
-    { includeSupplementationTargets: false, traceMineralBasis: "inorganic" },
+    { includeSupplementationTargets: true, traceMineralBasis: "inorganic" },
   );
   const incomplete = new Set(evaluation.incompleteRequirements.map((row) => row.id));
   const checkedShortfalls = evaluation.nutrientProfile
@@ -82,6 +84,7 @@ export function assessManufacturerRecipe(
     checkedShortfalls,
     // Actual programme-model limitations, not gaps in the supplier's data.
     unsupportedRequirements: evaluation.unsupportedRequirements,
+    validation: buildCompleteFeedValidation(phase, energySystem, formula, library, evaluation),
     warning: `${premix.name} is a manufacturer-prescribed recipe, NOT an optimized feed. Known nutrient shortfalls, if any, are listed; requirements that lack ingredient data are listed separately and missing values are NOT treated as zero.`,
   };
 }
@@ -112,6 +115,7 @@ export type ManufacturerRecipeReport = {
   }>;
   unsupported_requirements: string[];
   premix_analysis: ReturnType<typeof premixAnalysisForIds>;
+  validation: CompleteFeedValidation;
   warning: string;
 };
 
@@ -167,6 +171,7 @@ export function buildManufacturerRecipeReport(
     })),
     unsupported_requirements: assessment.unsupportedRequirements,
     premix_analysis: premixAnalysisForIds([premix.id]),
+    validation: assessment.validation,
     warning: assessment.warning,
   };
 }

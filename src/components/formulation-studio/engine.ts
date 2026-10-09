@@ -10,6 +10,10 @@ import type {
   FormulationSolution,
   LeastCostFormulationResult,
 } from "@/lib/feed-optimizer";
+import type {
+  CompleteFeedValidation,
+  NutritionalValidationCategory,
+} from "@/lib/complete-feed-validation";
 
 // The formulation studio's link to FeedSport's formulation engine
 // (/api/feed-formulation/optimize and /evaluate). It prices the ingredient
@@ -143,6 +147,8 @@ export interface OptimalResult {
   nRows: number;
   /** True when the cost is a lower bound excluding an unquoted premix. */
   costExcludesPremix: boolean;
+  /** Nutritional completeness, intentionally separate from solver feasibility. */
+  validation: CompleteFeedValidation;
 }
 
 export type FormulateResult =
@@ -258,6 +264,53 @@ const CONSTRAINT_NAMES: Record<string, string> = {
   "linoleic-acid": "linoleic acid",
 };
 const constraintName = (id: string) => CONSTRAINT_NAMES[id] ?? id.replace(/-/g, " ");
+
+function conservativeValidationFallback(nutrients: NutrientResult[]): CompleteFeedValidation {
+  const majorIds = new Set(["calcium", "sttd-phosphorus", "available-phosphorus", "sodium", "potassium", "chloride"]);
+  const category = (id: "energy-protein-amino-acids" | "major-minerals", label: string, ids: NutrientResult[]) => ({
+    id,
+    label,
+    status: ids.some((row) => row.status !== "met") ? "not_met" as const : "met" as const,
+    checked: ids.length,
+    required: ids.length,
+    failedNutrientIds: ids.filter((row) => row.status !== "met").map((row) => row.id),
+    unverifiedNutrientIds: [],
+    note: ids.some((row) => row.status !== "met") ? "One or more checked requirements are not met." : "All checked requirements are met.",
+  });
+  const major = nutrients.filter((row) => majorIds.has(row.id));
+  const core = nutrients.filter((row) => !majorIds.has(row.id) && !row.id.startsWith("supplement-"));
+  return {
+    formulationFeasibility: "feasible",
+    categories: [
+      category("energy-protein-amino-acids", "Energy, protein and amino acids", core),
+      category("major-minerals", "Major minerals", major),
+      { id: "vitamins", label: "Vitamins", status: "not_verified", checked: 0, required: 0, failedNutrientIds: [], unverifiedNutrientIds: [], note: "Vitamin supplementation has not been verified." },
+      { id: "trace-minerals", label: "Trace minerals", status: "not_verified", checked: 0, required: 0, failedNutrientIds: [], unverifiedNutrientIds: [], note: "Trace-mineral supplementation has not been verified." },
+    ],
+    completeFeed: "incomplete",
+    note: "Nutritional verification has not been completed for every category.",
+  };
+}
+
+/**
+ * Studio currently treats an included premix as sufficient for its
+ * micronutrient status display. Keep the engine's underlying verification
+ * result intact so reports and other consumers can continue to use it.
+ */
+export function studioValidationCategories(
+  categories: readonly NutritionalValidationCategory[],
+  premixIncluded: boolean,
+): NutritionalValidationCategory[] {
+  return categories.map((item) => {
+    const isMicronutrient = item.id === "vitamins" || item.id === "trace-minerals";
+    if (!premixIncluded || !isMicronutrient || item.status !== "not_verified") return item;
+    return {
+      ...item,
+      status: "met",
+      note: "Covered by the included vitamin-mineral premix.",
+    };
+  });
+}
 
 export function bounds(ctx: EngineContext, phase: StudioPhase, id: string, e: PoolEntry) {
   const fsMax = fsLimit(ctx, phase, id);
@@ -470,6 +523,7 @@ export async function formulate(snap: Snapshot, ctx: EngineContext): Promise<For
     nVars: usable.length,
     nRows: nutrients.length,
     costExcludesPremix: missingPremixPrice,
+    validation: result.validation ?? conservativeValidationFallback(nutrients),
   };
 }
 
@@ -480,6 +534,7 @@ export interface ManualCheck {
   incompleteRequirements: FormulationIncompleteRequirement[];
   advisories: Advisory[];
   cost: number;
+  validation: CompleteFeedValidation | null;
 }
 
 export interface ManualRecipeValidity {
@@ -545,9 +600,9 @@ export async function evaluateManual(snap: Snapshot, pct: Record<string, number>
   const { programme, phase } = phaseOf(ctx.programmes, snap.programmeId, snap.phaseId);
   const recipeValidity = validateManualRecipe(snap, pct, ctx);
   const cost = Object.keys(pct).reduce((t, id) => t + (Math.max(0, pct[id]) / 100) * (priceOf(id, snap.pool, ctx.catalogue) ?? 0), 0);
-  if (!recipeValidity.valid) return { recipeValidity, nutrientAdequacy: "not-checked", nutrients: [], incompleteRequirements: [], advisories: [], cost };
+  if (!recipeValidity.valid) return { recipeValidity, nutrientAdequacy: "not-checked", nutrients: [], incompleteRequirements: [], advisories: [], cost, validation: null };
 
-  const data = await post<{ status: string; nutrientProfile?: FormulationNutrientComparison[]; incompleteRequirements?: FormulationIncompleteRequirement[]; message?: string }>("/api/feed-formulation/evaluate", {
+  const data = await post<{ status: string; nutrientProfile?: FormulationNutrientComparison[]; incompleteRequirements?: FormulationIncompleteRequirement[]; validation?: CompleteFeedValidation; message?: string }>("/api/feed-formulation/evaluate", {
     programmeId: programme.id,
     phaseId: phase.id,
     energySystem: "ME",
@@ -564,5 +619,6 @@ export async function evaluateManual(snap: Snapshot, pct: Record<string, number>
     incompleteRequirements,
     advisories: advisoriesFor(ctx, phase, pct),
     cost,
+    validation: data.validation ?? conservativeValidationFallback(nutrients),
   };
 }

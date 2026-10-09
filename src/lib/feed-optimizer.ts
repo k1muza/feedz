@@ -18,6 +18,7 @@ import {
 import { describeMaxSource, effectiveInclusionLimits } from "./ingredient-inclusion-limits";
 import { resolveNutritionTargets, type EnergySystem } from "./nutrition-targets";
 import type { NutritionPhase } from "./nutrition";
+import type { CompleteFeedValidation } from "./complete-feed-validation";
 
 export type FormulationIngredientOption = {
   ingredientId: string;
@@ -123,6 +124,8 @@ export type LeastCostFormulationResult =
       alternativeCostTolerancePct: number;
       ingredientOpportunityCostTolerancesPct: readonly number[];
       unsupportedRequirements: FormulationUnsupportedRequirement[];
+      /** Separate from LP feasibility; API callers attach the full assessment. */
+      validation?: CompleteFeedValidation;
     }
   | {
       status: "missing-data";

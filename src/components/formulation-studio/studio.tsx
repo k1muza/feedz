@@ -23,6 +23,7 @@ import {
   phaseOf,
   poolEntryFromListItem,
   priceOf,
+  studioValidationCategories,
   type EngineContext,
   type FormulateResult,
   type GoalKey,
@@ -180,6 +181,11 @@ interface CompletionSuggestion {
   message?: string;
 }
 
+interface RecoveryUndo {
+  addedIds: string[];
+  label: string;
+}
+
 interface State {
   w: number;
   screen: Screen;
@@ -231,6 +237,8 @@ interface State {
   /** Search box on the guided setup's ingredient step. */
   ingQ: string;
   completionSuggestion: CompletionSuggestion | null;
+  /** One-step rollback for an ingredient set applied from an infeasible result. */
+  recoveryUndo: RecoveryUndo | null;
   catQ: string;
   catSel: string | null;
   catPage: number;
@@ -431,7 +439,7 @@ function poolFromList(list: IngredientList | null): Pool {
   return pool;
 }
 
-const RESET_RESULT: Partial<State> = { result: null, runSig: null, runSnap: null, history: [], mode: "optimised", manual: {}, manualCheck: null, tab: "recipe", dismissed: {}, savedSig: null, drawer: null, advisoriesOpen: false };
+const RESET_RESULT: Partial<State> = { result: null, runSig: null, runSnap: null, history: [], mode: "optimised", manual: {}, manualCheck: null, tab: "recipe", dismissed: {}, savedSig: null, drawer: null, advisoriesOpen: false, recoveryUndo: null };
 
 function freshDoc(programmeId: string, phaseId: string, species: Species, pool: Pool, docName: string): Partial<State> {
   return { ...RESET_RESULT, programmeId, phaseId, species, pool: poolWithProgrammePremix(pool, programmeId), goal: "least_cost", batch: 100, batchMode: "100", customBatch: "", docName, docId: null, pendingDoc: null };
@@ -534,6 +542,7 @@ type ManualView = ReturnType<typeof manualRecipe> & {
   recipeValidity: ManualCheck["recipeValidity"] | null;
   nutrientAdequacy: ManualCheck["nutrientAdequacy"];
   checking: boolean;
+  validation: ManualCheck["validation"];
 };
 
 function summarise(r: FormulateResult, manual: ManualView | null): Summary {
@@ -598,7 +607,7 @@ function draftErr(d: Draft, fs: number) {
 }
 
 const INITIAL: State = {
-  w: 1400, screen: "home", step: 1, species: "swine", programmeId: DEFAULT_PROGRAMME, phaseId: "", setKey: "none", setupListId: null, pool: {}, goal: "least_cost", batch: 100, batchMode: "100", customBatch: "", unit: "t", docName: "Untitled formulation", docId: null, pendingDoc: null, pendingCmp: null, result: null, runSig: null, runSnap: null, running: false, runToken: 0, tab: "recipe", drawer: null, advisoriesOpen: false, addOpen: false, addQ: "", addPick: [], mode: "optimised", manual: {}, manualCheck: null, rulesOpen: false, history: [], sel: [], cmp: null, toast: null, dismissed: {}, savedSig: null, saving: false, exporting: false, suggestion: null, completionSuggestion: null, ingQ: "", catQ: "", catSel: null, catPage: 1, catPageSize: CAT_DEFAULT_PAGE_SIZE, progSel: null, progPhase: null, progAllLimits: false, addTarget: "pool", auth: null, authNext: null, af: { email: "", password: "", name: "", org: "", role: "farmer" }, aShow: false, aErr: {}, aBusy: false, aGoogleBusy: false, aSent: null, myListSel: null, listRename: null, listCreate: null, sq: "", sOpen: false, sIdx: 0, uOpen: false, nOpen: false, featFilter: "all", cOpen: false, cTopic: "review", cPhone: "", cMsg: "", cAttach: true, cBusy: false, cSent: false, cErr: "",
+  w: 1400, screen: "home", step: 1, species: "swine", programmeId: DEFAULT_PROGRAMME, phaseId: "", setKey: "none", setupListId: null, pool: {}, goal: "least_cost", batch: 100, batchMode: "100", customBatch: "", unit: "t", docName: "Untitled formulation", docId: null, pendingDoc: null, pendingCmp: null, result: null, runSig: null, runSnap: null, running: false, runToken: 0, tab: "recipe", drawer: null, advisoriesOpen: false, addOpen: false, addQ: "", addPick: [], mode: "optimised", manual: {}, manualCheck: null, rulesOpen: false, history: [], sel: [], cmp: null, toast: null, dismissed: {}, savedSig: null, saving: false, exporting: false, suggestion: null, completionSuggestion: null, recoveryUndo: null, ingQ: "", catQ: "", catSel: null, catPage: 1, catPageSize: CAT_DEFAULT_PAGE_SIZE, progSel: null, progPhase: null, progAllLimits: false, addTarget: "pool", auth: null, authNext: null, af: { email: "", password: "", name: "", org: "", role: "farmer" }, aShow: false, aErr: {}, aBusy: false, aGoogleBusy: false, aSent: null, myListSel: null, listRename: null, listCreate: null, sq: "", sOpen: false, sIdx: 0, uOpen: false, nOpen: false, featFilter: "all", cOpen: false, cTopic: "review", cPhone: "", cMsg: "", cAttach: true, cBusy: false, cSent: false, cErr: "",
 };
 
 const spinnerStyle = (track: string, head: string): CSSProperties => ({ width: 16, height: 16, borderRadius: "50%", border: "2px solid " + track, borderTopColor: head, display: "inline-block", animation: "fsspin .8s linear infinite", flex: "none" });
@@ -872,11 +881,15 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
           : {}),
       };
     });
+  const needsSetupCompletion =
+    S.screen === "setup" && S.step === 2 && S.setKey !== "system";
+  const needsWorkspaceRecovery =
+    S.screen === "workspace" &&
+    S.result?.status === "infeasible" &&
+    !S.running &&
+    S.runSig === sigOf(S);
   const completionKey =
-    S.screen === "setup" &&
-    S.step === 2 &&
-    S.setKey !== "system" &&
-    completionIngredients.length
+    (needsSetupCompletion || needsWorkspaceRecovery) && completionIngredients.length
       ? S.programmeId + "|" + S.phaseId + "|" + JSON.stringify(completionIngredients)
       : null;
   useEffect(() => {
@@ -1086,6 +1099,31 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
         : ids.length + " recommended ingredients added as Available",
     );
   };
+  const applyRecoveryIngredients = (ids: string[]) => {
+    ids = ids.filter((id) => canAddStudioIngredient(id, S.programmeId, S.pool) && !S.pool[id]);
+    if (!ids.length) return;
+    const label = ids.length === 1 ? ingredientName(ids[0]) : ids.length + " suggested ingredients";
+    update((state) => ({
+      recoveryUndo: { addedIds: [...ids], label },
+      pool: ids.reduce(
+        (pool, id) => selectStudioIngredient(pool, id, state.programmeId),
+        state.pool,
+      ),
+    }));
+    flash(label + " added; checking the formulation again");
+    run();
+  };
+  const undoRecovery = () => {
+    if (!S.recoveryUndo) return;
+    const label = S.recoveryUndo.label;
+    update((state) => {
+      const pool = { ...state.pool };
+      for (const id of state.recoveryUndo?.addedIds ?? []) delete pool[id];
+      return { pool, recoveryUndo: null };
+    });
+    flash("Undid adding " + label);
+    run();
+  };
   const openVersion = (docId: string, v: number) => {
     const doc = formulations.docs.find((d) => d.id === docId);
     if (!doc) return;
@@ -1132,6 +1170,7 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
             advisories: check?.advisories ?? [],
             recipeValidity: check?.recipeValidity ?? null,
             nutrientAdequacy: check?.nutrientAdequacy ?? "not-checked",
+            validation: check?.validation ?? null,
             checking: !check,
           };
         })()
@@ -1293,7 +1332,7 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
   const programmeChoice = (programmeId: string) => {
     const programme = programmes.programmes.find((p) => p.id === programmeId) ?? P;
     return { programmeId: programme.id, phaseId: programme.phases[0].id,
-      species: programme.species, pool: poolWithProgrammePremix(S.pool, programme.id) };
+      species: programme.species, pool: poolWithProgrammePremix(S.pool, programme.id), recoveryUndo: null };
   };
 
   // ---- setup ----
@@ -1444,7 +1483,7 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
   const setupProgrammes = programmes.programmes.filter((p) => p.species === S.species).map((p) => ({ id: p.id, name: p.name }));
   const stageOpts = P.phases.map((ph) => {
     const on = ph.id === PH.id;
-    return { label: ph.label, range: ph.label.includes(ph.weightRange) ? "Table " + ph.sourceTable : ph.weightRange, disabled: false, cursor: "pointer", bs: "solid", bd: "#d0cdc3", ring: on ? "inset 0 0 0 1px #2f5a3f" : "none", bg: on ? "#eef3ee" : "#fff", pick: () => update({ phaseId: ph.id }) };
+    return { label: ph.label, range: ph.label.includes(ph.weightRange) ? "Table " + ph.sourceTable : ph.weightRange, disabled: false, cursor: "pointer", bs: "solid", bd: "#d0cdc3", ring: on ? "inset 0 0 0 1px #2f5a3f" : "none", bg: on ? "#eef3ee" : "#fff", pick: () => update({ phaseId: ph.id, recoveryUndo: null }) };
   });
   const setupList = myLists.lists.find((l) => l.id === S.setupListId) ?? myLists.lists[0] ?? null;
   const setOpts = [
@@ -1622,6 +1661,20 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
             return { name: f.name + (f.kind === "max" ? " (max)" : ""), best: nutVal(n2, f.best), req: nutVal(n2, f.req), w: Math.max(2, Math.min(100, ratio * 88)) + "%", m: "88%" };
           });
           const names = R.shortfalls.map((f) => f.name.replace("SID ", "").toLowerCase());
+          const recoveryIds = completion?.status === "ready" ? completion.ids : [];
+          const recoverySuggestions = recoveryIds.map((id) => {
+            const ingredient = catalogueById.get(id);
+            const projected = completion?.projectedInclusionPct[id];
+            const price = priceOf(id, S.pool, catalogueById);
+            return {
+              name: ingredientName(id),
+              category: ingredient?.category ?? "Ingredient",
+              detail: [
+                projected != null ? "feasibility test " + fmt(projected, projected < 1 ? 2 : 1) + "%" : "suggested addition",
+                priceTxt(price),
+              ].join(" · "),
+            };
+          });
           return {
             title: R.shortfalls.length ? "These ingredients can’t meet " + (R.shortfalls.length === 1 ? "one requirement" : R.shortfalls.length + " requirements") : "No recipe meets every requirement at once",
             body: R.shortfalls.length ? "No mix of your " + R.activeCount + " usable ingredients reaches " + names.join(", ") + " within your limits." : "Each requirement can be met on its own, but not all together with these ingredients and limits.",
@@ -1630,8 +1683,19 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
             hasConflict: false,
             conflict: "",
             possible: [] as string[],
-            fixNote: "Requirements are never relaxed. Add an ingredient that supplies what’s short (an oil for energy, the matching synthetic amino acid, a phosphate or limestone for minerals), or loosen your own limits, then re-formulate.",
+            fixNote: "Requirements are never relaxed. These options are tested against your current ingredients and limits before they are shown; test inclusions are not a final recipe.",
             fixes: [] as { label: string; detail: string; cost: string; ring: string; apply: () => void }[],
+            suggestionLoading: !!completionKey && (!completion || completion.status === "loading"),
+            hasSuggestions: recoverySuggestions.length > 0,
+            suggestions: recoverySuggestions,
+            suggestionMessage: completion?.status === "complete"
+              ? "The catalogue check did not identify a missing ingredient. Review your ingredient limits or ask a nutritionist to inspect the conflicting requirements."
+              : completion?.message ?? "No feasible ingredient additions were found from the priced catalogue.",
+            applySuggestions: () => applyRecoveryIngredients(recoveryIds),
+            applySuggestionsLabel: recoveryIds.length === 1
+              ? "Add ingredient and re-formulate"
+              : "Add all " + recoveryIds.length + " and re-formulate",
+            browseIngredients: () => update({ addOpen: true, addQ: "", addPick: [], addTarget: "pool" }),
           };
         })()
       : null;
@@ -1709,12 +1773,12 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
     exportDisabled, exportColor: exportDisabled ? "#8d8a80" : "#222420", exportLabel: S.exporting ? "Opening PDF…" : "Export PDF", exportTitle: !optimal ? "Formulate a valid recipe first" : optimal.costExcludesPremix ? "Enter the supplier premix quote before exporting a full-cost report" : stale ? "Re-formulate first" : manualOff ? "Resolve the manual recipe validity issues" : "Open recipe and nutrient report as PDF", doExport: () => void exportPdf(),
     leftW: wide ? "300px" : "100%", programmeId: P.id, progList: programmes.programmes.map((p) => ({ id: p.id, name: p.name })),
     onProgramme: (e: InputEvent) => update(programmeChoice(e.target.value)),
-    phaseList: P.phases.map((ph) => ({ id: ph.id, name: ph.label })), phaseId: PH.id, onPhase: (e: InputEvent) => update({ phaseId: e.target.value }),
+    phaseList: P.phases.map((ph) => ({ id: ph.id, name: ph.label })), phaseId: PH.id, onPhase: (e: InputEvent) => update({ phaseId: e.target.value, recoveryUndo: null }),
     overrideText: PH.weightRange,
     openAdd: () => update({ addOpen: true, addQ: "", addPick: [], addTarget: "pool", advisoriesOpen: false }), closeAdd: () => update({ addOpen: false }), addOpen: S.addOpen, addQ: S.addQ, onAddQ: (e: InputEvent) => update({ addQ: e.target.value }), addResults, addEmpty: addResults.length === 0, addPickN: S.addPick.length, addPicked, clearAddPick: () => update({ addPick: [] }), addCta: S.addPick.length ? "Add " + S.addPick.length + " ingredient" + (S.addPick.length === 1 ? "" : "s") : "Add ingredients",
     poolRows: poolIds.map((id) => {
       const e = S.pool[id];
-      return { name: ingredientName(id), short: isEligible(id) ? roleShort(e) : "Set aside", chip: CHIP[e.role], nameColor: e.role === "excluded" || !isEligible(id) ? "#8d8a80" : "#222420", roleColor: e.role === "fixed" ? "#222420" : e.role === "excluded" || !isEligible(id) ? "#8d8a80" : "#2f5a3f", open: () => openDrawer(id) };
+      return { name: ingredientName(id), short: !isEligible(id) ? "Set aside" : e.role === "available" && !e.max ? "—" : roleShort(e), chip: CHIP[e.role], nameColor: e.role === "excluded" || !isEligible(id) ? "#8d8a80" : "#222420", roleColor: e.role === "fixed" ? "#222420" : e.role === "excluded" || !isEligible(id) ? "#8d8a80" : "#2f5a3f", open: () => openDrawer(id) };
     }),
     poolEmpty: poolIds.length === 0,
     settingsCount: String(poolIds.filter((id) => S.pool[id].role !== "available" || S.pool[id].max).length),
@@ -1723,7 +1787,10 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
     spinner: <span style={spinnerStyle("#45473f", "#e3aa45")} />,
     spinnerDark: <span style={spinnerStyle("#e2dfd6", "#2f5a3f")} />,
     isStale: stale && !S.running, staleTitle: "You changed " + changes.length + " setting" + (changes.length === 1 ? "" : "s") + " since the last run", changes,
-    undoChanges: () => { const s = S.runSnap!; const { programme } = phaseOf(programmes, s.programmeId, s.phaseId); update({ programmeId: s.programmeId, phaseId: s.phaseId, species: programme.species, pool: clone(s.pool), goal: s.goal }); },
+    undoChanges: () => { const s = S.runSnap!; const { programme } = phaseOf(programmes, s.programmeId, s.phaseId); update({ programmeId: s.programmeId, phaseId: s.phaseId, species: programme.species, pool: clone(s.pool), goal: s.goal, recoveryUndo: null }); },
+    hasRecoveryUndo: !!S.recoveryUndo,
+    recoveryUndoText: S.recoveryUndo ? S.recoveryUndo.label + " was added from the feasibility suggestions." : "",
+    undoRecovery,
     view, dimOpacity: S.running || stale ? "0.5" : "1", emptyTitle: activeCount ? "Ready to formulate" : "Before you can formulate", checklist, blockErrs, hasWarns: warns.length > 0 && !S.running, warns, inf,
     opt, manufacturerResult, showSolver: showSolverDetails, tabs, tabRecipe: S.tab === "recipe", tabNutrients: S.tab === "nutrients", tabWhy: S.tab === "why", tabHistory: S.tab === "history",
     advisoriesOpen: S.advisoriesOpen && (!!opt?.advisories.length || docAdvice.length > 0),
@@ -1733,25 +1800,14 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
       if (doc) formulations.markAdviceRead(doc.advice.map((a) => a.id));
     },
     closeAdvisories: () => update({ advisoriesOpen: false }),
-    modeOpts: (
-      [
-        ["optimised", "Optimised"],
-        ["manual", "Manual"],
-      ] as const
-    ).map(([k, label]) => ({
-      label,
-      bg: S.mode === k ? (k === "manual" ? "#222420" : "#fff") : "transparent",
-      fg: S.mode === k && k === "manual" ? "#faf8f3" : "#222420",
-      pick: () => {
-        if (k === S.mode || !optimal) return;
-        if (k === "optimised") return update({ mode: "optimised", manual: {}, manualCheck: null });
-        const m: Record<string, string> = {};
-        poolIds.filter((id) => S.pool[id].role !== "excluded" && isEligible(id)).forEach((id) => { const r = optimal.recipe.find((x) => x.id === id); m[id] = r ? String(+r.pct.toFixed(2)) : "0"; });
-        update({ mode: "manual", manual: m, manualCheck: null });
-      },
-    })),
-    isManual: !!manualView, notManual: !manualView, optimiseFromHere: () => update({ mode: "optimised", manual: {}, manualCheck: null }), priceHead: S.unit === "t" ? "Price / t" : "Price / kg",
-    nutTitle: "Nutrients vs. requirements", goNutrients: () => update({ tab: "nutrients" }),
+    editManually: () => {
+      if (S.mode === "manual" || !optimal) return;
+      const m: Record<string, string> = {};
+      poolIds.filter((id) => S.pool[id].role !== "excluded" && isEligible(id)).forEach((id) => { const r = optimal.recipe.find((x) => x.id === id); m[id] = r ? String(+r.pct.toFixed(2)) : "0"; });
+      update({ mode: "manual", manual: m, manualCheck: null });
+    },
+    isManual: !!manualView, notManual: !manualView, optimiseFromHere: () => update({ mode: "optimised", manual: {}, manualCheck: null }),
+    goNutrients: () => update({ tab: "nutrients" }),
     whyLoading: false, whyReady: !!optimal, why, runs, docVersions, noVersions: docVersions.length === 0, docAdvice, hasAdvice: docAdvice.length > 0,
     listRows, selText: S.sel.length + " of 2 selected", cmpDisabled: S.sel.length !== 2, cmpBg: S.sel.length === 2 ? "#e3aa45" : "#64665c", doCompare: () => S.sel.length === 2 && update({ screen: "compare", cmp: S.sel.slice() }), cmp,
     d, closeDrawer: () => update({ drawer: null }),
@@ -1822,28 +1878,37 @@ function optimalVals(
   const off = !!mc && Math.abs(tp - 100) > 0.05;
   const total = { pct: fmt(tp, 1) + "%" + (off ? (tp > 100 ? " (+" : " (−") + fmt(Math.abs(tp - 100), 1) + ")" : ""), color: off ? "#a63d2a" : "#222420", kg: fmt((tp / 100) * S.batch, S.batch >= 1000 ? 0 : 1), cost: (partialCost ? "≥ " : "") + money(costT) + (partialCost ? " + premix quote" : "") };
   const nList = mc ? mc.nutrients : R.nutrients;
-  const failN = nList.filter((n) => n.status !== "met").length;
   const adv = mc ? mc.advisories : R.advisories.filter((a) => !S.dismissed[a.id]);
   // The nutritionist's notes count as practical advisories; they share the drawer.
   const advTotal = adv.length + ctx.adviceCount;
   const advTxt = advisoryCount(advTotal);
   const recipeInvalid = !!mc && !mc.checking && !mc.recipeValidity?.valid;
-  const allNutrientsMet = !mc?.checking && !recipeInvalid && failN === 0 && mc?.nutrientAdequacy !== "unknown";
+  const validation = mc?.validation ?? R.validation;
+  const premixIncluded = baseRows.some((row) => row.pct > 0 && !!engine.catalogue.get(row.id)?.premix);
+  const displayedValidationCategories = studioValidationCategories(validation?.categories ?? [], premixIncluded);
+  const validationHasNotMet = displayedValidationCategories.some((item) => item.status === "not_met");
+  const displayedValidationComplete = displayedValidationCategories.length > 0 &&
+    displayedValidationCategories.every((item) => item.status === "met");
   const recipeStatus = mc?.checking
     ? { label: "Checking recipe validity…", color: "#64665c", bg: "#d0cdc3", r: "50%" }
     : recipeInvalid
       ? { label: "Recipe invalid", color: "#a63d2a", bg: "#b2412e", r: "0" }
-      : { label: "Recipe valid", color: "#2b6a42", bg: "#2f7a4a", r: "50%" };
+      : { label: mc ? "Recipe valid" : "Feasible · all hard requirements met", color: "#2b6a42", bg: "#2f7a4a", r: "50%" };
+  const categories = (n: number, what: string) => n + " categor" + (n === 1 ? "y " : "ies ") + what;
+  const notMetN = displayedValidationCategories.filter((item) => item.status === "not_met").length;
+  const unverifiedN = displayedValidationCategories.filter((item) => item.status !== "met" && item.status !== "not_met").length;
   const nutrientStatus = mc?.checking || recipeInvalid
     ? { label: "Nutrition not checked", color: "#64665c", bg: "#d0cdc3", r: "50%" }
-    : failN
-      ? { label: failN + " of " + nList.length + " checked nutrient requirements not met" + (mc?.incompleteRequirements.length ? " · " + mc.incompleteRequirements.length + " unknown" : ""), color: "#a63d2a", bg: "#b2412e", r: "0" }
-      : mc?.nutrientAdequacy === "unknown"
-        ? { label: mc.incompleteRequirements.length + " nutrient requirement" + (mc.incompleteRequirements.length === 1 ? " is" : "s are") + " unknown · missing ingredient data", color: "#8a5f18", bg: "#c98a1e", r: "0" }
-      : { label: "All " + nList.length + " nutrients met", color: "#2b6a42", bg: "#2f7a4a", r: "50%" };
+    : !validation
+      ? { label: "Nutrition not assessed", color: "#64665c", bg: "#d0cdc3", r: "50%" }
+    : displayedValidationComplete
+      ? { label: "Nutrition targets met", color: "#2b6a42", bg: "#2f7a4a", r: "50%" }
+      : validationHasNotMet
+        ? { label: categories(notMetN, "not met"), color: "#a63d2a", bg: "#b2412e", r: "0" }
+        : { label: unverifiedN ? categories(unverifiedN, "not verified") : "Verification pending", color: "#8a5f18", bg: "#c98a1e", r: "0" };
   const strip = {
     ...nutrientStatus,
-    recipe: allNutrientsMet ? null : recipeStatus,
+    recipe: recipeStatus,
     hasAdv: advTotal > 0,
     adv: advTxt,
     goal: mc ? "Manual recipe" : GOALS[runSnap.goal].label + (runSnap.goal === "least_cost" || R.goalUnavailable ? "" : " · within 3%"),
@@ -1879,6 +1944,26 @@ function optimalVals(
       zl: n.min != null ? pos(n.min) : "0%", zw: (n.max != null ? ((n.max - (n.min || 0)) / hi) * 100 : 100 - ((n.min || 0) / hi) * 100) + "%", zbl: n.min != null ? "#2f5a3f" : "transparent", zbr: n.max != null ? "#2f5a3f" : "transparent", mk: pos(n.value), mkC: n.status !== "met" ? "#b2412e" : "#222420", trackBg: "#f3f0e8", flag: n.limiting ? "LIMITING" : "",
     };
   });
+  const validationRows = displayedValidationCategories.map((item) => {
+    const st = item.status === "met"
+      ? { label: "Met", color: "#2b6a42", bg: "#2f7a4a", r: "50%" }
+      : item.status === "not_met"
+        ? { label: "Not met", color: "#a63d2a", bg: "#b2412e", r: "0" }
+        : { label: "Not verified", color: "#8a5f18", bg: "#c98a1e", r: "0" };
+    return { label: item.label, status: st, note: item.note };
+  });
+  const validationView = {
+    rows: validationRows,
+    overallLabel: displayedValidationComplete
+      ? "Overall · Targets met"
+      : validationHasNotMet
+        ? "Overall · Targets not met"
+        : "Overall · Verification pending",
+    overallColor: displayedValidationComplete ? "#2b6a42" : validationHasNotMet ? "#a63d2a" : "#8a5f18",
+    note: displayedValidationComplete && premixIncluded
+      ? "All formulation targets are met, including micronutrients supplied by the premix."
+      : validation?.note ?? "Nutritional completeness has not been assessed.",
+  };
   const advisories = adv.map((a) => {
     const e = S.pool[a.id];
     const fixedOrReq = e?.role === "fixed" || (e?.role === "required" && Number(e.min) > a.guide);
@@ -1891,7 +1976,9 @@ function optimalVals(
     return { label: g.label, badge: on ? "CURRENT" : "", cost: g.possible ? (partialCost ? "≥ " : "") + money(g.cost) : "Not possible", note: g.possible && g.key === "least_cost" ? g.count + " ingredients" : g.possible ? g.count + " ingredients · " + g.note : g.note, delta: g.possible && g.key !== "least_cost" ? (dd > 0.005 ? "+" + money(dd) + "/t · +" + fmt((dd / R.leastCostT) * 100, 1) + "%" : "same cost") : "", deltaColor: dd > 0.005 ? "#a63d2a" : "#64665c", disabled: !g.possible || on, cursor: g.possible && !on ? "pointer" : "default", bs: g.possible ? "solid" : "dashed", bd: on ? "#2f5a3f" : g.possible ? "#e2dfd6" : "#b9b6ab", ring: on ? "inset 0 0 0 1px #2f5a3f" : "none", bg: on ? "#eef3ee" : g.possible ? "#fff" : "#faf8f3", pick: () => { if (!g.possible || on) return; update({ goal: g.key }); run(); } };
   });
   const unusedText = R.unused.map((id) => engine.catalogue.get(id)?.name ?? id).join(", ");
-  return { rows, total, figures, strip, nuts, advisories, strategies, unusedText, hasUnused: !mc && !!unusedText, goalCostNote };
+  const usedN = baseRows.filter((r) => r.pct > 0).length;
+  const recipeTitle = "Recipe · " + usedN + " ingredient" + (usedN === 1 ? "" : "s");
+  return { rows, total, figures, strip, nuts, validation: validationView, advisories, strategies, unusedText, hasUnused: !mc && !!unusedText, goalCostNote, recipeTitle };
 }
 
 /** "Why this recipe": what's at its limit, and the ingredients the recipe leaves out. */
@@ -2067,6 +2154,19 @@ function drawerVals(S: State, D: Draft, R: OptimalResult | null, ctx: { update: 
     canReset: D.price !== "" && defP != null, resetLabel: defP == null ? "" : "Reset to $" + fmt(D.unit === "t" ? defP : defP / 1000, D.unit === "t" ? 0 : 3) + " planning price", resetPrice: () => upd({ price: "" }),
     hasWhy: !!why, whyTitle, why,
     nutritionalSource: g?.nutritionSource ?? null,
+    premixDetails: g?.premix ? {
+      application: g.premix.application,
+      permitted: `${g.premix.permittedSpecies} · ${g.premix.permittedProgrammePrefixes.join(", ")}`,
+      instruction: g.premix.inclusionInstructions,
+      basis: g.premix.contributions.some((item) => item.basis === "verified_analysis")
+        ? "Verified as-fed profile"
+        : "Manufacturer label minima · not independently verified",
+      contributions: g.premix.contributions.map((item) => ({
+        name: item.nutrient,
+        prefix: item.basis === "minimum_guarantee" ? "≥ " : "",
+        value: `${fmt(item.finishedFeedContribution, item.finishedFeedContribution < 1 ? 3 : 1)} ${item.unit}`,
+      })),
+    } : null,
     profile: CAT_NUTRIENTS.filter((n) => n.id !== (species === "broiler" ? "mePig" : "mePoultry")).map((n) => {
       const x = g?.nutrients[n.id] ?? null;
       const missing = x == null && !!g?.expected.includes(n.id);
@@ -2287,6 +2387,19 @@ function libraryVals(
           basis: catSel.nutritionSource.basis,
           notes: catSel.nutritionSource.notes,
         },
+        premixDetails: catSel.premix ? {
+          application: catSel.premix.application,
+          permitted: `${catSel.premix.permittedSpecies} · ${catSel.premix.permittedProgrammePrefixes.join(", ")}`,
+          instruction: catSel.premix.inclusionInstructions,
+          basis: catSel.premix.contributions.some((item) => item.basis === "verified_analysis")
+            ? "Verified as-fed profile"
+            : "Manufacturer label minima · not independently verified",
+          contributions: catSel.premix.contributions.map((item) => ({
+            name: item.nutrient,
+            prefix: item.basis === "minimum_guarantee" ? "≥ " : "",
+            value: `${fmt(item.finishedFeedContribution, item.finishedFeedContribution < 1 ? 3 : 1)} ${item.unit}`,
+          })),
+        } : null,
         close: () => update({ catSel: null }),
         // Values the library doesn't publish read "Missing" only where this kind of ingredient should have one.
         profile: CAT_NUTRIENTS.map((n) => {

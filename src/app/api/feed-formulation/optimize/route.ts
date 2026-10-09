@@ -13,6 +13,7 @@ import {
 import { assertManufacturerRecipe, commercialPremixById, commercialPremixCompatibleWithProgramme, premixAnalysisForIds } from "@/lib/commercial-premixes";
 import { PUBLIC_PREMIX_ID } from "@/lib/public-feed-premix";
 import { buildManufacturerRecipeReport } from "@/lib/manufacturer-recipe";
+import { buildCompleteFeedValidation } from "@/lib/complete-feed-validation";
 
 const optionalNutrient = z.number().finite().nonnegative().optional();
 
@@ -147,15 +148,20 @@ export async function POST(request: Request) {
       ingredients,
       library,
       {
-        includeSupplementationTargets: selectedCommercial.length > 0
-          ? false
-          : includeSupplementationTargets,
+        // Strict callers may require micronutrient supplementation in the LP.
+        // Missing premix values then return `missing-data`; they are never
+        // silently treated as zero or disabled merely because a premix exists.
+        includeSupplementationTargets,
         traceMineralBasis,
       },
     );
 
+    const validation = result.status === "optimal"
+      ? buildCompleteFeedValidation(phase, energySystem, result.solution.formula, library)
+      : undefined;
     return NextResponse.json({
       ...result,
+      ...(validation ? { validation } : {}),
       premix_analysis: premixAnalysisForIds(ingredients.map((row) => row.ingredientId)),
     });
   } catch (error) {

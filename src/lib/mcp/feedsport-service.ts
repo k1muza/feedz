@@ -53,6 +53,7 @@ import type { NutritionPhase, NutritionSpecies } from "@/lib/nutrition";
 import { PUBLIC_PREMIX_ID } from "@/lib/public-feed-premix";
 import { COMMERCIAL_PREMIXES, assertManufacturerRecipe, commercialPremixById, commercialPremixCompatibleWithProgramme, premixAnalysisForIds, type CommercialPremix } from "@/lib/commercial-premixes";
 import { buildManufacturerRecipeReport, ManufacturerRecipeValidationError } from "@/lib/manufacturer-recipe";
+import { buildCompleteFeedValidation, type CompleteFeedValidation } from "@/lib/complete-feed-validation";
 import { round, snake } from "@/lib/feed-number-format";
 export { round, snake } from "@/lib/feed-number-format";
 
@@ -262,6 +263,32 @@ function requirementMap(
   );
 }
 
+/** Agent-facing, snake_case view of the web app's nutritional validation. */
+export function nutritionalValidationReport(validation: CompleteFeedValidation) {
+  const hasNotMet = validation.categories.some((category) => category.status === "not_met");
+  const overallStatus = validation.completeFeed === "complete"
+    ? "verified" as const
+    : hasNotMet
+      ? "targets_not_met" as const
+      : "verification_pending" as const;
+  return {
+    overall_status: overallStatus,
+    formulation_feasibility: validation.formulationFeasibility,
+    complete_feed_claim: validation.completeFeed === "complete" ? "supported" as const : "not_supported" as const,
+    categories: validation.categories.map((category) => ({
+      id: snake(category.id),
+      label: category.label,
+      status: category.status,
+      checked_requirements: category.checked,
+      required_requirements: category.required,
+      failed_nutrients: category.failedNutrientIds.map(snake),
+      unverified_nutrients: category.unverifiedNutrientIds.map(snake),
+      note: category.note,
+    })),
+    note: validation.note,
+  };
+}
+
 /** Practical guidance the source publishes but the solver does not model. */
 const ENFORCED_PRACTICAL_KEYS = new Set(["lLysineHclMaxPct", "neutralDetergentFibreMinPct"]);
 
@@ -291,7 +318,7 @@ export function getProgramme(id: string, energySystem: EnergySystem = "ME") {
     ...(premix.length > 0
       ? {
           supplementation_requirements: {
-            applies_when: "Not enforced: commercial premix nutrients are not credited against these targets.",
+            applies_when: "Evaluated separately from basal formulation feasibility and reported under nutritional_validation.",
             source_tables: phase.supplementation?.sourceTables,
             requirements: requirementMap(premix),
           },
@@ -361,6 +388,7 @@ function priceSummary(ingredientId: string, context: FeedSportServiceContext) {
 }
 
 function premixSummary(premix: CommercialPremix, context: FeedSportServiceContext) {
+  const profile = premixAnalysisForIds([premix.id]);
   return {
     id: premix.id, name: premix.name, category: "vitamin_mineral_premix" as const,
     aliases: [premix.sku, premix.manufacturer],
@@ -379,14 +407,24 @@ function premixSummary(premix: CommercialPremix, context: FeedSportServiceContex
       sourceTable: null,
       species: (premix.species === "pig" ? "swine" : "poultry") as "swine" | "poultry",
       nutrientSources: {},
-      notes: ["Published ranges and minima are listed for reference, not as exact analytical concentrations."],
+      verificationStatus: profile.status === "included" && profile.nutrient_profile?.status === "manufacturer_verified"
+        ? "manufacturer_verified"
+        : "manufacturer_unverified",
+      notes: ["Supplier label minima are calculated conservatively; unverified profiles cannot support a verified nutritional claim."],
     },
+    verification_status: profile.status === "included" && profile.nutrient_profile?.status === "manufacturer_verified"
+      ? "manufacturer_verified"
+      : "manufacturer_unverified",
+    permitted_species: premix.species,
+    permitted_programme_prefixes: premix.eligibleProgrammePrefixes,
     formulation_compatibility: premix.formulationCompatibility,
     ...(premix.manufacturerRecipe ? { manufacturer_recipe: premix.manufacturerRecipe } : {}),
     specification_url: premix.specificationUrl,
     published_analysis: premix.publishedAnalysis,
     ...(premix.publishedGuarantees ? { published_guarantees: premix.publishedGuarantees } : {}),
     ...(premix.note ? { note: premix.note } : {}),
+    inclusion_instructions: premix.inclusionInstructions,
+    micronutrient_profile: profile.status === "included" ? profile.nutrient_profile : null,
     default_constraints: { min_inclusion_percent: premix.inclusionPct, max_inclusion_percent: premix.inclusionPct },
   };
 }
@@ -578,7 +616,7 @@ export function getIngredient(
     nutrients: null,
     source: commercial.specificationUrl,
     source_url: commercial.specificationUrl,
-    note: "Published specification ranges are for reference only and are not credited as feed nutrients.",
+    note: "Supplier label minima contribute to finished-feed calculations at the fixed inclusion dose. Until the profile is verified, those contributions cannot support a verified nutritional claim.",
   };
 
   const ingredient = resolveIngredient(id, library).record;
@@ -907,6 +945,8 @@ function prepareRequest(
   return {
     resolved, energySystem,
     library: ingredientLibraryWithCommercialPremixes(selectedPremixes, speciesLibrary),
+    // Keep basal LP feasibility separate. The completed recipe is evaluated
+    // against the full micronutrient target set before it is returned.
     settings: { includeSupplementationTargets: false, traceMineralBasis: "inorganic" },
     includesPremix,
     ingredientIds,
@@ -918,14 +958,14 @@ function formulationNotes(request: PreparedRequest): string[] {
   const notes: string[] = [];
   if (request.includesPremix) {
     notes.push(
-      "Commercial premix included at the manufacturer's fixed dosage.",
+      "Commercial premix included at the manufacturer's fixed dosage. Its nutrient contribution is included in nutritional_validation using the profile's stated verification basis.",
     );
     if (request.ingredientIds.some((id) => commercialPremixById(id)?.manufacturerRecipe)) {
       notes.push("CJ S174 is limited to its published manufacturer recipe. This is not manufacturer approval of independent ingredient substitutions.");
     }
   } else {
     notes.push(
-      "No commercial premix included: vitamin and trace-mineral supplementation has NOT been checked.",
+      "No commercial premix included: nutritional_validation reports vitamin and trace-mineral verification separately from basal formulation feasibility.",
     );
   }
   return notes;
@@ -1187,6 +1227,7 @@ export async function formulate(input: FormulateInput, context: FeedSportService
       incomplete_requirements: report.incomplete_requirements,
       checked_shortfalls: report.checked_shortfalls,
       unsupported_requirements: report.unsupported_requirements,
+      nutritional_validation: nutritionalValidationReport(report.validation),
       notes: [...notes, report.warning],
       ...common,
     };
@@ -1267,6 +1308,12 @@ export async function formulate(input: FormulateInput, context: FeedSportService
 
   const used = new Set(chosen.solution.formula.ingredients.map((row) => row.ingredientId));
   const advisories = practicalAdvisories(chosen.solution.formula, resolved.phase);
+  const validation = buildCompleteFeedValidation(
+    resolved.phase,
+    request.energySystem,
+    chosen.solution.formula,
+    library,
+  );
   return {
     status: "optimal" as const,
     objective,
@@ -1285,7 +1332,8 @@ export async function formulate(input: FormulateInput, context: FeedSportService
     requirement_comparison: comparisonRows(chosen.profile),
     inclusion_limits: inclusionLimits,
     ...(advisories.length > 0 ? { above_practical_inclusion: advisories } : {}),
-    unsupported_requirements: [...new Set([...result.unsupportedRequirements, "vitamin-trace-mineral-supplementation"])],
+    unsupported_requirements: result.unsupportedRequirements,
+    nutritional_validation: nutritionalValidationReport(validation),
     notes: [
       ...notes,
       ...(common.formulation_basis.ingredient_mode === "automatic"
@@ -1377,6 +1425,7 @@ export function analyseFormulation(input: AnalyseInput, context: FeedSportServic
       premix_analysis: report.premix_analysis,
       checked_shortfalls: report.checked_shortfalls,
       unsupported_requirements: report.unsupported_requirements,
+      nutritional_validation: nutritionalValidationReport(report.validation),
       notes: [...formulationNotes(request), report.warning],
       programme: programmeHeader(resolved),
       data_sources: dataSources(resolved, library, ingredientIds, prices, request.energySystem, request.includesPremix),
@@ -1384,6 +1433,7 @@ export function analyseFormulation(input: AnalyseInput, context: FeedSportServic
   }
 
   const evaluation = evaluateFormulation(resolved.phase, request.energySystem, formula, library, request.settings);
+  const validation = buildCompleteFeedValidation(resolved.phase, request.energySystem, formula, library);
   const comparison = comparisonRows(evaluation.nutrientProfile);
   const deficiencies = comparison.filter((row) => row.relation === "min" && !row.passes);
   const excesses = comparison.filter((row) => row.relation === "max" && !row.passes);
@@ -1466,7 +1516,8 @@ export function analyseFormulation(input: AnalyseInput, context: FeedSportServic
     ...(practicalInclusionAdvisories.length > 0
       ? { above_practical_inclusion: practicalInclusionAdvisories }
       : {}),
-    unsupported_requirements: [...new Set([...evaluation.unsupportedRequirements, "vitamin-trace-mineral-supplementation"])],
+    unsupported_requirements: evaluation.unsupportedRequirements,
+    nutritional_validation: nutritionalValidationReport(validation),
     premix_analysis: premixAnalysisForIds(ingredientIds),
     notes,
     programme: programmeHeader(resolved),

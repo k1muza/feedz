@@ -5,6 +5,7 @@ import { evaluateFormulation } from "@/lib/feed-optimizer";
 import { feedProgrammePhaseById } from "@/lib/feed-programmes";
 import { commercialPremixById } from "@/lib/commercial-premixes";
 import { ingredientLibraryForPhase, ingredientLibraryWithCommercialPremixes } from "@/lib/ingredient-nutrients";
+import { buildCompleteFeedValidation } from "@/lib/complete-feed-validation";
 
 export const runtime = "nodejs";
 
@@ -43,11 +44,19 @@ export async function POST(request: Request) {
       return premix ? [premix] : [];
     });
     const library = ingredientLibraryWithCommercialPremixes(premixes, ingredientLibraryForPhase(phase));
-    const evaluation = evaluateFormulation(phase, energySystem, { ingredients }, library);
+    const formula = { ingredients };
+    const evaluation = evaluateFormulation(
+      phase,
+      energySystem,
+      formula,
+      library,
+      { includeSupplementationTargets: true, traceMineralBasis: "inorganic" },
+    );
     return NextResponse.json({
       status: "evaluated",
       nutrientProfile: evaluation.nutrientProfile,
       incompleteRequirements: evaluation.incompleteRequirements,
+      validation: buildCompleteFeedValidation(phase, energySystem, formula, library, evaluation),
     });
   } catch (error) {
     return NextResponse.json({ status: "error", message: error instanceof Error ? error.message : String(error) }, { status: 400 });

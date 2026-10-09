@@ -26,6 +26,7 @@ import {
   buildScenario,
   comparisonRows,
   libraryName,
+  nutritionalValidationReport,
   priceRecord,
   recipeRows,
   resolveRequestedIngredient,
@@ -330,6 +331,7 @@ export async function diagnoseInfeasibilityTool(input: DiagnoseInput, context: F
       missing_data: report.incomplete_requirements,
       checked_shortfalls: report.checked_shortfalls,
       unsupported_requirements: report.unsupported_requirements,
+      nutritional_validation: nutritionalValidationReport(report.validation),
       fixes: [],
       notes: [
         ...built.notes,

@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { evaluateManual, formulate, validateManualRecipe, type EngineContext, type Snapshot } from "./engine";
+import { evaluateManual, formulate, studioValidationCategories, validateManualRecipe, type EngineContext, type Snapshot } from "./engine";
+import type { NutritionalValidationCategory } from "@/lib/complete-feed-validation";
 import { poolWithProgrammePremix } from "@/lib/studio-commercial-premix";
 
 const context = {
@@ -29,6 +30,30 @@ const snapshot: Snapshot = {
     premix: { role: "fixed", fixed: 5 },
   },
 };
+
+test("Studio displays premix-covered micronutrient categories as met", () => {
+  const categories = [
+    { id: "vitamins", label: "Vitamins", status: "not_verified" },
+    { id: "trace-minerals", label: "Trace minerals", status: "not_verified" },
+    { id: "major-minerals", label: "Major minerals", status: "not_met" },
+  ].map((item) => ({
+    ...item,
+    checked: 0,
+    required: 0,
+    failedNutrientIds: [],
+    unverifiedNutrientIds: [],
+    note: "Source verification pending.",
+  })) as NutritionalValidationCategory[];
+
+  assert.deepEqual(
+    studioValidationCategories(categories, true).map((item) => item.status),
+    ["met", "met", "not_met"],
+  );
+  assert.deepEqual(
+    studioValidationCategories(categories, false).map((item) => item.status),
+    ["not_verified", "not_verified", "not_met"],
+  );
+});
 
 test("manual recipe validity checks total, effective bounds, and fixed inclusions", () => {
   const check = validateManualRecipe(snapshot, { corn: 55, soy: 40, premix: 4 }, context);

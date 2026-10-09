@@ -1,4 +1,5 @@
 import { Trash2 } from "lucide-react";
+import { useState } from "react";
 
 import { CAT_PAGE_SIZES, type ShellVals, type StudioVals } from "./studio";
 import { STUDIO_CSS, hv, sx } from "./sx";
@@ -607,7 +608,7 @@ const ING_COLS = "display:grid;grid-template-columns:30px minmax(0,1fr) 150px 12
 
 function Setup({ v }: V) {
   return (
-    <div style={sx("display:flex;flex-direction:column;min-height:100vh;animation:fsin .25s ease-out")}>
+    <div style={sx("flex:1;display:flex;flex-direction:column;animation:fsin .25s ease-out")}>
       <div style={sx("display:flex;align-items:center;justify-content:space-between;gap:16px;padding:16px clamp(16px,4vw,48px);border-bottom:1px solid #e2dfd6;background:#fff;flex-wrap:wrap")}>
         <div style={sx("display:flex;gap:18px;align-items:center;flex-wrap:wrap")}>
           {v.steps.map((st, i) => (
@@ -823,9 +824,28 @@ function Setup({ v }: V) {
   );
 }
 
+const POOL_PREVIEW = 5;
+
 function Workspace({ v }: V) {
+  const [allPool, setAllPool] = useState(false);
+  const poolShown = allPool ? v.poolRows : v.poolRows.slice(0, POOL_PREVIEW);
+  const poolHidden = v.poolRows.length - POOL_PREVIEW;
   return (
-    <div style={sx("display:flex;flex-direction:column;min-height:100vh")}>
+    <div style={sx("flex:1;display:flex;flex-direction:column")}>
+      <div style={sx("display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;padding:16px clamp(16px,3vw,32px);background:#fff;border-bottom:1px solid #e2dfd6")}>
+        <div style={sx("display:flex;flex-direction:column;gap:6px;min-width:0")}>
+          <button onClick={v.goList} style={sx("align-self:flex-start;border:0;background:transparent;padding:0;font:400 14px/1 'IBM Plex Sans',sans-serif;color:#64665c")}>Formulations /</button>
+          <div style={sx("display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;min-width:0")}>
+            <input value={v.docName} onChange={v.onName} size={Math.max(8, v.docName.length)} aria-label="Formulation name" title="Rename formulation" style={sx("max-width:100%;border:0;border-bottom:1px dashed transparent;background:transparent;padding:0;font:600 24px/1.25 'IBM Plex Sans',sans-serif;color:#222420;letter-spacing:-0.01em")} />
+            <span style={sx(`font:500 13px/1 'IBM Plex Mono',monospace;letter-spacing:0.03em;color:${v.saveState.color}`)}>{v.saveState.label}</span>
+          </div>
+        </div>
+        <div style={sx("display:flex;gap:10px;flex-wrap:wrap")}>
+          <button onClick={v.goList} style={sx("font:500 14px/1 'IBM Plex Sans',sans-serif;padding:11px 16px;border:1px solid #d0cdc3;border-radius:7px;background:#fff;color:#222420")}>Compare</button>
+          <button onClick={v.doExport} disabled={v.exportDisabled} title={v.exportTitle} style={sx(`font:500 14px/1 'IBM Plex Sans',sans-serif;padding:11px 16px;border:1px solid #d0cdc3;border-radius:7px;background:#fff;color:${v.exportColor}`)}>{v.exportLabel}</button>
+          <button onClick={v.save} disabled={v.saveDisabled} title={v.saveTitle} style={sx(`font:600 14px/1 'IBM Plex Sans',sans-serif;padding:11px 20px;border:0;background:${v.saveBg};color:#fff;border-radius:7px`)}>Save</button>
+        </div>
+      </div>
       <div style={sx("flex:1;display:flex;flex-wrap:wrap;align-items:stretch")}>
         <div style={sx(`flex:0 1 ${v.leftW};width:${v.leftW};border-right:1px solid #e2dfd6;background:#fff;display:flex;flex-direction:column`)}>
           <div style={sx("padding:18px 22px;border-bottom:1px solid #ece8df;display:flex;flex-direction:column;gap:8px")}>
@@ -849,12 +869,17 @@ function Workspace({ v }: V) {
               <span style={sx(MONO_LABEL)}>2 · Ingredients · {v.poolCount}</span>
               <button onClick={v.openAdd} style={sx("border:0;background:transparent;font:600 13px/1 'IBM Plex Sans',sans-serif;color:#2f5a3f;padding:4px 0")}>+ Add</button>
             </div>
-            {v.poolRows.map((c) => (
+            {poolShown.map((c) => (
               <button key={c.name} onClick={c.open} className={hv("pool")} style={sx("border:0;background:transparent;display:flex;justify-content:space-between;align-items:center;gap:8px;padding:7px 8px;margin:0 -8px;border-radius:6px;font:400 14px/1.2 'IBM Plex Sans',sans-serif;color:#222420;text-align:left")}>
                 <span style={sx(`text-decoration:${c.chip.deco};color:${c.nameColor}`)}>{c.name}</span>
                 <span style={sx(`font:500 12px/1 'IBM Plex Sans',sans-serif;color:${c.roleColor}`)}>{c.short}</span>
               </button>
             ))}
+            {poolHidden > 0 && (
+              <button onClick={() => setAllPool(!allPool)} style={sx("align-self:flex-start;border:0;background:transparent;padding:8px 0 0;font:600 14px/1 'IBM Plex Sans',sans-serif;color:#2f5a3f")}>
+                {allPool ? "Show fewer" : "Show all " + v.poolRows.length + " · " + poolHidden + " more available"}
+              </button>
+            )}
             {v.poolEmpty && <span style={sx("font:400 13px/1.4 'IBM Plex Sans',sans-serif;color:#64665c")}>No ingredients yet.</span>}
           </div>
           <div style={sx("padding:18px 22px;border-bottom:1px solid #ece8df;display:flex;flex-direction:column;gap:8px")}>
@@ -906,6 +931,13 @@ function Workspace({ v }: V) {
                 ))}
               </div>
               <span style={sx("font:400 12px/1.4 'IBM Plex Sans',sans-serif;color:#64665c")}>The result below is from the previous run. Save and Export are off until you re-formulate.</span>
+            </div>
+          )}
+
+          {v.hasRecoveryUndo && (
+            <div style={sx("display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 16px;background:#eef3ee;border:1px solid #c5d8c8;border-radius:10px;font:400 13px/1.4 'IBM Plex Sans',sans-serif;color:#1f3e2b;flex-wrap:wrap")}>
+              <span>{v.recoveryUndoText}</span>
+              <button onClick={v.undoRecovery} style={sx("border:1px solid #2f5a3f;background:#fff;color:#2f5a3f;font:600 13px/1 'IBM Plex Sans',sans-serif;padding:9px 12px;border-radius:6px")}>Undo</button>
             </div>
           )}
 
@@ -1048,9 +1080,37 @@ function Infeasible({ v, inf }: V & { inf: NonNullable<StudioVals["inf"]> }) {
       </div>
       <div style={sx("flex:1 1 320px;min-width:0;display:flex;flex-direction:column;gap:12px")}>
         <div style={sx("display:flex;flex-direction:column;gap:4px")}>
-          <span style={sx("font:600 16px/1.3 'IBM Plex Sans',sans-serif")}>Changes that work</span>
+          <span style={sx("font:600 16px/1.3 'IBM Plex Sans',sans-serif")}>Ingredient options</span>
           <span style={sx("font:400 13px/1.45 'IBM Plex Sans',sans-serif;color:#64665c")}>{inf.fixNote}</span>
         </div>
+        {inf.suggestionLoading && (
+          <div style={sx("display:flex;align-items:center;gap:10px;padding:16px;background:#fff;border:1px solid #e2dfd6;border-radius:10px;font:400 13px/1.4 'IBM Plex Sans',sans-serif;color:#64665c")}>
+            {v.spinnerDark}
+            Testing catalogue ingredients against this formulation…
+          </div>
+        )}
+        {inf.hasSuggestions && (
+          <div style={sx("background:#fff;border:1px solid #e2dfd6;border-radius:10px;overflow:hidden")}>
+            {inf.suggestions.map((suggestion) => (
+              <div key={suggestion.name} style={sx("display:flex;justify-content:space-between;gap:14px;padding:14px 16px;border-bottom:1px solid #ece8df;align-items:flex-start")}>
+                <span style={sx("display:flex;flex-direction:column;gap:3px;min-width:0")}>
+                  <span style={sx("font:600 14px/1.3 'IBM Plex Sans',sans-serif")}>{suggestion.name}</span>
+                  <span style={sx("font:400 12px/1.4 'IBM Plex Sans',sans-serif;color:#64665c")}>{suggestion.category}</span>
+                </span>
+                <span style={sx("flex:none;font:500 12px/1.4 'IBM Plex Sans',sans-serif;color:#45473f;text-align:right")}>{suggestion.detail}</span>
+              </div>
+            ))}
+            <div style={sx("display:flex;justify-content:flex-end;padding:12px 16px;background:#faf8f3")}>
+              <button onClick={inf.applySuggestions} style={sx("font:600 13px/1 'IBM Plex Sans',sans-serif;padding:10px 13px;background:#2f5a3f;color:#fff;border:0;border-radius:6px")}>{inf.applySuggestionsLabel}</button>
+            </div>
+          </div>
+        )}
+        {!inf.suggestionLoading && !inf.hasSuggestions && (
+          <div style={sx("display:flex;flex-direction:column;gap:10px;padding:16px;background:#fff;border:1px solid #e2dfd6;border-radius:10px")}>
+            <span style={sx("font:400 13px/1.45 'IBM Plex Sans',sans-serif;color:#45473f")}>{inf.suggestionMessage}</span>
+            <button onClick={inf.browseIngredients} style={sx("align-self:flex-start;border:1px solid #2f5a3f;background:#fff;color:#2f5a3f;font:600 13px/1 'IBM Plex Sans',sans-serif;padding:9px 12px;border-radius:6px")}>Browse ingredients</button>
+          </div>
+        )}
         {inf.fixes.map((x, i) => (
           <div key={i} style={sx(`background:#fff;border:1px solid #e2dfd6;box-shadow:${x.ring};border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:10px`)}>
             <div style={sx("display:flex;justify-content:space-between;align-items:baseline;gap:10px")}>
@@ -1070,17 +1130,12 @@ function Infeasible({ v, inf }: V & { inf: NonNullable<StudioVals["inf"]> }) {
   );
 }
 
-const RECIPE_COLS = "display:grid;grid-template-columns:minmax(0,1.5fr) 0.9fr 1.5fr 0.7fr 0.9fr 1.1fr;gap:10px";
+const RECIPE_COLS = "display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1.6fr) 0.6fr 0.9fr;gap:12px";
 
 function Optimal({ v, opt }: V & { opt: NonNullable<StudioVals["opt"]> }) {
   const { strip } = opt;
   return (
     <div style={sx(`display:flex;flex-direction:column;gap:20px;opacity:${v.dimOpacity};transition:opacity .2s`)}>
-      <div style={sx("display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap")}>
-        <button onClick={v.goList} style={sx("font:500 14px/1 'IBM Plex Sans',sans-serif;padding:11px 14px;border:1px solid #d0cdc3;border-radius:7px;background:#fff;color:#222420")}>Compare</button>
-        <button onClick={v.doExport} disabled={v.exportDisabled} title={v.exportTitle} style={sx(`font:500 14px/1 'IBM Plex Sans',sans-serif;padding:11px 14px;border:1px solid #d0cdc3;border-radius:7px;background:#fff;color:${v.exportColor}`)}>{v.exportLabel}</button>
-        <button onClick={v.save} disabled={v.saveDisabled} title={v.saveTitle} style={sx(`font:600 14px/1 'IBM Plex Sans',sans-serif;padding:11px 18px;border:0;background:${v.saveBg};color:#fff;border-radius:7px`)}>Save</button>
-      </div>
       <div style={sx("display:flex;align-items:center;gap:14px;padding:13px 18px;background:#fff;border:1px solid #e2dfd6;border-radius:10px;font:400 14px/1.3 'IBM Plex Sans',sans-serif;flex-wrap:wrap")}>
         {strip.recipe && (
           <>
@@ -1104,9 +1159,8 @@ function Optimal({ v, opt }: V & { opt: NonNullable<StudioVals["opt"]> }) {
             </button>
           </>
         )}
-        <span style={sx("width:1px;height:16px;background:#d0cdc3")} />
-        <span style={sx("color:#64665c")}>{strip.goal}</span>
-        {v.showSolver && <span style={sx("margin-left:auto;font:400 12px/1 'IBM Plex Mono',monospace;color:#64665c")}>{strip.solver}</span>}
+        <span style={sx("margin-left:auto;color:#64665c")}>{strip.goal}</span>
+        {v.showSolver && <span style={sx("font:400 12px/1 'IBM Plex Mono',monospace;color:#64665c")}>{strip.solver}</span>}
       </div>
       <div style={sx("display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px")}>
         {opt.figures.map((f) => (
@@ -1127,75 +1181,62 @@ function Optimal({ v, opt }: V & { opt: NonNullable<StudioVals["opt"]> }) {
         <div style={sx("display:flex;flex-wrap:wrap;gap:18px;align-items:flex-start")}>
           <div style={sx("flex:1 1 520px;min-width:0;display:flex;flex-direction:column;gap:14px")}>
             <div style={sx("background:#fff;border:1px solid #e2dfd6;border-radius:10px;overflow:hidden")}>
-              <div style={sx("display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid #e2dfd6;flex-wrap:wrap")}>
-                <div style={sx("display:flex;background:#f3f0e8;border-radius:7px;padding:3px;font:500 13px/1 'IBM Plex Sans',sans-serif")}>
-                  {v.modeOpts.map((m) => (
-                    <button key={m.label} onClick={m.pick} style={sx(`border:0;padding:8px 12px;border-radius:5px;background:${m.bg};color:${m.fg};font:600 13px/1 'IBM Plex Sans',sans-serif`)}>{m.label}</button>
-                  ))}
-                </div>
+              <div style={sx("display:flex;justify-content:space-between;align-items:center;gap:10px;padding:14px 20px;flex-wrap:wrap")}>
+                <span style={sx("font:600 17px/1.2 'IBM Plex Sans',sans-serif")}>{opt.recipeTitle}</span>
                 <div style={sx("display:flex;align-items:center;gap:8px")}>
-                  <span style={sx("font:400 13px/1 'IBM Plex Sans',sans-serif;color:#64665c")}>Batch</span>
-                  <div style={sx("display:flex;background:#f3f0e8;border-radius:7px;padding:3px")}>
+                  <div role="group" aria-label="Batch size" style={sx("display:flex;background:#f3f0e8;border-radius:7px;padding:3px")}>
                     {v.batchOpts.map((b) => (
-                      <button key={b.label} onClick={b.pick} style={sx(`border:0;padding:7px 10px;border-radius:5px;background:${b.tabBg};font:${b.weight} 13px/1 'IBM Plex Sans',sans-serif;color:#222420`)}>{b.label}</button>
+                      <button key={b.label} onClick={b.pick} style={sx(`border:0;padding:8px 12px;border-radius:5px;background:${b.tabBg};font:${b.weight} 14px/1 'IBM Plex Sans',sans-serif;color:#222420`)}>{b.label}</button>
                     ))}
                   </div>
-                  {v.batchCustom && <input type="number" min="1" value={v.customBatch} onChange={v.onCustomBatch} placeholder="kg" style={sx("width:80px;padding:7px 8px;border:1px solid #d0cdc3;border-radius:6px;font:500 13px/1 'IBM Plex Sans',sans-serif")} />}
+                  {v.batchCustom && <input type="number" min="1" value={v.customBatch} onChange={v.onCustomBatch} placeholder="kg" aria-label="Custom batch, kg" style={sx("width:80px;padding:7px 8px;border:1px solid #d0cdc3;border-radius:6px;font:500 13px/1 'IBM Plex Sans',sans-serif")} />}
                 </div>
               </div>
               {v.isManual && (
-                <div style={sx("padding:10px 16px;background:#222420;color:#faf8f3;font:400 13px/1.4 'IBM Plex Sans',sans-serif;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap")}>
+                <div style={sx("padding:10px 20px;background:#222420;color:#faf8f3;font:400 13px/1.4 'IBM Plex Sans',sans-serif;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap")}>
                   <span>
                     <b style={sx("font-weight:600")}>Manual recipe.</b> FeedSport checks your amounts but won&apos;t change them.
                   </span>
                   <button onClick={v.optimiseFromHere} style={sx("border:0;background:transparent;color:#e3aa45;font:600 13px/1 'IBM Plex Sans',sans-serif;padding:0")}>Back to optimised</button>
                 </div>
               )}
-              <div style={sx(`${RECIPE_COLS};padding:10px 16px;font:500 11px/1 'IBM Plex Mono',monospace;color:#64665c;text-transform:uppercase;letter-spacing:0.04em;background:#faf8f3`)}>
+              <div style={sx(`${RECIPE_COLS};padding:12px 20px;font:500 12px/1 'IBM Plex Mono',monospace;color:#45473f;text-transform:uppercase;letter-spacing:0.04em;background:#faf8f3;border-top:1px solid #e2dfd6`)}>
                 <span>Ingredient</span>
-                <span>Setting</span>
                 <span>Inclusion</span>
                 <span style={sx("text-align:right")}>kg</span>
-                <span style={sx("text-align:right")}>{v.priceHead}</span>
-                <span>Cost share</span>
+                <span style={sx("text-align:right")}>Cost share</span>
               </div>
               {opt.rows.map((r) => (
-                <div key={r.name} style={sx(`${RECIPE_COLS};padding:11px 16px;border-top:1px solid #ece8df;font:400 14px/1.2 'IBM Plex Sans',sans-serif;align-items:center;background:${r.bg}`)}>
-                  <button onClick={r.open} style={sx("border:0;background:transparent;padding:0;text-align:left;font:500 14px/1.2 'IBM Plex Sans',sans-serif;color:#222420;display:flex;align-items:center;gap:7px;text-decoration:underline;text-decoration-color:#d0cdc3;text-underline-offset:3px")}>
+                <div key={r.name} title={r.setting + " · " + r.price + " (" + r.tag.toLowerCase() + " price)"} style={sx(`${RECIPE_COLS};padding:14px 20px;border-top:1px solid #ece8df;font:400 15px/1.2 'IBM Plex Sans',sans-serif;align-items:center;background:${r.bg}`)}>
+                  <button onClick={r.open} style={sx("border:0;background:transparent;padding:0;text-align:left;font:500 15px/1.2 'IBM Plex Sans',sans-serif;color:#222420;display:flex;align-items:center;gap:8px")}>
                     {r.name}
-                    {r.adv && <span style={sx("width:7px;height:7px;background:#c98a1e;transform:rotate(45deg)")} />}
+                    {r.adv && <span style={sx("flex:none;width:8px;height:8px;background:#c98a1e;transform:rotate(45deg)")} />}
                   </button>
-                  <span style={sx("color:#64665c;font-size:12px")}>{r.setting}</span>
-                  {v.isManual && <input type="number" step="0.1" min="0" max="100" value={r.manual} onChange={r.onManual} style={sx("width:90px;padding:6px 8px;border:1px solid #d0cdc3;border-radius:6px;font:600 14px/1 'IBM Plex Sans',sans-serif;text-align:right")} />}
+                  {v.isManual && <input type="number" step="0.1" min="0" max="100" value={r.manual} onChange={r.onManual} aria-label={r.name + " inclusion, %"} style={sx("width:90px;padding:6px 8px;border:1px solid #d0cdc3;border-radius:6px;font:600 14px/1 'IBM Plex Sans',sans-serif;text-align:right")} />}
                   {v.notManual && (
-                    <span style={sx("display:flex;align-items:center;gap:8px")}>
-                      <span style={sx("width:48px;text-align:right;font-weight:600")}>{r.pctTxt}</span>
-                      <span style={sx("flex:1;height:6px;background:#f3f0e8;border-radius:3px;overflow:hidden")}>
+                    <span style={sx("display:flex;align-items:center;gap:12px")}>
+                      <span style={sx("width:58px;text-align:right;font-weight:600")}>{r.pctTxt}</span>
+                      <span style={sx("flex:1;max-width:130px;height:8px;background:#f3f0e8;border-radius:4px;overflow:hidden")}>
                         <span style={sx(`display:block;width:${r.barW};height:100%;background:${r.barC}`)} />
                       </span>
                     </span>
                   )}
                   <span style={sx("text-align:right")}>{r.kg}</span>
-                  <span style={sx("text-align:right;display:flex;flex-direction:column;align-items:flex-end;gap:3px")}>
-                    <span>{r.price}</span>
-                    <span style={sx(`font:500 9px/1 'IBM Plex Mono',monospace;color:${r.tagFg}`)}>{r.tag}</span>
-                  </span>
-                  <span style={sx("display:flex;align-items:center;gap:6px")}>
-                    <span style={sx("flex:1;height:6px;background:#f3f0e8;border-radius:3px;overflow:hidden")}>
-                      <span style={sx(`display:block;width:${r.shareW};height:100%;background:#c98a1e`)} />
-                    </span>
-                    <span style={sx("width:40px;text-align:right;font-size:12px")}>{r.shareTxt}</span>
-                  </span>
+                  <span style={sx("text-align:right")}>{r.shareTxt}</span>
                 </div>
               ))}
-              <div style={sx(`${RECIPE_COLS};padding:12px 16px;border-top:1px solid #d0cdc3;font:600 14px/1.2 'IBM Plex Sans',sans-serif;align-items:center;background:#faf8f3`)}>
+              <div style={sx(`${RECIPE_COLS};padding:13px 20px;border-top:1px solid #d0cdc3;font:600 15px/1.2 'IBM Plex Sans',sans-serif;align-items:center;background:#faf8f3`)}>
                 <span>Total</span>
-                <span />
                 <span style={sx(`color:${opt.total.color}`)}>{opt.total.pct}</span>
                 <span style={sx("text-align:right")}>{opt.total.kg}</span>
-                <span style={sx("text-align:right")}>{opt.total.cost}</span>
-                <span style={sx("font-weight:400;font-size:12px;color:#64665c")}>per tonne</span>
+                <span style={sx("text-align:right")}>100%</span>
               </div>
+              {v.notManual && (
+                <div style={sx("padding:12px 20px;border-top:1px solid #ece8df;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;font:400 13px/1.45 'IBM Plex Sans',sans-serif;color:#64665c")}>
+                  <span>{opt.hasUnused ? "Available but not used: " + opt.unusedText + "." : "Every available ingredient is used."}</span>
+                  <button onClick={v.editManually} style={sx("border:0;background:transparent;padding:0;font:600 13px/1.45 'IBM Plex Sans',sans-serif;color:#2f5a3f")}>Adjust amounts manually</button>
+                </div>
+              )}
             </div>
             {v.manualOff && (
               <div style={sx("display:flex;gap:8px;align-items:flex-start;font:500 13px/1.45 'IBM Plex Sans',sans-serif;color:#a63d2a")}>
@@ -1206,26 +1247,26 @@ function Optimal({ v, opt }: V & { opt: NonNullable<StudioVals["opt"]> }) {
                 </span>
               </div>
             )}
-            {opt.hasUnused && <div style={sx("font:400 13px/1.5 'IBM Plex Sans',sans-serif;color:#64665c")}>Available but not used: {opt.unusedText}. See “Why this recipe”.</div>}
           </div>
-          <div style={sx("flex:1 1 300px;min-width:0;display:flex;flex-direction:column;gap:14px")}>
-            <div style={sx("background:#fff;border:1px solid #e2dfd6;border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:10px")}>
-              <div style={sx("display:flex;justify-content:space-between;align-items:baseline")}>
-                <span style={sx("font:600 15px/1 'IBM Plex Sans',sans-serif")}>{v.nutTitle}</span>
-                <button onClick={v.goNutrients} style={sx("border:0;background:transparent;padding:0;font:500 13px/1 'IBM Plex Sans',sans-serif;color:#2f5a3f")}>Details</button>
+          <div style={sx("flex:1 1 320px;min-width:0;display:flex;flex-direction:column;gap:14px")}>
+            <div style={sx("background:#fff;border:1px solid #e2dfd6;border-radius:10px;overflow:hidden")}>
+              <div style={sx("display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:16px 20px")}>
+                <span style={sx("font:600 17px/1.2 'IBM Plex Sans',sans-serif")}>Nutritional validation</span>
+                <button onClick={v.goNutrients} style={sx("border:0;background:transparent;padding:0;font:500 14px/1 'IBM Plex Sans',sans-serif;color:#2f5a3f")}>Details</button>
               </div>
-              {opt.nuts.map((n) => (
-                <div key={n.name} style={sx("display:flex;justify-content:space-between;align-items:center;gap:10px;font:400 13px/1.2 'IBM Plex Sans',sans-serif;padding:3px 0")}>
-                  <span>{n.short}</span>
-                  <span style={sx("display:flex;align-items:center;gap:10px")}>
-                    <span style={sx("font-weight:600")}>{n.val}</span>
-                    <span style={sx(`display:flex;align-items:center;gap:6px;width:112px;color:${n.st.color}`)}>
-                      <span style={sx(`flex:none;width:8px;height:8px;background:${n.st.bg};border-radius:${n.st.r}`)} />
-                      {n.st.label}
-                    </span>
+              {opt.validation.rows.map((row) => (
+                <div key={row.label} title={row.note} style={sx("display:grid;grid-template-columns:minmax(0,1fr) 130px;gap:14px;padding:14px 20px;border-top:1px solid #ece8df;align-items:center;font:400 15px/1.3 'IBM Plex Sans',sans-serif")}>
+                  <span>{row.label}</span>
+                  <span style={sx(`display:flex;align-items:center;gap:8px;color:${row.status.color};font-weight:600`)}>
+                    <span style={sx(`flex:none;width:9px;height:9px;background:${row.status.bg};border-radius:${row.status.r}`)} />
+                    {row.status.label}
                   </span>
                 </div>
               ))}
+              <div style={sx("padding:12px 20px;border-top:1px solid #ece8df;display:flex;flex-direction:column;gap:4px;font:400 12px/1.5 'IBM Plex Sans',sans-serif;color:#64665c")}>
+                <span style={sx(`font:600 13px/1.3 'IBM Plex Sans',sans-serif;color:${opt.validation.overallColor}`)}>{opt.validation.overallLabel}</span>
+                <span>{opt.validation.note}</span>
+              </div>
             </div>
             {v.notManual && (
               <div style={sx("background:#fff;border:1px solid #e2dfd6;border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:10px")}>
@@ -1792,6 +1833,19 @@ function Catalogue({ v }: V) {
                 <span key={i} style={sx("font:400 11px/1.4 'IBM Plex Sans',sans-serif;color:#64665c")}>{note}</span>
               ))}
             </div>
+            {v.catD.premixDetails && (
+              <div style={sx("padding:14px 18px;display:flex;flex-direction:column;gap:7px;border-bottom:1px solid #e2dfd6;background:#fdf9ef")}>
+                <span style={sx("font:500 11px/1 'IBM Plex Mono',monospace;color:#64665c;text-transform:uppercase;letter-spacing:0.05em")}>Premix use and complete-feed contribution</span>
+                <span style={sx("font:400 12px/1.4 'IBM Plex Sans',sans-serif;color:#45473f")}>{v.catD.premixDetails.application} · {v.catD.premixDetails.permitted}</span>
+                <span style={sx("font:500 12px/1.4 'IBM Plex Sans',sans-serif")}>{v.catD.premixDetails.instruction}</span>
+                {v.catD.premixDetails.contributions.map((item) => (
+                  <div key={item.name} style={sx("display:flex;justify-content:space-between;gap:8px;padding-top:5px;border-top:1px solid #ecd8ad;font:400 12px/1.3 'IBM Plex Sans',sans-serif")}>
+                    <span>{item.name}</span><span style={sx("font-weight:600")}>{item.prefix}{item.value}</span>
+                  </div>
+                ))}
+                <span style={sx("font:400 11px/1.4 'IBM Plex Sans',sans-serif;color:#8a5f18")}>{v.catD.premixDetails.basis}</span>
+              </div>
+            )}
             <div style={sx("padding:14px 18px;display:flex;flex-direction:column;gap:0")}>
               <span style={sx("font:500 11px/1 'IBM Plex Mono',monospace;color:#64665c;text-transform:uppercase;letter-spacing:0.05em;padding-bottom:8px")}>Nutrient profile · as fed</span>
               {v.catD.profile.map((p) => (
@@ -2052,6 +2106,19 @@ function Drawer({ v, d }: V & { d: NonNullable<StudioVals["d"]> }) {
                 ].filter(Boolean).join(" · ")}
               </span>
               {d.nutritionalSource.url && <a href={d.nutritionalSource.url} target="_blank" rel="noopener noreferrer" style={sx("font:600 12px/1.4 'IBM Plex Sans',sans-serif;color:#1f5c38;text-decoration:underline")}>Original source ↗</a>}
+            </div>
+          )}
+          {d.premixDetails && (
+            <div style={sx("display:flex;flex-direction:column;gap:7px;padding:12px;background:#fdf6e8;border:1px solid #f0c97f;border-radius:7px")}>
+              <span style={sx("font:600 11px/1 'IBM Plex Mono',monospace;color:#64665c;text-transform:uppercase")}>Premix use and contribution</span>
+              <span style={sx("font:400 12px/1.45 'IBM Plex Sans',sans-serif;color:#45473f")}>{d.premixDetails.application} · {d.premixDetails.permitted}</span>
+              <span style={sx("font:500 12px/1.45 'IBM Plex Sans',sans-serif")}>{d.premixDetails.instruction}</span>
+              {d.premixDetails.contributions.map((item) => (
+                <div key={item.name} style={sx("display:flex;justify-content:space-between;gap:10px;padding-top:6px;border-top:1px solid #ecd8ad;font:400 12px/1.3 'IBM Plex Sans',sans-serif")}>
+                  <span>{item.name}</span><span style={sx("font-weight:600")}>{item.prefix}{item.value}</span>
+                </div>
+              ))}
+              <span style={sx("font:400 11px/1.4 'IBM Plex Sans',sans-serif;color:#8a5f18")}>Calculated in complete feed · {d.premixDetails.basis}</span>
             </div>
           )}
           <div style={sx("display:flex;flex-direction:column;gap:0")}>
