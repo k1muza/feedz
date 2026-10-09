@@ -77,9 +77,13 @@ export function selectStudioIngredient(pool: Pool, ingredientId: string, program
     throw new Error(`Ingredient ${ingredientId} is not eligible for ${programmeId}.`);
   }
   if (commercialPremixById(ingredientId)) return poolWithProgrammePremix(pool, programmeId, ingredientId);
-  return poolWithProgrammePremix({
-    ...pool, [ingredientId]: pool[ingredientId] ?? { role: "available" },
-  }, programmeId);
+  const selected = activeProduct(pool, programmeId);
+  if (selected?.manufacturerRecipe) {
+    throw new Error(`${selected.name} requires a fixed manufacturer recipe. To change ingredients, remove this premix first.`);
+  }
+  // Preserve an intentional "no premix" choice instead of reintroducing the
+  // default whenever a farmer adds another ordinary ingredient.
+  return { ...pool, [ingredientId]: pool[ingredientId] ?? { role: "available" } };
 }
 
 /** Legacy stored formulations are never allowed to bypass product rules. */
