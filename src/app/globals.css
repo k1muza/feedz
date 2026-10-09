@@ -129,7 +129,7 @@
   --fs-faint: #7a7b72;
 }
 
-/* Dark mode is only switched on inside the /dashboard workspace. */
+/* Legacy dark-mode tokens; no separate dashboard workspace remains. */
 html.dark {
   color-scheme: dark;
   --fs-grain: #141613;
