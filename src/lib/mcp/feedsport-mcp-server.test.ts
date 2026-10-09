@@ -67,6 +67,33 @@ async function call(handler: ReturnType<typeof createMcpHandler>, name: string, 
   return JSON.parse(line!.slice(5)) as { result?: { isError?: boolean; structuredContent?: Record<string, unknown> }; error?: unknown };
 }
 
+/** Exercise initialize/tools/list as real MCP clients see them. */
+async function rpc(handler: ReturnType<typeof createMcpHandler>, method: string, params: unknown) {
+  const response = await handler.fetch(
+    new Request("http://test/api/mcp/advisor", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        accept: "application/json, text/event-stream",
+        "mcp-protocol-version": "2025-06-18",
+      },
+      body: JSON.stringify({ jsonrpc: "2.0", id: 42, method, params }),
+    }),
+  );
+  const text = await response.text();
+  const line = text.split("\\n").find((row) => row.startsWith("data:"));
+  assert.ok(line, `Expected an MCP SSE result for ${method}, got: ${text}`);
+  const message = JSON.parse(line.slice(5)) as {
+    result?: {
+      instructions?: string;
+      tools?: { name: string; description?: string }[];
+    };
+    error?: unknown;
+  };
+  assert.equal(message.error, undefined, `MCP ${method} returned an error`);
+  return message.result;
+}
+
 function server() {
   const s = stores();
   const handler = createMcpHandler(() =>
@@ -74,6 +101,40 @@ function server() {
   );
   return { ...s, handler };
 }
+
+describe("MCP premix guidance", () => {
+  it("initializes with real product guidance rather than the retired theoretical premix", async () => {
+    const { handler } = server();
+    const result = await rpc(handler, "initialize", {
+      protocolVersion: "2025-06-18",
+      capabilities: {},
+      clientInfo: { name: "FeedSport contract test", version: "1.0.0" },
+    });
+    const instructions = result?.instructions ?? "";
+    assert.match(instructions, /Automatic mode does not include any premix/);
+    assert.match(instructions, /public-premix-salt-additives.*RETIRED/);
+    assert.match(instructions, /vitamin and trace-mineral adequacy is NOT validated/i);
+    assert.match(instructions, /price_per_tonne/);
+    assert.doesNotMatch(instructions, /automatic ingredient mode includes the FeedSport premix/i);
+    assert.doesNotMatch(instructions, /include the FeedSport premix .* to cover/i);
+  });
+
+  it("describes automatic mode as basal-only and requires a real SKU for premixes", async () => {
+    const { handler } = server();
+    const result = await rpc(handler, "tools/list", {});
+    const tools = result?.tools ?? [];
+    const find = (name: string) => {
+      const tool = tools.find((item) => item.name === name);
+      assert.ok(tool, `Tool not advertised: ${name}`);
+      return tool.description ?? "";
+    };
+    assert.match(find("formulate"), /BASAL ingredients only/);
+    assert.match(find("formulate"), /UNVERIFIED/);
+    assert.match(find("search_ingredients"), /unpriced Sustar/);
+    assert.match(find("get_ingredient"), /manufacturer specification metadata/);
+    assert.doesNotMatch(find("formulate"), /including its fixed premix/i);
+  });
+});
 
 describe("advisor write tools", () => {
   it("save_featured_formulation with dry_run saves nothing", async () => {
