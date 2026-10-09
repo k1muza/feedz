@@ -20,11 +20,8 @@ describe("FeedSport MCP automatic ingredient mode", () => {
     assert.equal(result.status, "optimal");
     assert.equal(result.formulation_basis.ingredient_mode, "automatic");
     assert.ok(result.formulation_basis.candidate_count > 1);
-    assert.ok(
-      result.formulation_basis.candidate_ingredients.includes(
-        "public-premix-salt-additives",
-      ),
-    );
+    assert.ok(!result.formulation_basis.candidate_ingredients.includes("public-premix-salt-additives"));
+    assert.ok(result.unsupported_requirements.includes("vitamin-trace-mineral-supplementation"));
   });
 
   it("keeps explicit ingredient calls backward-compatible as selected mode", async () => {
@@ -46,7 +43,6 @@ describe("FeedSport MCP automatic ingredient mode", () => {
           "l-threonine",
           "l-tryptophan",
           "l-valine",
-          "public-premix-salt-additives",
         ],
         constraints: {
           "soybean-full-fat-extruded": { max_percent: 10 },
@@ -87,7 +83,6 @@ describe("FeedSport MCP automatic ingredient mode", () => {
           "l-threonine",
           "l-tryptophan",
           "l-valine",
-          "public-premix-salt-additives",
         ],
         constraints,
         objective: "least_cost",
