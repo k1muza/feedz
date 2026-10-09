@@ -17,6 +17,8 @@ test("ingredient library is the single canonical ingredient dataset", () => {
   assert.equal(INGREDIENT_LIBRARY_SOURCE.schemaVersion, 2);
   assert.equal(INGREDIENT_LIBRARY_SOURCE.ingredients.length, 113);
   assert.equal(INGREDIENT_LIBRARY.ingredients.length, 113);
+  assert.ok(INGREDIENT_LIBRARY_SOURCE.ingredients.every((item) => item.provenance.source?.url && item.provenance.verificationStatus),
+    "All canonical ingredient records must explicitly carry a source and verification status");
 
   const ids = INGREDIENT_LIBRARY_SOURCE.ingredients.map((ingredient) => ingredient.id);
   assert.equal(new Set(ids).size, ids.length);
