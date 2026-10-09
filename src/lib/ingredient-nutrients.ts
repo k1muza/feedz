@@ -246,6 +246,7 @@ export const INGREDIENT_LIBRARY_SOURCE = loadIngredientLibrarySource(ingredientL
 function materializeIngredient(
   ingredient: IngredientSourceRecord,
   species: IngredientSpecies,
+  librarySource: IngredientLibrarySource = INGREDIENT_LIBRARY_SOURCE,
 ): IngredientNutrientRecord | undefined {
   const profile = ingredient.nutrition[species];
   if (!profile) return undefined;
@@ -260,11 +261,11 @@ function materializeIngredient(
       // The canonical library-level Brazilian Tables source applies unless
       // an individual ingredient or nutrient declares a more specific source.
       source: ingredient.provenance.source ?? {
-        publisher: INGREDIENT_LIBRARY_SOURCE.source.publisher,
-        title: INGREDIENT_LIBRARY_SOURCE.source.title,
-        year: INGREDIENT_LIBRARY_SOURCE.source.year,
-        url: INGREDIENT_LIBRARY_SOURCE.source.url,
-        basis: INGREDIENT_LIBRARY_SOURCE.basis.nutrientComposition,
+        publisher: librarySource.source.publisher,
+        title: librarySource.source.title,
+        year: librarySource.source.year,
+        url: librarySource.source.url,
+        basis: librarySource.basis.nutrientComposition,
         priority: "primary" as const,
       },
       profileBasis: ingredient.provenance.profileBasis ?? "as-fed",
@@ -284,7 +285,7 @@ export function ingredientLibraryForSpecies(
     ...source,
     species,
     ingredients: source.ingredients.flatMap((ingredient) => {
-      const resolved = materializeIngredient(ingredient, species);
+      const resolved = materializeIngredient(ingredient, species, source);
       return resolved ? [resolved] : [];
     }),
   };
