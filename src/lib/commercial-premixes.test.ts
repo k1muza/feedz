@@ -7,6 +7,7 @@ import {
   assertManufacturerRecipe,
   commercialPremixCompatibleWithProgramme,
   commercialPremixForProgramme,
+  publishedPremixAminoAcids,
 } from "./commercial-premixes";
 
 describe("Manufacturer-backed commercial premix catalogue", () => {
@@ -83,6 +84,20 @@ describe("Manufacturer-backed commercial premix catalogue", () => {
     assert.throws(() => assertManufacturerRecipe(cj, [...locked, {
       ingredientId: "sorghum-grain", minInclusionPct: 0, maxInclusionPct: 0,
     }]), /restricted/);
+  });
+
+  test("distinguishes CJ total lysine guarantee from digestible SID lysine and unknown Sustar values", () => {
+    const cj = commercialPremixById("cj-s174-boar-premix")!;
+    assert.deepEqual(publishedPremixAminoAcids(cj), [{
+      name: "Lysine",
+      basis: "total",
+      unit: "%",
+      minimumPct: 4,
+      maximumPct: null,
+      usableAsSid: false,
+    }]);
+    assert.deepEqual(publishedPremixAminoAcids(commercialPremixById("sustar-glypro-x912")!), []);
+    assert.deepEqual(publishedPremixAminoAcids(commercialPremixById("sustar-glypro-x911")!), []);
   });
 
   test("does not substitute a broiler product for layers or pigs", () => {
