@@ -48,6 +48,7 @@ Premix workflow: search_ingredients with category="vitamin_mineral_premix" and a
 Rules:
 - Never invent or adjust feed recipes, nutrient values, supplier prices or requirement figures; report FeedSport tool results as returned.
 - The theoretical premix public-premix-salt-additives and generic aliases such as "premix" are RETIRED. They will be rejected; do not send them.
+- Mature boars have NO confirmed combined vitamin-mineral premix in the current catalogue; do not assign sow-only GlyPro X913. Treat mature-boar results as basal-only, with vitamin/mineral supplementation unsupported. The growing entire/immunocastrated male programmes can select the unverified grower/finisher candidate GlyPro X912.
 - Commercial premix dosage is fixed at the manufacturer's published inclusion for the SKU. Never alter that dose or substitute a premix across species.
 - ALL current commercial premix profiles are UNVERIFIED. Published analysis ranges are metadata, not a guaranteed nutrient matrix. Vitamin and trace-mineral adequacy is NOT validated in either automatic or selected formulation mode.
 - Automatic mode selects priced basal ingredients only. Its optimal recipes do NOT include a premix and are NOT complete feeds.
