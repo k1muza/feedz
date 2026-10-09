@@ -12,7 +12,7 @@ import {
 describe("Manufacturer-backed commercial premix catalogue", () => {
   test("all entries are identifiable and unverified, with no invented prices", () => {
     assert.equal(COMMERCIAL_PREMIXES.length, 6);
-    assert.equal(new Set(COMMERCIAL_PREMIXES.map((product) => product.id)).size, 5);
+    assert.equal(new Set(COMMERCIAL_PREMIXES.map((product) => product.id)).size, COMMERCIAL_PREMIXES.length);
     for (const product of COMMERCIAL_PREMIXES) {
       assert.ok(["Chengdu Sustar Feed", "CJ (Tianjin) Feed"].includes(product.manufacturer));
       assert.equal(product.verificationStatus, "unverified");
