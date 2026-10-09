@@ -8,6 +8,7 @@ import {
   type IngredientSourceRecord,
 } from "@/lib/ingredient-nutrients";
 import { getIngredientPrices } from "@/lib/ingredient-prices";
+import { COMMERCIAL_PREMIXES } from "@/lib/commercial-premixes";
 
 // The ingredient catalogue shown in the formulation studio (/studio/catalogue):
 // Brazilian Tables 2024 composition from the checked-in library, priced with
@@ -27,6 +28,8 @@ export interface CatalogueIngredient {
   /** Nutrients this kind of ingredient should have; a gap here is real missing data. */
   expected: CatalogueNutrientId[];
   limits: { stage: string; maxPct: number; practicalPct?: number }[];
+  manufacturerSpecificationUrl?: string;
+  verificationStatus?: "unverified";
 }
 
 const CATEGORY_LABELS: Record<IngredientSourceRecord["category"], string> = {
@@ -69,7 +72,8 @@ export async function getStudioCatalogue(): Promise<CatalogueIngredient[]> {
   const prices = new Map((await getIngredientPrices()).map((price) => [price.ingredientId, price]));
   const poultry = new Map(POULTRY_INGREDIENT_LIBRARY.ingredients.map((record) => [record.id, record]));
 
-  return INGREDIENT_LIBRARY.ingredients.map((pig) => {
+  return [
+    ...INGREDIENT_LIBRARY.ingredients.map((pig) => {
     const bird = poultry.get(pig.id);
     const price = prices.get(pig.id);
     const limits = STAGES.flatMap(([stage, pick]) => {
@@ -97,5 +101,21 @@ export async function getStudioCatalogue(): Promise<CatalogueIngredient[]> {
       expected: EXPECTED[pig.category],
       limits,
     };
-  });
+  }),
+    ...COMMERCIAL_PREMIXES.map((premix): CatalogueIngredient => ({
+      id: premix.id,
+      name: `${premix.name} (UNVERIFIED)`,
+      aliases: [premix.sku, premix.manufacturer],
+      category: "Premix",
+      price: null, // supplier quotation required; never invent a USD price
+      nutrients: {
+        mePig: null, mePoultry: null, cp: null, lys: null, mc: null,
+        thr: null, ca: null, ap: null, na: null, cf: null,
+      },
+      expected: [], // no verified analytical matrix
+      limits: [{ stage: premix.application, maxPct: premix.inclusionPct }],
+      manufacturerSpecificationUrl: premix.specificationUrl,
+      verificationStatus: "unverified",
+    })),
+  ];
 }
