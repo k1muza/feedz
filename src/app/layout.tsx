@@ -8,7 +8,6 @@ import { Archivo, IBM_Plex_Mono } from "next/font/google"
 import { cn } from "@/lib/utils"
 import { Toaster } from "@/components/ui/toaster";
 import { AuthProvider } from "@/context/AuthContext";
-import { dashboardThemeScript } from "@/lib/dashboard-theme";
 import { absoluteUrl, serializeJsonLd, siteConfig, socialImage } from "@/lib/seo";
 
 const archivo = Archivo({
@@ -117,9 +116,6 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en-ZW" suppressHydrationWarning>
-      <head>
-        <script dangerouslySetInnerHTML={{ __html: dashboardThemeScript }} />
-      </head>
       <body
         className={cn("min-h-screen antialiased", archivo.variable, plexMono.variable)}
         suppressHydrationWarning={true}
