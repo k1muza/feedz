@@ -1,5 +1,6 @@
 import type { CatalogueIngredient } from "@/lib/studio-catalogue";
 import { commercialPremixById } from "@/lib/commercial-premixes";
+import { studioPremixProblems } from "@/lib/studio-commercial-premix";
 import type { IngredientListItem } from "@/lib/ingredient-lists";
 import type { StudioPhase, StudioProgramme, StudioProgrammeData } from "@/lib/studio-programmes";
 import type {
@@ -140,6 +141,8 @@ export interface OptimalResult {
   ms: number;
   nVars: number;
   nRows: number;
+  /** True when the cost is a lower bound excluding an unquoted premix. */
+  costExcludesPremix: boolean;
 }
 
 export type FormulateResult =
@@ -310,6 +313,9 @@ export async function formulate(snap: Snapshot, ctx: EngineContext): Promise<For
   const active = Object.keys(snap.pool).filter((id) => snap.pool[id].role !== "excluded");
   const errs: Issue[] = [];
   const warns: Issue[] = [];
+  for (const message of studioPremixProblems(snap.pool, snap.programmeId)) {
+    errs.push({ title: "Invalid commercial premix selection", body: message });
+  }
   const realPremix = active.map(commercialPremixById).find((product) => product !== undefined);
   if (realPremix) {
     warns.push({
@@ -321,9 +327,15 @@ export async function formulate(snap: Snapshot, ctx: EngineContext): Promise<For
     warns.push({ title: "No commercial premix selected", body: "Basal nutrient formulation alone does not validate vitamin and trace-mineral supplementation." });
   }
 
+  const missingPremixPrice = !!realPremix && priceOf(realPremix.id, snap.pool, ctx.catalogue) === null;
+  if (missingPremixPrice) warns.push({
+    title: "Partial ingredient cost — supplier quotation required",
+    body: `The displayed cost EXCLUDES ${realPremix!.name} at ${realPremix!.inclusionKgPerTonne} kg/tonne. FeedSport treats that fixed-price term as 0 ONLY inside the optimisation objective to find the cheapest basal mix. It is NOT a free product or an actual total-feed price. Enter your quote to see full costs.`,
+  });
   if (!active.length) errs.push({ title: "Add at least one ingredient", body: "There is nothing for FeedSport to mix yet." });
   for (const id of active) {
-    if (priceOf(id, snap.pool, ctx.catalogue) == null) errs.push({ id, title: "Set a price for " + nameOf(ctx, id), body: "FeedSport has no planning price for it, and least cost needs a price for every ingredient it may use." });
+    if (priceOf(id, snap.pool, ctx.catalogue) == null && id !== realPremix?.id)
+      errs.push({ id, title: "Set a price for " + nameOf(ctx, id), body: "FeedSport has no planning price for it, and least cost needs a price for every ingredient it may use." });
   }
   let lo = 0,
     hiSum = 0;
@@ -360,7 +372,7 @@ export async function formulate(snap: Snapshot, ctx: EngineContext): Promise<For
   for (;;) {
     const ingredients = usable.map((id) => {
       const b = bounds(ctx, phase, id, snap.pool[id]);
-      return { ingredientId: id, pricePerKg: priceOf(id, snap.pool, ctx.catalogue)! / 1000, ...(b.lo > 0 ? { minInclusionPct: b.lo } : {}), ...(b.hi < 100 ? { maxInclusionPct: b.hi } : {}) };
+      return { ingredientId: id, pricePerKg: (priceOf(id, snap.pool, ctx.catalogue) ?? (id === realPremix?.id ? 0 : NaN)) / 1000, ...(b.lo > 0 ? { minInclusionPct: b.lo } : {}), ...(b.hi < 100 ? { maxInclusionPct: b.hi } : {}) };
     });
     if (!ingredients.length) return { status: "blocked", errs: [{ title: "None of these ingredients has the data this stage needs", body: "Add ingredients with complete nutrient values from the catalogue." }], warns };
     try {
@@ -443,6 +455,7 @@ export async function formulate(snap: Snapshot, ctx: EngineContext): Promise<For
     ms: performance.now() - t0,
     nVars: usable.length,
     nRows: nutrients.length,
+    costExcludesPremix: missingPremixPrice,
   };
 }
 
