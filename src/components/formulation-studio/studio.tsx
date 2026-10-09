@@ -12,6 +12,7 @@ import type { CatalogueIngredient, CatalogueNutrientId } from "@/lib/studio-cata
 import type { StudioNutrientData } from "@/lib/studio-nutrients";
 import type { StudioProgrammeData } from "@/lib/studio-programmes";
 import { canAddStudioIngredient, poolWithProgrammePremix } from "@/lib/studio-commercial-premix";
+import { commercialPremixById } from "@/lib/commercial-premixes";
 
 import {
   evaluateManual,
@@ -1281,13 +1282,14 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
       const planning = g?.price?.usdPerTonne ?? null;
       const incomplete = !!g && g.expected.some((n) => g.nutrients[n] == null);
       const noPrice = !user && planning == null;
+      const isPremix = !!commercialPremixById(id);
       return {
         id, cat: g?.category ?? "Other", name: g?.name ?? id,
         check: on ? "✓" : "", cbBg: on ? "#2f5a3f" : "#fff", cbBd: on ? "#2f5a3f" : "#b9b6ab", cbLabel: (on ? "Untick " : "Tick ") + (g?.name ?? id), deco: on ? "none" : "line-through", opacity: on ? "1" : "0.55",
         hasNote: noPrice || incomplete,
-        note: noPrice ? "No planning price — enter yours" : "Some nutrient data is missing — it may be set aside for this stage",
+        note: noPrice ? isPremix ? "Supplier quote optional for formulation; costs will exclude this unpriced premix" : "No planning price — enter yours" : "Some nutrient data is missing — it may be set aside for this stage",
         noteColor: noPrice ? "#a63d2a" : "#8a5f18",
-        price: user ? String(e.price) : "", pricePh: planning != null ? String(Math.round(planning)) : "Required", tag: user ? "YOURS" : planning != null ? "DEFAULT" : "", tagFg: user ? "#8a5f18" : "#8d8a80",
+        price: user ? String(e.price) : "", pricePh: planning != null ? String(Math.round(planning)) : isPremix ? "Optional quote" : "Required", tag: user ? "YOURS" : planning != null ? "DEFAULT" : "", tagFg: user ? "#8a5f18" : "#8d8a80",
         onPrice: (ev: InputEvent) => {
           const value = ev.target.value;
           update((s) => {
