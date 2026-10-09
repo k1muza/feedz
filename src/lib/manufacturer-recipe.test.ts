@@ -40,7 +40,7 @@ describe("CJ S174 prescribed recipe verification limits", () => {
     assert.ok(!("checkedShortfalls" in report), "No duplicate camelCase shortfall arrays");
     assert.ok(!("unsupportedRequirements" in report), "No duplicate unsupported requirements");
     assert.ok(report.checked_shortfalls.every((row) => typeof row.nutrient === "string"));
-    assert.equal(report.costPerKg, null, "No supplier price must not silently become zero");
+    assert.equal(report.cost_per_kg, null, "No supplier price must not silently become zero");
   });
 
   test("refuses an altered manufacturer ration", () => {
