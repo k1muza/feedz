@@ -239,7 +239,7 @@ export function FeedFormulationWorkbench({
   );
   const savedPremixPrice =
     initialFormulaSet?.setup?.fixedPremixName === commercialPremixForProgramme(initialProgramme?.id ?? "")?.name &&
-    initialFormulaSet.setup.fixedPremixPricePerKg.trim() !== ""
+    initialFormulaSet?.setup?.fixedPremixPricePerKg?.trim()
       ? initialFormulaSet.setup.fixedPremixPricePerKg
       : undefined;
   const [fixedPremixPricePerKg, setFixedPremixPricePerKg] = useState(
@@ -2180,7 +2180,7 @@ function OpportunityRecipeDialog({
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button type="button" variant="link" size="xs" className="h-auto px-0 py-0 text-xs">
+        <Button type="button" variant="link" size="sm" className="h-auto px-0 py-0 text-xs">
           <Eye />
           View recipe
         </Button>
