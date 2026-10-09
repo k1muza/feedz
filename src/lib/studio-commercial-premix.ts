@@ -67,9 +67,13 @@ export function poolWithProgrammePremix(pool: Pool, programmeId: string, preferr
 /** Ingredient-picker eligibility: cereals are unrestricted here (other limits
  * apply later), while commercial products require stage-specific approval.
  */
-export function canAddStudioIngredient(ingredientId: string, programmeId: string): boolean {
+export function canAddStudioIngredient(ingredientId: string, programmeId: string, pool?: Pool): boolean {
   const product = commercialPremixById(ingredientId);
-  return !product || commercialPremixCompatibleWithProgramme(product, programmeId);
+  if (product && !commercialPremixCompatibleWithProgramme(product, programmeId)) return false;
+  // A restricted manufacturer recipe is atomic: only another eligible premix
+  // selection can replace it, not a free-form basal addition.
+  if (!product && pool && activeProduct(pool, programmeId)?.manufacturerRecipe) return false;
+  return true;
 }
 
 export function selectStudioIngredient(pool: Pool, ingredientId: string, programmeId: string): Pool {
