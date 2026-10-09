@@ -29,7 +29,7 @@ import { FEED_PROGRAMMES, feedProgrammeById, type FeedProgrammeDefinition } from
 import {
   INGREDIENT_LIBRARY,
   ingredientLibraryForPhase,
-  ingredientLibraryWithCustomPremixes,
+  ingredientLibraryWithCommercialPremixes,
   sidAminoAcidPct,
   sttdPhosphorusPctOf,
   type IngredientLibrary,
@@ -881,9 +881,7 @@ function prepareRequest(
   const speciesLibrary = ingredientLibraryForPhase(resolved.phase);
   return {
     resolved, energySystem,
-    library: includesPremix
-      ? ingredientLibraryWithCustomPremixes(selectedPremixes.map((p) => ({ id: p.id, name: p.name, vitamins: {}, traceMineralsPpm: {} })), speciesLibrary)
-      : speciesLibrary,
+    library: ingredientLibraryWithCommercialPremixes(selectedPremixes, speciesLibrary),
     settings: { includeSupplementationTargets: false, traceMineralBasis: "inorganic" },
     includesPremix,
     ingredientIds,
