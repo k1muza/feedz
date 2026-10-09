@@ -24,4 +24,5 @@ jobs:
       - name: Typecheck
         run: npm run typecheck
       - name: Unit tests
+        if: always()
         run: npm test
