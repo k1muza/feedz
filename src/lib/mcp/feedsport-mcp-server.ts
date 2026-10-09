@@ -41,9 +41,9 @@ const INSTRUCTIONS = `FeedSport formulates and analyses pig and poultry feeds wi
 
 Workflow: get_programmes → get_programme → search_ingredients → formulate. Generic requests should omit ingredients (ingredient_mode="automatic") so FeedSport chooses its priced BASAL ingredient pool. Automatic mode does not include any premix. Use ingredient_mode="selected" when users provide their ingredient basket or want to include a named, real commercial premix. Use analyse_formulation for existing recipes.
 
-For explanations and counterfactuals, use the solver-backed diagnostics tools. Exception: CJ S174 manufacturer-recipe-only is not optimised; diagnose_infeasibility returns read-only nutrient/data-gap findings without changing proportions. Do not request ingredient substitutions or relaxed ratios for CJ S174. Quote tool results rather than inventing numbers.
+For explanations, use explain_formulation, diagnose_infeasibility, run_sensitivity_analysis, find_ingredient_opportunities and compare_formulation_strategies. CJ S174 is manufacturer-recipe-only: diagnose_infeasibility provides read-only nutrient/data-gap findings, while ingredient substitution and alternative-ratio tools must not change its recipe. Quote the tool findings instead of inventing values.
 
-Premix workflow: search_ingredients with category="vitamin_mineral_premix" and available_only=false, then get_ingredient for the exact manufacturer SKU, stage, published fixed dose, source link and verification status. Current Sustar SKUs are X911 for piglets, X912 for growing/finishing pigs, X913 for sows, X812 for broilers and X811 for layers. CJ Feed S174 is a 4% boar-specific premix; selected-mode requests must lock each basal ingredient to CJ's published percentages using equal min_percent and max_percent constraints, and include S174 at 4%. A SKU can only be used for a compatible programme phase. Include exactly one compatible SKU in selected mode, and provide a REAL supplier quote as constraints.<sku_id>.price_per_tonne because the catalogue has no verified planning price. Do not infer or invent a price from other SKUs.
+Premix workflow: search_ingredients with category="vitamin_mineral_premix" and available_only=false, then get_ingredient for the exact manufacturer SKU, stage, published fixed dose, source link and verification status. Available products include Sustar X911 (piglets), X912 (grower/finisher), X913 (sows), X812 (broilers), X811 (layers) and CJ Feed S174 (4% breeding-boar premix); selected-mode requests must lock each basal ingredient to CJ's published percentages using equal min_percent and max_percent constraints, and include S174 at 4%. A SKU can only be used for a compatible programme phase. Include exactly one compatible SKU in selected mode, and provide a REAL supplier quote as constraints.<sku_id>.price_per_tonne because the catalogue has no verified planning price. Do not infer or invent a price from other SKUs.
 
 Rules:
 - Never invent or adjust feed recipes, nutrient values, supplier prices or requirement figures; report FeedSport tool results as returned.
@@ -69,7 +69,7 @@ Advice rules:
 - Propose ration changes through suggestion (ingredient roles, prices, limits, programme or goal), never as a recipe you calculated. FeedSport formulates the suggestion and returns suggestion_check; check it with preview_formulation_advice first and do not save a suggestion that is not optimal.
 - Treat user data as confidential: share it only with the nutritionist.
 
-Featured formulations (the starting points on FeedSport Studio's Home screen): list_featured_formulations → preview_featured_formulation (read-only) → save_featured_formulation → set_featured_formulation_published. These are public, with recipes formulated at planning prices. Unpriced commercial Sustar SKUs are not yet eligible for live-price featured cards; do not invent planning prices. Revalidate or unpublish old cards referencing the retired premix. A solver-valid basal formulation cannot be described as micronutrient-complete.`;
+Featured formulations (the starting points on FeedSport Studio's Home screen): list_featured_formulations → preview_featured_formulation (read-only) → save_featured_formulation → set_featured_formulation_published. These are public, with recipes formulated at planning prices. Unpriced manufacturer premix SKUs are not yet eligible for live-price featured cards; do not invent planning prices. Revalidate or unpublish old cards referencing the retired premix. A solver-valid basal formulation cannot be described as micronutrient-complete.`;
 
 const READ_ONLY = {
   readOnlyHint: true,
@@ -112,7 +112,7 @@ const formulationShape = {
     .array(z.string().min(1))
     .min(1)
     .max(60)
-    .describe("Ingredient ids or unambiguous aliases. A commercial premix requires a specific Sustar SKU; the retired generic premix is rejected."),
+    .describe("Ingredient ids or unambiguous aliases. A commercial premix requires a specific manufacturer SKU; the retired generic premix is rejected."),
   constraints: ingredientConstraints,
 };
 
@@ -240,7 +240,7 @@ export function createFeedSportMcpServer(
     {
       title: "Formulate a feed",
       description:
-        "Formulate with GLPK for unrestricted programmes, or reproduce and cost the exact CJ S174 fixed boar recipe without optimisation. Automatic mode selects priced BASAL ingredients only. Use selected mode for an exact commercial SKU and genuine price quote. CJ S174 needs its entire recipe locked at its manufacturer percentages and returns status=manufacturer_recipe, with incomplete nutrient checks and no claim of optimality or complete feed. Other unverified premixes also do not establish micronutrient adequacy.",
+        "Formulate with GLPK for unrestricted programmes, or reproduce CJ S174 fixed boar recipe without optimisation. Automatic mode selects priced BASAL ingredients only. In selected mode, choose a real manufacturer SKU and supply a supplier-quoted price. All commercial premixes have a fixed manufacturer inclusion dose; do not change it. Vitamin and trace-mineral adequacy is UNVERIFIED for all current commercial premixes (including Sustar), even if the basal solver status is optimal. CJ S174 requires every ingredient at the manufacturer ratio and returns status=manufacturer_recipe, NOT a verified or least-cost result. Never describe such a recipe as complete feed.",
       inputSchema: z.object({
         programme_id: programmeId,
         energy_system: energySystem,
@@ -256,7 +256,7 @@ export function createFeedSportMcpServer(
           .max(60)
           .optional()
           .describe(
-            "Only for selected mode: user-accessible ingredient ids, optionally including one stage-compatible Sustar SKU. Unpriced premixes require a genuine supplier price override; generic/theoretical premix ids are rejected.",
+            "Only for selected mode: user-accessible ingredient ids, optionally including one stage-compatible commercial premix SKU. Unpriced premixes require a genuine supplier price override; generic/theoretical premix ids are rejected.",
           ),
         constraints: ingredientConstraints,
         objective: z
