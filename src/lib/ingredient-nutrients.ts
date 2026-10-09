@@ -304,6 +304,11 @@ export type CustomPremixProfile = {
   name: string;
   vitamins: Partial<IngredientNutrientRecord["vitamins"]>;
   traceMineralsPpm: Record<string, number>;
+  /** Exact as-fed AA analysis: total is NOT a substitute for SID. */
+  aminoAcids?: {
+    totalPct?: Record<string, number>;
+    sidPct?: Record<string, number>;
+  };
 };
 
 export function ingredientLibraryWithCustomPremixes(
@@ -322,7 +327,7 @@ export function ingredientLibraryWithCustomPremixes(
     const profile = nutritionProfileSchema.parse({
       composition: {},
       energy: {},
-      aminoAcids: { totalPct: {}, sidDigestibilityPct: {}, sidPct: {} },
+      aminoAcids: { totalPct: premix.aminoAcids?.totalPct ?? {}, sidDigestibilityPct: {}, sidPct: premix.aminoAcids?.sidPct ?? {} },
       macroMinerals: {},
       traceMineralsPpm: premix.traceMineralsPpm,
       vitamins: premix.vitamins,
@@ -364,8 +369,12 @@ export function ingredientLibraryWithCommercialPremixes(
 ): IngredientLibrary {
   if (premixes.length === 0) return library;
   const result = ingredientLibraryWithCustomPremixes(
-    premixes.map(({ id, name }) => ({
+    premixes.map(({ id, name, verifiedAsFedAminoAcids }) => ({
       id, name, vitamins: {}, traceMineralsPpm: {},
+      ...(verifiedAsFedAminoAcids ? { aminoAcids: {
+        totalPct: verifiedAsFedAminoAcids.totalPct ?? {},
+        sidPct: verifiedAsFedAminoAcids.sidPct ?? {},
+      } } : {}),
     })),
     library,
   );
@@ -380,7 +389,10 @@ export function ingredientLibraryWithCommercialPremixes(
         provenance: {
           ...record.provenance,
           notes: [
-            "Real manufacturer SKU; nutrient matrix remains unverified. Do not claim vitamin/trace-mineral sufficiency.",
+            "Real manufacturer SKU; vitamin/trace-mineral sufficiency remains unverified.",
+            ...(product.verifiedAsFedAminoAcids ? [
+              `Exact manufacturer as-fed amino-acid values only: ${product.verifiedAsFedAminoAcids.reference}. Total and SID are separate; incomplete fields are not inferred.`,
+            ] : ["No verified digestible amino-acid matrix. Manufacturer minimum total-AA label guarantees are not SID values."]),
             `Manufacturer: ${product.manufacturer}; model: ${product.sku}; reference: ${product.specificationUrl}`,
           ],
         },
