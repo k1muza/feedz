@@ -182,8 +182,13 @@ export function FeedFormulationWorkbench({
         lockedPct: "",
       })) ??
     [];
-  const legacySavedPremix = Boolean(initialFormulaSet) &&
-    initialFormulaSet?.setup?.fixedPremixName !== commercialPremixForProgramme(initialProgramme?.id ?? "")?.name;
+  const initialPremix = commercialPremixForProgramme(initialProgramme?.id ?? "");
+  const legacySavedPremix = Boolean(initialFormulaSet) && (
+    initialFormulaSet!.ingredients.some((ingredient) => ingredient.ingredientId === PUBLIC_PREMIX_ID) ||
+    (initialPremix
+      ? initialFormulaSet!.setup?.fixedPremixName !== initialPremix.name
+      : initialFormulaSet!.setup?.useFixedPremix === true)
+  );
   // Old recipes were approved by a fictional premix: they must be regenerated.
   const initialResult = initialFormulaSet && !legacySavedPremix
     ? savedFeedFormulaResult(initialFormulaSet)
@@ -459,21 +464,24 @@ export function FeedFormulationWorkbench({
         };
       });
 
-      if (!selectedPremix) throw new Error("No commercial premix is mapped to this programme.");
-      const premixPricePerKg = Number(fixedPremixPricePerKg);
-      if (
-        !Number.isFinite(premixPricePerKg) ||
-        premixPricePerKg < 0 ||
-        fixedPremixPricePerKg.trim() === ""
-      ) {
-        throw new Error("Enter a supplier-quoted price per kg for the selected Sustar premix.");
+      // Mature boars have no supported combined vitamin-mineral premix SKU.
+      // Allow basal-only nutrition planning, never silently substitute sow X913.
+      if (selectedPremix) {
+        const premixPricePerKg = Number(fixedPremixPricePerKg);
+        if (
+          !Number.isFinite(premixPricePerKg) ||
+          premixPricePerKg < 0 ||
+          fixedPremixPricePerKg.trim() === ""
+        ) {
+          throw new Error("Enter a supplier-quoted price per kg for the selected Sustar premix.");
+        }
+        requestIngredients.push({
+          ingredientId: selectedPremix.id,
+          pricePerKg: premixPricePerKg,
+          minInclusionPct: selectedPremix.inclusionPct,
+          maxInclusionPct: selectedPremix.inclusionPct,
+        });
       }
-      requestIngredients.push({
-        ingredientId: selectedPremix.id,
-        pricePerKg: premixPricePerKg,
-        minInclusionPct: selectedPremix.inclusionPct,
-        maxInclusionPct: selectedPremix.inclusionPct,
-      });
     } catch (error) {
       setRequestError(error instanceof Error ? error.message : String(error));
       return false;
@@ -543,12 +551,14 @@ export function FeedFormulationWorkbench({
               traceMineralBasis: "inorganic",
             },
             ingredients: basisIngredients,
-            fixedPremix: {
-              id: selectedPremix!.id,
-              name: selectedPremix!.name,
-              inclusionKgPerTonne: selectedPremix!.inclusionKgPerTonne,
-              pricePerKg: Number(fixedPremixPricePerKg),
-            },
+            ...(selectedPremix ? {
+              fixedPremix: {
+                id: selectedPremix.id,
+                name: selectedPremix.name,
+                inclusionKgPerTonne: selectedPremix.inclusionKgPerTonne,
+                pricePerKg: Number(fixedPremixPricePerKg),
+              },
+            } : {}),
           }),
         );
       } else {
@@ -614,12 +624,12 @@ export function FeedFormulationWorkbench({
             ingredient?.maxInclusionPct,
         };
       }),
-      {
-        ingredientId: selectedPremix?.id ?? "premix-not-selected",
-        name: selectedPremix?.name ?? "No premix selected",
+      ...(selectedPremix ? [{
+        ingredientId: selectedPremix.id,
+        name: selectedPremix.name,
         pricePerKg: Number(fixedPremixPricePerKg),
-        maxInclusionPct: selectedPremix?.inclusionPct ?? 0,
-      },
+        maxInclusionPct: selectedPremix.inclusionPct,
+      }] : []),
     ],
   };
   const recipes = result?.status === "optimal" ? recipeViews(result) : [];
@@ -666,8 +676,8 @@ export function FeedFormulationWorkbench({
               lockedPct,
             })),
             ingredientPoolMode,
-            useFixedPremix: true,
-            fixedPremixName: selectedPremix?.name ?? "Unspecified premix",
+            useFixedPremix: Boolean(selectedPremix),
+            fixedPremixName: selectedPremix?.name ?? "No verified commercial premix",
             fixedPremixKgPerTonne: String(selectedPremix?.inclusionKgPerTonne ?? 0),
             fixedPremixPricePerKg,
             selectedRecipeId,
@@ -739,8 +749,9 @@ export function FeedFormulationWorkbench({
           <DialogHeader className="border-b border-hairline px-5 py-4 pr-14 sm:px-6">
             <DialogTitle>Finished mix</DialogTitle>
             <DialogDescription className="max-w-3xl leading-6">
-              The recommended Sustar product is included at its published dose, not at a universal 10 kg/t.
-              This product is UNVERIFIED: vitamin and trace-mineral coverage is not checked. Enter a real supplier quote to estimate cost.
+              {selectedPremix
+                ? "The specified Sustar premix is included at its published dose (not a universal 10 kg/t). Its micronutrient contribution is UNVERIFIED; enter a real supplier quote."
+                : "No compatible commercial premix has been established for mature boars. You can plan the basal ingredients only; this is NOT complete feed and must not be manufactured or fed as a finished recipe."}
             </DialogDescription>
           </DialogHeader>
 
@@ -759,7 +770,7 @@ export function FeedFormulationWorkbench({
                   }}
                 />
               </Field>
-              <Field label={`Supplier price / kg — ${selectedPremix?.sku ?? "premix"} (USD)`}>
+              {selectedPremix ? <Field label={`Supplier price / kg — ${selectedPremix.sku} (USD)`}>
                 <Input
                   type="number"
                   min="0"
@@ -772,29 +783,31 @@ export function FeedFormulationWorkbench({
                     setRequestError(null);
                   }}
                 />
-              </Field>
+              </Field> : null}
             </div>
 
             <div className="grid gap-3 lg:grid-cols-2">
               <div className="rounded-lg border border-hairline bg-background px-4 py-3 text-sm">
                 <div className="font-medium text-ink">Required supplementation</div>
                 <div className="mt-1 leading-6 text-ink-muted">
-                  {selectedPremix?.name ?? "No corresponding commercial premix"} is included at{" "}
-                  <strong className="text-ink">{selectedPremix?.inclusionKgPerTonne ?? 0} kg/t</strong>.
-                  Unverified manufacturer product: vitamin and trace-mineral supplementation is
-                  NOT checked. The result cannot be represented as a nutritionally complete feed.
+                  {selectedPremix
+                    ? `${selectedPremix.name} is included at ${selectedPremix.inclusionKgPerTonne} kg/t (UNVERIFIED).`
+                    : "No commercially supported vitamin-mineral premix is assigned to this programme."}
+                  {" "}Vitamin and trace-mineral supplementation is NOT checked.
+                  This is not a complete feed formulation.
                 </div>
               </div>
 
               <div className="rounded-lg border border-hairline bg-background px-4 py-3 text-sm">
                 <div className="font-medium text-ink">Mix plan</div>
                 <div className="mt-1 leading-6 text-ink-muted">
-                  <strong className="text-ink">{baseMixBatchKg.toFixed(2)} kg</strong> basal
-                  feed{" + "}
-                  <strong className="text-ink">{fixedPremixBatchKg.toFixed(2)} kg</strong>
-                  premix{" = "}
-                  <strong className="text-ink">{displayBatchKg.toFixed(2)} kg</strong> finished
-                  feed.
+                  <strong className="text-ink">{baseMixBatchKg.toFixed(2)} kg</strong> basal feed
+                  {selectedPremix ? (
+                    <>{" + "}<strong className="text-ink">{fixedPremixBatchKg.toFixed(2)} kg</strong>
+                      {" "}unverified premix</>
+                  ) : null}
+                  {" = "}<strong className="text-ink">{displayBatchKg.toFixed(2)} kg</strong>
+                  {" "}{selectedPremix ? "planned mix" : "basal mix only"}.
                 </div>
               </div>
             </div>
@@ -1260,9 +1273,11 @@ function ResultPanel({
         </CardHeader>
         <CardContent className="space-y-5">
           <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 px-4 py-3 text-sm leading-6 text-ink">
-            <strong>Premix unverified:</strong> This recipe uses a real Sustar product at the published dose,
-            but vitamin and trace-mineral concentrations have not been validated against a supplier COA.
-            Only basal nutrient constraints were checked. Do not manufacture or feed without qualified nutritionist review.
+            <strong>{formulationBasis?.fixedPremix ? "Premix unverified:" : "Basal-only formulation:"}</strong>
+            {formulationBasis?.fixedPremix
+              ? " The selected Sustar product is included at its published dose, but vitamin and trace-mineral concentrations have not been verified against a supplier COA."
+              : " No commercial premix was included. This recipe does not cover vitamin and trace-mineral supplementation."}
+            {" "}Only basal nutrient constraints were checked. Do not manufacture or feed without qualified nutritionist review.
           </div>
           <FormulationBasisPanel basis={formulationBasis} />
           {recipes.length > 1 ? (
