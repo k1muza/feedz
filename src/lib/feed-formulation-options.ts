@@ -60,8 +60,12 @@ export async function feedFormulationEditorOptions() {
       priceMarket: price?.market,
       priceAsOf: price?.asOf,
       priceSource: price?.sourceLabel,
-      importMultiplier: price ? ingredientImportPriceMultiplier(price.sourceScope) : 1,
-      availabilityMultiplier: price?.availabilityMultiplier ?? 1,
+      importMultiplier: price
+        ? price.planningMultiplier ?? ingredientImportPriceMultiplier(price.sourceScope)
+        : 1,
+      availabilityMultiplier: price?.planningMultiplier
+        ? 1
+        : price?.availabilityMultiplier ?? 1,
     };
   };
 
@@ -82,17 +86,33 @@ export async function feedFormulationEditorOptions() {
     })),
     ingredients: [
       ...INGREDIENT_LIBRARY.ingredients.map(ingredientOption),
-      ...COMMERCIAL_PREMIXES.map((premix) => ({
-        id: premix.id,
-        name: `${premix.name} (UNVERIFIED)`,
-        category: "vitamin_mineral_premix",
-        minInclusionPct: premix.inclusionPct,
-        maxInclusionPct: premix.inclusionPct,
-        // No invented China-to-Harare planning price: the farmer must enter a quote.
-        defaultPricePerKg: undefined,
-        verificationStatus: premix.verificationStatus,
-        specificationUrl: premix.specificationUrl,
-      })),
+      ...COMMERCIAL_PREMIXES.map((premix) => {
+        const price = ingredientDefaultPrice(premix.id, prices);
+        const planningPricePerTonne = ingredientDefaultPlanningPricePerTonne(
+          premix.id,
+          prices,
+        );
+        return {
+          id: premix.id,
+          name: premix.name,
+          category: "vitamin_mineral_premix",
+          minInclusionPct: premix.inclusionPct,
+          maxInclusionPct: premix.inclusionPct,
+          defaultPricePerKg:
+            planningPricePerTonne === undefined ? undefined : planningPricePerTonne / 1000,
+          priceMarket: price?.market,
+          priceAsOf: price?.asOf,
+          priceSource: price?.sourceLabel,
+          importMultiplier: price
+            ? price.planningMultiplier ?? ingredientImportPriceMultiplier(price.sourceScope)
+            : 1,
+          availabilityMultiplier: price?.planningMultiplier
+            ? 1
+            : price?.availabilityMultiplier ?? 1,
+          verificationStatus: premix.verificationStatus,
+          specificationUrl: premix.specificationUrl,
+        };
+      }),
 
     ],
   };

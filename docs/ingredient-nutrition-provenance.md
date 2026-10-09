@@ -54,10 +54,12 @@ with its own attribution. Price provenance is separate from nutrient provenance.
   source first, then profile-level provenance.
 * `getStudioCatalogue()` returns `nutritionSource` and `nutrientSources`
   for the ingredient details panel. Real premixes are present as ingredients
-  in this catalogue, with no invented supplier prices.
+  in this catalogue. Their planning prices are explicitly sourced from Alibaba
+  listing midpoints and multiplied by two; they are not represented as supplier
+  quotations and should be replaced by current quotes when available.
 * `getIngredient()` / MCP outputs profile-source attribution for both
   Brazilian Tables ingredients and commercial products.
 
-CJ S174/ST174A remains **manufacturer-recipe restricted and unverified**.
+CJ S174/ST174A remains **manufacturer-recipe restricted**.
 Its declared minimum total lysine can be reported conditionally, but does not
 establish SID lysine or the completeness of a boar ration.

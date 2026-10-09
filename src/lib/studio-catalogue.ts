@@ -11,6 +11,7 @@ import {
   type IngredientSourceRecord,
 } from "@/lib/ingredient-nutrients";
 import { getIngredientPrices } from "@/lib/ingredient-prices";
+import { ingredientDefaultPlanningPricePerTonne } from "@/lib/feed-ingredient-prices";
 import { COMMERCIAL_PREMIXES } from "@/lib/commercial-premixes";
 
 // The ingredient catalogue shown in the formulation studio (/studio/catalogue):
@@ -86,7 +87,8 @@ const STAGES: [string, (r: IngredientNutrientRecord["recommendedInclusionPct"]) 
 ];
 
 export async function getStudioCatalogue(): Promise<CatalogueIngredient[]> {
-  const prices = new Map((await getIngredientPrices()).map((price) => [price.ingredientId, price]));
+  const priceList = await getIngredientPrices();
+  const prices = new Map(priceList.map((price) => [price.ingredientId, price]));
   const pigProducts = COMMERCIAL_PREMIXES.filter((product) => product.species === "pig");
   const birdProducts = COMMERCIAL_PREMIXES.filter((product) => product.species !== "pig");
   const swine = ingredientLibraryWithCommercialPremixes(pigProducts, INGREDIENT_LIBRARY);
@@ -117,6 +119,9 @@ export async function getStudioCatalogue(): Promise<CatalogueIngredient[]> {
     const attribution = ingredientProfileAttribution(profile);
     const product = COMMERCIAL_PREMIXES.find((item) => item.id === ingredient.id);
     const price = prices.get(ingredient.id);
+    const planningPricePerTonne = price
+      ? ingredientDefaultPlanningPricePerTonne(ingredient.id, priceList)
+      : undefined;
     const limits = product
       ? [{ stage: product.application, maxPct: product.inclusionPct }]
       : STAGES.flatMap(([stage, pick]) => {
@@ -152,8 +157,8 @@ export async function getStudioCatalogue(): Promise<CatalogueIngredient[]> {
       name: product?.name ?? ingredient.name,
       aliases: product ? [product.sku, product.manufacturer] : ingredient.aliases,
       category: product ? "Premix" : CATEGORY_LABELS[ingredient.category],
-      price: price ? {
-        usdPerTonne: price.usdPerTonne, market: price.market,
+      price: price && planningPricePerTonne !== undefined ? {
+        usdPerTonne: planningPricePerTonne, market: price.market,
         asOf: price.asOf, sourceLabel: price.sourceLabel,
       } : null,
       nutrients,

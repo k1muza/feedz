@@ -16,11 +16,11 @@ function activeProduct(pool: Pool, programmeId: string) {
     .map(([id]) => commercialPremixById(id)!)[0];
 }
 
-function unlockedAfterManufacturerRecipe(pool: Pool): Pool {
+function unlockedAfterManufacturerRecipe(
+  pool: Pool,
+  former = Object.keys(pool).map((id) => commercialPremixById(id)).find((p) => p?.manufacturerRecipe),
+): Pool {
   const next: Pool = { ...pool };
-  const former = Object.entries(pool)
-    .map(([id]) => commercialPremixById(id))
-    .find((p) => p?.manufacturerRecipe);
   if (!former?.manufacturerRecipe) return next;
   for (const item of former.manufacturerRecipe) {
     if (item.ingredientId === former.id) continue;
@@ -62,6 +62,33 @@ export function poolWithProgrammePremix(pool: Pool, programmeId: string, preferr
       ...(pool[chosen.id]?.price != null ? { price: pool[chosen.id].price } : {}),
     },
   };
+}
+
+/** Takes a premix out of the formulation: deleted, or kept as an unticked row.
+ * Leaving a manufacturer recipe also unlocks its basal ingredients, which
+ * would otherwise stay fixed at shares nothing else can complete.
+ */
+export function poolWithoutPremix(pool: Pool, premixId: string, keepUnticked = false): Pool {
+  const next = unlockedAfterManufacturerRecipe(pool, commercialPremixById(premixId));
+  const row = pool[premixId];
+  if (keepUnticked && row) next[premixId] = { ...row, was: row.role, role: "excluded" };
+  else delete next[premixId];
+  return next;
+}
+
+/** Records a supplier quote for a premix. An eligible one is re-asserted at
+ * its manufacturer dose (and recipe); an ineligible legacy one only takes the
+ * price, so studioPremixProblems still reports it rather than the programme
+ * default being added alongside it.
+ */
+export function poolWithPremixPrice(pool: Pool, premixId: string, programmeId: string, price?: number): Pool {
+  const row: PoolEntry = { ...(pool[premixId] ?? { role: "fixed" }) };
+  if (price === undefined) delete row.price;
+  else row.price = price;
+  const next = { ...pool, [premixId]: row };
+  const product = commercialPremixById(premixId);
+  if (!product || row.role === "excluded" || !commercialPremixCompatibleWithProgramme(product, programmeId)) return next;
+  return poolWithProgrammePremix(next, programmeId, premixId);
 }
 
 /** Ingredient-picker eligibility: cereals are unrestricted here (other limits

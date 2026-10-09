@@ -186,9 +186,7 @@ function addRecipeSheet(
   sheet.getCell(10, 5).numFmt = "$#,##0.00";
 
   sheet.mergeCells("A12:G12");
-  sheet.getCell("A12").value = input.formulationBasis?.fixedPremix && !input.formulationBasis.settings.includeSupplementationTargets
-    ? `${input.recipeDescription} — UNVERIFIED PREMIX: vitamin and trace-mineral coverage NOT checked. Nutritionist review required before manufacture.`
-    : input.recipeDescription;
+  sheet.getCell("A12").value = input.recipeDescription;
   sheet.getCell("A12").alignment = { wrapText: true, vertical: "top" };
   sheet.getCell("A12").font = {
     name: FONT,
@@ -401,10 +399,7 @@ function addNutritionSheet(
   styleTitle(
     sheet,
     input.recipeLabel + " nutritional profile",
-    input.programmeName + " · " + input.phaseLabel + " · " +
-      (input.formulationBasis?.fixedPremix && !input.formulationBasis.settings.includeSupplementationTargets
-        ? "UNVERIFIED PREMIX: vitamin/trace-mineral targets NOT CHECKED"
-        : "requirement or supplementation target versus calculated recipe concentration"),
+    input.programmeName + " · " + input.phaseLabel + " · requirement or supplementation target versus calculated recipe concentration",
     "F",
   );
 

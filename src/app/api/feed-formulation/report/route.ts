@@ -9,7 +9,7 @@ export async function POST() {
   return NextResponse.json(
     {
       status: "retired",
-      message: "The theoretical-premix PDF is retired. Use FeedSport Studio with a named commercial premix; unverified micronutrients must not be presented as complete-feed compliance.",
+      message: "The theoretical-premix PDF is retired. Use FeedSport Studio with a named commercial premix.",
       studio_url: "/studio",
     },
     { status: 410, headers: { "cache-control": "no-store" } },

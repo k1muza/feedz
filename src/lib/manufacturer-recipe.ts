@@ -4,7 +4,7 @@
  * matrix or basal ingredients lack analytical values required by the solver.
  *
  * Crucially: never turn missing nutrient values into zero, never relax the
- * programme's constraints, and never report an unverified recipe as "optimal".
+ * programme's constraints, and never report a fixed recipe as "optimal".
  */
 import type { DietFormula } from "./diet-formula";
 import { evaluateFormulation, type FormulationIncompleteRequirement } from "./feed-optimizer";
@@ -30,7 +30,6 @@ export type ManufacturerRecipeShortfall = {
 
 export type ManufacturerRecipeAssessment = {
   status: "manufacturer_recipe";
-  verification: "unverified";
   recipe: DietFormula;
   incompleteRequirements: FormulationIncompleteRequirement[];
   checkedShortfalls: ManufacturerRecipeShortfall[];
@@ -78,22 +77,18 @@ export function assessManufacturerRecipe(
     }));
   return {
     status: "manufacturer_recipe",
-    verification: "unverified",
     recipe: formula,
     incompleteRequirements: evaluation.incompleteRequirements,
     checkedShortfalls,
-    // This contains actual programme-model limitations. Missing CJ
-    // micronutrient analysis is a separate supplier verification gap, NOT
-    // "Brazilian Tables lack phase-specific supplementation guidance".
+    // Actual programme-model limitations, not gaps in the supplier's data.
     unsupportedRequirements: evaluation.unsupportedRequirements,
-    warning: `${premix.name} is a manufacturer-prescribed recipe, NOT an optimized or nutritionally verified feed. Missing ingredient and commercial-premix analytical values prevent complete nutrient checking. Known nutrient shortfalls, if any, are listed; missing values are NOT treated as zero. Confirm the exact product, technical data sheet and recipe suitability with the manufacturer before feeding.`,
+    warning: `${premix.name} is a manufacturer-prescribed recipe, NOT an optimized feed. Known nutrient shortfalls, if any, are listed; requirements that lack ingredient data are listed separately and missing values are NOT treated as zero.`,
   };
 }
 
 /** Externally visible contract — each nutrient list appears exactly once. */
 export type ManufacturerRecipeReport = {
   status: "manufacturer_recipe";
-  verification: "unverified";
   recipe: DietFormula;
   manufacturer: string;
   product_id: string;
@@ -149,7 +144,6 @@ export function buildManufacturerRecipeReport(
       sum + row.inclusionPct / 100 * pricesPerKg.get(row.ingredientId)!, 0);
   return {
     status: "manufacturer_recipe",
-    verification: "unverified",
     recipe,
     manufacturer: premix.manufacturer,
     product_id: premix.id,

@@ -319,13 +319,13 @@ export async function diagnoseInfeasibilityTool(input: DiagnoseInput, context: F
     const findings = [
       report.warning,
       ...report.incomplete_requirements.map((row) =>
-        `${row.label} cannot be verified: missing nutrient values for ${row.missing_data_for.join(", ")}.`),
+        `${row.label} cannot be checked: missing nutrient values for ${row.missing_data_for.join(", ")}.`),
       ...report.checked_shortfalls.map((row) =>
         `${row.label}: known calculated value ${row.actual} ${row.unit} does not meet ${row.relation} ${row.requirement} ${row.unit}.`),
     ];
     return {
-      status: "unverified" as const,
-      message: "CJ manufacturer's fixed recipe can be priced but lacks sufficient verified analytical data for complete-feed assessment.",
+      status: "manufacturer_recipe" as const,
+      message: "CJ manufacturer's fixed recipe can be priced. Known shortfalls and requirements lacking ingredient data are listed.",
       findings,
       missing_data: report.incomplete_requirements,
       checked_shortfalls: report.checked_shortfalls,

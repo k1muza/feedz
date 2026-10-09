@@ -7,12 +7,19 @@ export type IngredientPriceSourceScope =
 
 export type IngredientDefaultPrice = {
   ingredientId: string;
+  /** Public source price before any FeedSport planning adjustment. */
   usdPerTonne: number;
   market: string;
   asOf: string;
   sourceScope: IngredientPriceSourceScope;
   sourceLabel: string;
   sourceUrl?: string;
+  /**
+   * Explicit source-to-planning adjustment. When present, this replaces the
+   * normal regional/global import multiplier so the pricing rule stays exact
+   * and auditable (for example, an Alibaba midpoint multiplied by 2).
+   */
+  planningMultiplier?: number;
   /**
    * Extra planning multiplier for ingredients that have a market benchmark
    * but no known practical Zimbabwe/Southern-African supply route.
@@ -51,6 +58,78 @@ export function ingredientImportPriceMultiplier(
  * 4. Global benchmark only when no usable local/regional public price is available
  */
 export const INGREDIENT_DEFAULT_PRICES: readonly IngredientDefaultPrice[] = [
+  {
+    ingredientId: "cj-s174-boar-premix",
+    usdPerTonne: 2550,
+    market: "Alibaba China listing proxy",
+    asOf: "2026-10-09",
+    sourceScope: "global-fallback",
+    planningMultiplier: 2,
+    sourceLabel: "Alibaba — 4% breeding/fattening pig premix proxy",
+    sourceUrl: "https://www.alibaba.com/supplier/mineral-vitamin-premix-pig.html",
+    note:
+      "No exact CJ S174 Alibaba listing was found. Uses the USD 2.20–2.90/kg midpoint for an Alibaba 4% breeding/fattening pig premix, then applies the requested 2x planning factor. Replace with a CJ quote when available.",
+  },
+  {
+    ingredientId: "sustar-glypro-x911",
+    usdPerTonne: 3750,
+    market: "Alibaba China listing benchmark",
+    asOf: "2026-10-09",
+    sourceScope: "global-fallback",
+    planningMultiplier: 2,
+    sourceLabel: "Alibaba — Sustar 0.2% piglet premix line",
+    sourceUrl: "https://www.alibaba.com/supplier/mineral-vitamin-premix-pig.html",
+    note:
+      "Uses the USD 3.40–4.10/kg midpoint published for Alibaba's Sustar 0.2% piglet premix line, then applies the requested 2x planning factor. Replace with an X911 supplier quote when available.",
+  },
+  {
+    ingredientId: "sustar-glypro-x912",
+    usdPerTonne: 2500,
+    market: "Alibaba China listing benchmark",
+    asOf: "2026-10-09",
+    sourceScope: "global-fallback",
+    planningMultiplier: 2,
+    sourceLabel: "Alibaba — Sustar GlyPro X912",
+    sourceUrl: "https://www.alibaba.com/showroom/growth-hormones-animals.html",
+    note:
+      "Uses the midpoint of Alibaba's USD 1.50–3.50/kg GlyPro X912 listing, then applies the requested 2x planning factor. Replace with a supplier quote when available.",
+  },
+  {
+    ingredientId: "sustar-glypro-x913",
+    usdPerTonne: 1280,
+    market: "Alibaba China listing benchmark",
+    asOf: "2026-10-09",
+    sourceScope: "global-fallback",
+    planningMultiplier: 2,
+    sourceLabel: "Alibaba — Sustar GlyPro X913",
+    sourceUrl: "https://www.alibaba.com/showroom/milk-pig.html",
+    note:
+      "Uses the midpoint of Alibaba's USD 0.96–1.60/kg GlyPro X913 listing, then applies the requested 2x planning factor. Replace with a supplier quote when available.",
+  },
+  {
+    ingredientId: "sustar-glypro-x812",
+    usdPerTonne: 2500,
+    market: "Alibaba China listing benchmark",
+    asOf: "2026-10-09",
+    sourceScope: "global-fallback",
+    planningMultiplier: 2,
+    sourceLabel: "Alibaba — Sustar GlyPro X812",
+    sourceUrl: "https://www.alibaba.com/countrysearch/CN/broiler-chicken-premix.html",
+    note:
+      "Uses the midpoint of Alibaba's USD 1.50–3.50/kg GlyPro X812 listing, then applies the requested 2x planning factor. Replace with a supplier quote when available.",
+  },
+  {
+    ingredientId: "sustar-glypro-x811",
+    usdPerTonne: 1650,
+    market: "Alibaba China listing benchmark",
+    asOf: "2026-10-09",
+    sourceScope: "global-fallback",
+    planningMultiplier: 2,
+    sourceLabel: "Alibaba — Sustar GlyPro X811",
+    sourceUrl: "https://www.alibaba.com/countrysearch/CN/broiler-premix.html",
+    note:
+      "Uses the midpoint of Alibaba's USD 1.30–2.00/kg GlyPro X811 listing, then applies the requested 2x planning factor. Replace with a supplier quote when available.",
+  },
   {
     ingredientId: "corn-yellow-dent",
     usdPerTonne: 348.6,
@@ -474,6 +553,9 @@ export function ingredientDefaultPlanningPricePerTonne(
 ): number | undefined {
   const price = ingredientDefaultPrice(ingredientId, prices);
   if (!price) return undefined;
+  if (price.planningMultiplier !== undefined) {
+    return price.usdPerTonne * price.planningMultiplier;
+  }
   return (
     price.usdPerTonne *
     ingredientImportPriceMultiplier(price.sourceScope) *

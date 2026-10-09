@@ -3,7 +3,8 @@ import { z } from "zod";
 
 import { evaluateFormulation } from "@/lib/feed-optimizer";
 import { feedProgrammePhaseById } from "@/lib/feed-programmes";
-import { ingredientLibraryForPhase } from "@/lib/ingredient-nutrients";
+import { commercialPremixById } from "@/lib/commercial-premixes";
+import { ingredientLibraryForPhase, ingredientLibraryWithCommercialPremixes } from "@/lib/ingredient-nutrients";
 
 export const runtime = "nodejs";
 
@@ -37,7 +38,12 @@ export async function POST(request: Request) {
   }
 
   try {
-    const evaluation = evaluateFormulation(phase, energySystem, { ingredients }, ingredientLibraryForPhase(phase));
+    const premixes = ingredients.flatMap((row) => {
+      const premix = commercialPremixById(row.ingredientId);
+      return premix ? [premix] : [];
+    });
+    const library = ingredientLibraryWithCommercialPremixes(premixes, ingredientLibraryForPhase(phase));
+    const evaluation = evaluateFormulation(phase, energySystem, { ingredients }, library);
     return NextResponse.json({
       status: "evaluated",
       nutrientProfile: evaluation.nutrientProfile,

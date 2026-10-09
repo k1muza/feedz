@@ -826,20 +826,6 @@ function Setup({ v }: V) {
 function Workspace({ v }: V) {
   return (
     <div style={sx("display:flex;flex-direction:column;min-height:100vh")}>
-      <div style={sx("display:flex;align-items:center;justify-content:space-between;gap:14px;padding:14px clamp(16px,3vw,32px);border-bottom:1px solid #e2dfd6;background:#fff;flex-wrap:wrap")}>
-        <div style={sx("display:flex;flex-direction:column;gap:6px;min-width:0")}>
-          <span style={sx("font:400 13px/1 'IBM Plex Sans',sans-serif;color:#64665c")}>Formulations /</span>
-          <div style={sx("display:flex;gap:10px;align-items:baseline;flex-wrap:wrap")}>
-            <input value={v.docName} onChange={v.onName} className={hv("field")} style={sx("font:600 20px/1.2 'IBM Plex Sans',sans-serif;border:1px solid transparent;border-radius:6px;padding:2px 6px;margin-left:-7px;background:transparent;color:#222420;min-width:220px")} />
-            <span style={sx(`font:500 12px/1 'IBM Plex Mono',monospace;color:${v.saveState.color}`)}>{v.saveState.label}</span>
-          </div>
-        </div>
-        <div style={sx("display:flex;gap:10px")}>
-          <button onClick={v.goList} style={sx("font:500 14px/1 'IBM Plex Sans',sans-serif;padding:11px 14px;border:1px solid #d0cdc3;border-radius:7px;background:#fff;color:#222420")}>Compare</button>
-          <button onClick={v.doExport} disabled={v.exportDisabled} title={v.exportTitle} style={sx(`font:500 14px/1 'IBM Plex Sans',sans-serif;padding:11px 14px;border:1px solid #d0cdc3;border-radius:7px;background:#fff;color:${v.exportColor}`)}>{v.exportLabel}</button>
-          <button onClick={v.save} disabled={v.saveDisabled} title={v.saveTitle} style={sx(`font:600 14px/1 'IBM Plex Sans',sans-serif;padding:11px 18px;border:0;background:${v.saveBg};color:#fff;border-radius:7px`)}>Save</button>
-        </div>
-      </div>
       <div style={sx("flex:1;display:flex;flex-wrap:wrap;align-items:stretch")}>
         <div style={sx(`flex:0 1 ${v.leftW};width:${v.leftW};border-right:1px solid #e2dfd6;background:#fff;display:flex;flex-direction:column`)}>
           <div style={sx("padding:18px 22px;border-bottom:1px solid #ece8df;display:flex;flex-direction:column;gap:8px")}>
@@ -1090,12 +1076,21 @@ function Optimal({ v, opt }: V & { opt: NonNullable<StudioVals["opt"]> }) {
   const { strip } = opt;
   return (
     <div style={sx(`display:flex;flex-direction:column;gap:20px;opacity:${v.dimOpacity};transition:opacity .2s`)}>
+      <div style={sx("display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap")}>
+        <button onClick={v.goList} style={sx("font:500 14px/1 'IBM Plex Sans',sans-serif;padding:11px 14px;border:1px solid #d0cdc3;border-radius:7px;background:#fff;color:#222420")}>Compare</button>
+        <button onClick={v.doExport} disabled={v.exportDisabled} title={v.exportTitle} style={sx(`font:500 14px/1 'IBM Plex Sans',sans-serif;padding:11px 14px;border:1px solid #d0cdc3;border-radius:7px;background:#fff;color:${v.exportColor}`)}>{v.exportLabel}</button>
+        <button onClick={v.save} disabled={v.saveDisabled} title={v.saveTitle} style={sx(`font:600 14px/1 'IBM Plex Sans',sans-serif;padding:11px 18px;border:0;background:${v.saveBg};color:#fff;border-radius:7px`)}>Save</button>
+      </div>
       <div style={sx("display:flex;align-items:center;gap:14px;padding:13px 18px;background:#fff;border:1px solid #e2dfd6;border-radius:10px;font:400 14px/1.3 'IBM Plex Sans',sans-serif;flex-wrap:wrap")}>
-        <span style={sx(`display:flex;align-items:center;gap:8px;font-weight:600;color:${strip.recipe.color}`)}>
-          <span style={sx(`width:9px;height:9px;border-radius:${strip.recipe.r};background:${strip.recipe.bg}`)} />
-          {strip.recipe.label}
-        </span>
-        <span style={sx("width:1px;height:16px;background:#d0cdc3")} />
+        {strip.recipe && (
+          <>
+            <span style={sx(`display:flex;align-items:center;gap:8px;font-weight:600;color:${strip.recipe.color}`)}>
+              <span style={sx(`width:9px;height:9px;border-radius:${strip.recipe.r};background:${strip.recipe.bg}`)} />
+              {strip.recipe.label}
+            </span>
+            <span style={sx("width:1px;height:16px;background:#d0cdc3")} />
+          </>
+        )}
         <span style={sx(`display:flex;align-items:center;gap:8px;font-weight:600;color:${strip.color}`)}>
           <span style={sx(`width:9px;height:9px;border-radius:${strip.r};background:${strip.bg}`)} />
           {strip.label}
@@ -2049,9 +2044,12 @@ function Drawer({ v, d }: V & { d: NonNullable<StudioVals["d"]> }) {
               <span style={sx("font:600 11px/1 'IBM Plex Mono',monospace;color:#64665c;text-transform:uppercase")}>Nutrient profile source</span>
               <span style={sx("font:600 12px/1.4 'IBM Plex Sans',sans-serif")}>{d.nutritionalSource.publisher} · {d.nutritionalSource.title}</span>
               <span style={sx("font:400 11px/1.4 'IBM Plex Sans',sans-serif;color:#8a5f18")}>
-                {d.nutritionalSource.verificationStatus.replaceAll("_", " ")}
-                {d.nutritionalSource.sourceTable ? " · " + d.nutritionalSource.sourceTable : ""}
-                {d.nutritionalSource.sourcePage != null ? " · p. " + d.nutritionalSource.sourcePage : ""}
+                {/* Verification of supplier and user profiles is an admin task, not shown here. */}
+                {[
+                  d.nutritionalSource.verificationStatus.includes("unverified") ? "" : d.nutritionalSource.verificationStatus.replaceAll("_", " "),
+                  d.nutritionalSource.sourceTable ?? "",
+                  d.nutritionalSource.sourcePage != null ? "p. " + d.nutritionalSource.sourcePage : "",
+                ].filter(Boolean).join(" · ")}
               </span>
               {d.nutritionalSource.url && <a href={d.nutritionalSource.url} target="_blank" rel="noopener noreferrer" style={sx("font:600 12px/1.4 'IBM Plex Sans',sans-serif;color:#1f5c38;text-decoration:underline")}>Original source ↗</a>}
             </div>

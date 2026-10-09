@@ -291,7 +291,7 @@ export function getProgramme(id: string, energySystem: EnergySystem = "ME") {
     ...(premix.length > 0
       ? {
           supplementation_requirements: {
-            applies_when: "Only enforce if a verified manufacturer profile exists; current Sustar products are UNVERIFIED.",
+            applies_when: "Not enforced: commercial premix nutrients are not credited against these targets.",
             source_tables: phase.supplementation?.sourceTables,
             requirements: requirementMap(premix),
           },
@@ -352,9 +352,11 @@ function priceSummary(ingredientId: string, context: FeedSportServiceContext) {
     price_market: price.market,
     price_as_of: price.asOf,
     price_source: price.sourceLabel,
-    ...(ingredientImportPriceMultiplier(price.sourceScope) !== 1
-      ? { import_cost_multiplier: ingredientImportPriceMultiplier(price.sourceScope) }
-      : {}),
+    ...(price.planningMultiplier !== undefined
+      ? { planning_cost_multiplier: price.planningMultiplier }
+      : ingredientImportPriceMultiplier(price.sourceScope) !== 1
+        ? { import_cost_multiplier: ingredientImportPriceMultiplier(price.sourceScope) }
+        : {}),
   };
 }
 
@@ -365,7 +367,6 @@ function premixSummary(premix: CommercialPremix, context: FeedSportServiceContex
     ...priceSummary(premix.id, context),
     manufacturer: premix.manufacturer, sku: premix.sku,
     application: premix.application,
-    verification_status: premix.verificationStatus,
     nutrition_profile_source: {
       source: {
         publisher: premix.manufacturer,
@@ -376,10 +377,9 @@ function premixSummary(premix: CommercialPremix, context: FeedSportServiceContex
       },
       sourcePage: null,
       sourceTable: null,
-      verificationStatus: "manufacturer_unverified" as const,
       species: (premix.species === "pig" ? "swine" : "poultry") as "swine" | "poultry",
       nutrientSources: {},
-      notes: ["Published ranges and minima do not establish exact analytical concentrations or complete-feed adequacy."],
+      notes: ["Published ranges and minima are listed for reference, not as exact analytical concentrations."],
     },
     formulation_compatibility: premix.formulationCompatibility,
     ...(premix.manufacturerRecipe ? { manufacturer_recipe: premix.manufacturerRecipe } : {}),
@@ -578,7 +578,7 @@ export function getIngredient(
     nutrients: null,
     source: commercial.specificationUrl,
     source_url: commercial.specificationUrl,
-    note: "Published specification ranges are for reference only. No unverified concentration is treated as a feed guarantee; request a supplier COA.",
+    note: "Published specification ranges are for reference only and are not credited as feed nutrients.",
   };
 
   const ingredient = resolveIngredient(id, library).record;
@@ -592,11 +592,12 @@ export function getIngredient(
     ...(ingredient.constraints.notes.length > 0 ? { constraint_notes: ingredient.constraints.notes } : {}),
     source: provenance.source?.title ??
       (provenance.verificationStatus === "user_supplied_unverified"
-        ? "Unverified user-provided nutrient data; source not supplied"
+        ? "User-provided nutrient data; source not supplied"
         : library.source.title),
     source_url: provenance.source?.url ??
       (provenance.verificationStatus === "user_supplied_unverified" ? null : library.source.url),
-    verification_status: provenance.verificationStatus ?? "published_reference",
+    // Verification of supplier and user profiles is an admin task, not reported here.
+    ...(provenance.verificationStatus?.includes("unverified") ? {} : { verification_status: provenance.verificationStatus ?? "published_reference" }),
     source_table: provenance.sourceTable,
     source_page: provenance.sourcePage,
     ...(Object.keys(provenance.nutrientSources).length > 0
@@ -917,14 +918,14 @@ function formulationNotes(request: PreparedRequest): string[] {
   const notes: string[] = [];
   if (request.includesPremix) {
     notes.push(
-      "Commercial premix is UNVERIFIED; supplier dosage is fixed but vitamin and trace-mineral adequacy was NOT checked.",
+      "Commercial premix included at the manufacturer's fixed dosage.",
     );
     if (request.ingredientIds.some((id) => commercialPremixById(id)?.manufacturerRecipe)) {
       notes.push("CJ S174 is limited to its published manufacturer recipe. This is not manufacturer approval of independent ingredient substitutions.");
     }
   } else {
     notes.push(
-      "No verified premix included: vitamin and trace-mineral supplementation has NOT been checked.",
+      "No commercial premix included: vitamin and trace-mineral supplementation has NOT been checked.",
     );
   }
   return notes;
@@ -1177,9 +1178,8 @@ export async function formulate(input: FormulateInput, context: FeedSportService
     );
     return {
       status: "manufacturer_recipe" as const,
-      verification: "unverified" as const,
       objective_applied: "manufacturer_fixed" as const,
-      message: "Manufacturer's published formula reproduced. Nutrient validation is incomplete; NOT a solver-optimal or complete-feed formulation.",
+      message: "Manufacturer's published formula reproduced. NOT a solver-optimal formulation.",
       cost_per_tonne: report.cost_per_tonne,
       currency: CURRENCY,
       ingredients: recipeRows(report.recipe, pricesPerTonne, library),
@@ -1187,7 +1187,6 @@ export async function formulate(input: FormulateInput, context: FeedSportService
       incomplete_requirements: report.incomplete_requirements,
       checked_shortfalls: report.checked_shortfalls,
       unsupported_requirements: report.unsupported_requirements,
-      premix_verification: "unverified" as const,
       notes: [...notes, report.warning],
       ...common,
     };
@@ -1287,7 +1286,6 @@ export async function formulate(input: FormulateInput, context: FeedSportService
     inclusion_limits: inclusionLimits,
     ...(advisories.length > 0 ? { above_practical_inclusion: advisories } : {}),
     unsupported_requirements: [...new Set([...result.unsupportedRequirements, "vitamin-trace-mineral-supplementation"])],
-    premix_verification: request.includesPremix ? "unverified" : "not_included",
     notes: [
       ...notes,
       ...(common.formulation_basis.ingredient_mode === "automatic"
@@ -1371,7 +1369,6 @@ export function analyseFormulation(input: AnalyseInput, context: FeedSportServic
     return {
       status: "manufacturer_recipe" as const,
       passes: false,
-      verification: "unverified" as const,
       cost_per_tonne: report.cost_per_tonne,
       ...(report.unpriced_ingredients.length ? { unpriced_ingredients: report.unpriced_ingredients } : {}),
       currency: CURRENCY,
@@ -1380,7 +1377,6 @@ export function analyseFormulation(input: AnalyseInput, context: FeedSportServic
       premix_analysis: report.premix_analysis,
       checked_shortfalls: report.checked_shortfalls,
       unsupported_requirements: report.unsupported_requirements,
-      premix_verification: "unverified" as const,
       notes: [...formulationNotes(request), report.warning],
       programme: programmeHeader(resolved),
       data_sources: dataSources(resolved, library, ingredientIds, prices, request.energySystem, request.includesPremix),
@@ -1438,9 +1434,6 @@ export function analyseFormulation(input: AnalyseInput, context: FeedSportServic
     inclusionLimitViolations.length === 0;
 
   const notes = formulationNotes(request);
-  if (request.includesPremix) {
-    notes[0] = "The manufacturer's premix is unverified; no vitamin or trace-mineral sufficiency checks were performed.";
-  }
   if (unverifiable.length > 0) {
     notes.push("Some requirements cannot be verified because ingredient nutrient data is missing; the formulation cannot pass until they can.");
   }
@@ -1474,7 +1467,6 @@ export function analyseFormulation(input: AnalyseInput, context: FeedSportServic
       ? { above_practical_inclusion: practicalInclusionAdvisories }
       : {}),
     unsupported_requirements: [...new Set([...evaluation.unsupportedRequirements, "vitamin-trace-mineral-supplementation"])],
-    premix_verification: request.includesPremix ? "unverified" : "not_included",
     premix_analysis: premixAnalysisForIds(ingredientIds),
     notes,
     programme: programmeHeader(resolved),

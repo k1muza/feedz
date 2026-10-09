@@ -327,12 +327,12 @@ export async function formulate(snap: Snapshot, ctx: EngineContext): Promise<For
           `${claim.name} ${claim.minimumPct === null ? "" : "≥ " + claim.minimumPct + "%"} TOTAL in premix`,
         ).join(", ") + ". Conditional total amino-acid contributions at this inclusion: " +
         lowerBounds.map((claim) => `${claim.name} ≥${claim.minTotalFeedPct}% of finished feed`).join(", ") +
-        ". Supplier SKU identity and label must be confirmed. These are NOT SID values; no SID contribution is credited without digestibility data."
-      : " This manufacturer has not published a verified SID amino-acid analysis for this SKU.";
+        ". These are NOT SID values; no SID contribution is credited without digestibility data."
+      : " This manufacturer has not published an SID amino-acid analysis for this SKU.";
     warns.push({
       id: realPremix.id,
-      title: `${realPremix.name} — manufacturer analysis unverified`,
-      body: `Included at the supplier's published dose of ${realPremix.inclusionKgPerTonne} kg/tonne. Vitamin and trace-mineral adequacy is NOT verified; basal solver status does not certify a complete feed.${aminoNote} ${realPremix.specificationUrl}`,
+      title: `${realPremix.name} — supplier dose`,
+      body: `Included at the supplier's published dose of ${realPremix.inclusionKgPerTonne} kg/tonne.${aminoNote} ${realPremix.specificationUrl}`,
     });
   } else {
     warns.push({ title: "No commercial premix selected", body: "Basal nutrient formulation alone does not validate vitamin and trace-mineral supplementation." });
@@ -410,7 +410,7 @@ export async function formulate(snap: Snapshot, ctx: EngineContext): Promise<For
         pct: row.inclusionPct,
       })),
       costT: missingPremixPrice ? null : result.cost_per_tonne,
-      message: `${result.warning} ${result.premix_analysis.message} This is a fixed supplier recipe, NOT a least-cost-optimised or verified complete feed. No ingredient changes are authorised without manufacturer approval.`,
+      message: `${result.warning} ${result.premix_analysis.message} This is a fixed supplier recipe, NOT a least-cost-optimised feed. No ingredient changes are authorised without manufacturer approval.`,
     };
   }
   if (result.status === "error") return { status: "error", warns, message: result.message };

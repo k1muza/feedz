@@ -43,33 +43,33 @@ Workflow: get_programmes → get_programme → search_ingredients → formulate.
 
 For explanations, use explain_formulation, diagnose_infeasibility, run_sensitivity_analysis, find_ingredient_opportunities and compare_formulation_strategies. CJ S174 is manufacturer-recipe-only: diagnose_infeasibility provides read-only nutrient/data-gap findings, while ingredient substitution and alternative-ratio tools must not change its recipe. Quote the tool findings instead of inventing values.
 
-Premix workflow: search_ingredients with category="vitamin_mineral_premix" and available_only=false, then get_ingredient for the exact manufacturer SKU, stage, published fixed dose, source link and verification status. Available products include Sustar X911 (piglets), X912 (grower/finisher), X913 (sows), X812 (broilers), X811 (layers) and CJ Feed S174 (4% breeding-boar premix); selected-mode requests must lock each basal ingredient to CJ's published percentages using equal min_percent and max_percent constraints, and include S174 at 4%. A SKU can only be used for a compatible programme phase. Include exactly one compatible SKU in selected mode, and provide a REAL supplier quote as constraints.<sku_id>.price_per_tonne because the catalogue has no verified planning price. Do not infer or invent a price from other SKUs.
+Premix workflow: search_ingredients with category="vitamin_mineral_premix" and available_only=false, then get_ingredient for the exact manufacturer SKU, stage, published fixed dose, source link and verification status. Available products include Sustar X911 (piglets), X912 (grower/finisher), X913 (sows), X812 (broilers), X811 (layers) and CJ Feed S174 (4% breeding-boar premix); selected-mode requests must lock each basal ingredient to CJ's published percentages using equal min_percent and max_percent constraints, and include S174 at 4%. A SKU can only be used for a compatible programme phase. Include exactly one compatible SKU in selected mode. The catalogue provides an Alibaba-derived planning default (listing-range midpoint multiplied by 2); a real supplier quote in constraints.<sku_id>.price_per_tonne overrides it.
 
 Rules:
 - Never invent or adjust feed recipes, nutrient values, supplier prices or requirement figures; report FeedSport tool results as returned.
 - The theoretical premix public-premix-salt-additives and generic aliases such as "premix" are RETIRED. They will be rejected; do not send them.
-- Mature boars may use CJ Feed S174 (4% fixed inclusion), but ONLY with CJ's published ingredient ratios: maize 64.3%, wheat bran 12%, soybean meal 15.7%, fish meal 4%, S174 4%. The page identifies S174 but the recipe says ST174A; confirm identity with CJ. Do not assign sow-only X913 or permit arbitrary changes to the supplier ratios. This is UNVERIFIED and does not establish complete-feed adequacy. Growing entire/immunocastrated males use the unverified grower/finisher candidate GlyPro X912.
+- Mature boars may use CJ Feed S174 (4% fixed inclusion), but ONLY with CJ's published ingredient ratios: maize 64.3%, wheat bran 12%, soybean meal 15.7%, fish meal 4%, S174 4%. Do not assign sow-only X913 or permit arbitrary changes to the supplier ratios. Growing entire/immunocastrated males use the grower/finisher premix GlyPro X912.
 - Commercial premix dosage is fixed at the manufacturer's published inclusion for the SKU. Never alter that dose or substitute a premix across species.
-- ALL current commercial premix profiles are UNVERIFIED. Published analysis ranges are metadata, not a guaranteed nutrient matrix. Vitamin and trace-mineral adequacy is NOT validated in either automatic or selected formulation mode.
+- Published premix analysis ranges are metadata, not a nutrient matrix; premix nutrients are not credited against requirements.
 - Automatic mode selects priced basal ingredients only. Its optimal recipes do NOT include a premix and are NOT complete feeds.
-- In selected mode, use a real SKU and a supplier price if available. Even with a selected premix, status="optimal" or analysis status="pass" only means the constraints actually checked were met. Examine premix_verification, unsupported_requirements and notes, and never claim complete-feed adequacy, manufacturer approval or feeding safety.
+- In selected mode, use a real SKU and a supplier price if available. Even with a selected premix, status="optimal" or analysis status="pass" only means the constraints actually checked were met. Examine unsupported_requirements and notes, and never claim manufacturer approval or feeding safety.
 - FeedSport programme requirements and ingredient inclusion ceilings cannot be relaxed; caller constraints can only tighten them.
-- Status "manufacturer_recipe" is a reproducible manufacturer-provided mixing recipe for costing/review, NOT a nutritionally validated or least-cost formulation. Read premix_analysis (manufacturer nutrient analysis remains unverified), incomplete_requirements, checked_shortfalls and unsupported_requirements. The supplier-analysis gap MUST NOT be described as missing Brazilian Tables phase guidance; do not claim complete feed. diagnose_infeasibility returns status "unverified" with data gaps/shortfalls for CJ S174 and no substitution fixes. Status "infeasible", "missing_data", "error" or "fail" is not a valid nutrition pass.
-- For a generic request, let automatic mode choose basal ingredients; do not arbitrarily shrink the ingredient pool. If the user needs a product-backed total-feed price without a premix quotation, explain that cost cannot yet be verified.
+- Status "manufacturer_recipe" is a reproducible manufacturer-provided mixing recipe for costing/review, NOT a least-cost formulation. Read premix_analysis, incomplete_requirements, checked_shortfalls and unsupported_requirements. diagnose_infeasibility returns status "manufacturer_recipe" with data gaps/shortfalls for CJ S174 and no substitution fixes. Status "infeasible", "missing_data", "error" or "fail" is not a valid nutrition pass.
+- For a generic request, let automatic mode choose basal ingredients; do not arbitrarily shrink the ingredient pool. Clearly distinguish Alibaba-derived planning defaults from product-backed supplier quotations.
 - Prices are FeedSport planning prices (USD/t) for priced ingredients, or the caller's explicitly supplied prices.`;
 
 const ADVISOR_INSTRUCTIONS = `
 
 Advisor access: you are connected as FeedSport's advising nutritionist and can read every user's saved Studio formulations.
 
-Advisor workflow: list_users or list_saved_formulations → get_saved_formulation → pass its tool_inputs to formulate or any diagnostics tool (or its analyse_formulation_input to analyse_formulation) to review it → add_formulation_advice. Saved results are what the user saw when they saved. Legacy snapshots with the retired theoretical premix cannot be replayed as valid new formulations; select a compatible real SKU and obtain a price quote. Re-run tools when pricing or assumptions may have changed.
+Advisor workflow: list_users or list_saved_formulations → get_saved_formulation → pass its tool_inputs to formulate or any diagnostics tool (or its analyse_formulation_input to analyse_formulation) to review it → add_formulation_advice. Saved results are what the user saw when they saved. Legacy snapshots with the retired theoretical premix cannot be replayed as valid new formulations; select a compatible real SKU and prefer a current supplier quote over its Alibaba-derived planning default. Re-run tools when pricing or assumptions may have changed.
 
 Advice rules:
 - add_formulation_advice is the tool for writing nutritionist advice notes (featured-card save/publish tools separately modify public cards). The user reads the advice in FeedSport Studio. Write it to the farmer, in plain language, and only after the nutritionist has agreed its content.
 - Propose ration changes through suggestion (ingredient roles, prices, limits, programme or goal), never as a recipe you calculated. FeedSport formulates the suggestion and returns suggestion_check; check it with preview_formulation_advice first and do not save a suggestion that is not optimal.
 - Treat user data as confidential: share it only with the nutritionist.
 
-Featured formulations (the starting points on FeedSport Studio's Home screen): list_featured_formulations → preview_featured_formulation (read-only) → save_featured_formulation → set_featured_formulation_published. These are public, with recipes formulated at planning prices. Unpriced manufacturer premix SKUs are not yet eligible for live-price featured cards; do not invent planning prices. Revalidate or unpublish old cards referencing the retired premix. A solver-valid basal formulation cannot be described as micronutrient-complete.`;
+Featured formulations (the starting points on FeedSport Studio's Home screen): list_featured_formulations → preview_featured_formulation (read-only) → save_featured_formulation → set_featured_formulation_published. These are public, with recipes formulated at planning prices. Commercial premix prices are Alibaba-derived planning defaults unless a supplier quote overrides them. Revalidate or unpublish old cards referencing the retired premix. A solver-valid basal formulation cannot be described as micronutrient-complete.`;
 
 const READ_ONLY = {
   readOnlyHint: true,
@@ -98,7 +98,7 @@ const ingredientConstraints = z
         .number()
         .nonnegative()
         .optional()
-        .describe("Price in USD per tonne. For unpriced commercial manufacturer SKUs, provide a REAL supplier quote here; never invent a price."),
+        .describe("Optional USD/t override. Commercial premixes otherwise use their Alibaba-derived planning default; prefer a real supplier quote when available."),
     }),
   )
   .optional()
@@ -185,7 +185,7 @@ export function createFeedSportMcpServer(
     {
       title: "Get programme requirements",
       description:
-        "Programme phase nutrient targets and source metadata. Some targets (including vitamin/trace-mineral supplementation) are NOT enforced when no verified premix profile exists; check unsupported_requirements in formulation results.",
+        "Programme phase nutrient targets and source metadata. Some targets (including vitamin/trace-mineral supplementation) are NOT enforced because premix nutrients are not credited; check unsupported_requirements in formulation results.",
       inputSchema: z.object({ programme_id: programmeId, energy_system: energySystem }),
       annotations: READ_ONLY,
     },
@@ -197,7 +197,7 @@ export function createFeedSportMcpServer(
     {
       title: "Search ingredients",
       description:
-        "Find ingredients and real commercial premix SKUs by name, category, nutrient, price market, supplier or availability. Use category=vitamin_mineral_premix with available_only=false to see unpriced manufacturer products and their published fixed inclusion rates.",
+        "Find ingredients and real commercial premix SKUs by name, category, nutrient, price market, supplier or availability. Commercial SKUs include published fixed doses and Alibaba-derived planning prices where available.",
       inputSchema: z.object({
         query: z.string().optional().describe('Name, alias or id, e.g. "wheat bran", "maize", "soybean meal".'),
         category: z.enum(INGREDIENT_CATEGORIES).optional(),
@@ -223,7 +223,7 @@ export function createFeedSportMcpServer(
     {
       title: "Get ingredient",
       description:
-        "Get nutrient and price information where available. For commercial premixes, returns manufacturer specification metadata, fixed dosage and UNVERIFIED status; verified nutrient values and prices are not yet available.",
+        "Get nutrient and price information where available. For commercial premixes, returns manufacturer specification metadata, fixed dosage and an Alibaba-derived planning price that a supplier quote may override.",
       inputSchema: z.object({
         id: z.string().min(1).describe("Ingredient id from search_ingredients."),
         programme_id: programmeId
@@ -240,7 +240,7 @@ export function createFeedSportMcpServer(
     {
       title: "Formulate a feed",
       description:
-        "Formulate with GLPK for unrestricted programmes, or reproduce CJ S174 fixed boar recipe without optimisation. Automatic mode selects priced BASAL ingredients only. In selected mode, choose a real manufacturer SKU and supply a supplier-quoted price. All commercial premixes have a fixed manufacturer inclusion dose; do not change it. Vitamin and trace-mineral adequacy is UNVERIFIED for all current commercial premixes (including Sustar), even if the basal solver status is optimal. CJ S174 requires every ingredient at the manufacturer ratio and returns status=manufacturer_recipe with premix_analysis.reason=manufacturer_nutrient_analysis_incomplete, NOT a verified or least-cost result. Never describe such a recipe as complete feed.",
+        "Formulate with GLPK for unrestricted programmes, or reproduce CJ S174 fixed boar recipe without optimisation. Automatic mode selects priced BASAL ingredients only. In selected mode, choose a real manufacturer SKU; its Alibaba-derived planning price is used unless a supplier quote overrides it. All commercial premixes have a fixed manufacturer inclusion dose; do not change it. CJ S174 requires every ingredient at the manufacturer ratio and returns status=manufacturer_recipe, NOT a least-cost result.",
       inputSchema: z.object({
         programme_id: programmeId,
         energy_system: energySystem,
@@ -248,7 +248,7 @@ export function createFeedSportMcpServer(
           .enum(["automatic", "selected"])
           .optional()
           .describe(
-            "Omit for automatic mode unless ingredients are supplied (legacy calls with ingredients are treated as selected). automatic = priced basal pool, NO premix and NO verified micronutrients; selected = supplied basket, including one real compatible SKU if requested.",
+            "Omit for automatic mode unless ingredients are supplied (legacy calls with ingredients are treated as selected). automatic = priced basal pool, NO premix; selected = supplied basket, including one real compatible SKU if requested.",
           ),
         ingredients: z
           .array(z.string().min(1))
@@ -256,7 +256,7 @@ export function createFeedSportMcpServer(
           .max(60)
           .optional()
           .describe(
-            "Only for selected mode: user-accessible ingredient ids, optionally including one stage-compatible commercial premix SKU. Unpriced premixes require a genuine supplier price override; generic/theoretical premix ids are rejected.",
+            "Only for selected mode: user-accessible ingredient ids, optionally including one stage-compatible commercial premix SKU. A genuine supplier-price override is preferred; generic/theoretical premix ids are rejected.",
           ),
         constraints: ingredientConstraints,
         objective: z
@@ -401,7 +401,7 @@ export function createFeedSportMcpServer(
     {
       title: "Analyse a formulation",
       description:
-        "Analyse a 100% recipe against supported constraints, prices and inclusion limits. Premix vitamin/trace-mineral adequacy is currently UNVERIFIED. A pass does not certify a complete feed.",
+        "Analyse a 100% recipe against supported constraints, prices and inclusion limits.",
       inputSchema: z.object({
         programme_id: programmeId,
         energy_system: energySystem,

@@ -11,7 +11,7 @@ import { isSupabaseConfigured, supabaseKey, supabaseUrl } from "@/lib/supabase/c
 import type { CatalogueIngredient, CatalogueNutrientId } from "@/lib/studio-catalogue";
 import type { StudioNutrientData } from "@/lib/studio-nutrients";
 import type { StudioProgrammeData } from "@/lib/studio-programmes";
-import { canAddStudioIngredient, selectStudioIngredient, poolWithProgrammePremix } from "@/lib/studio-commercial-premix";
+import { canAddStudioIngredient, selectStudioIngredient, poolWithPremixPrice, poolWithProgrammePremix, poolWithoutPremix } from "@/lib/studio-commercial-premix";
 import { commercialPremixById } from "@/lib/commercial-premixes";
 
 import {
@@ -997,12 +997,8 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
     if (product) {
       // Price is editable but supplier dose / whole-recipe policy is not.
       update((state) => {
-        const pool = poolWithProgrammePremix(state.pool, state.programmeId, d.id);
-        pool[d.id] = {
-          role: "fixed", fixed: product.inclusionPct,
-          ...(price !== undefined ? { price } : {}),
-        };
-        return { pool, drawer: null };
+        const included: Pool = { ...state.pool, [d.id]: { role: "fixed", fixed: product.inclusionPct } };
+        return { pool: poolWithPremixPrice(included, d.id, state.programmeId, price), drawer: null };
       });
       if (rerun && S.screen === "workspace") run();
       return;
@@ -1032,10 +1028,11 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
       return;
     }
     update((state) => {
-      const pool = { ...state.pool };
-      delete pool[d.id];
       // Removing a premix is allowed; it does not auto-reappear until the
       // farmer selects another product or changes the animal programme.
+      if (commercialPremixById(d.id)) return { pool: poolWithoutPremix(state.pool, d.id), drawer: null };
+      const pool = { ...state.pool };
+      delete pool[d.id];
       return { pool, drawer: null };
     });
     flash(ingredientName(d.id) + " removed from this formulation");
@@ -1317,31 +1314,30 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
         on = e.role !== "excluded",
         user = isUserPrice(id);
       const planning = g?.price?.usdPerTonne ?? null;
-      const incomplete = !!g && g.expected.some((n) => g.nutrients[n] == null);
+      const incomplete = !!g && !commercialPremixById(id) && g.expected.some((n) => g.nutrients[n] == null);
       const noPrice = !user && planning == null;
       const isPremix = !!commercialPremixById(id);
       return {
         id, cat: g?.category ?? "Other", name: g?.name ?? id,
         check: on ? "✓" : "", cbBg: on ? "#2f5a3f" : "#fff", cbBd: on ? "#2f5a3f" : "#b9b6ab", cbLabel: (on ? "Untick " : "Tick ") + (g?.name ?? id), deco: on ? "none" : "line-through", opacity: on ? "1" : "0.55",
         hasNote: noPrice || incomplete,
-        note: noPrice ? isPremix ? "Supplier quote optional; displayed cost excludes this premix" : "No planning price — enter yours" : g?.verificationStatus === "unverified" ? "Manufacturer nutrient analysis unverified" : "Some nutrient data is missing — it may be set aside for this stage",
+        note: noPrice ? isPremix ? "Supplier quote optional; displayed cost excludes this premix" : "No planning price — enter yours" : "Some nutrient data is missing — it may be set aside for this stage",
         noteColor: noPrice ? "#a63d2a" : "#8a5f18",
         price: user ? String(e.price) : "", pricePh: planning != null ? String(Math.round(planning)) : isPremix ? "Optional quote" : "Required", tag: user ? "YOURS" : planning != null ? "DEFAULT" : "", tagFg: user ? "#8a5f18" : "#8d8a80",
         onPrice: (ev: InputEvent) => {
           const value = ev.target.value;
           update((s) => {
+            if (commercialPremixById(id)) return { pool: poolWithPremixPrice(s.pool, id, s.programmeId, value === "" ? undefined : +value) };
             const cur = { ...s.pool[id] };
             if (value === "") delete cur.price;
             else cur.price = +value;
-            if (commercialPremixById(id) && cur.role !== "excluded") return {
-      pool: selectStudioIngredient(s.pool, id, s.programmeId),
-    };
-    return { pool: { ...s.pool, [id]: cur } };
+            return { pool: { ...s.pool, [id]: cur } };
           });
         },
         toggle: () =>
           update((s) => {
             const cur = { ...s.pool[id] };
+            if (commercialPremixById(id) && cur.role !== "excluded") return { pool: poolWithoutPremix(s.pool, id, true) };
             if (cur.role === "excluded") {
               cur.role = cur.was ?? "available";
               delete cur.was;
@@ -1349,7 +1345,9 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
               cur.was = cur.role;
               cur.role = "excluded";
             }
-            return { pool: { ...s.pool, [id]: cur } };
+            const pool = { ...s.pool, [id]: cur };
+            // Re-ticking a premix restores its dose, or CJ's whole recipe.
+            return { pool: commercialPremixById(id) && canAddStudioIngredient(id, s.programmeId) ? selectStudioIngredient(pool, id, s.programmeId) : pool };
           }),
         limits: limitTxt(e),
         open: () => openDrawer(id),
@@ -1830,6 +1828,7 @@ function optimalVals(
   const advTotal = adv.length + ctx.adviceCount;
   const advTxt = advisoryCount(advTotal);
   const recipeInvalid = !!mc && !mc.checking && !mc.recipeValidity?.valid;
+  const allNutrientsMet = !mc?.checking && !recipeInvalid && failN === 0 && mc?.nutrientAdequacy !== "unknown";
   const recipeStatus = mc?.checking
     ? { label: "Checking recipe validity…", color: "#64665c", bg: "#d0cdc3", r: "50%" }
     : recipeInvalid
@@ -1841,10 +1840,10 @@ function optimalVals(
       ? { label: failN + " of " + nList.length + " checked nutrient requirements not met" + (mc?.incompleteRequirements.length ? " · " + mc.incompleteRequirements.length + " unknown" : ""), color: "#a63d2a", bg: "#b2412e", r: "0" }
       : mc?.nutrientAdequacy === "unknown"
         ? { label: mc.incompleteRequirements.length + " nutrient requirement" + (mc.incompleteRequirements.length === 1 ? " is" : "s are") + " unknown · missing ingredient data", color: "#8a5f18", bg: "#c98a1e", r: "0" }
-      : { label: "Meets " + nList.length + " modelled basal targets · premix micronutrients unverified", color: "#2b6a42", bg: "#2f7a4a", r: "50%" };
+      : { label: "All " + nList.length + " nutrients met", color: "#2b6a42", bg: "#2f7a4a", r: "50%" };
   const strip = {
     ...nutrientStatus,
-    recipe: recipeStatus,
+    recipe: allNutrientsMet ? null : recipeStatus,
     hasAdv: advTotal > 0,
     adv: advTxt,
     goal: mc ? "Manual recipe" : GOALS[runSnap.goal].label + (runSnap.goal === "least_cost" || R.goalUnavailable ? "" : " · within 3%"),
@@ -2276,7 +2275,7 @@ function libraryVals(
   const catD = catSel
     ? {
         name: catSel.name,
-        sub: catSel.category + " · " + (catSel.verificationStatus ? "manufacturer analysis UNVERIFIED · supplier quote required" : catSel.price ? "planning price $" + fmt(catSel.price.usdPerTonne, 0) + " / t · " + catSel.price.market : "no planning price"),
+        sub: catSel.category + " · " + (catSel.price ? "planning price $" + fmt(catSel.price.usdPerTonne, 0) + " / t · " + catSel.price.market : "no planning price"),
         nutritionSource: {
           title: catSel.nutritionSource.title,
           publisher: catSel.nutritionSource.publisher,
@@ -2426,10 +2425,10 @@ function libraryVals(
       size: String(ps), onSize: (e: InputEvent) => update({ catPageSize: +e.target.value, catPage: 1 }),
     },
     catRows: catAll.slice(from, to).map((g) => {
-      const missing = !!g.verificationStatus || g.expected.some((id) => g.nutrients[id] == null);
+      const missing = !commercialPremixById(g.id) && g.expected.some((id) => g.nutrients[id] == null);
       const on = g.id === S.catSel;
       const num = (x: number | null, dp: number, unit = "") => (x == null ? "—" : fmt(x, dp) + unit);
-      return { id: g.id, name: g.name, cat: g.category, price: g.price ? "$" + fmt(g.price.usdPerTonne, 0) : "—", cp: num(g.nutrients.cp, 1, "%"), me: num(g.nutrients.mePig, 0), lys: num(g.nutrients.lys, 2, "%"), data: g.verificationStatus ? "Unverified" : missing ? "Incomplete" : "Complete", dataColor: missing ? "#a63d2a" : "#2b6a42", dataDot: missing ? "#b2412e" : "#2f7a4a", dataR: missing ? "0" : "50%", bg: on ? "#f4f8f4" : "#fff", pick: () => update({ catSel: on ? null : g.id }) };
+      return { id: g.id, name: g.name, cat: g.category, price: g.price ? "$" + fmt(g.price.usdPerTonne, 0) : "—", cp: num(g.nutrients.cp, 1, "%"), me: num(g.nutrients.mePig, 0), lys: num(g.nutrients.lys, 2, "%"), data: commercialPremixById(g.id) ? "Supplier spec" : missing ? "Incomplete" : "Complete", dataColor: missing ? "#a63d2a" : "#2b6a42", dataDot: missing ? "#b2412e" : "#2f7a4a", dataR: missing ? "0" : "50%", bg: on ? "#f4f8f4" : "#fff", pick: () => update({ catSel: on ? null : g.id }) };
     }),
     catEmpty: catAll.length === 0,
     catD,

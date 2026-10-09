@@ -3,7 +3,7 @@
  * An online product page is NOT a batch COA, price quotation, or confirmation
  * that its manufacturer's recommended basal ration may be reformulated.
  *
- * These entries are intentionally UNVERIFIED and are not nutrient matrices.
+ * These entries are not nutrient matrices.
  * In particular, never fabricate concentrations from programme requirements.
  */
 export type CommercialPremix = {
@@ -37,6 +37,7 @@ export type CommercialPremix = {
     totalPct?: Record<string, number>;
     sidPct?: Record<string, number>;
   };
+  /** Confirmed supplier quotation. Alibaba-derived planning defaults live in feed-ingredient-prices. */
   pricePerTonne: null;
   specificationUrl: string;
   publishedAnalysis: {
@@ -186,7 +187,6 @@ export function commercialPremixById(id: string): CommercialPremix | undefined {
 /**
  * Map only recognized programme families. Never infer premix compatibility from
  * incidental substrings (especially "boar" versus sow/breeding products).
- * These mappings remain UNVERIFIED manufacturer compatibility assumptions.
  */
 export function commercialPremixForProgramme(programmeId: string): CommercialPremix | undefined {
   const eligible = eligibleCommercialPremixes(programmeId);
@@ -234,8 +234,8 @@ export function assertManufacturerRecipe(
 /** Present on all formulation responses, even when no commercial premix is used. */
 export type CommercialPremixAnalysis =
   | {
-      status: "unverified";
-      reason: "manufacturer_nutrient_analysis_incomplete";
+      status: "included";
+      reason: "commercial_premix_selected";
       product_id: string;
       message: string;
     }
@@ -252,13 +252,13 @@ export function premixAnalysisForIds(ids: readonly string[]): CommercialPremixAn
     status: "not_included",
     reason: "no_commercial_premix",
     product_id: null,
-    message: "No commercial premix was included; complete-feed micronutrient coverage is not verified.",
+    message: "No commercial premix was included.",
   };
   return {
-    status: "unverified",
-    reason: "manufacturer_nutrient_analysis_incomplete",
+    status: "included",
+    reason: "commercial_premix_selected",
     product_id: selected.id,
-    message: `${selected.name}: manufacturer micronutrient analysis and feed compatibility remain unverified. This is a supplier specification gap, not missing programme guidance.`,
+    message: `${selected.name} is included at its supplier dose of ${selected.inclusionKgPerTonne} kg/t.`,
   };
 }
 

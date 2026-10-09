@@ -10,7 +10,7 @@ test("every public animal programme resolves a real manufacturer premix at its p
   for (const programme of available) {
     const product = commercialPremixForProgramme(programme.id);
     assert.ok(product, programme.id);
-    assert.equal(product.pricePerTonne, null, "No fictitious premix planning price");
+    assert.equal(product.pricePerTonne, null, "No fabricated supplier quotation");
     assert.ok(product.inclusionPct > 0 && product.inclusionKgPerTonne === product.inclusionPct * 10);
     assert.ok(product.specificationUrl.startsWith("https://"));
     assert.equal(product.verificationStatus, "unverified");

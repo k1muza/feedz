@@ -4,7 +4,8 @@ export const runtime = "nodejs";
 import { z } from "zod";
 
 import { ingredientDefaultPricePerKg } from "@/lib/feed-ingredient-prices";
-import { ingredientLibraryForPhase } from "@/lib/ingredient-nutrients";
+import { commercialPremixById } from "@/lib/commercial-premixes";
+import { ingredientLibraryForPhase, ingredientLibraryWithCommercialPremixes } from "@/lib/ingredient-nutrients";
 import { getIngredientPrices } from "@/lib/ingredient-prices";
 import {
   suggestFormulationAdditions,
@@ -81,11 +82,17 @@ export async function POST(request: Request) {
           "Set a price for every current ingredient before checking which additions make the list feasible.",
       });
     }
+    // Studio pools carry a commercial premix, which lives outside the phase
+    // library; add the selected ones so they resolve like in /optimize.
+    const premixes = options.flatMap((option) => {
+      const premix = commercialPremixById(option.ingredientId);
+      return premix ? [premix] : [];
+    });
     const result = await suggestFormulationAdditions(
       phase,
       energySystem,
       options,
-      ingredientLibraryForPhase(phase),
+      ingredientLibraryWithCommercialPremixes(premixes, ingredientLibraryForPhase(phase)),
       planningPrice,
     );
     return NextResponse.json(result);

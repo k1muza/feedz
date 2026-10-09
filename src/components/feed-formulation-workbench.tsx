@@ -241,7 +241,7 @@ export function FeedFormulationWorkbench({
       ? initialFormulaSet.setup.fixedPremixPricePerKg
       : undefined;
   const [fixedPremixPricePerKg, setFixedPremixPricePerKg] = useState(
-    savedPremixPrice ?? "",
+    savedPremixPrice ?? (initialPremix ? defaultPriceInput(initialPremix.id, ingredients) : ""),
   );
   const [nextKey, setNextKey] = useState(100);
   const [addIngredientId, setAddIngredientId] = useState("");
@@ -296,8 +296,10 @@ export function FeedFormulationWorkbench({
   useEffect(() => {
     if (previousPremixId.current !== selectedPremix?.id) {
       previousPremixId.current = selectedPremix?.id;
-      // A supplier quote for one SKU is never carried over to another.
-      setFixedPremixPricePerKg("");
+      // A manually entered price for one SKU is never carried over to another.
+      setFixedPremixPricePerKg(
+        selectedPremix ? defaultPriceInput(selectedPremix.id, ingredients) : "",
+      );
       setResult(null);
     }
   }, [selectedPremix?.id]);
@@ -526,7 +528,7 @@ export function FeedFormulationWorkbench({
           premixPricePerKg < 0 ||
           fixedPremixPricePerKg.trim() === ""
         ) {
-          throw new Error("Enter a supplier-quoted price per kg for the selected commercial premix.");
+          throw new Error("Enter a price per kg for the selected commercial premix.");
         }
         requestIngredients.push({
           ingredientId: selectedPremix.id,
@@ -549,7 +551,7 @@ export function FeedFormulationWorkbench({
           programmeId,
           phaseId,
           energySystem,
-          includeSupplementationTargets: false, // Unverified manufacturer spec: do not claim micronutrient coverage.
+          includeSupplementationTargets: false, // Premix nutrients are not credited against micronutrient targets.
           customPremixes: [],
           ingredients: requestIngredients,
         }),
@@ -811,8 +813,8 @@ export function FeedFormulationWorkbench({
             <DialogDescription className="max-w-3xl leading-6">
               {selectedPremix
                 ? selectedPremix.manufacturerRecipe
-                  ? "CJ S174 is a manufacturer-recipe-only premix. Use only the published maize, wheat bran, soybean meal and fish meal proportions until CJ approves another formula. Its nutrient profile remains UNVERIFIED."
-                  : "The specified commercial premix is included at its published dose (not a universal 10 kg/t). Its micronutrient contribution is UNVERIFIED; enter a real supplier quote."
+                  ? "CJ S174 is a manufacturer-recipe-only premix. Use only the published maize, wheat bran, soybean meal and fish meal proportions until CJ approves another formula."
+                  : "The specified commercial premix is included at its published dose (not a universal 10 kg/t). The Alibaba-based planning price remains editable."
                 : "No compatible commercial premix has been established for this programme. You can plan the basal ingredients only; this is NOT complete feed and must not be manufactured or fed as a finished recipe."}
             </DialogDescription>
           </DialogHeader>
@@ -853,10 +855,8 @@ export function FeedFormulationWorkbench({
                 <div className="font-medium text-ink">Required supplementation</div>
                 <div className="mt-1 leading-6 text-ink-muted">
                   {selectedPremix
-                    ? `${selectedPremix.name} is included at ${selectedPremix.inclusionKgPerTonne} kg/t (UNVERIFIED).`
-                    : "No commercially supported vitamin-mineral premix is assigned to this programme."}
-                  {" "}Vitamin and trace-mineral supplementation is NOT checked.
-                  This is not a complete feed formulation.
+                    ? `${selectedPremix.name} is included at ${selectedPremix.inclusionKgPerTonne} kg/t.`
+                    : "No commercially supported vitamin-mineral premix is assigned to this programme. This is not a complete feed formulation."}
                 </div>
               </div>
 
@@ -866,7 +866,7 @@ export function FeedFormulationWorkbench({
                   <strong className="text-ink">{baseMixBatchKg.toFixed(2)} kg</strong> basal feed
                   {selectedPremix ? (
                     <>{" + "}<strong className="text-ink">{fixedPremixBatchKg.toFixed(2)} kg</strong>
-                      {" "}unverified premix</>
+                      {" "}premix</>
                   ) : null}
                   {" = "}<strong className="text-ink">{displayBatchKg.toFixed(2)} kg</strong>
                   {" "}{selectedPremix ? "planned mix" : "basal mix only"}.
@@ -1056,8 +1056,7 @@ export function FeedFormulationWorkbench({
             <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 p-3 text-sm leading-6">
               <strong>{selectedPremix.sku}: manufacturer's prescribed ration only.</strong>{" "}
               The ingredient list and percentages below are locked to CJ's published recipe.
-              No independent least-cost substitutions are authorised. A matching recipe still
-              does not establish vitamin/mineral adequacy until its specifications are verified.{" "}
+              No independent least-cost substitutions are authorised.{" "}
               <a href={selectedPremix.specificationUrl} target="_blank" rel="noopener noreferrer" className="underline">
                 Manufacturer specification
               </a>
@@ -1297,9 +1296,6 @@ export function FeedFormulationWorkbench({
 
         {activeTab === "nutrition" && result?.status === "optimal" ? (
             <>
-              <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 px-4 py-3 text-sm">
-                Commercial premix UNVERIFIED. The displayed nutrients exclude vitamin and trace-mineral verification.
-              </div>
               <NutritionPanel result={result} selectedRecipeId={selectedRecipeId} />
             </>
           ) : null}
@@ -1345,7 +1341,7 @@ function ResultPanel({
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 p-4 text-sm leading-6">
-            <strong>Not nutritionally verified.</strong> {result.warning}{" "}
+            <strong>Manufacturer recipe.</strong> {result.warning}{" "}
             No GLPK optimisation was performed and no complete-feed pass is claimed.
           </div>
           <FormulaTable
@@ -1374,7 +1370,7 @@ function ResultPanel({
             </div>
           ) : null}
           <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 p-3 text-sm">
-            <strong>Manufacturer analysis unverified:</strong>{" "}
+            <strong>Commercial premix:</strong>{" "}
             {result.premix_analysis.message}
           </div>
           <Unsupported requirements={result.unsupported_requirements} />
@@ -1413,11 +1409,10 @@ function ResultPanel({
         </CardHeader>
         <CardContent className="space-y-5">
           <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 px-4 py-3 text-sm leading-6 text-ink">
-            <strong>{formulationBasis?.fixedPremix ? "Premix unverified:" : "Basal-only formulation:"}</strong>
+            <strong>{formulationBasis?.fixedPremix ? "Commercial premix:" : "Basal-only formulation:"}</strong>
             {formulationBasis?.fixedPremix
-              ? ` The selected ${commercialPremixById(formulationBasis.fixedPremix.id)?.manufacturer ?? "commercial"} product is included at its published dose, but vitamin and trace-mineral concentrations have not been verified against a supplier COA.`
-              : " No commercial premix was included. This recipe does not cover vitamin and trace-mineral supplementation."}
-            {" "}Only basal nutrient constraints were checked. Do not manufacture or feed without qualified nutritionist review.
+              ? ` The selected ${commercialPremixById(formulationBasis.fixedPremix.id)?.manufacturer ?? "commercial"} product is included at its published dose.`
+              : " No commercial premix was included. This recipe does not cover vitamin and trace-mineral supplementation. Only basal nutrient constraints were checked. Do not manufacture or feed without qualified nutritionist review."}
           </div>
           <FormulationBasisPanel basis={formulationBasis} />
           {recipes.length > 1 ? (

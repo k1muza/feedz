@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { canAddStudioIngredient, selectStudioIngredient, studioPremixProblems, poolWithProgrammePremix } from "./studio-commercial-premix";
+import { canAddStudioIngredient, selectStudioIngredient, studioPremixProblems, poolWithProgrammePremix, poolWithPremixPrice, poolWithoutPremix } from "./studio-commercial-premix";
 
 test("Studio replaces premix by animal class without inheriting old SKU or price", () => {
   const grower = poolWithProgrammePremix({ "corn-yellow-dent": { role: "available" } }, "grow-finish-pig");
@@ -83,4 +83,34 @@ test("bad saved premix choices stop in Studio before reaching HTTP 400", () => {
   assert.deepEqual(studioPremixProblems(right, "grow-finish-pig"), []);
   right["sustar-glypro-x912"].role = "available";
   assert.ok(studioPremixProblems(right, "grow-finish-pig").some((reason) => /fixed/.test(reason)));
+});
+
+test("a premix quote typed in Studio is kept at the manufacturer dose", () => {
+  const pool = poolWithProgrammePremix({ "corn-yellow-dent": { role: "available" } }, "grow-finish-pig");
+  const priced = poolWithPremixPrice(pool, "sustar-glypro-x912", "grow-finish-pig", 450);
+  assert.equal(priced["sustar-glypro-x912"].price, 450);
+  assert.equal(priced["sustar-glypro-x912"].fixed, 0.2);
+  assert.equal(poolWithPremixPrice(priced, "sustar-glypro-x912", "grow-finish-pig")["sustar-glypro-x912"].price, undefined);
+  assert.deepEqual(studioPremixProblems(priced, "grow-finish-pig"), []);
+});
+
+test("pricing an ineligible premix does not add the programme default beside it", () => {
+  const legacy = { "sustar-glypro-x812": { role: "fixed" as const, fixed: 0.1 }, "corn-yellow-dent": { role: "available" as const } };
+  const priced = poolWithPremixPrice(legacy, "sustar-glypro-x812", "grow-finish-pig", 900);
+  assert.equal(priced["sustar-glypro-x812"].price, 900);
+  assert.equal(priced["sustar-glypro-x912"], undefined);
+  assert.ok(studioPremixProblems(priced, "grow-finish-pig").some((reason) => /not suitable/.test(reason)));
+});
+
+test("removing or unticking CJ S174 unlocks its recipe ingredients", () => {
+  const boar = poolWithProgrammePremix({}, "mature-boar");
+  for (const pool of [poolWithoutPremix(boar, "cj-s174-boar-premix"), poolWithoutPremix(boar, "cj-s174-boar-premix", true)]) {
+    assert.ok(Object.entries(pool).every(([id, row]) => id === "cj-s174-boar-premix" || row.role === "available"), JSON.stringify(pool));
+    assert.equal(pool["limestone-ground"]?.role, "available");
+  }
+  assert.equal(poolWithoutPremix(boar, "cj-s174-boar-premix")["cj-s174-boar-premix"], undefined);
+  const unticked = poolWithoutPremix(boar, "cj-s174-boar-premix", true)["cj-s174-boar-premix"];
+  assert.equal(unticked.role, "excluded");
+  assert.equal(unticked.was, "fixed");
+  assert.equal(canAddStudioIngredient("soybean-meal-solvent-extracted", "mature-boar", poolWithoutPremix(boar, "cj-s174-boar-premix")), true);
 });

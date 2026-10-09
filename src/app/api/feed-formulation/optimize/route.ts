@@ -127,7 +127,7 @@ export async function POST(request: Request) {
       throw new Error("Do not override manufacturer products with user-supplied nutrient profiles.");
     }
     // User-provided analyses remain separate from manufacturer-identified
-    // products, whose unverified nutrients cannot satisfy requirements.
+    // products, whose nutrients are not credited against requirements.
     const library = ingredientLibraryWithCommercialPremixes(
       selectedCommercial,
       ingredientLibraryWithCustomPremixes(customPremixes, ingredientLibraryForPhase(phase)),
@@ -157,9 +157,6 @@ export async function POST(request: Request) {
     return NextResponse.json({
       ...result,
       premix_analysis: premixAnalysisForIds(ingredients.map((row) => row.ingredientId)),
-      ...(selectedCommercial.length > 0 ? {
-        premixWarning: "Commercial premix is unverified. Vitamin and trace-mineral requirements have NOT been checked; this is not a validated complete feed.",
-      } : {}),
     });
   } catch (error) {
     return NextResponse.json(

@@ -13,7 +13,7 @@ import {
 } from "./commercial-premixes";
 
 describe("Manufacturer-backed commercial premix catalogue", () => {
-  test("all entries are identifiable and unverified, with no invented prices", () => {
+  test("all entries are identifiable and unverified, with no fabricated supplier quotes", () => {
     assert.equal(COMMERCIAL_PREMIXES.length, 6);
     assert.equal(new Set(COMMERCIAL_PREMIXES.map((product) => product.id)).size, COMMERCIAL_PREMIXES.length);
     for (const product of COMMERCIAL_PREMIXES) {

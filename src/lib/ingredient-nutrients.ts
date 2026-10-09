@@ -388,7 +388,7 @@ export function ingredientLibraryWithCustomPremixes(
         verificationStatus: "user_supplied_unverified",
         profileBasis: "as-fed",
         notes: [
-          "User-provided nutrient values; original datasheet not supplied or independently verified. Never treat this as a published nutrient profile.",
+          "User-provided nutrient values; original datasheet not supplied. Never treat this as a published nutrient profile.",
         ],
       },
       nutrition: library.species === "swine" ? { swine: profile } : { poultry: profile },
@@ -440,7 +440,6 @@ export function ingredientLibraryWithCommercialPremixes(
             url: product.specificationUrl,
             priority: "supplier",
             basis: "as-fed",
-            note: "Supplier marketing/guarantee material, not a verified batch COA or complete as-fed nutrient profile.",
           },
           verificationStatus: product.verificationStatus === "unverified" ? "manufacturer_unverified" : "manufacturer_verified",
           profileBasis: "as-fed",
@@ -470,16 +469,15 @@ export function ingredientLibraryWithCommercialPremixes(
             ),
           },
           notes: [
-            "Real manufacturer SKU; vitamin/trace-mineral sufficiency remains unverified.",
             ...(product.verifiedAsFedAminoAcids ? [
               `Exact manufacturer as-fed amino-acid values only: ${product.verifiedAsFedAminoAcids.reference}. Total and SID are separate; incomplete fields are not inferred.`,
-            ] : ["No verified digestible amino-acid matrix. Manufacturer minimum total-AA label guarantees are not SID values."]),
+            ] : ["No digestible amino-acid matrix published. Manufacturer minimum total-AA label guarantees are not SID values."]),
             `Manufacturer: ${product.manufacturer}; model: ${product.sku}; reference: ${product.specificationUrl}`,
           ],
         },
         constraints: {
           ...record.constraints,
-          notes: [`Commercial premix inclusion fixed at ${product.inclusionPct}%. Verification: unverified.`],
+          notes: [`Commercial premix inclusion fixed at ${product.inclusionPct}%.`],
         },
       };
     }),

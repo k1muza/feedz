@@ -22,7 +22,6 @@ describe("CJ S174 prescribed recipe verification limits", () => {
     };
     const result = assessManufacturerRecipe(premix, recipe, phase, "ME", library);
     assert.equal(result.status, "manufacturer_recipe");
-    assert.equal(result.verification, "unverified");
     assert.deepEqual(result.recipe.ingredients, recipe.ingredients);
     assert.ok(result.incompleteRequirements.some((row) =>
       row.missingIngredientIds.includes("fish-meal-54")), "Missing fish-meal fibre must remain unknown");
@@ -34,7 +33,7 @@ describe("CJ S174 prescribed recipe verification limits", () => {
     assert.ok(!result.unsupportedRequirements.includes("vitamin-trace-mineral-supplementation"),
       "Supplier analysis gap must not masquerade as missing Brazilian Tables supplementation targets");
     const report = buildManufacturerRecipeReport(premix, phase, "ME", library);
-    assert.equal(report.premix_analysis.reason, "manufacturer_nutrient_analysis_incomplete");
+    assert.equal(report.premix_analysis.reason, "commercial_premix_selected");
     assert.ok(report.incomplete_requirements.some((row) => row.missing_data_for.includes(premix.id)));
     assert.ok(!("incompleteRequirements" in report), "No duplicate camelCase requirement arrays");
     assert.ok(!("checkedShortfalls" in report), "No duplicate camelCase shortfall arrays");

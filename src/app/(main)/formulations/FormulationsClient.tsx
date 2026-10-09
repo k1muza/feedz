@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useMemo, useState } from 'react';
 
 import { analyzeDiet, type AnalyzedNutrient, type DietFormula } from '@/lib/diet-formula';
-import { ingredientDefaultPricePerKg, type IngredientDefaultPrice } from '@/lib/feed-ingredient-prices';
+import { ingredientDefaultPrice, ingredientDefaultPricePerKg, type IngredientDefaultPrice } from '@/lib/feed-ingredient-prices';
 import type { IngredientPackSize } from '@/lib/ingredient-pack-sizes';
 import type { FormulationAlternativeKind, FormulationIngredientSuggestionResult, LeastCostFormulationResult } from '@/lib/feed-optimizer';
 import { feedProgrammeById, feedProgrammePhaseById } from '@/lib/feed-programmes';
@@ -75,7 +75,15 @@ export default function FormulationsClient({ ingredientPrices, ingredientPackSiz
   const selectedPremix = premixChoices.find((product) => product.id === premixByProgramme[programmeId])
     ?? commercialPremixForProgramme(programmeId);
   const [premixPrices, setPremixPrices] = useState<Record<string, string>>({});
-  const premixPriceInput = selectedPremix ? (premixPrices[selectedPremix.id] ?? '') : '';
+  const premixDefaultPriceRecord = selectedPremix
+    ? ingredientDefaultPrice(selectedPremix.id, ingredientPrices)
+    : undefined;
+  const premixDefaultPrice = selectedPremix
+    ? ingredientDefaultPricePerKg(selectedPremix.id, ingredientPrices)
+    : undefined;
+  const premixPriceInput = selectedPremix
+    ? (premixPrices[selectedPremix.id] ?? premixDefaultPrice?.toFixed(2) ?? '')
+    : '';
   const premixPrice = premixPriceInput.trim() ? Number(premixPriceInput) : undefined;
   const manufacturerOnly = Boolean(selectedPremix?.manufacturerRecipe);
   const selectedPhase = selectedProgramme.programme.phases.find((phase) => phase.id === phaseId) ?? selectedProgramme.programme.phases[0];
@@ -341,8 +349,8 @@ export default function FormulationsClient({ ingredientPrices, ingredientPackSiz
       setExtraInclusions(Object.fromEntries(extraIds.map((id) => [id, amounts.get(id) ?? 0])));
       setDownloadableFormulation({ formula: chosen.formula, priority: alternative?.id ?? 'least-cost' });
       setFormulationNote((costIncomplete ? "Cost estimate EXCLUDES unquoted premix; total feed cost is unknown. " : "") + (alternative
-        ? `${alternative.label} applied · ${alternative.costIncreasePct.toFixed(2)}% above least cost. Premix micronutrients unverified.`
-        : 'Basal nutrient optimisation completed. Commercial premix micronutrients remain UNVERIFIED; this is not certified complete feed.'));
+        ? `${alternative.label} applied · ${alternative.costIncreasePct.toFixed(2)}% above least cost.`
+        : 'Nutrient optimisation completed.'));
     } catch (error) {
       setBalanceError(error instanceof Error ? error.message : String(error));
     } finally {
@@ -357,9 +365,8 @@ export default function FormulationsClient({ ingredientPrices, ingredientPackSiz
     const labels = new Map(INGREDIENT_LIBRARY.ingredients.map((item) => [item.id, item.name]));
     const csv = [
       cell(['FeedSport public formulation', selectedProgramme.label, selectedPhase?.label ?? '']),
-      cell(['Commercial premix', selectedPremix.name, 'UNVERIFIED']),
+      cell(['Commercial premix', selectedPremix.name]),
       cell(['Manufacturer reference', selectedPremix.specificationUrl]),
-      cell(['Important', 'Micronutrient coverage not verified; NOT certified as complete feed']),
       ...(manufacturerOnly ? [cell(['Restriction', 'Fixed manufacturer recipe. No substitutions permitted.'])] : []),
       cell(['Ingredient', 'ID', 'Inclusion %', 'Kilograms per tonne']),
       ...downloadableFormulation.formula.ingredients.map((row) => cell([
@@ -382,7 +389,7 @@ export default function FormulationsClient({ ingredientPrices, ingredientPackSiz
       <p className="fs-mono mb-2.5 mt-0 text-[12px] uppercase tracking-[.08em] text-[#4f524b]">Formulation</p>
       <div className="mb-7 flex max-w-[760px] flex-col gap-3">
         <h1 className="fs-page-title">Will this mix meet the animal&apos;s needs?</h1>
-        <p className="m-0 text-[17px] leading-[1.5] text-[#3d403a]">Choose an animal and phase to compare the mix with published requirements. A real commercial premix is selected at its manufacturer-published inclusion rate; vitamin and trace-mineral adequacy remains unverified.</p>
+        <p className="m-0 text-[17px] leading-[1.5] text-[#3d403a]">Choose an animal and phase to compare the mix with published requirements. A real commercial premix is selected at its manufacturer-published inclusion rate.</p>
       </div>
 
       <section className="mb-5 rounded-[6px] border border-[#d9d4c7] bg-[#fbfaf6] p-5">
@@ -395,55 +402,71 @@ export default function FormulationsClient({ ingredientPrices, ingredientPackSiz
           <label className="flex flex-col gap-2"><span className="text-[13px] font-semibold text-[#4f524b]">Feeding phase</span><select value={selectedPhase?.id ?? ''} onChange={(event) => changePhase(event.target.value)} className="h-12 rounded-[4px] border border-[#bdb7a9] bg-white px-3 text-[15px] font-semibold text-[#191b18]">{selectedProgramme.programme.phases.map((phase) => <option key={phase.id} value={phase.id}>{phase.label.charAt(0).toUpperCase() + phase.label.slice(1)}</option>)}</select></label>
           <label className="flex flex-col gap-2"><span className="text-[13px] font-semibold text-[#4f524b]">Formulation priority</span><select value={formulationPriority} onChange={(event) => { setFormulationPriority(event.target.value as FormulationPriority); setFormulationNote(null); setDownloadableFormulation(null); }} className="h-12 rounded-[4px] border border-[#bdb7a9] bg-white px-3 text-[15px] font-semibold text-[#191b18]">{priorityChoices.map((priority) => <option key={priority.id} value={priority.id}>{priority.label}</option>)}</select></label>
         </div>
-        {selectedPremix ? (
-          <div className="mt-4 grid gap-3 rounded-[4px] border border-[#dccda5] bg-[#fff9ec] p-4 md:grid-cols-[minmax(0,1fr)_190px]">
-            <div>
-              <p className="mb-1 mt-0 text-[12px] font-bold uppercase tracking-wide text-[#78591e]">Commercial premix · Unverified</p>
-              <label className="my-2 flex flex-col gap-1 text-[13px] font-semibold text-[#191b18]">
-                Premix ingredient for this animal
-                <select value={selectedPremix.id} onChange={(event) => changePremix(event.target.value)}
-                  className="h-10 rounded-[4px] border border-[#bdb7a9] bg-white px-3 text-[14px] font-medium">
-                  {premixChoices.map((product) => (
-                    <option key={product.id} value={product.id}>{product.name} · {product.inclusionKgPerTonne} kg/t</option>
+        <details className="mt-4">
+          <summary className="inline cursor-pointer list-none text-[13px] font-semibold text-[#191b18] underline underline-offset-4 [&::-webkit-details-marker]:hidden">
+            Additional Information
+          </summary>
+          <div className="mt-3">
+            {selectedPremix ? (
+              <div className="grid gap-3 rounded-[4px] border border-[#dccda5] bg-[#fff9ec] p-4 md:grid-cols-[minmax(0,1fr)_210px]">
+                <p className="m-0 text-[12px] font-bold uppercase tracking-wide text-[#78591e] md:col-span-2">Commercial premix</p>
+                <div>
+                  <label className="flex flex-col gap-2 text-[13px] font-semibold text-[#191b18]">
+                    Premix ingredient for this animal
+                    <select value={selectedPremix.id} onChange={(event) => changePremix(event.target.value)}
+                      className="h-11 rounded-[4px] border border-[#bdb7a9] bg-white px-3 text-[14px] font-medium">
+                      {premixChoices.map((product) => (
+                        <option key={product.id} value={product.id}>{product.name} · {product.inclusionKgPerTonne} kg/t</option>
+                      ))}
+                    </select>
+                  </label>
+                  <p className="my-1 text-[13px] text-[#4f524b]">
+                    Published inclusion: {selectedPremix.inclusionKgPerTonne} kg/t ({selectedPremix.inclusionPct}%). {selectedPremix.application}.
+                  </p>
+                  {publishedPremixAminoAcids(selectedPremix).map((claim) => (
+                    <p key={claim.name} className="my-1 text-[13px] text-[#6d4b12]">
+                      Manufacturer amino-acid guarantee: {claim.name} total
+                      {claim.minimumPct !== null ? ` ≥${claim.minimumPct}%` : ""} in premix.
+                      At this supplier-published inclusion rate, its conditional minimum contribution to finished feed is
+                      {" "}{publishedMinimumTotalAminoAcidsInFeed(selectedPremix).find((item) => item.name === claim.name)?.minTotalFeedPct ?? 0}%
+                      total {claim.name.toLowerCase()}. Confirm the supplier SKU and guarantee; this is not SID and is not credited to SID requirements.
+                    </p>
                   ))}
-                </select>
-              </label>
-              <p className="my-1 text-[13px] text-[#4f524b]">
-                Published inclusion: {selectedPremix.inclusionKgPerTonne} kg/t ({selectedPremix.inclusionPct}%). {selectedPremix.application}.
-              </p>
-              {publishedPremixAminoAcids(selectedPremix).map((claim) => (
-                <p key={claim.name} className="my-1 text-[13px] text-[#6d4b12]">
-                  Manufacturer amino-acid guarantee: {claim.name} total
-                  {claim.minimumPct !== null ? ` ≥${claim.minimumPct}%` : ""} in premix.
-                  At this supplier-published inclusion rate, its conditional minimum contribution to finished feed is
-                  {" "}{publishedMinimumTotalAminoAcidsInFeed(selectedPremix).find((item) => item.name === claim.name)?.minTotalFeedPct ?? 0}%
-                  total {claim.name.toLowerCase()}. Confirm the supplier SKU and guarantee; this is not SID and is not credited to SID requirements.
-                </p>
-              ))}
-              {selectedPremix.manufacturerRecipe ? (
-                <p className="my-1 text-[13px] font-semibold text-[#84511a]">
-                  Fixed manufacturer recipe: published ingredient proportions are locked. No substitutions.
-                </p>
-              ) : null}
-              <a className="text-[13px] font-semibold underline" href={selectedPremix.specificationUrl}
-                target="_blank" rel="noopener noreferrer">Manufacturer specification</a>
-            </div>
-            <label className="flex flex-col gap-2 text-[13px] font-semibold">
-              Supplier quote (USD/kg)
-              <input type="number" min="0" step="0.01" inputMode="decimal"
-                placeholder="Price per kg" value={premixPriceInput}
-                onChange={(event) => {
-                  setPremixPrices((current) => ({ ...current, [selectedPremix.id]: event.target.value }));
-                  setDownloadableFormulation(null);
-                  setFormulationNote(null);
-                }}
-                className="h-11 w-full rounded-[4px] border border-[#bdb7a9] bg-white px-3 text-[14px] font-semibold"
-              />
-              <small className="font-normal leading-5 text-[#6d4b12]">We do not assume a price. Preview and request a quote without one.</small>
-            </label>
+                  {selectedPremix.manufacturerRecipe ? (
+                    <p className="my-1 text-[13px] font-semibold text-[#84511a]">
+                      Fixed manufacturer recipe: published ingredient proportions are locked. No substitutions.
+                    </p>
+                  ) : null}
+                  <a className="text-[13px] font-semibold underline" href={selectedPremix.specificationUrl}
+                    target="_blank" rel="noopener noreferrer">Manufacturer specification</a>
+                </div>
+                <label className="flex flex-col gap-2 text-[13px] font-semibold">
+                  Premix price (USD/kg)
+                  <input type="number" min="0" step="0.01" inputMode="decimal"
+                    placeholder="Price per kg" value={premixPriceInput}
+                    onChange={(event) => {
+                      setPremixPrices((current) => ({ ...current, [selectedPremix.id]: event.target.value }));
+                      setDownloadableFormulation(null);
+                      setFormulationNote(null);
+                    }}
+                    className="h-11 w-full rounded-[4px] border border-[#bdb7a9] bg-white px-3 text-[14px] font-semibold"
+                  />
+                  <small className="font-normal leading-5 text-[#6d4b12]">
+                    {premixDefaultPriceRecord?.planningMultiplier === 2 && premixDefaultPrice !== undefined ? (
+                      <>
+                        <a className="font-semibold underline" href={premixDefaultPriceRecord.sourceUrl}
+                          target="_blank" rel="noopener noreferrer">Alibaba midpoint</a>
+                        {` $${(premixDefaultPriceRecord.usdPerTonne / 1000).toFixed(2)}/kg × 2 = $${premixDefaultPrice.toFixed(2)}/kg planning default. `}
+                        Replace it with your supplier quote when available.
+                      </>
+                    ) : 'Planning default. Replace it with your supplier quote when available.'}
+                  </small>
+                </label>
+              </div>
+            ) : null}
+            <p className="mb-0 mt-3 text-[13px] leading-5 text-[#4f524b]">{selectedProgramme.programme.description} {selectedPhase ? `Source: Table ${selectedPhase.sourceTable}${selectedPhase.periodLabel ? ` · ${selectedPhase.periodLabel}` : ''}.` : ''} <b className="text-[#191b18]">Priority:</b> {selectedPriority.description}</p>
           </div>
-        ) : null}
-        <p className="mb-0 mt-3 text-[13px] leading-5 text-[#4f524b]">{selectedProgramme.programme.description} {selectedPhase ? `Source: Table ${selectedPhase.sourceTable}${selectedPhase.periodLabel ? ` · ${selectedPhase.periodLabel}` : ''}.` : ''} <b className="text-[#191b18]">Priority:</b> {selectedPriority.description}</p>
+        </details>
       </section>
 
       <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,440px),1fr))] items-start gap-5">
@@ -451,7 +474,7 @@ export default function FormulationsClient({ ingredientPrices, ingredientPackSiz
           <div className="flex items-center justify-between gap-3 border-b border-[#191b18] px-5 py-4"><div><p className="fs-label m-0 text-[#4f524b]">Step 2 · Enter the mix</p><h2 className="mb-0 mt-1 text-[19px] font-bold">Ingredients</h2></div><span className={`rounded-[3px] px-2.5 py-1 text-[13px] font-bold tabular-nums ${totalIsValid ? 'bg-[#e3eadf] text-[#1f5c38]' : 'bg-[#f6e0d9] text-[#8f3420]'}`}>Total {total.toFixed(1)}%</span></div>
           {visibleRows.map((row) => <div key={row.id} className="grid grid-cols-[minmax(110px,1fr)_minmax(100px,2fr)_64px] items-center gap-3.5 border-b border-[#ece8de] px-5 py-3"><span className="text-[15px] font-semibold">{row.name}</span><input disabled={manufacturerOnly} type="range" min="0" max={row.max} step={row.step} value={inclusions[row.id]} aria-label={`${row.name} inclusion`} onChange={(event) => { setInclusions((current) => ({ ...current, [row.id]: Number(event.target.value) })); markFormulaEdited(); }} className="w-full"/><span className="text-right text-[16px] font-semibold tabular-nums">{inclusions[row.id] < 1 && inclusions[row.id] > 0 ? inclusions[row.id].toFixed(2) : inclusions[row.id].toFixed(1)}%</span></div>)}
           {extraVisibleIngredientIds.map((ingredientId) => { const ingredient = ingredientByEngineId.get(ingredientId); const value = extraInclusions[ingredientId] ?? 0; return <div key={ingredientId} className="grid grid-cols-[minmax(110px,1fr)_minmax(100px,2fr)_64px] items-center gap-3.5 border-b border-[#ece8de] px-5 py-3"><span className="text-[15px] font-semibold">{ingredient?.name ?? ingredientId}</span><input disabled={manufacturerOnly} type="range" min="0" max={ingredient?.constraints.maxInclusionPct ?? 100} step="0.01" value={value} aria-label={`${ingredient?.name ?? ingredientId} inclusion`} onChange={(event) => { setExtraInclusions((current) => ({ ...current, [ingredientId]: Number(event.target.value) })); markFormulaEdited(); }} className="w-full"/><span className="text-right text-[16px] font-semibold tabular-nums">{value < 1 && value > 0 ? value.toFixed(2) : value.toFixed(1)}%</span></div>; })}
-          <div className="grid grid-cols-[minmax(110px,1fr)_minmax(100px,2fr)_64px] items-center gap-3.5 px-5 py-3"><span className="text-[15px] font-semibold">{selectedPremix?.name ?? 'No premix selected'}</span><span className="text-[13px] text-[#4f524b]">Manufacturer dose · {selectedPremix?.inclusionKgPerTonne ?? '—'} kg/tonne · UNVERIFIED</span><span className="text-right text-[16px] font-semibold tabular-nums">{(selectedPremix?.inclusionPct ?? 0).toFixed(2)}%</span></div>
+          <div className="grid grid-cols-[minmax(110px,1fr)_minmax(100px,2fr)_64px] items-center gap-3.5 px-5 py-3"><span className="text-[15px] font-semibold">{selectedPremix?.name ?? 'No premix selected'}</span><span className="text-[13px] text-[#4f524b]">Manufacturer dose · {selectedPremix?.inclusionKgPerTonne ?? '—'} kg/tonne</span><span className="text-right text-[16px] font-semibold tabular-nums">{(selectedPremix?.inclusionPct ?? 0).toFixed(2)}%</span></div>
           {!totalIsValid ? <div className="border-t border-[#ece8de] bg-[#fff8eb] px-5 py-3 text-[13px] leading-5 text-[#6d4b12]"><b>{Math.abs(balanceAmount).toFixed(1)}% {balanceAmount > 0 ? 'still unallocated' : 'over 100%'}.</b> The preview is normalized for comparison. “Optimize this recipe” will calculate a new 100% formula for this phase.</div> : null}
           {balanceError ? <div className="border-t border-[#ece8de] bg-[#f6e0d9] px-5 py-3 text-[13px] leading-5 text-[#8f3420]">{balanceError}</div> : null}
           
@@ -464,7 +487,7 @@ export default function FormulationsClient({ ingredientPrices, ingredientPackSiz
           <div className="mb-2 mt-4 flex h-7 overflow-hidden rounded-[3px]">{mix.map((item) => <div key={item.name} title={item.name} style={{ width: `${item.value / mixTotal * 100}%`, background: item.colour }}/>)}</div>
           <div className="mb-1 flex flex-wrap gap-x-3.5 gap-y-1 text-[12px] text-[#4f524b]">{mix.map((item) => <span key={item.name} className="inline-flex items-center gap-1.5"><i className="h-2 w-2 rounded-[2px]" style={{ background: item.colour }}/>{item.name}</span>)}</div>
           {analysis.map((item) => <div key={item.id} className="grid gap-2 border-b border-[#ece8de] py-3.5"><div className="flex items-baseline justify-between gap-3"><span className="text-[15px] font-semibold">{item.label}</span><span className="flex items-baseline gap-2.5"><span className="text-[22px] font-semibold tabular-nums">{item.value}<small className="ml-1 text-[12px] font-normal text-[#4f524b]">{item.unit}</small></span><span className={`min-w-14 rounded-[3px] px-2 py-[3px] text-center text-[12px] font-bold ${item.status === 'Meets' ? 'bg-[#e3eadf] text-[#1f5c38]' : item.status === 'Below' ? 'bg-[#f6e0d9] text-[#8f3420]' : 'bg-[#f5e7cc] text-[#7a5414]'}`}>{item.status}</span></span></div><div className="relative h-2 rounded-[4px] bg-[#e7e2d6]"><i className="absolute inset-y-0 rounded-[2px] bg-[#b9cdb5]" style={{ left: `${item.bandStart}%`, width: `${item.bandWidth}%` }}/><i className={`absolute -bottom-1 -top-1 w-1 -translate-x-1/2 rounded-[2px] ${item.status === 'Meets' ? 'bg-[#2e7d4f]' : item.status === 'Below' ? 'bg-[#b5452c]' : 'bg-[#b7791f]'}`} style={{ left: `${item.marker}%` }}/></div><div className="fs-mono flex justify-between gap-3 text-[11px] text-[#4f524b]"><span>Target {item.range} {item.unit}</span><span>{item.delta}</span></div></div>)}
-          <div className="mt-4 rounded-[4px] bg-[#f3f0e8] p-3 text-[12px] leading-5 text-[#4f524b]"><b className="text-[#191b18]">What this check covers:</b> energy, protein, two key SID amino-acid measures, calcium and available phosphorus. The selected named premix uses its published dose, but its vitamins and trace minerals are NOT VERIFIED. Even if basal nutrient targets are met, this does not establish complete-feed adequacy.</div>
+          <div className="mt-4 rounded-[4px] bg-[#f3f0e8] p-3 text-[12px] leading-5 text-[#4f524b]"><b className="text-[#191b18]">What this check covers:</b> energy, protein, two key SID amino-acid measures, calcium and available phosphorus. The selected named premix uses its published dose.</div>
           <p className="fs-mono mb-0 mt-3.5 text-[11px] leading-[1.6] text-[#4f524b]">Calculated with the same source-backed ingredient matrix and phase requirements as FeedSport&apos;s formulation engine.</p>
         </section>
       </div>

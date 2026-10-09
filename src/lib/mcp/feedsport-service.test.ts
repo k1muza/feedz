@@ -13,10 +13,10 @@ const programme_id = "nursery-pig:br2024-5-32-35-49d-8.4-17.9kg";
 describe("MCP nutrition profile provenance", () => {
   it("identifies Brazilian Tables ingredient profiles and manufacturer premixes separately", () => {
     const maize = getIngredient("corn-yellow-dent", context);
-    assert.equal(maize.nutrition_profile_source.verificationStatus, "published_reference");
+    assert.equal((maize.nutrition_profile_source as { verificationStatus?: string }).verificationStatus, "published_reference");
     assert.ok(maize.nutrition_profile_source.source?.url);
     const commercial = getIngredient("sustar-glypro-x912", context);
-    assert.equal(commercial.nutrition_profile_source.verificationStatus, "manufacturer_unverified");
+    assert.ok(!("verificationStatus" in commercial.nutrition_profile_source), "Premix verification is an admin concern, not reported");
     assert.ok(commercial.nutrition_profile_source.source?.url?.startsWith("https://"));
   });
 
@@ -26,7 +26,7 @@ describe("MCP nutrition profile provenance", () => {
       vitamins: {}, traceMineralsPpm: {},
     }], INGREDIENT_LIBRARY);
     const result = getIngredient("farmer-mix-123", context, undefined, library);
-    assert.equal(result.verification_status, "user_supplied_unverified");
+    assert.ok(!("verification_status" in result));
     assert.equal(result.source_url, null);
     assert.match(result.source, /user-provided/i);
   });
@@ -82,10 +82,10 @@ describe("FeedSport MCP automatic ingredient mode", () => {
     assert.notEqual(result.status, "missing_data", "Sustar's omitted basal-macro values must not block solving");
     assert.equal(result.status, "optimal");
     if (result.status === "optimal") {
-      assert.equal(result.premix_verification, "unverified");
-      assert.equal(result.premix_analysis.status, "unverified");
+      assert.ok(!("premix_verification" in result));
+      assert.equal(result.premix_analysis.status, "included");
       assert.equal(result.premix_analysis.product_id, "sustar-glypro-x911");
-      assert.equal(result.premix_analysis.reason, "manufacturer_nutrient_analysis_incomplete");
+      assert.equal(result.premix_analysis.reason, "commercial_premix_selected");
       assert.ok(result.unsupported_requirements.includes("vitamin-trace-mineral-supplementation"));
     }
   });
@@ -199,13 +199,13 @@ describe("CJ S174 manufacturer-only mature-boar workflow", () => {
     assert.deepEqual(result.ingredients.map((row) => [row.ingredient, row.percentage]),
       recipe.slice().sort((a,b) => b.percent - a.percent).map((row) => [row.ingredientId, row.percent]));
     assert.equal(result.cost_per_tonne, 376);
-    assert.equal(result.verification, "unverified");
-    assert.equal(result.premix_analysis.status, "unverified");
+    assert.ok(!("verification" in result));
+    assert.equal(result.premix_analysis.status, "included");
     assert.equal(result.premix_analysis.product_id, "cj-s174-boar-premix");
     assert.ok(result.incomplete_requirements.length > 0, "Premix macro-nutrient values are missing and must stay unknown.");
-    assert.equal(result.premix_analysis.reason, "manufacturer_nutrient_analysis_incomplete");
+    assert.equal(result.premix_analysis.reason, "commercial_premix_selected");
     assert.ok(!result.unsupported_requirements.includes("vitamin-trace-mineral-supplementation"),
-      "Do not confuse unverified CJ premix analysis with missing Brazilian phase guidance");
+      "Do not confuse the CJ premix with missing Brazilian phase guidance");
   });
 
   it("rejects a modified CJ recipe as a client input error with actionable mixing instructions", () => {
@@ -223,7 +223,7 @@ describe("CJ S174 manufacturer-only mature-boar workflow", () => {
       /Lock every ingredient to the manufacturer percentages/.test(error.message));
   });
 
-  it("analyses the published boar ratios as unverified instead of a false nutrient pass", () => {
+  it("analyses the published boar ratios as a manufacturer recipe instead of a false nutrient pass", () => {
     const result = analyseFormulation({
       programme_id: request.programme_id,
       recipe: recipe.map((item) => ({ ingredient: item.ingredientId, percentage: item.percent })),
@@ -231,19 +231,19 @@ describe("CJ S174 manufacturer-only mature-boar workflow", () => {
         [item.ingredientId, item.ingredientId === product.id ? 2200 : 300])),
     }, context);
     assert.equal(result.status, "manufacturer_recipe");
-    if (result.status !== "manufacturer_recipe") throw new Error("Expected unverified CJ manufacturer recipe");
+    if (result.status !== "manufacturer_recipe") throw new Error("Expected CJ manufacturer recipe");
     assert.equal(result.passes, false);
     assert.ok(result.incomplete_requirements.length > 0);
   });
 
   it("keeps diagnose_infeasibility available as a read-only explanation without suggesting substitutions", async () => {
     const result = await diagnoseInfeasibilityTool(request, context);
-    assert.equal(result.status, "unverified");
-    if (result.status !== "unverified") throw new Error("Expected CJ diagnostic, not solver optimisation");
+    assert.equal(result.status, "manufacturer_recipe");
+    if (result.status !== "manufacturer_recipe") throw new Error("Expected CJ diagnostic, not solver optimisation");
     assert.ok(result.missing_data.length > 0);
     assert.deepEqual(result.fixes, []);
-    assert.equal(result.premix_analysis.reason, "manufacturer_nutrient_analysis_incomplete");
-    assert.ok(result.findings.some((finding) => finding.includes("cannot be verified")));
+    assert.equal(result.premix_analysis.reason, "commercial_premix_selected");
+    assert.ok(result.findings.some((finding) => finding.includes("cannot be checked")));
     assert.ok(result.missing_data.every((row) => typeof row.nutrient === "string" && !row.nutrient.includes("Pct")));
     assert.ok(result.checked_shortfalls.every((row) =>
       typeof row.nutrient === "string" && !row.nutrient.includes("Pct") &&
