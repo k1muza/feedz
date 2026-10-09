@@ -327,6 +327,8 @@ export type CustomPremixProfile = {
     totalPct?: Record<string, number>;
     sidPct?: Record<string, number>;
   };
+  /** Optional origin of user-provided analytical values; does not imply verification. */
+  source?: NutrientValueSource;
 };
 
 export function ingredientLibraryWithCustomPremixes(
@@ -359,6 +361,7 @@ export function ingredientLibraryWithCustomPremixes(
       category: "vitamin_mineral_premix",
       provenance: {
         nutrientSources: {},
+        ...(premix.source ? { source: nutrientSourceSchema.parse(premix.source) } : {}),
         verificationStatus: "user_supplied_unverified",
         profileBasis: "as-fed",
         notes: [
