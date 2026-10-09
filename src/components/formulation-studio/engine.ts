@@ -1,5 +1,5 @@
 import type { CatalogueIngredient } from "@/lib/studio-catalogue";
-import { commercialPremixById } from "@/lib/commercial-premixes";
+import { commercialPremixById, publishedPremixAminoAcids } from "@/lib/commercial-premixes";
 import { studioPremixProblems } from "@/lib/studio-commercial-premix";
 import type { IngredientListItem } from "@/lib/ingredient-lists";
 import type { StudioPhase, StudioProgramme, StudioProgrammeData } from "@/lib/studio-programmes";
@@ -320,10 +320,16 @@ export async function formulate(snap: Snapshot, ctx: EngineContext): Promise<For
   }
   const realPremix = active.map(commercialPremixById).find((product) => product !== undefined);
   if (realPremix) {
+    const guarantees = publishedPremixAminoAcids(realPremix);
+    const aminoNote = guarantees.length
+      ? " Published amino-acid guarantee: " + guarantees.map((g) =>
+          `${g.name} ${g.minimumPct === null ? "" : "≥ " + g.minimumPct + "%"} total in premix`,
+        ).join(", ") + ". Total amino-acid guarantees cannot be counted as SID without digestibility data."
+      : " This manufacturer has not published a verified SID amino-acid analysis for this SKU.";
     warns.push({
       id: realPremix.id,
       title: `${realPremix.name} — manufacturer analysis unverified`,
-      body: `Included at the supplier's published dose of ${realPremix.inclusionKgPerTonne} kg/tonne. Vitamin and trace-mineral adequacy is NOT verified; basal solver status does not certify a complete feed. ${realPremix.specificationUrl}`,
+      body: `Included at the supplier's published dose of ${realPremix.inclusionKgPerTonne} kg/tonne. Vitamin and trace-mineral adequacy is NOT verified; basal solver status does not certify a complete feed.${aminoNote} ${realPremix.specificationUrl}`,
     });
   } else {
     warns.push({ title: "No commercial premix selected", body: "Basal nutrient formulation alone does not validate vitamin and trace-mineral supplementation." });
