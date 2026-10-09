@@ -238,7 +238,30 @@ export type IngredientLibrary = Omit<IngredientLibrarySource, "ingredients"> & {
 export function loadIngredientLibrarySource(input: unknown): IngredientLibrarySource {
   const library = ingredientLibrarySourceSchema.parse(input);
   assertUniqueIds(library.ingredients, "FeedSport ingredient library");
-  return library;
+  // Expand the canonical database-level citation into each ingredient record.
+  // The checked-in JSON can retain one shared publication citation, but
+  // consumers of INGREDIENT_LIBRARY_SOURCE always receive fully attributed
+  // per-ingredient profiles and per-nutrient overrides.
+  const fallbackSource: NutrientValueSource = {
+    publisher: library.source.publisher,
+    title: library.source.title,
+    year: library.source.year,
+    url: library.source.url,
+    basis: library.basis.nutrientComposition,
+    priority: "primary",
+  };
+  return {
+    ...library,
+    ingredients: library.ingredients.map((ingredient) => ({
+      ...ingredient,
+      provenance: {
+        ...ingredient.provenance,
+        source: ingredient.provenance.source ?? fallbackSource,
+        verificationStatus: ingredient.provenance.verificationStatus ?? "published_reference",
+        profileBasis: ingredient.provenance.profileBasis ?? library.basis.nutrientComposition,
+      },
+    })),
+  };
 }
 
 export const INGREDIENT_LIBRARY_SOURCE = loadIngredientLibrarySource(ingredientLibraryJson);
