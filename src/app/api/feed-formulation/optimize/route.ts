@@ -9,10 +9,8 @@ import {
   ingredientLibraryForPhase,
   ingredientLibraryWithCustomPremixes,
 } from "@/lib/ingredient-nutrients";
-import {
-  PUBLIC_PREMIX_ID,
-  publicPremixProfileForPhase,
-} from "@/lib/public-feed-premix";
+import { commercialPremixById, commercialPremixCompatibleWithProgramme } from "@/lib/commercial-premixes";
+import { PUBLIC_PREMIX_ID } from "@/lib/public-feed-premix";
 
 const optionalNutrient = z.number().finite().nonnegative().optional();
 
@@ -95,12 +93,32 @@ export async function POST(request: Request) {
   }
 
   try {
-    const includesFeedSportPremix = ingredients.some(
-      (ingredient) => ingredient.ingredientId === PUBLIC_PREMIX_ID,
-    );
+    if (ingredients.some((ingredient) => ingredient.ingredientId === PUBLIC_PREMIX_ID)) {
+      throw new Error("The theoretical FeedSport premix has been retired. Select a real manufacturer product.");
+    }
+    const selectedCommercial = ingredients.flatMap((ingredient) => {
+      const premix = commercialPremixById(ingredient.ingredientId);
+      if (!premix) return [];
+      if (!commercialPremixCompatibleWithProgramme(premix, programmeId)) {
+        throw new Error(`${premix.name} is not assigned to this animal stage.`);
+      }
+      if (Math.abs((ingredient.minInclusionPct ?? -1) - premix.inclusionPct) > 1e-6 ||
+          Math.abs((ingredient.maxInclusionPct ?? -1) - premix.inclusionPct) > 1e-6) {
+        throw new Error(`${premix.name} must be included at its published ${premix.inclusionKgPerTonne} kg/t; changing its dose is not supported.`);
+      }
+      return [premix];
+    });
+    if (selectedCommercial.length > 1) throw new Error("Select only one commercial premix for a formulation.");
+    if (customPremixes.some((premix) => premix.id === PUBLIC_PREMIX_ID || commercialPremixById(premix.id))) {
+      throw new Error("Do not override manufacturer products with user-supplied nutrient profiles.");
+    }
+    // An unverified product is present as an inclusion-only ingredient. No
+    // synthetic nutrient values are generated from the programme targets.
     const premixes = [
-      ...customPremixes.filter((premix) => premix.id !== PUBLIC_PREMIX_ID),
-      ...(includesFeedSportPremix ? [publicPremixProfileForPhase(phase)] : []),
+      ...customPremixes,
+      ...selectedCommercial.map((premix) => ({
+        id: premix.id, name: premix.name, vitamins: {}, traceMineralsPpm: {},
+      })),
     ];
     const library = ingredientLibraryWithCustomPremixes(
       premixes,
@@ -112,13 +130,20 @@ export async function POST(request: Request) {
       ingredients,
       library,
       {
-        includeSupplementationTargets:
-          includeSupplementationTargets || includesFeedSportPremix,
+        includeSupplementationTargets: selectedCommercial.length > 0
+          ? false
+          : includeSupplementationTargets,
         traceMineralBasis,
       },
     );
 
-    return NextResponse.json(result);
+    return NextResponse.json({
+      ...result,
+      premixVerification: selectedCommercial.length > 0 ? "unverified" : "not_applicable",
+      ...(selectedCommercial.length > 0 ? {
+        premixWarning: "Commercial premix is unverified. Vitamin and trace-mineral requirements have NOT been checked; this is not a validated complete feed.",
+      } : {}),
+    });
   } catch (error) {
     return NextResponse.json(
       {
