@@ -582,8 +582,12 @@ export function getIngredient(
     missing_values_note:
       "Only published values are listed. Missing values are never assumed; FeedSport treats them as unknown.",
     ...(ingredient.constraints.notes.length > 0 ? { constraint_notes: ingredient.constraints.notes } : {}),
-    source: provenance.source?.title ?? library.source.title,
-    source_url: provenance.source?.url ?? library.source.url,
+    source: provenance.source?.title ??
+      (provenance.verificationStatus === "user_supplied_unverified"
+        ? "Unverified user-provided nutrient data; source not supplied"
+        : library.source.title),
+    source_url: provenance.source?.url ??
+      (provenance.verificationStatus === "user_supplied_unverified" ? null : library.source.url),
     verification_status: provenance.verificationStatus ?? "published_reference",
     source_table: provenance.sourceTable,
     source_page: provenance.sourcePage,
