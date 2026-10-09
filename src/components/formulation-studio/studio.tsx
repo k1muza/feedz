@@ -1,8 +1,9 @@
 "use client";
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type CSSProperties, type FormEvent, type KeyboardEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type CSSProperties, type FormEvent, type KeyboardEvent, type RefObject } from "react";
 
+import { saveContactInquiry } from "@/app/actions";
 import { useAuth } from "@/context/AuthContext";
 import type { IngredientList, IngredientListItemRuleInput } from "@/lib/ingredient-lists";
 import { createClient } from "@/lib/supabase/client";
@@ -33,6 +34,7 @@ import {
   type Snapshot,
   type Summary,
 } from "./engine";
+import { FEATURED } from "./featured";
 import { useFormulations } from "./use-formulations";
 import { MAX_LIST_LABEL, useMyLists, type MyLists } from "./use-my-lists";
 import { StudioView } from "./views";
@@ -254,7 +256,32 @@ interface State {
   listRename: string | null;
   /** Name being typed for a new list; null when not creating one. */
   listCreate: string | null;
+  /** Top bar search: query, results open, highlighted result. */
+  sq: string;
+  sOpen: boolean;
+  sIdx: number;
+  /** Account menu open. */
+  uOpen: boolean;
+  featFilter: "all" | Species;
+  /** "Talk to a nutritionist" request. */
+  cOpen: boolean;
+  cTopic: ContactTopic;
+  cPhone: string;
+  cMsg: string;
+  cAttach: boolean;
+  cBusy: boolean;
+  cSent: boolean;
+  cErr: string;
 }
+
+type ContactTopic = "review" | "infeasible" | "ingredients" | "other";
+const CONTACT_TOPICS: [ContactTopic, string][] = [
+  ["review", "Review my formulation"],
+  ["infeasible", "I can’t get a valid recipe"],
+  ["ingredients", "Advice on ingredients or prices"],
+  ["other", "Something else"],
+];
+const SITE_PHONE = "263774684534";
 
 export interface StudioProps {
   /** Real ingredient catalogue, loaded on the server. */
@@ -562,7 +589,7 @@ function draftErr(d: Draft, fs: number) {
 }
 
 const INITIAL: State = {
-  w: 1400, screen: "home", step: 1, species: "swine", programmeId: DEFAULT_PROGRAMME, phaseId: "", setKey: "none", setupListId: null, pool: {}, goal: "least_cost", batch: 100, batchMode: "100", customBatch: "", unit: "t", docName: "Untitled formulation", docId: null, pendingDoc: null, pendingCmp: null, result: null, runSig: null, runSnap: null, running: false, runToken: 0, tab: "recipe", drawer: null, advisoriesOpen: false, addOpen: false, addQ: "", addPick: [], mode: "optimised", manual: {}, manualCheck: null, rulesOpen: false, history: [], sel: [], cmp: null, toast: null, dismissed: {}, savedSig: null, saving: false, exporting: false, suggestion: null, completionSuggestion: null, ingQ: "", catQ: "", catSel: null, catPage: 1, catPageSize: CAT_DEFAULT_PAGE_SIZE, progSel: null, progPhase: null, progAllLimits: false, addTarget: "pool", auth: null, authNext: null, af: { email: "", password: "", name: "", org: "", role: "farmer" }, aShow: false, aErr: {}, aBusy: false, aGoogleBusy: false, aSent: null, myListSel: null, listRename: null, listCreate: null,
+  w: 1400, screen: "home", step: 1, species: "swine", programmeId: DEFAULT_PROGRAMME, phaseId: "", setKey: "none", setupListId: null, pool: {}, goal: "least_cost", batch: 100, batchMode: "100", customBatch: "", unit: "t", docName: "Untitled formulation", docId: null, pendingDoc: null, pendingCmp: null, result: null, runSig: null, runSnap: null, running: false, runToken: 0, tab: "recipe", drawer: null, advisoriesOpen: false, addOpen: false, addQ: "", addPick: [], mode: "optimised", manual: {}, manualCheck: null, rulesOpen: false, history: [], sel: [], cmp: null, toast: null, dismissed: {}, savedSig: null, saving: false, exporting: false, suggestion: null, completionSuggestion: null, ingQ: "", catQ: "", catSel: null, catPage: 1, catPageSize: CAT_DEFAULT_PAGE_SIZE, progSel: null, progPhase: null, progAllLimits: false, addTarget: "pool", auth: null, authNext: null, af: { email: "", password: "", name: "", org: "", role: "farmer" }, aShow: false, aErr: {}, aBusy: false, aGoogleBusy: false, aSent: null, myListSel: null, listRename: null, listCreate: null, sq: "", sOpen: false, sIdx: 0, uOpen: false, featFilter: "all", cOpen: false, cTopic: "review", cPhone: "", cMsg: "", cAttach: true, cBusy: false, cSent: false, cErr: "",
 };
 
 const spinnerStyle = (track: string, head: string): CSSProperties => ({ width: 16, height: 16, borderRadius: "50%", border: "2px solid " + track, borderTopColor: head, display: "inline-block", animation: "fsspin .8s linear infinite", flex: "none" });
@@ -727,6 +754,33 @@ function useStudio({ catalogue, nutrients, programmes, showSolverDetails = false
     clearTimeout(toastTimer.current);
     toastTimer.current = setTimeout(() => update({ toast: null }), 3200);
   }, [S.toast, update]);
+
+  // "/" or Ctrl/Cmd+K jumps to the top bar search from anywhere; Escape closes the account menu.
+  const searchRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    const onKey = (e: globalThis.KeyboardEvent) => {
+      const t = e.target as HTMLElement | null;
+      const typing = !!t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.tagName === "SELECT" || t.isContentEditable);
+      if (((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") || (e.key === "/" && !typing)) {
+        if (!searchRef.current) return;
+        e.preventDefault();
+        searchRef.current.focus();
+        update({ sOpen: true, uOpen: false });
+      } else if (e.key === "Escape") update((s) => (s.uOpen ? { uOpen: false } : {}));
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [update]);
+
+  // Featured formulations are formulated once, the first time Home is shown,
+  // against the current programmes and planning prices.
+  const [featured, setFeatured] = useState<Record<string, FormulateResult> | null>(null);
+  const featuredStarted = useRef(false);
+  useEffect(() => {
+    if (!ready || !S.auth || S.screen !== "home" || featuredStarted.current) return;
+    featuredStarted.current = true;
+    void Promise.all(FEATURED.map((f) => formulate(f.snap, engine))).then((results) => setFeatured(Object.fromEntries(FEATURED.map((f, i) => [f.id, results[i]]))));
+  }, [ready, S.auth, S.screen, engine]);
 
   // Manual mode: the engine checks typed-in amounts a moment after typing stops.
   const manualSig = S.mode === "manual" ? manualRecipe(S, catalogueById).sig : "";
@@ -1122,11 +1176,19 @@ function useStudio({ catalogue, nutrients, programmes, showSolverDetails = false
     : [];
   const startGuided = () => update((s) => guidedStart(s, programmes));
   const user = S.auth;
+  // WhatsApp opens with a message that names the formulation in front of you, if any.
+  const inWs = S.screen === "workspace" && (S.result?.status === "optimal" || S.result?.status === "infeasible");
+  const about = inWs ? " for “" + S.docName + "” (" + P.name + " · " + PH.label + ")" : "";
+  const topic = CONTACT_TOPICS.find(([k]) => k === S.cTopic)![1].toLowerCase();
+  const waMsg = S.cOpen
+    ? "Hi FeedSport, I’d like a nutritionist’s help: " + topic + about + "." + (S.cMsg.trim() ? " " + S.cMsg.trim() : "")
+    : "Hi FeedSport, I’d like to talk to a nutritionist" + (inWs ? " about my formulation" + about : "") + ".";
   const shell = {
     wide, narrow, nav, refNav, startGuided, goHome: go("home"), signOut,
     userName: user ? titleCase(user.name) : "",
     userInitials: user ? titleCase(user.name).split(" ").map((w) => w[0]).join("").slice(0, 2) : "",
     userRole: user ? (ROLES.find((r) => r[0] === user.role) ?? ROLES[0])[1] : "",
+    waHref: "https://wa.me/" + SITE_PHONE + "?text=" + encodeURIComponent(waMsg),
   };
   if (!ready) return { ready: false as const, shell };
 
@@ -1597,6 +1659,27 @@ function useStudio({ catalogue, nutrients, programmes, showSolverDetails = false
     listRows, selText: S.sel.length + " of 2 selected", cmpDisabled: S.sel.length !== 2, cmpBg: S.sel.length === 2 ? "#e3aa45" : "#64665c", doCompare: () => S.sel.length === 2 && update({ screen: "compare", cmp: S.sel.slice() }), cmp,
     d, closeDrawer: () => update({ drawer: null }),
     hasToast: !!S.toast, toast: S.toast || "",
+    ...topBarVals(S, {
+      update, searchRef, startGuided, startBlank: () => openWorkspace({}, "Untitled formulation"), openVersion, openDrawer,
+      docs: formulations.docs, catalogue, myLists, programmes, nutrients,
+    }),
+    ...featuredVals(S, featured, { update, run, flash, programmes }),
+    ...contactVals(S, {
+      update, flash, user, inWs,
+      describe: () => {
+        // The formulation as you have it now, written out for the nutritionist.
+        const lines = ["Formulation: “" + S.docName + "” · " + prog.name + " · " + GOALS[S.goal].label + " · batch " + batchLabel];
+        if (optimal) {
+          lines.push("Result: " + money(optimal.costT) + "/t · " + optimal.nutrients.filter((n) => n.status === "met").length + " of " + optimal.nutrients.length + " requirements met" + (optimal.advisories.length ? " · " + optimal.advisories.length + " advisory" : ""));
+          optimal.recipe.forEach((x) => lines.push("- " + ingredientName(x.id) + ": " + fmt(x.pct, 2) + "% at " + money(priceOf(x.id, S.pool, catalogueById), 0) + "/t (" + roleShort(S.pool[x.id] ?? { role: "available" }) + ")"));
+        } else if (R?.status === "infeasible") {
+          lines.push("Result: no valid recipe" + (R.shortfalls.length ? " · short on " + R.shortfalls.map((f) => f.name).join(", ") : ""));
+          poolIds.forEach((id) => lines.push("- " + ingredientName(id) + ": " + roleShort(S.pool[id]) + " at " + money(priceOf(id, S.pool, catalogueById), 0) + "/t"));
+        }
+        return lines.join("\n");
+      },
+      docSub: optimal ? prog.name + " · " + money(optimal.costT) + "/t · settings, prices and result included" : prog.name + " · no valid recipe · settings and diagnosis included",
+    }),
     ...libraryVals(S, {
       update, flash, catalogue, nutrients, programmes, myLists, replaceUrl: () => (replaceNext.current = true),
       formulateWithList: (list: IngredientList) => openWorkspace(poolFromList(list), list.label),
@@ -2218,6 +2301,191 @@ function libraryVals(
     }),
     catEmpty: catAll.length === 0,
     catD,
+  };
+}
+
+const segOpt = (on: boolean) => ({ bg: on ? "#fff" : "transparent", sh: on ? "0 1px 2px rgba(0,0,0,.1)" : "none", w: on ? "600" : "500" });
+
+// Top bar: search across actions, pages, saved formulations, the catalogue,
+// your lists, programmes and nutrients; and the account menu.
+type SearchIcon = "F" | "I" | "P" | "L" | "N" | "→" | "+";
+const SEARCH_ICON: Record<SearchIcon, [string, string]> = { F: ["#eef3ee", "#1f3e2b"], I: ["#faecd0", "#5c4012"], P: ["#e8eef5", "#2a4560"], L: ["#f3f0e8", "#45473f"], N: ["#f3f0e8", "#45473f"], "→": ["#f3f0e8", "#45473f"], "+": ["#2f5a3f", "#ffffff"] };
+const SEARCH_ORDER = ["Formulations", "Ingredients", "Programmes", "Ingredient lists", "Nutrients", "Pages", "Actions"];
+
+function topBarVals(
+  S: State,
+  ctx: {
+    update: Update;
+    searchRef: RefObject<HTMLInputElement>;
+    startGuided: () => void;
+    startBlank: () => void;
+    openVersion: (docId: string, v: number) => void;
+    openDrawer: (id: string) => void;
+    docs: SavedDoc[];
+    catalogue: CatalogueIngredient[];
+    myLists: MyLists;
+    programmes: StudioProgrammeData;
+    nutrients: StudioNutrientData;
+  },
+) {
+  const { update, myLists, programmes } = ctx;
+  const close = () => {
+    update({ sOpen: false, sq: "", sIdx: 0, uOpen: false });
+    ctx.searchRef.current?.blur();
+  };
+  const nav = (patch: Partial<State>) => () => {
+    close();
+    update({ drawer: null, addOpen: false, rulesOpen: false, advisoriesOpen: false, ...patch });
+  };
+  const all: { group: string; icon: SearchIcon; label: string; sub: string; go: () => void; hay: string; lab: string }[] = [];
+  const add = (group: string, icon: SearchIcon, label: string, sub: string, go: () => void, extra = "") => all.push({ group, icon, label, sub, go, hay: (label + " " + sub + " " + extra).toLowerCase(), lab: label.toLowerCase() });
+
+  add("Actions", "+", "New formulation", "Guided: animal, ingredients, goal", () => { close(); ctx.startGuided(); }, "create start formulate");
+  add("Actions", "+", "Open a blank workspace", "Skip the guide and set everything yourself", () => { close(); ctx.startBlank(); }, "advanced new");
+  ([["home", "Home"], ["list", "Formulations"], ["ingredients", "My ingredients"], ["programmes", "Feeding programmes"], ["nutrients", "Nutrient data"], ["catalogue", "Ingredient catalogue"]] as [Screen, string][]).forEach(([screen, label]) =>
+    add("Pages", "→", label, "Go to page", nav({ screen }), "page"),
+  );
+  ctx.docs.forEach((d) => {
+    const v = d.versions[d.versions.length - 1];
+    add("Formulations", "F", d.name, programmeLabel(programmes, v.snap) + " · v" + v.v + (v.sum.costT != null ? " · " + money(v.sum.costT) + "/t" : " · " + stOfSum(v.sum).label), () => { close(); ctx.openVersion(d.id, v.v); }, "recipe formulation");
+  });
+  const inWs = S.screen === "workspace";
+  ctx.catalogue.forEach((g) => {
+    const inLists = myLists.lists.filter((l) => l.items.some((it) => it.ingredientId === g.id)).map((l) => l.label);
+    const here = inWs && !!S.pool[g.id];
+    add("Ingredients", "I", g.name, (here ? "In this formulation · " : "") + g.category + " · " + (g.price ? "$" + fmt(g.price.usdPerTonne, 0) + "/t planning price" : "no planning price") + (inLists.length ? " · in " + inLists.join(", ") : ""),
+      here ? () => { close(); ctx.openDrawer(g.id); } : nav({ screen: "catalogue", catSel: g.id, catQ: "", catPage: 1 }), "ingredient " + g.aliases.join(" "));
+  });
+  myLists.lists.forEach((l) => add("Ingredient lists", "L", l.label || "Untitled list", l.items.length + " ingredient" + (l.items.length === 1 ? "" : "s") + " · your prices", nav({ screen: "ingredients", myListSel: l.id, listRename: null }), "list my"));
+  programmes.programmes.forEach((p) =>
+    add("Programmes", "P", p.name, p.source + " · " + p.phases.length + " phase" + (p.phases.length === 1 ? "" : "s"), nav({ screen: "programmes", progSel: p.id, progPhase: null, progAllLimits: false }),
+      (p.species === "swine" ? "pigs swine sow" : "poultry broiler chicken") + " programme stage " + p.phases.map((ph) => ph.label).join(" ")),
+  );
+  ctx.nutrients.nutrients.forEach((n) => add("Nutrients", "N", n.name, n.units.join(" · ") + " · nutrient reference", nav({ screen: "nutrients" }), n.shortName + " " + n.group + " nutrient"));
+
+  const q = S.sq.trim().toLowerCase();
+  const toks = q.split(/\s+/).filter(Boolean);
+  let order: string[];
+  let items: typeof all;
+  if (!toks.length) {
+    order = ["Actions", "Recent formulations", "Pages"];
+    items = all.filter((i) => i.group === "Actions" || i.group === "Pages").concat(all.filter((i) => i.group === "Formulations").slice(0, 3).map((i) => ({ ...i, group: "Recent formulations" })));
+  } else {
+    order = SEARCH_ORDER;
+    const score = (i: (typeof all)[number]) => (i.lab.startsWith(q) ? 0 : i.lab.includes(q) ? 1 : 2);
+    const hits = all.filter((i) => toks.every((t) => i.hay.includes(t)));
+    items = order.flatMap((g) => hits.filter((i) => i.group === g).sort((a, b) => score(a) - score(b)).slice(0, 5));
+  }
+  const flat = order.flatMap((g) => items.filter((i) => i.group === g));
+  const idx = flat.length ? Math.min(S.sIdx, flat.length - 1) : -1;
+  const sGroups = order
+    .map((title) => ({
+      title,
+      items: flat
+        .map((it, i) => ({ it, i }))
+        .filter((x) => x.it.group === title)
+        .map(({ it, i }) => ({ key: it.group + ":" + it.label + ":" + i, icon: it.icon, label: it.label, sub: it.sub, go: it.go, iconBg: SEARCH_ICON[it.icon][0], iconFg: SEARCH_ICON[it.icon][1], bg: i === idx ? "#eef3ee" : "transparent", enter: i === idx ? "1" : "0", hover: () => update((s) => (s.sIdx !== i ? { sIdx: i } : {})) })),
+    }))
+    .filter((g) => g.items.length);
+  const onSKey = (e: KeyEvent) => {
+    const n = flat.length;
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      if (n) update({ sIdx: (idx + 1) % n, sOpen: true });
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      if (n) update({ sIdx: (idx - 1 + n) % n, sOpen: true });
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      flat[idx]?.go();
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      close();
+    }
+  };
+
+  return {
+    showTop: !!S.auth, searchRef: ctx.searchRef, sq: S.sq, sOpen: S.sOpen, sGroups, sEmpty: !!toks.length && !flat.length, sEmptyTitle: "No matches for “" + S.sq.trim() + "”",
+    onSq: (e: InputEvent) => update({ sq: e.target.value, sOpen: true, sIdx: 0, uOpen: false }),
+    onSFocus: () => update((s) => (s.sOpen ? {} : { sOpen: true, uOpen: false })),
+    onSKey,
+    sBd: S.sOpen ? "#2f5a3f" : "#d0cdc3", sBg: S.sOpen ? "#fff" : "#faf8f3", sRing: S.sOpen ? "0 0 0 3px #dbe7dc" : "none",
+    uOpen: S.uOpen, toggleUser: () => update((s) => ({ uOpen: !s.uOpen, sOpen: false })), uBtnBg: S.uOpen ? "#f3f0e8" : "transparent", uBtnBd: S.uOpen ? "#d0cdc3" : "transparent",
+    userEmail: S.auth?.email ?? "", siteLabel: S.w >= 700 ? "Main site" : "Site",
+    uUnits: ([["kg", "per kg"], ["t", "per tonne"]] as const).map(([k, label]) => ({ label, ...segOpt(S.unit === k), pick: () => update({ unit: k }) })),
+    uItems: [
+      { label: "Talk to a nutritionist", sub: "Reply in 1 day", go: () => update((s) => ({ uOpen: false, sOpen: false, cOpen: true, cSent: false, cErr: "", cTopic: s.screen === "workspace" && s.result?.status === "infeasible" ? "infeasible" : s.cTopic })) },
+      { label: "My ingredient lists", sub: myLists.status === "ready" ? myLists.lists.length + (myLists.lists.length === 1 ? " list" : " lists") : "", go: nav({ screen: "ingredients" }) },
+      { label: "Saved formulations", sub: String(ctx.docs.length), go: nav({ screen: "list" }) },
+    ],
+    anyMenu: S.sOpen || S.uOpen, closeMenus: () => update({ sOpen: false, uOpen: false }),
+  };
+}
+
+// Featured formulations on Home (see featured.ts). Only those that still meet
+// their stage are shown; "Use as a starting point" opens an unsaved copy.
+function featuredVals(S: State, results: Record<string, FormulateResult> | null, ctx: { update: Update; run: () => void; flash: (m: string) => void; programmes: StudioProgrammeData }) {
+  const F = S.featFilter;
+  const featured = FEATURED.flatMap((f) => {
+    const R = results?.[f.id];
+    const { programme, phase } = phaseOf(ctx.programmes, f.snap.programmeId, f.snap.phaseId);
+    if (R?.status !== "optimal" || (F !== "all" && programme.species !== F)) return [];
+    const met = R.nutrients.filter((n) => n.status === "met").length;
+    const names = R.recipe.map((x) => x.name);
+    return [{
+      id: f.id, prog: programme.name + " · " + phase.label, name: f.name, desc: f.desc, verified: true,
+      ings: names.length + " ingredients · " + names.slice(0, 4).join(", ") + (names.length > 4 ? " +" + (names.length - 4) + " more" : ""),
+      cost: money(R.costT, 0), met: met + " of " + R.nutrients.length + (R.advisories.length ? " · " + R.advisories.length + "◆" : ""), metColor: met === R.nutrients.length ? "#2b6a42" : "#a63d2a", goal: GOALS[f.snap.goal].label,
+      author: f.author, initials: f.author.split(/\s+/).map((w) => w[0]).join("").slice(0, 2).toUpperCase(), meta: f.role + " · " + f.place,
+      use: () => {
+        const s = clone(f.snap);
+        const b = s.batch || 100;
+        ctx.update({ ...freshDoc(programme.id, phase.id, programme.species, s.pool, f.name + " (copy)"), screen: "workspace", goal: s.goal, batch: b, batchMode: [50, 100, 1000].includes(b) ? String(b) : "custom", customBatch: String(b) });
+        ctx.run();
+        ctx.flash("Copied from " + f.author + ". It uses FeedSport planning prices — enter yours before mixing.");
+      },
+    }];
+  });
+  return {
+    featured: featured.slice(0, 3), featLoading: !results, featEmpty: !!results && featured.length === 0,
+    featFilters: ([["all", "All"], ["swine", "Pigs"], ["broiler", "Poultry"]] as const).map(([k, label]) => ({ label, ...segOpt(F === k), pick: () => ctx.update({ featFilter: k }) })),
+  };
+}
+
+// "Talk to a nutritionist": the request lands in FeedSport's inquiries inbox,
+// with the open formulation written out when you choose to attach it.
+function contactVals(S: State, ctx: { update: Update; flash: (m: string) => void; user: Account | null; inWs: boolean; describe: () => string; docSub: string }) {
+  const { update } = ctx;
+  const attached = ctx.inWs && S.cAttach;
+  const send = async () => {
+    if (S.cBusy || !ctx.user) return;
+    const digits = S.cPhone.replace(/\D/g, "");
+    if (digits.length < 9) return update({ cErr: S.cPhone ? "Enter a full phone number, including the country code." : "Enter a phone or WhatsApp number so we can reach you." });
+    const topic = CONTACT_TOPICS.find(([k]) => k === S.cTopic)![1];
+    const message = ["Formulation studio · Talk to a nutritionist", "Topic: " + topic, S.cMsg.trim(), attached ? ctx.describe() : ""].filter(Boolean).join("\n\n").slice(0, 5000);
+    update({ cBusy: true });
+    try {
+      const res = await saveContactInquiry({ name: titleCase(ctx.user.name), email: ctx.user.email, phone: S.cPhone.trim().slice(0, 40), message });
+      if (!res.success) throw new Error(res.error);
+      update({ cBusy: false, cSent: true });
+    } catch (error) {
+      console.error("Failed to send nutritionist request:", error);
+      update({ cBusy: false });
+      ctx.flash("Couldn’t send your request. Try again, or chat to us on WhatsApp.");
+    }
+  };
+  return {
+    closeContact: () => update({ cOpen: false, cBusy: false }),
+    cOpen: S.cOpen, cSent: S.cSent,
+    cTopics: CONTACT_TOPICS.map(([k, label]) => {
+      const on = S.cTopic === k;
+      return { key: k, label, ring: on ? "inset 0 0 0 1px #2f5a3f" : "none", bg: on ? "#eef3ee" : "#fff", radio: on ? "5px solid #2f5a3f" : "1.5px solid #8d8a80", pick: () => update({ cTopic: k }) };
+    }),
+    cCanAttach: ctx.inWs, cDocName: S.docName, cDocSub: ctx.docSub, cToggleAttach: () => update({ cAttach: !S.cAttach }), cAttachMark: S.cAttach ? "✓" : "", cAttachBg: S.cAttach ? "#2f5a3f" : "#fff", cAttachBd: S.cAttach ? "#2f5a3f" : "#b9b6ab",
+    cPhone: S.cPhone, onCPhone: (e: InputEvent) => update({ cPhone: e.target.value, cErr: "" }), cPhoneErr: S.cErr, cPhoneBd: S.cErr ? "#b2412e" : "#d0cdc3",
+    cMsg: S.cMsg, onCMsg: (e: ChangeEvent<HTMLTextAreaElement>) => update({ cMsg: e.target.value }),
+    sendContact: () => void send(), cBusy: S.cBusy, cBtn: S.cBusy ? "Sending…" : "Send request", cBtnBg: S.cBusy ? "#45473f" : "#2f5a3f",
+    cSentText: "A nutritionist will contact you on " + (S.cPhone.trim() || "your number") + " or at " + (ctx.user?.email || "your email") + " within one working day." + (attached ? " Your request includes “" + S.docName + "” as you have it now." : ""),
   };
 }
 

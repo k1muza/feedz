@@ -47,6 +47,10 @@ export const HOVER = {
   chip: "border-color:#2f5a3f",
   signout: "color:#faf8f3",
   trash: "background:#f7e4df",
+  soft: "background:#f3f0e8;color:#222420",
+  danger: "background:#fdf3f0",
+  light: "background:#fff",
+  outline: "background:#eef3ee",
 } as const;
 
 export const hv = (k: keyof typeof HOVER) => "fsh-" + k;
@@ -63,6 +67,12 @@ export const STUDIO_CSS =
   // Auth screens: once the two panels sit side by side (420px + 460px), the
   // brand panel stays put at screen height while the form scrolls.
   "@media (min-width:880px){.fs-studio .fs-auth-aside{position:sticky;top:0;height:100vh;align-self:flex-start}}" +
+  // The sidebar is 20% wider on wide screens.
+  ".fs-studio .fs-sidebar{width:232px}@media (min-width:1600px){.fs-studio .fs-sidebar{width:278px}}" +
+  // On short screens the sidebar scrolls, with a thin scrollbar in its own colours.
+  ".fs-studio .fs-sidebar{overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:#45473f transparent}" +
+  ".fs-studio .fs-sidebar::-webkit-scrollbar{width:8px}.fs-studio .fs-sidebar::-webkit-scrollbar-track{background:transparent}" +
+  ".fs-studio .fs-sidebar::-webkit-scrollbar-thumb{background:#45473f;border-radius:8px;border:2px solid #222420}.fs-studio .fs-sidebar::-webkit-scrollbar-thumb:hover{background:#64665c}" +
   "@keyframes fsspin{to{transform:rotate(360deg)}}" +
   "@keyframes fsin{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}" +
   Object.entries(HOVER)

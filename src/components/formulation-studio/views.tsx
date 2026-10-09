@@ -19,7 +19,7 @@ export function StudioView(props: { loading: true; shell: ShellVals } | { loadin
       <style dangerouslySetInnerHTML={{ __html: STUDIO_CSS }} />
       <div style={sx("display:flex;min-height:100vh;font-variant-numeric:tabular-nums;font-family:'IBM Plex Sans',sans-serif")}>
         {shell.wide && (
-          <div style={sx("width:232px;flex:none;background:#222420;color:#d0cdc3;display:flex;flex-direction:column;padding:20px 14px;gap:22px;position:sticky;top:0;height:100vh")}>
+          <div className="fs-sidebar" style={sx("flex:none;background:#222420;color:#d0cdc3;display:flex;flex-direction:column;padding:20px 14px;gap:22px;position:sticky;top:0;height:100vh")}>
             <div style={sx("display:flex;align-items:center;gap:10px;padding:0 8px")}>
               <div style={sx("width:24px;height:24px;border-radius:6px;background:#e3aa45")} />
               <div style={sx("font:600 16px/1 'IBM Plex Sans',sans-serif;color:#faf8f3")}>FeedSport</div>
@@ -45,37 +45,41 @@ export function StudioView(props: { loading: true; shell: ShellVals } | { loadin
                 </button>
               ))}
             </div>
-            <a href="/" className={hv("signout")} style={sx("margin-top:auto;display:flex;align-items:center;gap:8px;padding:9px 10px;color:#b9b6ab;font:400 14px/1.2 'IBM Plex Sans',sans-serif;text-decoration:none")}>
-              <span aria-hidden>←</span>
-              <span>Back to FeedSport site</span>
-            </a>
-            <div style={sx("margin-top:-12px;display:flex;align-items:center;gap:10px;padding:12px 10px 0;border-top:1px solid #2b2d29")}>
-              <div style={sx("flex:none;width:28px;height:28px;border-radius:50%;background:#45473f;color:#faf8f3;font:500 12px/28px 'IBM Plex Sans',sans-serif;text-align:center")}>{shell.userInitials}</div>
-              <div style={sx("display:flex;flex-direction:column;gap:3px;min-width:0;flex:1")}>
-                <span style={sx("font:500 13px/1.1 'IBM Plex Sans',sans-serif;color:#faf8f3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap")}>{shell.userName}</span>
-                <span style={sx("font:400 12px/1 'IBM Plex Sans',sans-serif;color:#8d8a80")}>{shell.userRole}</span>
+            <div style={sx("margin-top:auto;background:#2b2d29;border:1px solid #3a3c36;border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:10px")}>
+              <div style={sx("display:flex;align-items:center;gap:8px")}>
+                <span style={sx("flex:none;width:8px;height:8px;border-radius:50%;background:#7fc28f;box-shadow:0 0 0 3px rgba(127,194,143,.18)")} />
+                <span style={sx("font:500 11px/1 'IBM Plex Mono',monospace;color:#b9b6ab;letter-spacing:0.06em;text-transform:uppercase")}>Nutritionists available</span>
               </div>
-              <button onClick={shell.signOut} title="Sign out" className={hv("signout")} style={sx("flex:none;border:0;background:transparent;color:#b9b6ab;font:500 12px/1 'IBM Plex Sans',sans-serif;padding:4px 0")}>Sign out</button>
+              <span style={sx("font:600 15px/1.3 'IBM Plex Sans',sans-serif;color:#faf8f3")}>Talk to a nutritionist</span>
+              <span style={sx("font:400 13px/1.5 'IBM Plex Sans',sans-serif;color:#b9b6ab")}>Get a FeedSport nutritionist to check a recipe or help with a tricky stage.</span>
+              <a href={shell.waHref} target="_blank" rel="noopener" className={hv("light")} style={sx("display:flex;align-items:center;justify-content:center;gap:8px;padding:11px 12px;border-radius:7px;background:#faf8f3;color:#222420;font:600 13px/1 'IBM Plex Sans',sans-serif;text-decoration:none")}>
+                <span style={sx("flex:none;width:8px;height:8px;border-radius:50%;background:#2f7a4a")} />
+                Chat on WhatsApp
+              </a>
+              <a href="tel:+263774684534" className={hv("signout")} style={sx("font:400 12px/1.3 'IBM Plex Sans',sans-serif;color:#b9b6ab;text-decoration:none;text-align:center")}>or call +263 77 468 4534</a>
             </div>
           </div>
         )}
 
         <div style={sx("flex:1;min-width:0;display:flex;flex-direction:column")}>
-          {shell.narrow && (
-            <div style={sx("display:flex;align-items:center;gap:14px;padding:12px 16px;background:#222420;color:#faf8f3;position:sticky;top:0;z-index:5")}>
-              <a href="/" title="Back to FeedSport site" aria-label="Back to FeedSport site" className={hv("signout")} style={sx("flex:none;color:#b9b6ab;font:400 18px/1 'IBM Plex Sans',sans-serif;padding:6px 2px;text-decoration:none")}>←</a>
-              <div style={sx("width:20px;height:20px;border-radius:5px;background:#e3aa45")} />
-              <button onClick={shell.goHome} style={sx("border:0;background:transparent;color:#faf8f3;font:600 15px/1 'IBM Plex Sans',sans-serif;padding:6px 0")}>FeedSport</button>
-              <div data-navscroll="1" style={sx("display:flex;gap:16px;overflow-x:auto;min-width:0;flex:1;scrollbar-width:none;-ms-overflow-style:none")}>
-                {[...nav, ...refNav].map((it) => (
-                  <button key={it.label} onClick={it.go} style={sx(`flex:none;border:0;background:transparent;color:${it.color};font:400 14px/1 'IBM Plex Sans',sans-serif;padding:6px 0;white-space:nowrap;box-shadow:${it.barShadow}`)}>
-                    {it.label}
-                  </button>
-                ))}
-              </div>
-              <div title={shell.userName} style={sx("flex:none;width:28px;height:28px;border-radius:50%;background:#45473f;color:#faf8f3;font:500 11px/28px 'IBM Plex Sans',sans-serif;text-align:center")}>{shell.userInitials}</div>
-              <button onClick={shell.signOut} style={sx("flex:none;border:0;background:transparent;color:#b9b6ab;font:500 13px/1 'IBM Plex Sans',sans-serif;padding:6px 0;white-space:nowrap")}>Sign out</button>
-              <button onClick={shell.startGuided} style={sx("flex:none;border:0;background:#e3aa45;color:#222420;font:600 13px/1 'IBM Plex Sans',sans-serif;padding:10px 12px;border-radius:6px")}>New</button>
+          {v && v.anyMenu && <div onClick={v.closeMenus} style={sx("position:fixed;inset:0;z-index:9")} />}
+          {(shell.narrow || (v && v.showTop)) && (
+            <div style={sx("position:sticky;top:0;z-index:10")}>
+              {shell.narrow && (
+                <div style={sx("display:flex;align-items:center;gap:14px;padding:12px 16px;background:#222420;color:#faf8f3")}>
+                  <div style={sx("width:20px;height:20px;border-radius:5px;background:#e3aa45")} />
+                  <button onClick={shell.goHome} style={sx("border:0;background:transparent;color:#faf8f3;font:600 15px/1 'IBM Plex Sans',sans-serif;padding:6px 0")}>FeedSport</button>
+                  <div data-navscroll="1" style={sx("display:flex;gap:16px;overflow-x:auto;min-width:0;flex:1;scrollbar-width:none;-ms-overflow-style:none")}>
+                    {[...nav, ...refNav].map((it) => (
+                      <button key={it.label} onClick={it.go} style={sx(`flex:none;border:0;background:transparent;color:${it.color};font:400 14px/1 'IBM Plex Sans',sans-serif;padding:6px 0;white-space:nowrap;box-shadow:${it.barShadow}`)}>
+                        {it.label}
+                      </button>
+                    ))}
+                  </div>
+                  <button onClick={shell.startGuided} style={sx("flex:none;border:0;background:#e3aa45;color:#222420;font:600 13px/1 'IBM Plex Sans',sans-serif;padding:10px 12px;border-radius:6px")}>New</button>
+                </div>
+              )}
+              {v && v.showTop && <TopBar v={v} shell={shell} />}
             </div>
           )}
 
@@ -97,8 +101,9 @@ export function StudioView(props: { loading: true; shell: ShellVals } | { loadin
         {v && v.advisoriesOpen && v.opt && <AdvisoryDrawer v={v} opt={v.opt} />}
         {v && v.addOpen && <AddIngredient v={v} />}
         {v && v.rulesOpen && <Rules v={v} />}
+        {v && v.cOpen && <Contact v={v} />}
         {v && v.hasToast && (
-          <div style={sx("position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#222420;color:#faf8f3;padding:13px 18px;border-radius:9px;font:500 14px/1.3 'IBM Plex Sans',sans-serif;z-index:40;box-shadow:0 10px 30px rgba(0,0,0,.25);animation:fsin .2s ease-out;max-width:92vw")}>{v.toast}</div>
+          <div style={sx("position:fixed;bottom:24px;left:0;right:0;margin:0 auto;width:fit-content;background:#222420;color:#faf8f3;padding:13px 18px;border-radius:9px;font:500 14px/1.3 'IBM Plex Sans',sans-serif;z-index:40;box-shadow:0 10px 30px rgba(0,0,0,.25);animation:fsin .2s ease-out;max-width:92vw")}>{v.toast}</div>
         )}
       </div>
     </div>
@@ -106,6 +111,195 @@ export function StudioView(props: { loading: true; shell: ShellVals } | { loadin
 }
 
 type V = { v: StudioVals };
+
+// The top bar lines up with the screen below it: capped and centred like the
+// content pages, full width like the workspace and guided setup.
+function topBarFrame(v: StudioVals) {
+  if (v.isWorkspace) return "max-width:none;padding:10px clamp(16px,3vw,32px)";
+  if (v.isSetup) return "max-width:none;padding:10px clamp(16px,4vw,48px)";
+  if (v.isHome) return "max-width:1600px;padding:10px clamp(16px,4vw,48px)";
+  return "max-width:1600px;padding:10px clamp(16px,4vw,40px)";
+}
+
+function TopBar({ v, shell }: V & { shell: ShellVals }) {
+  return (
+    <div style={sx("background:#fff;border-bottom:1px solid #e2dfd6")}>
+      <div style={sx("display:flex;align-items:center;gap:14px;width:100%;margin:0 auto;" + topBarFrame(v))}>
+        <div style={sx("position:relative;flex:1;max-width:600px;min-width:0")}>
+          <div style={sx(`display:flex;align-items:center;gap:10px;padding:0 8px 0 12px;border:1px solid ${v.sBd};border-radius:8px;background:${v.sBg};box-shadow:${v.sRing}`)}>
+            <span style={sx("flex:none;width:12px;height:12px;border:1.5px solid #64665c;border-radius:50%")} />
+            <input
+              ref={v.searchRef}
+              value={v.sq}
+              onChange={v.onSq}
+              onFocus={v.onSFocus}
+              onKeyDown={v.onSKey}
+              placeholder="Search formulations, ingredients, programmes…"
+              aria-label="Search FeedSport"
+              role="combobox"
+              aria-expanded={v.sOpen}
+              autoComplete="off"
+              style={sx("flex:1;min-width:0;border:0;padding:10px 0;font:400 14px/1 'IBM Plex Sans',sans-serif;outline:none;background:transparent;color:#222420")}
+            />
+            <span style={sx("flex:none;font:500 11px/1 'IBM Plex Mono',monospace;color:#64665c;border:1px solid #d0cdc3;border-radius:4px;padding:3px 6px;background:#fff")}>/</span>
+          </div>
+          {v.sOpen && (
+            <div role="listbox" style={sx("position:absolute;top:calc(100% + 6px);left:0;width:max(100%, min(560px, 92vw));max-height:min(70vh,540px);overflow-y:auto;background:#fff;border:1px solid #e2dfd6;border-radius:10px;box-shadow:0 16px 40px rgba(34,36,32,.18);padding:6px 0;animation:fsin .15s ease-out")}>
+              {v.sGroups.map((g) => (
+                <div key={g.title}>
+                  <div style={sx("padding:10px 14px 4px;font:500 11px/1 'IBM Plex Mono',monospace;color:#64665c;text-transform:uppercase;letter-spacing:0.05em")}>{g.title}</div>
+                  {g.items.map((it) => (
+                    <button key={it.key} onClick={it.go} onMouseEnter={it.hover} role="option" aria-selected={it.enter === "1"} style={sx(`width:100%;border:0;background:${it.bg};text-align:left;display:flex;align-items:center;gap:12px;padding:8px 14px;color:#222420`)}>
+                      <span style={sx(`flex:none;width:28px;height:28px;border-radius:6px;background:${it.iconBg};color:${it.iconFg};font:600 12px/28px 'IBM Plex Mono',monospace;text-align:center`)}>{it.icon}</span>
+                      <span style={sx("flex:1;min-width:0;display:flex;flex-direction:column;gap:3px")}>
+                        <span style={sx("font:500 14px/1.2 'IBM Plex Sans',sans-serif")}>{it.label}</span>
+                        <span style={sx("font:400 12px/1.3 'IBM Plex Sans',sans-serif;color:#64665c;overflow:hidden;text-overflow:ellipsis;white-space:nowrap")}>{it.sub}</span>
+                      </span>
+                      <span style={sx(`flex:none;font:500 12px/1 'IBM Plex Mono',monospace;color:#2f5a3f;opacity:${it.enter}`)}>↵</span>
+                    </button>
+                  ))}
+                </div>
+              ))}
+              {v.sEmpty && (
+                <div style={sx("padding:14px 16px;display:flex;flex-direction:column;gap:4px;font:400 14px/1.45 'IBM Plex Sans',sans-serif;color:#45473f")}>
+                  <span style={sx("font-weight:600;color:#222420")}>{v.sEmptyTitle}</span>
+                  <span style={sx("font-size:13px;color:#64665c")}>Try an ingredient such as maize, a stage such as grower, or a nutrient such as lysine.</span>
+                </div>
+              )}
+              <div style={sx("display:flex;gap:14px;padding:10px 14px 6px;margin-top:4px;border-top:1px solid #ece8df;font:400 12px/1 'IBM Plex Sans',sans-serif;color:#64665c;flex-wrap:wrap")}>
+                <span>↑ ↓ to move</span>
+                <span>↵ to open</span>
+                <span>esc to close</span>
+                <span style={sx("margin-left:auto")}>/ or Ctrl K from anywhere</span>
+              </div>
+            </div>
+          )}
+        </div>
+        <a href="/" target="_blank" rel="noopener" title="Open the FeedSport website in a new tab" className={hv("soft")} style={sx("flex:none;margin-left:auto;display:flex;align-items:center;gap:6px;padding:8px 10px;border-radius:7px;font:500 13px/1 'IBM Plex Sans',sans-serif;color:#45473f;text-decoration:none;white-space:nowrap")}>
+          <span aria-hidden>←</span>
+          {v.siteLabel}
+        </a>
+        <div style={sx("position:relative;flex:none")}>
+          <button onClick={v.toggleUser} aria-haspopup="menu" aria-expanded={v.uOpen} className={hv("pool")} style={sx(`display:flex;align-items:center;gap:10px;border:1px solid ${v.uBtnBd};background:${v.uBtnBg};padding:4px 10px 4px 4px;border-radius:99px;color:#222420`)}>
+            <span style={sx("flex:none;width:30px;height:30px;border-radius:50%;background:#2f5a3f;color:#faf8f3;font:600 12px/30px 'IBM Plex Sans',sans-serif;text-align:center")}>{shell.userInitials}</span>
+            {shell.wide && (
+              <span style={sx("display:flex;flex-direction:column;gap:3px;text-align:left;max-width:180px")}>
+                <span style={sx("font:500 13px/1.1 'IBM Plex Sans',sans-serif;overflow:hidden;text-overflow:ellipsis;white-space:nowrap")}>{shell.userName}</span>
+                <span style={sx("font:400 12px/1 'IBM Plex Sans',sans-serif;color:#64665c")}>{shell.userRole}</span>
+              </span>
+            )}
+            <span style={sx("font:400 11px/1 'IBM Plex Sans',sans-serif;color:#64665c")}>▾</span>
+          </button>
+          {v.uOpen && (
+            <div role="menu" style={sx("position:absolute;right:0;top:calc(100% + 6px);width:290px;max-width:92vw;background:#fff;border:1px solid #e2dfd6;border-radius:10px;box-shadow:0 16px 40px rgba(34,36,32,.18);overflow:hidden;animation:fsin .15s ease-out")}>
+              <div style={sx("display:flex;gap:12px;align-items:center;padding:16px;border-bottom:1px solid #ece8df")}>
+                <span style={sx("flex:none;width:40px;height:40px;border-radius:50%;background:#2f5a3f;color:#faf8f3;font:600 14px/40px 'IBM Plex Sans',sans-serif;text-align:center")}>{shell.userInitials}</span>
+                <span style={sx("display:flex;flex-direction:column;gap:4px;min-width:0")}>
+                  <span style={sx("font:600 15px/1.2 'IBM Plex Sans',sans-serif")}>{shell.userName}</span>
+                  <span style={sx("font:400 13px/1.2 'IBM Plex Sans',sans-serif;color:#64665c;overflow:hidden;text-overflow:ellipsis;white-space:nowrap")}>{v.userEmail}</span>
+                  <span style={sx("align-self:flex-start;font:500 11px/1 'IBM Plex Mono',monospace;color:#1f3e2b;background:#eef3ee;border-radius:4px;padding:4px 6px;text-transform:uppercase;letter-spacing:0.04em")}>{shell.userRole}</span>
+                </span>
+              </div>
+              <div style={sx("display:flex;flex-direction:column;padding:6px 0")}>
+                {v.uItems.map((m) => (
+                  <button key={m.label} onClick={m.go} role="menuitem" className={hv("row")} style={sx("border:0;background:transparent;text-align:left;display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 16px;color:#222420")}>
+                    <span style={sx("font:500 14px/1.2 'IBM Plex Sans',sans-serif")}>{m.label}</span>
+                    <span style={sx("font:400 12px/1.2 'IBM Plex Sans',sans-serif;color:#64665c")}>{m.sub}</span>
+                  </button>
+                ))}
+              </div>
+              <div style={sx("display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 16px 12px;border-top:1px solid #ece8df")}>
+                <span style={sx("font:500 13px/1.2 'IBM Plex Sans',sans-serif;color:#45473f")}>Show prices</span>
+                <div style={sx("display:flex;background:#f3f0e8;border-radius:7px;padding:3px")}>
+                  {v.uUnits.map((u) => (
+                    <button key={u.label} onClick={u.pick} role="menuitemradio" aria-checked={u.w === "600"} style={sx(`border:0;padding:7px 10px;border-radius:5px;background:${u.bg};box-shadow:${u.sh};font:${u.w} 12px/1 'IBM Plex Sans',sans-serif;color:#222420`)}>{u.label}</button>
+                  ))}
+                </div>
+              </div>
+              <a href="/" target="_blank" rel="noopener" role="menuitem" className={hv("row")} style={sx("display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-top:1px solid #ece8df;font:500 14px/1 'IBM Plex Sans',sans-serif;color:#222420;text-decoration:none")}>
+                <span>FeedSport website</span>
+                <span style={sx("font:400 12px/1 'IBM Plex Sans',sans-serif;color:#64665c")}>feedsport.co.zw ↗</span>
+              </a>
+              <button onClick={shell.signOut} role="menuitem" className={hv("danger")} style={sx("width:100%;border:0;border-top:1px solid #ece8df;background:transparent;text-align:left;padding:12px 16px;font:500 14px/1 'IBM Plex Sans',sans-serif;color:#a63d2a")}>Sign out</button>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Contact({ v }: V) {
+  return (
+    <>
+      <div onClick={v.closeContact} style={sx("position:fixed;inset:0;background:rgba(34,36,32,.38);z-index:30")} />
+      <div role="dialog" aria-label="Talk to a nutritionist" style={sx("position:fixed;top:6vh;left:0;right:0;margin:0 auto;width:min(520px,94vw);max-height:88vh;overflow-y:auto;background:#fff;border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,.25);z-index:31;display:flex;flex-direction:column;animation:fsin .2s ease-out")}>
+        <div style={sx("padding:20px 22px 16px;border-bottom:1px solid #e2dfd6;display:flex;justify-content:space-between;align-items:flex-start;gap:12px")}>
+          <div style={sx("display:flex;flex-direction:column;gap:6px")}>
+            <span style={sx("font:600 20px/1.2 'IBM Plex Sans',sans-serif")}>Talk to a nutritionist</span>
+            <span style={sx("font:400 13px/1.5 'IBM Plex Sans',sans-serif;color:#64665c")}>A FeedSport nutritionist will reply within one working day.</span>
+          </div>
+          <button onClick={v.closeContact} aria-label="Close" style={sx("border:0;background:transparent;font:400 24px/1 'IBM Plex Sans',sans-serif;color:#64665c;padding:0")}>×</button>
+        </div>
+        {v.cSent ? (
+          <div style={sx("padding:28px 22px;display:flex;flex-direction:column;gap:14px")}>
+            <span style={sx("display:flex;align-items:center;gap:10px;font:600 17px/1.3 'IBM Plex Sans',sans-serif;color:#2b6a42")}>
+              <span style={sx("flex:none;width:10px;height:10px;border-radius:50%;background:#2f7a4a")} />
+              Request sent
+            </span>
+            <span style={sx("font:400 14px/1.6 'IBM Plex Sans',sans-serif;color:#45473f")}>{v.cSentText}</span>
+            <button onClick={v.closeContact} style={sx("align-self:flex-start;border:0;background:#2f5a3f;color:#fff;font:600 14px/1 'IBM Plex Sans',sans-serif;padding:12px 18px;border-radius:8px")}>Done</button>
+          </div>
+        ) : (
+          <>
+            <div style={sx("padding:18px 22px;display:flex;flex-direction:column;gap:16px")}>
+              <div style={sx("display:flex;flex-direction:column;gap:8px")}>
+                <span style={sx("font:500 14px/1 'IBM Plex Sans',sans-serif")}>What do you need help with?</span>
+                {v.cTopics.map((t) => (
+                  <button key={t.key} onClick={t.pick} style={sx(`text-align:left;display:flex;gap:12px;align-items:center;padding:11px 13px;border-radius:8px;border:1px solid #d0cdc3;box-shadow:${t.ring};background:${t.bg};color:#222420`)}>
+                    <span style={sx(`flex:none;width:16px;height:16px;border-radius:50%;border:${t.radio}`)} />
+                    <span style={sx("font:500 14px/1.3 'IBM Plex Sans',sans-serif")}>{t.label}</span>
+                  </button>
+                ))}
+              </div>
+              {v.cCanAttach && (
+                <button onClick={v.cToggleAttach} style={sx("text-align:left;display:flex;gap:12px;align-items:flex-start;padding:12px 13px;border-radius:8px;border:1px solid #e2dfd6;background:#faf8f3;color:#222420")}>
+                  <span style={sx(`flex:none;margin-top:1px;width:18px;height:18px;border-radius:4px;border:1.5px solid ${v.cAttachBd};background:${v.cAttachBg};color:#fff;font:600 11px/15px 'IBM Plex Sans',sans-serif;text-align:center`)}>{v.cAttachMark}</span>
+                  <span style={sx("display:flex;flex-direction:column;gap:3px")}>
+                    <span style={sx("font:500 14px/1.3 'IBM Plex Sans',sans-serif")}>Attach “{v.cDocName}”</span>
+                    <span style={sx("font:400 12px/1.4 'IBM Plex Sans',sans-serif;color:#64665c")}>{v.cDocSub}</span>
+                  </span>
+                </button>
+              )}
+              <label style={sx("display:flex;flex-direction:column;gap:7px;font:500 14px/1 'IBM Plex Sans',sans-serif")}>
+                Phone or WhatsApp
+                <input type="tel" value={v.cPhone} onChange={v.onCPhone} placeholder="+263 …" autoComplete="tel" style={sx(`padding:11px 12px;border:1px solid ${v.cPhoneBd};border-radius:8px;font:400 15px/1 'IBM Plex Sans',sans-serif`)} />
+                {v.cPhoneErr && <span style={sx("font:400 13px/1.3 'IBM Plex Sans',sans-serif;color:#a63d2a")}>{v.cPhoneErr}</span>}
+                <span style={sx("font:400 12px/1.3 'IBM Plex Sans',sans-serif;color:#64665c")}>We&apos;ll also reply to {v.userEmail}.</span>
+              </label>
+              <label style={sx("display:flex;flex-direction:column;gap:7px;font:500 14px/1 'IBM Plex Sans',sans-serif")}>
+                <span>
+                  Message <span style={sx("font-weight:400;color:#64665c;font-size:13px")}>Optional</span>
+                </span>
+                <textarea value={v.cMsg} onChange={v.onCMsg} rows={3} placeholder="e.g. Herd size, what you're seeing, what you've tried" style={sx("padding:11px 12px;border:1px solid #d0cdc3;border-radius:8px;font:400 14px/1.45 'IBM Plex Sans',sans-serif;resize:vertical")} />
+              </label>
+            </div>
+            <div style={sx("padding:14px 22px 18px;border-top:1px solid #e2dfd6;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap")}>
+              <a href={v.waHref} target="_blank" rel="noopener" style={sx("display:flex;align-items:center;gap:7px;font:600 13px/1.3 'IBM Plex Sans',sans-serif;color:#2f5a3f")}>
+                <span style={sx("flex:none;width:8px;height:8px;border-radius:50%;background:#2f7a4a")} />
+                Prefer WhatsApp? Chat now ↗
+              </a>
+              <div style={sx("display:flex;gap:10px")}>
+                <button onClick={v.closeContact} style={sx("border:1px solid #d0cdc3;background:#fff;font:500 14px/1 'IBM Plex Sans',sans-serif;padding:12px 16px;border-radius:8px;color:#222420")}>Cancel</button>
+                <button onClick={v.sendContact} disabled={v.cBusy} style={sx(`border:0;background:${v.cBtnBg};color:#fff;font:600 14px/1 'IBM Plex Sans',sans-serif;padding:12px 18px;border-radius:8px`)}>{v.cBtn}</button>
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+    </>
+  );
+}
 
 // Saved formulations load from the database: say so while they do, if they
 // can't, and when there are none yet.
@@ -262,7 +456,7 @@ function Auth({ a }: { a: NonNullable<StudioVals["auth"]> }) {
 
 function Home({ v }: V) {
   return (
-    <div style={sx("padding:40px clamp(16px,4vw,48px);display:flex;flex-direction:column;gap:28px;max-width:1240px;animation:fsin .25s ease-out")}>
+    <div style={sx("padding:40px clamp(16px,4vw,48px);display:flex;flex-direction:column;gap:28px;max-width:1600px;width:100%;margin:0 auto;animation:fsin .25s ease-out")}>
       <div style={sx("font:600 26px/1.2 'IBM Plex Sans',sans-serif;letter-spacing:-0.015em")}>Home</div>
       <div style={sx("display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px")}>
         <button onClick={v.startGuided} className={hv("green")} style={sx("text-align:left;border:0;background:#2f5a3f;color:#faf8f3;border-radius:10px;padding:24px;display:flex;flex-direction:column;gap:12px;min-height:170px")}>
@@ -302,6 +496,72 @@ function Home({ v }: V) {
           </button>
         ))}
       </div>
+      <Featured v={v} />
+    </div>
+  );
+}
+
+const FEAT_LABEL = "font:400 11px/1 'IBM Plex Sans',sans-serif;color:#64665c";
+
+function Featured({ v }: V) {
+  return (
+    <div style={sx("display:flex;flex-direction:column;gap:14px")}>
+      <div style={sx("display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap")}>
+        <div style={sx("display:flex;flex-direction:column;gap:6px")}>
+          <span style={sx("font:600 16px/1 'IBM Plex Sans',sans-serif")}>Featured formulations</span>
+          <span style={sx("font:400 13px/1.45 'IBM Plex Sans',sans-serif;color:#64665c")}>Published by FeedSport nutritionists. Use one as a starting point; it opens as your own copy.</span>
+        </div>
+        <div style={sx("display:flex;background:#f3f0e8;border-radius:7px;padding:3px")}>
+          {v.featFilters.map((o) => (
+            <button key={o.label} onClick={o.pick} style={sx(`border:0;padding:7px 12px;border-radius:5px;background:${o.bg};box-shadow:${o.sh};font:${o.w} 13px/1 'IBM Plex Sans',sans-serif;color:#222420`)}>{o.label}</button>
+          ))}
+        </div>
+      </div>
+      {v.featLoading && <div style={sx("padding:18px;background:#fff;border:1px solid #e2dfd6;border-radius:10px;font:400 14px/1.5 'IBM Plex Sans',sans-serif;color:#64665c")}>Formulating featured recipes against today’s programmes and prices…</div>}
+      <div style={sx("display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px")}>
+        {v.featured.map((p) => (
+          <div key={p.id} style={sx("background:#fff;border:1px solid #e2dfd6;border-radius:10px;padding:18px;display:flex;flex-direction:column;gap:12px")}>
+            <div style={sx("display:flex;justify-content:space-between;align-items:center;gap:8px")}>
+              <span style={sx("font:500 11px/1.3 'IBM Plex Mono',monospace;color:#64665c;text-transform:uppercase;letter-spacing:0.05em")}>{p.prog}</span>
+              {p.verified && (
+                <span style={sx("flex:none;display:flex;align-items:center;gap:5px;font:500 11px/1 'IBM Plex Sans',sans-serif;color:#1f3e2b;background:#eef3ee;border-radius:99px;padding:4px 8px")}>
+                  <span style={sx("width:6px;height:6px;border-radius:50%;background:#2f7a4a")} />
+                  Reviewed by FeedSport
+                </span>
+              )}
+            </div>
+            <div style={sx("display:flex;flex-direction:column;gap:6px")}>
+              <span style={sx("font:600 16px/1.3 'IBM Plex Sans',sans-serif")}>{p.name}</span>
+              <span style={sx("font:400 13px/1.5 'IBM Plex Sans',sans-serif;color:#45473f")}>{p.desc}</span>
+            </div>
+            <span style={sx("font:400 12px/1.5 'IBM Plex Sans',sans-serif;color:#64665c")}>{p.ings}</span>
+            <div style={sx("display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;padding:10px 0;border-top:1px solid #ece8df;border-bottom:1px solid #ece8df")}>
+              <div style={sx("display:flex;flex-direction:column;gap:4px")}>
+                <span style={sx(FEAT_LABEL)}>Cost / t</span>
+                <span style={sx("font:600 14px/1 'IBM Plex Sans',sans-serif")}>{p.cost}</span>
+              </div>
+              <div style={sx("display:flex;flex-direction:column;gap:4px")}>
+                <span style={sx(FEAT_LABEL)}>Requirements</span>
+                <span style={sx(`font:600 14px/1 'IBM Plex Sans',sans-serif;color:${p.metColor}`)}>{p.met}</span>
+              </div>
+              <div style={sx("display:flex;flex-direction:column;gap:4px")}>
+                <span style={sx(FEAT_LABEL)}>Goal</span>
+                <span style={sx("font:600 14px/1.2 'IBM Plex Sans',sans-serif")}>{p.goal}</span>
+              </div>
+            </div>
+            <div style={sx("display:flex;align-items:center;gap:10px")}>
+              <span style={sx("flex:none;width:30px;height:30px;border-radius:50%;background:#2f5a3f;color:#faf8f3;font:600 11px/30px 'IBM Plex Sans',sans-serif;text-align:center")}>{p.initials}</span>
+              <span style={sx("flex:1;min-width:0;display:flex;flex-direction:column;gap:3px")}>
+                <span style={sx("font:500 13px/1.2 'IBM Plex Sans',sans-serif;overflow:hidden;text-overflow:ellipsis;white-space:nowrap")}>{p.author}</span>
+                <span style={sx("font:400 12px/1.2 'IBM Plex Sans',sans-serif;color:#64665c")}>{p.meta}</span>
+              </span>
+            </div>
+            <button onClick={p.use} className={hv("outline")} style={sx("margin-top:auto;border:1px solid #2f5a3f;background:#fff;color:#2f5a3f;font:600 13px/1 'IBM Plex Sans',sans-serif;padding:11px 12px;border-radius:7px")}>Use as a starting point</button>
+          </div>
+        ))}
+      </div>
+      {v.featEmpty && <div style={sx("padding:18px;background:#fff;border:1px dashed #b9b6ab;border-radius:10px;font:400 14px/1.5 'IBM Plex Sans',sans-serif;color:#45473f")}>No featured formulations for this animal yet.</div>}
+      <span style={sx("font:400 12px/1.5 'IBM Plex Sans',sans-serif;color:#64665c")}>Costs use FeedSport planning prices and are re-checked against the current programme and ingredient data each time you visit. Enter your own prices in the copy before mixing.</span>
     </div>
   );
 }
@@ -1064,7 +1324,7 @@ const LIST_COLS = "display:grid;grid-template-columns:36px minmax(0,2fr) 1.5fr 6
 
 function List({ v }: V) {
   return (
-    <div style={sx("padding:36px clamp(16px,4vw,40px);display:flex;flex-direction:column;gap:20px;max-width:1280px;animation:fsin .25s ease-out")}>
+    <div style={sx("padding:36px clamp(16px,4vw,40px);display:flex;flex-direction:column;gap:20px;max-width:1600px;width:100%;margin:0 auto;animation:fsin .25s ease-out")}>
       <div style={sx("display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap")}>
         <span style={sx("font:600 26px/1.2 'IBM Plex Sans',sans-serif;letter-spacing:-0.015em")}>Formulations</span>
         <div style={sx("display:flex;align-items:center;gap:12px;padding:8px 8px 8px 14px;background:#222420;color:#faf8f3;border-radius:8px;font:500 13px/1 'IBM Plex Sans',sans-serif")}>
@@ -1133,7 +1393,7 @@ const SET_MIN_WIDTH = "min-width:720px";
 
 function MyIngredients({ v }: V) {
   return (
-    <div style={sx("padding:36px clamp(16px,4vw,40px);display:flex;flex-direction:column;gap:20px;max-width:1280px;animation:fsin .25s ease-out")}>
+    <div style={sx("padding:36px clamp(16px,4vw,40px);display:flex;flex-direction:column;gap:20px;max-width:1600px;width:100%;margin:0 auto;animation:fsin .25s ease-out")}>
       <div style={sx("display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap")}>
         <div style={sx("display:flex;flex-direction:column;gap:6px")}>
           <span style={sx("font:600 26px/1.2 'IBM Plex Sans',sans-serif;letter-spacing:-0.015em")}>My ingredients</span>
@@ -1265,7 +1525,7 @@ const PROG_COLS = "display:grid;grid-template-columns:minmax(0,1.6fr) 1fr 1fr;ga
 
 function Programmes({ v }: V) {
   return (
-    <div style={sx("padding:36px clamp(16px,4vw,40px);display:flex;flex-direction:column;gap:20px;max-width:1280px;animation:fsin .25s ease-out")}>
+    <div style={sx("padding:36px clamp(16px,4vw,40px);display:flex;flex-direction:column;gap:20px;max-width:1600px;width:100%;margin:0 auto;animation:fsin .25s ease-out")}>
       <RefHeader title="Feeding programmes" intro="Nutritional requirements, ingredient limits and practical guidelines by stage. Read-only here; changes are made by FeedSport nutritionists." />
       <div style={sx("display:flex;flex-wrap:wrap;gap:20px;align-items:flex-start")}>
         <div style={sx("flex:0 1 300px;min-width:240px;display:flex;flex-direction:column;gap:18px")}>
@@ -1352,7 +1612,7 @@ function Programmes({ v }: V) {
 
 function NutrientData({ v }: V) {
   return (
-    <div style={sx("padding:36px clamp(16px,4vw,40px);display:flex;flex-direction:column;gap:20px;max-width:1180px;animation:fsin .25s ease-out")}>
+    <div style={sx("padding:36px clamp(16px,4vw,40px);display:flex;flex-direction:column;gap:20px;max-width:1600px;width:100%;margin:0 auto;animation:fsin .25s ease-out")}>
       <RefHeader title="Nutrient data" intro="The nutrients FeedSport tracks, how they're measured, and where data is missing. Values are on an as-fed basis." />
       {v.nutGroups.map((g) => (
         <div key={g.label} style={sx("display:flex;flex-direction:column;gap:10px")}>
@@ -1383,7 +1643,7 @@ const CAT_COLS = "display:grid;grid-template-columns:minmax(0,1.5fr) 0.9fr 0.7fr
 function Catalogue({ v }: V) {
   const pg = v.catPager;
   return (
-    <div style={sx("padding:36px clamp(16px,4vw,40px);display:flex;flex-direction:column;gap:20px;max-width:1320px;animation:fsin .25s ease-out")}>
+    <div style={sx("padding:36px clamp(16px,4vw,40px);display:flex;flex-direction:column;gap:20px;max-width:1600px;width:100%;margin:0 auto;animation:fsin .25s ease-out")}>
       <div style={sx("display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap")}>
         <RefHeader title="Ingredient catalogue" intro="FeedSport's authoritative nutrient profiles and default prices. Add anything to one of your lists." />
         <input value={v.catQ} onChange={v.onCatQ} placeholder="Search name or category" style={sx("width:280px;max-width:100%;padding:11px 12px;border:1px solid #d0cdc3;border-radius:8px;font:400 14px/1 'IBM Plex Sans',sans-serif")} />
@@ -1482,7 +1742,7 @@ function Catalogue({ v }: V) {
 function Compare({ v }: V) {
   const cmp = v.cmp;
   return (
-    <div style={sx("padding:32px clamp(16px,4vw,40px);display:flex;flex-direction:column;gap:18px;max-width:1180px;animation:fsin .25s ease-out")}>
+    <div style={sx("padding:32px clamp(16px,4vw,40px);display:flex;flex-direction:column;gap:18px;max-width:1600px;width:100%;margin:0 auto;animation:fsin .25s ease-out")}>
       <div style={sx("display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap")}>
         <span style={sx("font:600 24px/1.2 'IBM Plex Sans',sans-serif")}>Compare</span>
         <div style={sx("display:flex;gap:10px")}>
@@ -1705,7 +1965,7 @@ function AddIngredient({ v }: V) {
   return (
     <>
       <div onClick={v.closeAdd} style={sx("position:fixed;inset:0;background:rgba(34,36,32,.38);z-index:30")} />
-      <div style={sx("position:fixed;top:10vh;left:50%;transform:translateX(-50%);width:min(520px,94vw);max-height:76vh;background:#fff;border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,.25);z-index:31;display:flex;flex-direction:column;overflow:hidden;animation:fsin .2s ease-out")}>
+      <div style={sx("position:fixed;top:10vh;left:0;right:0;margin:0 auto;width:min(520px,94vw);max-height:76vh;background:#fff;border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,.25);z-index:31;display:flex;flex-direction:column;overflow:hidden;animation:fsin .2s ease-out")}>
         <div style={sx("padding:16px;border-bottom:1px solid #e2dfd6;display:flex;flex-direction:column;gap:10px")}>
           <div style={sx("display:flex;justify-content:space-between;align-items:baseline;gap:10px")}>
             <span style={sx("font:600 17px/1.2 'IBM Plex Sans',sans-serif")}>Add ingredients</span>
@@ -1743,7 +2003,7 @@ function Rules({ v }: V) {
   return (
     <>
       <div onClick={v.closeRules} style={sx("position:fixed;inset:0;background:rgba(34,36,32,.38);z-index:30")} />
-      <div style={sx("position:fixed;top:6vh;left:50%;transform:translateX(-50%);width:min(860px,96vw);max-height:88vh;background:#fff;border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,.25);z-index:31;display:flex;flex-direction:column;overflow:hidden;animation:fsin .2s ease-out")}>
+      <div style={sx("position:fixed;top:6vh;left:0;right:0;margin:0 auto;width:min(860px,96vw);max-height:88vh;background:#fff;border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,.25);z-index:31;display:flex;flex-direction:column;overflow:hidden;animation:fsin .2s ease-out")}>
         <div style={sx("padding:18px 22px;border-bottom:1px solid #e2dfd6;display:flex;justify-content:space-between;align-items:flex-start;gap:12px")}>
           <div style={sx("display:flex;flex-direction:column;gap:5px")}>
             <span style={sx("font:600 19px/1.2 'IBM Plex Sans',sans-serif")}>Rules · {v.prog.name}</span>
