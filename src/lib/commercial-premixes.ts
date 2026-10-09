@@ -242,3 +242,30 @@ export function premixAnalysisForIds(ids: readonly string[]): CommercialPremixAn
     message: `${selected.name}: manufacturer micronutrient analysis and feed compatibility remain unverified. This is a supplier specification gap, not missing programme guidance.`,
   };
 }
+
+/**
+ * Supplier label guarantees are NOT interchangeable with SID formulation
+ * concentrations. Example: CJ S174 publishes lysine >= 4% on the premix
+ * label, but no ileal digestibility; counting it as 4% SID lysine would
+ * overstate the guaranteed digestible contribution.
+ */
+export function publishedPremixAminoAcids(premix: CommercialPremix): Array<{
+  name: string;
+  basis: "total";
+  unit: "%";
+  minimumPct: number | null;
+  maximumPct: number | null;
+  usableAsSid: false;
+}> {
+  const aminoPattern = /\b(lysine|methionine|threonine|tryptophan|valine|isoleucine|leucine|arginine)\b/i;
+  return (premix.publishedGuarantees ?? [])
+    .filter((claim) => claim.unit === "%" && aminoPattern.test(claim.nutrient))
+    .map((claim) => ({
+      name: claim.nutrient,
+      basis: "total" as const,
+      unit: "%" as const,
+      minimumPct: claim.min ?? null,
+      maximumPct: claim.max ?? null,
+      usableAsSid: false as const,
+    }));
+}
