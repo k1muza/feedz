@@ -39,3 +39,17 @@ test("Studio preserves an existing quoted price only for the same product", () =
   assert.equal(switched["sustar-glypro-x812"].price, undefined);
   assert.equal(switched["corn-yellow-dent"].price, 270);
 });
+
+test("leaving CJ's boar programme clears all former manufacturer locks and offers complete basal candidates", () => {
+  const boar = poolWithProgrammePremix({}, "mature-boar");
+  boar["corn-yellow-dent"].price = 260;
+  const grower = poolWithProgrammePremix(boar, "grow-finish-pig");
+  assert.equal(grower["cj-s174-boar-premix"], undefined);
+  assert.equal(grower["sustar-glypro-x912"]?.fixed, 0.2);
+  assert.equal(grower["corn-yellow-dent"].role, "available");
+  assert.equal(grower["corn-yellow-dent"].fixed, undefined);
+  assert.equal(grower["corn-yellow-dent"].price, 260);
+  for (const id of ["limestone-ground", "dicalcium-phosphate", "sodium-chloride", "l-lysine-hcl"]) {
+    assert.equal(grower[id]?.role, "available", id);
+  }
+});
