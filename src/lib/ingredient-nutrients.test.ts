@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { COMMERCIAL_PREMIXES } from "./commercial-premixes";
 
 import {
   INGREDIENT_LIBRARY,
@@ -98,7 +99,6 @@ test("all canonical species ingredient profiles carry a traceable nutrition sour
 });
 
 test("dynamically selected supplier premixes carry source metadata without invented nutrient values", () => {
-  const { COMMERCIAL_PREMIXES } = require("./commercial-premixes") as typeof import("./commercial-premixes");
   const product = COMMERCIAL_PREMIXES.find((item) => item.id === "sustar-glypro-x912")!;
   const supplemented = ingredientLibraryWithCommercialPremixes([product], INGREDIENT_LIBRARY);
   const record = supplemented.ingredients.find((item) => item.id === product.id)!;
