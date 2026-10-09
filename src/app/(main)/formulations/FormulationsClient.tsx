@@ -54,6 +54,7 @@ const colours: Record<IngredientId | 'fixed', string> = { sorghum: '#d99a2b', so
 type DownloadableFormulation = {
   formula: DietFormula;
   priority: FormulationPriority;
+  costIncreasePct: number;
 };
 
 export default function FormulationsClient({ ingredientPrices, ingredientPackSizes }: { ingredientPrices: IngredientDefaultPrice[]; ingredientPackSizes: IngredientPackSize[] }) {
@@ -66,6 +67,8 @@ export default function FormulationsClient({ ingredientPrices, ingredientPackSiz
   const [formulationPriority, setFormulationPriority] = useState<FormulationPriority>('simple');
   const [formulationNote, setFormulationNote] = useState<string | null>(null);
   const [downloadableFormulation, setDownloadableFormulation] = useState<DownloadableFormulation | null>(null);
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
+  const [downloadError, setDownloadError] = useState<string | null>(null);
   const [quoteDialogOpen, setQuoteDialogOpen] = useState(false);
   const [programmeId, setProgrammeId] = useState(programmeChoices[0].id);
   const selectedProgramme = programmeChoices.find((choice) => choice.id === programmeId) ?? programmeChoices[0];
@@ -329,7 +332,7 @@ export default function FormulationsClient({ ingredientPrices, ingredientPackSiz
           row.ingredientId !== selectedPremix.id && !knownEngineIds.has(row.ingredientId) && row.inclusionPct > 0);
         setExtraVisibleIngredientIds(extras.map((row) => row.ingredientId));
         setExtraInclusions(Object.fromEntries(extras.map((row) => [row.ingredientId, row.inclusionPct])));
-        setDownloadableFormulation({ formula: result.recipe, priority: 'least-cost' });
+        setDownloadableFormulation({ formula: result.recipe, priority: 'least-cost', costIncreasePct: 0 });
         setFormulationNote(`Manufacturer's original recipe, not independently optimised. ${costIncomplete ? 'Total cost UNKNOWN until a supplier premix quote is entered. ' : ''}${result.warning}`);
         return;
       }
@@ -347,7 +350,7 @@ export default function FormulationsClient({ ingredientPrices, ingredientPackSiz
         .map((row) => row.ingredientId);
       setExtraVisibleIngredientIds(extraIds);
       setExtraInclusions(Object.fromEntries(extraIds.map((id) => [id, amounts.get(id) ?? 0])));
-      setDownloadableFormulation({ formula: chosen.formula, priority: alternative?.id ?? 'least-cost' });
+      setDownloadableFormulation({ formula: chosen.formula, priority: alternative?.id ?? 'least-cost', costIncreasePct: alternative?.costIncreasePct ?? 0 });
       setFormulationNote((costIncomplete ? "Cost estimate EXCLUDES unquoted premix; total feed cost is unknown. " : "") + (alternative
         ? `${alternative.label} applied · ${alternative.costIncreasePct.toFixed(2)}% above least cost.`
         : 'Nutrient optimisation completed.'));
@@ -355,6 +358,45 @@ export default function FormulationsClient({ ingredientPrices, ingredientPackSiz
       setBalanceError(error instanceof Error ? error.message : String(error));
     } finally {
       setBalancing(false);
+    }
+  }
+
+  async function openDetailedPdf() {
+    if (!downloadableFormulation || !selectedPhase || !selectedPremix) return;
+    const viewerWindow = window.open('', '_blank');
+    if (!viewerWindow) {
+      setDownloadError('Your browser blocked the PDF tab. Allow pop-ups for this site and try again.');
+      return;
+    }
+    viewerWindow.opener = null;
+    viewerWindow.document.title = 'Preparing formulation PDF…';
+    viewerWindow.document.body.textContent = 'Preparing your detailed formulation PDF…';
+    setDownloadingPdf(true);
+    setDownloadError(null);
+    try {
+      const response = await fetch('/api/feed-formulation/report', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          programmeId,
+          phaseId,
+          premixId: selectedPremix.id,
+          ...(premixPrice !== undefined && Number.isFinite(premixPrice) && premixPrice >= 0 ? { premixPricePerKg: premixPrice } : {}),
+          ...downloadableFormulation,
+        }),
+      });
+      if (!response.ok) {
+        const error = await response.json().catch(() => null) as { message?: string } | null;
+        throw new Error(error?.message ?? 'Could not open the formulation PDF.');
+      }
+      const pdfUrl = URL.createObjectURL(await response.blob());
+      viewerWindow.location.replace(pdfUrl);
+      window.setTimeout(() => URL.revokeObjectURL(pdfUrl), 10 * 60 * 1000);
+    } catch (error) {
+      viewerWindow.close();
+      setDownloadError(error instanceof Error ? error.message : String(error));
+    } finally {
+      setDownloadingPdf(false);
     }
   }
 
@@ -477,9 +519,10 @@ export default function FormulationsClient({ ingredientPrices, ingredientPackSiz
           <div className="grid grid-cols-[minmax(110px,1fr)_minmax(100px,2fr)_64px] items-center gap-3.5 px-5 py-3"><span className="text-[15px] font-semibold">{selectedPremix?.name ?? 'No premix selected'}</span><span className="text-[13px] text-[#4f524b]">Manufacturer dose · {selectedPremix?.inclusionKgPerTonne ?? '—'} kg/tonne</span><span className="text-right text-[16px] font-semibold tabular-nums">{(selectedPremix?.inclusionPct ?? 0).toFixed(2)}%</span></div>
           {!totalIsValid ? <div className="border-t border-[#ece8de] bg-[#fff8eb] px-5 py-3 text-[13px] leading-5 text-[#6d4b12]"><b>{Math.abs(balanceAmount).toFixed(1)}% {balanceAmount > 0 ? 'still unallocated' : 'over 100%'}.</b> The preview is normalized for comparison. “Optimize this recipe” will calculate a new 100% formula for this phase.</div> : null}
           {balanceError ? <div className="border-t border-[#ece8de] bg-[#f6e0d9] px-5 py-3 text-[13px] leading-5 text-[#8f3420]">{balanceError}</div> : null}
+          {downloadError ? <div className="border-t border-[#ece8de] bg-[#f6e0d9] px-5 py-3 text-[13px] leading-5 text-[#8f3420]">{downloadError}</div> : null}
           
           {formulationNote ? <div className="border-t border-[#ece8de] bg-[#e3eadf] px-5 py-3 text-[13px] leading-5 text-[#1f5c38]">{formulationNote}</div> : null}
-          <div className="flex flex-wrap gap-2.5 border-t border-[#d9d4c7] px-5 py-4"><button type="button" onClick={() => void calculateFormula()} disabled={balancing || !selectedPhase} className="h-[42px] rounded-[4px] border-[1.5px] border-[#191b18] bg-transparent px-4 text-[14px] font-semibold disabled:cursor-not-allowed disabled:opacity-40">{balancing ? 'Calculating…' : manufacturerOnly ? 'Cost manufacturer recipe' : 'Optimize this recipe'}</button><button type="button" onClick={downloadFormula} disabled={!downloadableFormulation || balancing} title={downloadableFormulation ? 'Download the source-labelled recipe CSV' : 'Calculate the recipe before downloading'} className="h-[42px] rounded-[4px] border-[1.5px] border-[#191b18] bg-[#fbfaf6] px-4 text-[14px] font-semibold text-[#191b18] disabled:cursor-not-allowed disabled:opacity-40">Download recipe CSV</button><button type="button" onClick={() => setQuoteDialogOpen(true)} disabled={balancing} className="inline-flex h-[42px] items-center rounded-[4px] bg-[#d99a2b] px-4 text-[14px] font-semibold text-[#191b18] disabled:cursor-not-allowed disabled:opacity-40">Quote ingredients</button></div>
+          <div className="flex flex-wrap gap-2.5 border-t border-[#d9d4c7] px-5 py-4"><button type="button" onClick={() => void calculateFormula()} disabled={balancing || !selectedPhase} className="h-[42px] rounded-[4px] border-[1.5px] border-[#191b18] bg-transparent px-4 text-[14px] font-semibold disabled:cursor-not-allowed disabled:opacity-40">{balancing ? 'Calculating…' : manufacturerOnly ? 'Cost manufacturer recipe' : 'Optimize this recipe'}</button><button type="button" onClick={() => void openDetailedPdf()} disabled={!downloadableFormulation || balancing || downloadingPdf} title={downloadableFormulation ? 'Open the detailed formulation PDF in a new tab' : 'Calculate the recipe before downloading'} className="h-[42px] rounded-[4px] border-[1.5px] border-[#191b18] bg-[#fbfaf6] px-4 text-[14px] font-semibold text-[#191b18] disabled:cursor-not-allowed disabled:opacity-40">{downloadingPdf ? 'Preparing formula…' : 'Download recipe PDF'}</button><button type="button" onClick={downloadFormula} disabled={!downloadableFormulation || balancing} title={downloadableFormulation ? 'Download the source-labelled recipe CSV' : 'Calculate the recipe before downloading'} className="h-[42px] rounded-[4px] border-[1.5px] border-[#bdb7a9] bg-transparent px-4 text-[14px] font-semibold text-[#4f524b] disabled:cursor-not-allowed disabled:opacity-40">CSV</button><button type="button" onClick={() => setQuoteDialogOpen(true)} disabled={balancing} className="inline-flex h-[42px] items-center rounded-[4px] bg-[#d99a2b] px-4 text-[14px] font-semibold text-[#191b18] disabled:cursor-not-allowed disabled:opacity-40">Quote ingredients</button></div>
         </section>
 
         <section className="rounded-[6px] border border-[#d9d4c7] bg-[#fbfaf6] px-5 pb-4">

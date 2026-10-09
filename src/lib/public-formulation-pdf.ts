@@ -11,17 +11,14 @@ import {
 } from '@/lib/feed-ingredient-prices';
 import type { FormulationNutrientComparison } from '@/lib/feed-optimizer';
 import type { FeedProgrammeDefinition } from '@/lib/feed-programmes';
+import type { CommercialPremix } from '@/lib/commercial-premixes';
+import type { CompleteFeedValidation } from '@/lib/complete-feed-validation';
 import {
   INGREDIENT_LIBRARY,
   ingredientLibraryForPhase,
-  ingredientLibraryWithCustomPremixes,
+  ingredientLibraryWithCommercialPremixes,
 } from '@/lib/ingredient-nutrients';
 import type { NutritionPhase } from '@/lib/nutrition';
-import {
-  PUBLIC_PREMIX_INCLUSION_PCT,
-  PUBLIC_PREMIX_KG_PER_TONNE,
-  publicPremixProfileForPhase,
-} from '@/lib/public-feed-premix';
 import { siteConfig } from '@/lib/seo';
 
 const W = 595.28;
@@ -81,8 +78,16 @@ export type PublicFormulationPdfInput = {
   formula: {
     ingredients: { ingredientId: string; inclusionPct: number }[];
   };
+  /** The real manufacturer product in the formula, at its label dose. */
+  premix: CommercialPremix;
+  /** Supplier quotation entered by the user; falls back to the planning default. */
+  premixPricePerKg?: number;
+  /** True when the formula is the manufacturer's fixed recipe, not an optimised mix. */
+  manufacturerRecipe: boolean;
   nutrientProfile: FormulationNutrientComparison[];
-  costPerKg: number;
+  validation: CompleteFeedValidation;
+  /** Null when an ingredient (usually the premix) has no price: never invent one. */
+  costPerKg: number | null;
   costIncreasePct: number;
   generatedAt?: Date;
   /** Planning prices to show; defaults to the hard-coded planning prices. */
@@ -150,8 +155,15 @@ export async function renderPublicFormulationPdf(input: PublicFormulationPdfInpu
       .map((part) => [part.type, part.value]),
   );
   const docRef = `FS-FORM-${input.phase.id.toUpperCase()}-${dateParts.year}${dateParts.month}${dateParts.day}`;
-  const premix = publicPremixProfileForPhase(input.phase);
-  const ingredientLibrary = ingredientLibraryWithCustomPremixes([premix], ingredientLibraryForPhase(input.phase));
+  const premix = input.premix;
+  const premixProfile = premix.verifiedAsFedMicronutrients ?? premix.guaranteedMinimumAsFed;
+  const premixVerified = premix.verificationStatus === 'verified' && !!premix.verifiedAsFedMicronutrients;
+  const ingredientLibrary = ingredientLibraryWithCommercialPremixes([premix], ingredientLibraryForPhase(input.phase));
+  const planningPricePerTonne = (ingredientId: string) =>
+    ingredientId === premix.id && input.premixPricePerKg !== undefined
+      ? input.premixPricePerKg * 1000
+      : ingredientDefaultPlanningPricePerTonne(ingredientId, input.ingredientPrices);
+  const costLabel = input.costPerKg === null ? 'Unknown' : `$${(input.costPerKg * 1000).toFixed(2)}/t`;
   const ingredientMap = new Map(ingredientLibrary.ingredients.map((ingredient) => [ingredient.id, ingredient]));
   const totalInclusion = input.formula.ingredients.reduce((sum, ingredient) => sum + ingredient.inclusionPct, 0);
   const passed = input.nutrientProfile.filter((nutrient) => nutrient.margin >= -1e-6).length;
@@ -276,16 +288,18 @@ export async function renderPublicFormulationPdf(input: PublicFormulationPdfInpu
     y -= 31;
   }
   text(input.phase.sourceWeightRange, M, 11, 'regular', C.muted);
-  const badge = `${passed}/${input.nutrientProfile.length} constraints met`;
+  const badge = input.validation.completeFeed === 'complete'
+    ? 'Complete feed: verified'
+    : `${passed}/${input.nutrientProfile.length} constraints met`;
   const badgeWidth = width(badge, 'semibold', 8) + 22;
   page.drawRectangle({ x: W - M - badgeWidth, y: y - 5, width: badgeWidth, height: 23, color: C.greenTint });
   textRight(badge, W - M - 11, 8, 'semibold', C.green, y + 2);
   y -= 35;
 
   const tiles = [
-    ['Priority', input.priority.label],
-    ['Planning cost', `$${(input.costPerKg * 1000).toFixed(2)}/t`],
-    ['Premix', `${PUBLIC_PREMIX_KG_PER_TONNE} kg/t`],
+    ['Priority', input.manufacturerRecipe ? 'Manufacturer recipe' : input.priority.label],
+    ['Planning cost', costLabel],
+    ['Premix', `${premix.sku} · ${premix.inclusionKgPerTonne} kg/t`],
     ['Formula total', `${totalInclusion.toFixed(2)}%`],
   ];
   const tileGap = 7;
@@ -313,7 +327,7 @@ export async function renderPublicFormulationPdf(input: PublicFormulationPdfInpu
     .sort((a, b) => b.inclusionPct - a.inclusionPct)
     .map((item) => {
       const ingredient = ingredientMap.get(item.ingredientId);
-      const planningPrice = ingredientDefaultPlanningPricePerTonne(item.ingredientId, input.ingredientPrices);
+      const planningPrice = planningPricePerTonne(item.ingredientId);
       const kgPerTonne = item.inclusionPct * 10;
       const contribution = planningPrice === undefined ? undefined : kgPerTonne * planningPrice / 1000;
       return [
@@ -324,7 +338,7 @@ export async function renderPublicFormulationPdf(input: PublicFormulationPdfInpu
         contribution === undefined ? '—' : `$${contribution.toFixed(2)}`,
       ];
     });
-  formulaRows.push(['TOTAL', totalInclusion.toFixed(2), '1,000.00', '', `$${(input.costPerKg * 1000).toFixed(2)}`]);
+  formulaRows.push(['TOTAL', totalInclusion.toFixed(2), '1,000.00', '', input.costPerKg === null ? 'Unknown' : `$${(input.costPerKg * 1000).toFixed(2)}`]);
   drawTable(
     [
       { label: 'Ingredient', width: 204 },
@@ -358,58 +372,94 @@ export async function renderPublicFormulationPdf(input: PublicFormulationPdfInpu
     { fontSize: 7.4 },
   );
 
-  sectionHeading('Vitamin premix specification', `${PUBLIC_PREMIX_INCLUSION_PCT}% inclusion · ${PUBLIC_PREMIX_KG_PER_TONNE} kg/t`);
-  paragraph('This phase-specific vitamin-mineral premix is fixed at 1% of finished feed. Vitamin concentrations below are calculated so that 10 kg of premix per tonne supplies the published finished-feed supplementation level.', 8);
-  const vitaminRows = Object.entries(premix.vitamins).flatMap(([key, premixValue]) => {
-    if (premixValue === undefined) return [];
-    const [label, unit] = vitaminLabels[key] ?? [key, ''];
-    const finishedValue = input.phase.supplementation?.vitamins[key as keyof typeof input.phase.supplementation.vitamins];
-    return [[label, unit, compactNumber(premixValue, 2), finishedValue === undefined ? '—' : compactNumber(finishedValue, 3)]];
-  });
+  sectionHeading('Nutritional completeness', input.validation.completeFeed === 'complete' ? 'Complete' : 'Not a verified complete feed');
+  paragraph(input.validation.note, 8);
   drawTable(
     [
-      { label: 'Vitamin', width: 214 },
-      { label: 'Unit', width: 75 },
-      { label: 'Premix concentration', width: 116, align: 'right' },
-      { label: 'Finished-feed addition', width: 106, align: 'right' },
+      { label: 'Category', width: 170 },
+      { label: 'Status', width: 80 },
+      { label: 'Checked', width: 60, align: 'right' },
+      { label: 'Note', width: 201 },
     ],
-    vitaminRows,
-    { fontSize: 7.7 },
+    input.validation.categories.map((category) => [
+      category.label,
+      category.status === 'met' ? 'Met' : category.status === 'not_met' ? 'Not met' : 'Not verified',
+      `${category.checked}/${category.required}`,
+      category.note,
+    ]),
+    { fontSize: 7.4 },
   );
 
-  sectionHeading('Trace-mineral premix specification', 'Inorganic basis');
-  paragraph('Trace minerals are shown separately from vitamins. Premix concentrations provide the published inorganic trace-mineral addition when the premix is included at 10 kg per tonne.', 8);
-  const traceTargets = input.phase.supplementation?.traceMinerals.inorganic;
-  const traceRows = Object.entries(premix.traceMineralsPpm).flatMap(([key, premixValue]) => {
-    if (premixValue === undefined) return [];
-    const targetKey = `${key}Ppm` as keyof NonNullable<typeof traceTargets>;
-    const finishedValue = traceTargets?.[targetKey];
-    return [[traceLabels[key] ?? key, 'ppm', compactNumber(premixValue, 2), finishedValue === undefined ? '—' : compactNumber(finishedValue, 3)]];
-  });
+  sectionHeading('Commercial premix', `${premix.inclusionPct}% inclusion · ${premix.inclusionKgPerTonne} kg/t`);
   drawTable(
     [
-      { label: 'Trace mineral', width: 214 },
-      { label: 'Unit', width: 75 },
-      { label: 'Premix concentration', width: 116, align: 'right' },
-      { label: 'Finished-feed addition', width: 106, align: 'right' },
+      { label: 'Field', width: 140 },
+      { label: 'Detail', width: 371 },
     ],
-    traceRows,
-    { fontSize: 7.7 },
+    [
+      ['Product', premix.name],
+      ['Manufacturer · SKU', `${premix.manufacturer} · ${premix.sku}`],
+      ['Application', premix.application],
+      ['Dose', premix.inclusionInstructions],
+      ['Nutrient data', premixVerified
+        ? 'Manufacturer-verified analysis.'
+        : 'Supplier label minima, not independently verified. No complete-feed micronutrient pass is claimed.'],
+      ...(input.manufacturerRecipe ? [['Restriction', 'Fixed manufacturer recipe. No ingredient substitutions or ratio changes are permitted without a customised formula from the manufacturer.']] : []),
+      ['Specification', premix.specificationUrl],
+    ],
+    { fontSize: 7.6, repeatHeader: false },
   );
+
+  if (premixProfile) {
+    const share = premix.inclusionPct / 100;
+    const vitaminTargets = input.phase.supplementation?.vitamins;
+    const traceTargets = input.phase.supplementation?.traceMinerals.inorganic;
+    const vitaminRows = Object.entries(premixProfile.vitamins).flatMap(([key, concentration]) => {
+      if (concentration === undefined) return [];
+      const [label, unit] = vitaminLabels[key] ?? [key, ''];
+      const target = vitaminTargets?.[key as keyof typeof vitaminTargets];
+      return [[label, unit, compactNumber(concentration, 2), compactNumber(concentration * share, 3), target === undefined ? '—' : compactNumber(target, 3)]];
+    });
+    const traceRows = Object.entries(premixProfile.traceMineralsPpm).flatMap(([key, concentration]) => {
+      if (concentration === undefined) return [];
+      const target = traceTargets?.[`${key}Ppm` as keyof NonNullable<typeof traceTargets>];
+      return [[traceLabels[key] ?? key, 'ppm', compactNumber(concentration, 2), compactNumber(concentration * share, 3), target === undefined ? '—' : compactNumber(target, 3)]];
+    });
+    const columns: TableColumn[] = [
+      { label: 'Nutrient', width: 151 },
+      { label: 'Unit', width: 60 },
+      { label: 'Premix label', width: 100, align: 'right' },
+      { label: 'In finished feed', width: 100, align: 'right' },
+      { label: 'Suggested addition', width: 100, align: 'right' },
+    ];
+    const basis = premixVerified ? 'Verified analysis' : 'Label minimum · unverified';
+    if (vitaminRows.length) {
+      sectionHeading('Premix vitamin contribution', basis);
+      paragraph(`Concentrations are taken from the ${premix.manufacturer} label (${premixProfile.sourceUrl}) and scaled by the ${premix.inclusionKgPerTonne} kg/t dose. Suggested additions are the programme's published supplementation guidance.`, 8);
+      drawTable(columns, vitaminRows, { fontSize: 7.7 });
+    }
+    if (traceRows.length) {
+      sectionHeading('Premix trace-mineral contribution', `${basis} · inorganic targets`);
+      drawTable(columns, traceRows, { fontSize: 7.7 });
+    }
+  } else {
+    paragraph('The manufacturer has not published a vitamin and trace-mineral profile that FeedSport can credit. Obtain the product specification or a batch certificate of analysis before relying on this premix for micronutrient supply.', 8, C.amberText);
+  }
 
   sectionHeading('Planning prices and provenance');
   paragraph('Prices are planning assumptions, not supplier quotations. Regional and global references include the engine’s standard import multiplier where applicable; freight, duty, handling and supplier-specific terms may still differ.', 8);
   const priceRows = input.formula.ingredients
     .map((item) => {
       const ingredient = ingredientMap.get(item.ingredientId);
+      const quoted = item.ingredientId === premix.id && input.premixPricePerKg !== undefined;
       const price = ingredientDefaultPrice(item.ingredientId, input.ingredientPrices);
-      const planningPrice = ingredientDefaultPlanningPricePerTonne(item.ingredientId, input.ingredientPrices);
+      const planningPrice = planningPricePerTonne(item.ingredientId);
       return [
         ingredient?.name ?? item.ingredientId,
         planningPrice === undefined ? '—' : `$${planningPrice.toFixed(2)}`,
-        price?.market ?? 'No market reference',
-        price?.asOf ?? '—',
-        price?.sourceLabel ?? 'No source recorded',
+        quoted ? 'User-entered supplier quote' : price?.market ?? 'No market reference',
+        quoted ? '—' : price?.asOf ?? '—',
+        quoted ? 'Entered on the formulation page' : price?.sourceLabel ?? 'No source recorded',
       ];
     });
   drawTable(
@@ -426,13 +476,17 @@ export async function renderPublicFormulationPdf(input: PublicFormulationPdfInpu
 
   sectionHeading('Source basis and assumptions');
   const supplementationSources = input.phase.supplementation
-    ? `Premix supplementation: Brazilian Tables 2024 tables ${input.phase.supplementation.sourceTables.join(', ')}, printed pages ${input.phase.supplementation.sourcePages.join(', ')}.`
+    ? `Suggested supplementation: Brazilian Tables 2024 tables ${input.phase.supplementation.sourceTables.join(', ')}, printed pages ${input.phase.supplementation.sourcePages.join(', ')}.`
     : 'No separate vitamin/trace-mineral supplementation table is attached to this phase.';
+  const premixSource = `Premix: ${premix.name} (${premix.manufacturer}, SKU ${premix.sku}) at the manufacturer-published ${premix.inclusionKgPerTonne} kg/t. ${premix.note ?? ''}`.trim();
   const methodology = [
     `Requirements: ${input.programme.description} Phase source: Table ${input.phase.sourceTable}, printed page ${input.phase.sourcePage}; source weight basis ${input.phase.sourceWeightRange}.`,
     supplementationSources,
+    premixSource,
     `Ingredient nutrient matrix: ${INGREDIENT_LIBRARY.source.publisher}, ${INGREDIENT_LIBRARY.source.title}, ${INGREDIENT_LIBRARY.source.edition} (${INGREDIENT_LIBRARY.source.year}), ${INGREDIENT_LIBRARY.source.chapter}. DOI ${INGREDIENT_LIBRARY.source.doi}.`,
-    `Priority: ${input.priority.description}${input.costIncreasePct > 0 ? ` This formula is ${input.costIncreasePct.toFixed(2)}% above the least-cost solution.` : ''}`,
+    input.manufacturerRecipe
+      ? `Recipe: ${premix.manufacturer}'s published basal recipe for ${premix.sku}, reproduced exactly and not independently optimised.`
+      : `Priority: ${input.priority.description}${input.costIncreasePct > 0 ? ` This formula is ${input.costIncreasePct.toFixed(2)}% above the least-cost solution.` : ''}`,
     'Nutrient calculations use the FeedSport engine ingredient matrix on an as-fed basis. ME is the selected energy system. SID denotes standardized ileal digestibility; available phosphorus and mineral constraints follow the programme model.',
     'Review status: this formula is computer-generated and has not been reviewed by an animal nutritionist. A qualified animal nutritionist must review and approve it before manufacture or feeding.',
     'Operational check: confirm current supplier prices, ingredient certificates of analysis, premix carrier and manufacturability before production. Re-formulate when ingredient quality, availability or price changes.',
