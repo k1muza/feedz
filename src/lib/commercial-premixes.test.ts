@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import { FEED_PROGRAMMES } from "./feed-programmes";
+import { INGREDIENT_LIBRARY, ingredientLibraryWithCommercialPremixes } from "./ingredient-nutrients";
 import {
   COMMERCIAL_PREMIXES,
   commercialPremixById,
@@ -98,6 +99,26 @@ describe("Manufacturer-backed commercial premix catalogue", () => {
     }]);
     assert.deepEqual(publishedPremixAminoAcids(commercialPremixById("sustar-glypro-x912")!), []);
     assert.deepEqual(publishedPremixAminoAcids(commercialPremixById("sustar-glypro-x911")!), []);
+  });
+
+  test("verified exact amino acids can be credited, but unspecified amino acids remain unknown", () => {
+    const source = commercialPremixById("sustar-glypro-x912")!;
+    const synthetic = {
+      ...source,
+      id: "test-confirmed-aa-premix",
+      verifiedAsFedAminoAcids: {
+        reference: "test fixture only — not an actual supplier analysis",
+        totalPct: { lysine: 5 },
+        sidPct: { lysine: 4.2 },
+      },
+    };
+    const library = ingredientLibraryWithCommercialPremixes([synthetic], INGREDIENT_LIBRARY);
+    const item = library.ingredients.find((record) => record.id === synthetic.id)!;
+    assert.equal(item.aminoAcids.totalPct.lysine, 5);
+    assert.equal(item.aminoAcids.sidPct.lysine, 4.2);
+    const actual = ingredientLibraryWithCommercialPremixes([source], INGREDIENT_LIBRARY);
+    const actualItem = actual.ingredients.find((record) => record.id === source.id)!;
+    assert.equal(actualItem.aminoAcids.sidPct.lysine, undefined, "Do not fabricate Sustar SID lysine.");
   });
 
   test("does not substitute a broiler product for layers or pigs", () => {
