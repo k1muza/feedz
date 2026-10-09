@@ -353,6 +353,47 @@ export function ingredientLibraryWithCustomPremixes(
 }
 
 /**
+ * Commercial premixes are identified by a real manufacturer SKU. Until a
+ * verified analysis is supplied they contribute no claimed micronutrient
+ * concentrations; the placeholder matrix exists only to include a fixed
+ * product in the solver's ingredient list. Do not generate it at call sites.
+ */
+export function ingredientLibraryWithCommercialPremixes(
+  premixes: readonly import("./commercial-premixes").CommercialPremix[],
+  library: IngredientLibrary,
+): IngredientLibrary {
+  if (premixes.length === 0) return library;
+  const result = ingredientLibraryWithCustomPremixes(
+    premixes.map(({ id, name }) => ({
+      id, name, vitamins: {}, traceMineralsPpm: {},
+    })),
+    library,
+  );
+  const ids = new Set(premixes.map((product) => product.id));
+  return {
+    ...result,
+    ingredients: result.ingredients.map((record) => {
+      if (!ids.has(record.id)) return record;
+      const product = premixes.find((p) => p.id === record.id)!;
+      return {
+        ...record,
+        provenance: {
+          ...record.provenance,
+          notes: [
+            "Real manufacturer SKU; nutrient matrix remains unverified. Do not claim vitamin/trace-mineral sufficiency.",
+            `Manufacturer: ${product.manufacturer}; model: ${product.sku}; reference: ${product.specificationUrl}`,
+          ],
+        },
+        constraints: {
+          ...record.constraints,
+          notes: [`Commercial premix inclusion fixed at ${product.inclusionPct}%. Verification: unverified.`],
+        },
+      };
+    }),
+  };
+}
+
+/**
  * Standardized ileal digestible concentration for one amino acid.
  *
  * Prefer an explicit SID concentration when the source publishes one. Otherwise
