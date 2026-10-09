@@ -8,7 +8,7 @@
  */
 export type CommercialPremix = {
   id: string;
-  manufacturer: "Chengdu Sustar Feed";
+  manufacturer: "Chengdu Sustar Feed" | "CJ (Tianjin) Feed";
   sku: string;
   name: string;
   species: "pig" | "broiler" | "layer";
@@ -16,7 +16,9 @@ export type CommercialPremix = {
   inclusionPct: number;
   inclusionKgPerTonne: number;
   verificationStatus: "unverified";
-  formulationCompatibility: "unconfirmed";
+  formulationCompatibility: "unconfirmed" | "manufacturer_recipe_only";
+  /** Source-provided percentages. Never derive a commercial formula in the app. */
+  manufacturerRecipe?: readonly { ingredientId: string; percent: number }[];
   pricePerTonne: null;
   specificationUrl: string;
   publishedAnalysis: {
@@ -28,6 +30,31 @@ export type CommercialPremix = {
 };
 
 export const COMMERCIAL_PREMIXES: readonly CommercialPremix[] = [
+  {
+    id: "cj-s174-boar-premix",
+    manufacturer: "CJ (Tianjin) Feed", sku: "S174",
+    name: "CJ Feed S174 — Breeding boar premix",
+    species: "pig", application: "Mature breeding boars",
+    inclusionPct: 4, inclusionKgPerTonne: 40,
+    verificationStatus: "unverified", formulationCompatibility: "manufacturer_recipe_only",
+    pricePerTonne: null,
+    specificationUrl: "https://www.cjfeedcn.com/swine-feed/boar-premix-feed.html",
+    // These are the manufacturer's published ranges, NOT verified input
+    // concentrations and are never used as a manufactured nutrient matrix.
+    publishedAnalysis: {
+      zincMgKg: { min: 350, max: 1800 },
+      copperMgKg: { min: 50, max: 625 },
+      vitaminAIuKg: { min: 32500, max: 300000 },
+    },
+    manufacturerRecipe: [
+      { ingredientId: "corn-yellow-dent", percent: 64.3 },
+      { ingredientId: "wheat-bran", percent: 12 },
+      { ingredientId: "soybean-meal-solvent-extracted", percent: 15.7 },
+      { ingredientId: "fish-meal-54", percent: 4 },
+      { ingredientId: "cj-s174-boar-premix", percent: 4 },
+    ],
+    note: "Manufacturer lists premix model S174 but calls the 4% component ST174A in its recommended ration. Confirm the labels, exact nutrient guarantees and prices with CJ. Supplier directs users to its fixed formula or technical department for customised ratios.",
+  },
   {
     id: "sustar-glypro-x911",
     manufacturer: "Chengdu Sustar Feed", sku: "GlyPro X911",
@@ -118,6 +145,7 @@ export function commercialPremixById(id: string): CommercialPremix | undefined {
 export function commercialPremixForProgramme(programmeId: string): CommercialPremix | undefined {
   const programme = programmeId.split(":")[0].toLowerCase();
   const sku =
+    programme === "mature-boar" ? "S174" :
     programme.startsWith("nursery-pig") ? "X911" :
     programme.startsWith("grow-finish-pig") ||
     programme.startsWith("growing-barrows") ||
@@ -129,12 +157,39 @@ export function commercialPremixForProgramme(programmeId: string): CommercialPre
     programme.startsWith("layer-") ? "X811" :
     undefined;
 
-  // No confirmed combined vitamin-mineral product in this catalogue for mature
-  // boars. X913 is sow-only; X303 is a vitamin-only breeding-pig product.
   if (!sku) return undefined;
-  return COMMERCIAL_PREMIXES.find((p) => p.sku === `GlyPro ${sku}`);
+  return COMMERCIAL_PREMIXES.find((p) => p.sku === (sku === "S174" ? sku : `GlyPro ${sku}`));
 }
 
 export function commercialPremixCompatibleWithProgramme(premix: CommercialPremix, programmeId: string): boolean {
   return commercialPremixForProgramme(programmeId)?.id === premix.id;
+}
+
+/**
+ * Check a source-restricted manufacturer's fixed mixing recipe, without
+ * computing nutrition or changing any manufacturer-provided proportion.
+ * Throw if the request introduces ingredients or allows different ratios.
+ */
+export function assertManufacturerRecipe(
+  premix: CommercialPremix,
+  ingredients: readonly { ingredientId: string; minInclusionPct?: number; maxInclusionPct?: number }[],
+): void {
+  if (premix.formulationCompatibility !== "manufacturer_recipe_only") return;
+  const recommended = premix.manufacturerRecipe;
+  if (!recommended) throw new Error(`Missing manufacturer recipe for ${premix.sku}.`);
+  const actual = new Map(ingredients.map((row) => [row.ingredientId, row]));
+  const matches =
+    actual.size === recommended.length &&
+    ingredients.length === recommended.length &&
+    recommended.every(({ ingredientId, percent }) => {
+      const row = actual.get(ingredientId);
+      return row !== undefined &&
+        row.minInclusionPct !== undefined &&
+        row.maxInclusionPct !== undefined &&
+        Math.abs(row.minInclusionPct - percent) < 0.000001 &&
+        Math.abs(row.maxInclusionPct - percent) < 0.000001;
+    });
+  if (!matches) {
+    throw new Error(`${premix.name} is restricted to CJ's published recipe. Lock every ingredient to the manufacturer percentages (including the 4% premix), or obtain a customised formula from CJ before changing ingredient ratios. See ${premix.specificationUrl}`);
+  }
 }
