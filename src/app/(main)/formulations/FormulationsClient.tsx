@@ -9,7 +9,7 @@ import type { IngredientPackSize } from '@/lib/ingredient-pack-sizes';
 import type { FormulationAlternativeKind, FormulationIngredientSuggestionResult, LeastCostFormulationResult } from '@/lib/feed-optimizer';
 import { feedProgrammeById, feedProgrammePhaseById } from '@/lib/feed-programmes';
 import { INGREDIENT_LIBRARY, ingredientLibraryForPhase, ingredientLibraryWithCommercialPremixes } from '@/lib/ingredient-nutrients';
-import { commercialPremixForProgramme, publishedPremixAminoAcids, publishedMinimumTotalAminoAcidsInFeed } from '@/lib/commercial-premixes';
+import { commercialPremixForProgramme, eligibleCommercialPremixes, publishedPremixAminoAcids, publishedMinimumTotalAminoAcidsInFeed } from '@/lib/commercial-premixes';
 import { initialFeedMix } from '@/lib/public-formulation-defaults';
 import { FEED_PROGRAMMES } from '@/lib/feed-programmes';
 import { resolveNutritionTargets } from '@/lib/nutrition-targets';
@@ -70,7 +70,10 @@ export default function FormulationsClient({ ingredientPrices, ingredientPackSiz
   const [programmeId, setProgrammeId] = useState(programmeChoices[0].id);
   const selectedProgramme = programmeChoices.find((choice) => choice.id === programmeId) ?? programmeChoices[0];
   const [phaseId, setPhaseId] = useState(selectedProgramme.programme.phases[0]?.id ?? '');
-  const selectedPremix = commercialPremixForProgramme(programmeId);
+  const [premixByProgramme, setPremixByProgramme] = useState<Record<string, string>>({});
+  const premixChoices = eligibleCommercialPremixes(programmeId);
+  const selectedPremix = premixChoices.find((product) => product.id === premixByProgramme[programmeId])
+    ?? commercialPremixForProgramme(programmeId);
   const [premixPrices, setPremixPrices] = useState<Record<string, string>>({});
   const premixPriceInput = selectedPremix ? (premixPrices[selectedPremix.id] ?? '') : '';
   const premixPrice = premixPriceInput.trim() ? Number(premixPriceInput) : undefined;
@@ -173,7 +176,9 @@ export default function FormulationsClient({ ingredientPrices, ingredientPackSiz
     const nextProgramme = programmeChoices.find((choice) => choice.id === nextProgrammeId) ?? programmeChoices[0];
     setProgrammeId(nextProgramme.id);
     setPhaseId(nextProgramme.programme.phases[0]?.id ?? '');
-    const nextProduct = commercialPremixForProgramme(nextProgramme.id);
+    const eligible = eligibleCommercialPremixes(nextProgramme.id);
+    const nextProduct = eligible.find((item) => item.id === premixByProgramme[nextProgramme.id])
+      ?? commercialPremixForProgramme(nextProgramme.id);
     const published = nextProduct?.manufacturerRecipe;
     if (published) {
       const mix = new Map(published.map((item) => [item.ingredientId, item.percent]));
@@ -192,6 +197,29 @@ export default function FormulationsClient({ ingredientPrices, ingredientPackSiz
     setBalanceError(null);
     setDownloadableFormulation(null);
     }
+
+  function changePremix(nextProductId: string) {
+    const product = premixChoices.find((item) => item.id === nextProductId);
+    if (!product) return;
+    setPremixByProgramme((current) => ({ ...current, [programmeId]: product.id }));
+    const recipe = product.manufacturerRecipe;
+    if (recipe) {
+      const mix = new Map(recipe.map((item) => [item.ingredientId, item.percent]));
+      setInclusions(Object.fromEntries(rows.map((row) => [row.id, mix.get(row.engineId) ?? 0])) as Inclusion);
+      setVisibleIngredientIds(rows.filter((row) => (mix.get(row.engineId) ?? 0) > 0).map((row) => row.id));
+      const extras = recipe.filter((item) => item.ingredientId !== product.id &&
+        !rows.some((row) => row.engineId === item.ingredientId));
+      setExtraVisibleIngredientIds(extras.map((item) => item.ingredientId));
+      setExtraInclusions(Object.fromEntries(extras.map((item) => [item.ingredientId, item.percent])));
+    } else {
+      setInclusions((current) => initialFeedMix(current, "sorghum", product.inclusionPct));
+      setExtraVisibleIngredientIds([]);
+      setExtraInclusions({});
+    }
+    setFormulationNote(null);
+    setBalanceError(null);
+    setDownloadableFormulation(null);
+  }
 
   function changePhase(nextPhaseId: string) {
     setPhaseId(nextPhaseId);
@@ -371,7 +399,15 @@ export default function FormulationsClient({ ingredientPrices, ingredientPackSiz
           <div className="mt-4 grid gap-3 rounded-[4px] border border-[#dccda5] bg-[#fff9ec] p-4 md:grid-cols-[minmax(0,1fr)_190px]">
             <div>
               <p className="mb-1 mt-0 text-[12px] font-bold uppercase tracking-wide text-[#78591e]">Commercial premix · Unverified</p>
-              <p className="mb-1 text-[15px] font-bold">{selectedPremix.name}</p>
+              <label className="my-2 flex flex-col gap-1 text-[13px] font-semibold text-[#191b18]">
+                Premix ingredient for this animal
+                <select value={selectedPremix.id} onChange={(event) => changePremix(event.target.value)}
+                  className="h-10 rounded-[4px] border border-[#bdb7a9] bg-white px-3 text-[14px] font-medium">
+                  {premixChoices.map((product) => (
+                    <option key={product.id} value={product.id}>{product.name} · {product.inclusionKgPerTonne} kg/t</option>
+                  ))}
+                </select>
+              </label>
               <p className="my-1 text-[13px] text-[#4f524b]">
                 Published inclusion: {selectedPremix.inclusionKgPerTonne} kg/t ({selectedPremix.inclusionPct}%). {selectedPremix.application}.
               </p>
