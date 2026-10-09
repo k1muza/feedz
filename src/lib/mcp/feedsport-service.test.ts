@@ -25,6 +25,7 @@ describe("FeedSport MCP automatic ingredient mode", () => {
     assert.ok(result.formulation_basis.candidate_count > 1);
     assert.ok(!result.formulation_basis.candidate_ingredients.includes("public-premix-salt-additives"));
     assert.ok(result.unsupported_requirements.includes("vitamin-trace-mineral-supplementation"));
+    assert.equal(result.premix_analysis.status, "not_included");
   });
 
   it("can optimise a nursery basal ration with real Sustar X911 without missing basal premix macros", async () => {
@@ -59,6 +60,9 @@ describe("FeedSport MCP automatic ingredient mode", () => {
     assert.equal(result.status, "optimal");
     if (result.status === "optimal") {
       assert.equal(result.premix_verification, "unverified");
+      assert.equal(result.premix_analysis.status, "unverified");
+      assert.equal(result.premix_analysis.product_id, "sustar-glypro-x911");
+      assert.equal(result.premix_analysis.reason, "manufacturer_nutrient_analysis_incomplete");
       assert.ok(result.unsupported_requirements.includes("vitamin-trace-mineral-supplementation"));
     }
   });
@@ -173,6 +177,8 @@ describe("CJ S174 manufacturer-only mature-boar workflow", () => {
       recipe.slice().sort((a,b) => b.percent - a.percent).map((row) => [row.ingredientId, row.percent]));
     assert.equal(result.cost_per_tonne, 376);
     assert.equal(result.verification, "unverified");
+    assert.equal(result.premix_analysis.status, "unverified");
+    assert.equal(result.premix_analysis.product_id, "cj-s174-boar-premix");
     assert.ok(result.incomplete_requirements.length > 0, "Premix macro-nutrient values are missing and must stay unknown.");
     assert.equal(result.premix_analysis.reason, "manufacturer_nutrient_analysis_incomplete");
     assert.ok(!result.unsupported_requirements.includes("vitamin-trace-mineral-supplementation"),
