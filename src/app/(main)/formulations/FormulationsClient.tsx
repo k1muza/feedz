@@ -210,96 +210,112 @@ export default function FormulationsClient({ ingredientPrices, ingredientPackSiz
   }
 
   async function calculateFormula() {
-    if (!selectedPhase) return;
+    if (!selectedPhase || !selectedPremix) return;
     setBalancing(true);
     setBalanceError(null);
-    setDownloadError(null);
     setDownloadableFormulation(null);
     setFormulationNote(null);
-
     try {
-      const suggestionResponse = await fetch('/api/feed-formulation/suggest', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ programmeId, phaseId, energySystem: 'ME' }),
-      });
-      const suggestion = await suggestionResponse.json() as FormulationIngredientSuggestionResult | { status: 'error'; message?: string };
-      if (!suggestionResponse.ok || suggestion.status !== 'suggested') {
-        throw new Error('message' in suggestion && suggestion.message ? suggestion.message : 'Could not prepare ingredients for this phase.');
+      if (premixPrice === undefined || !Number.isFinite(premixPrice) || premixPrice < 0) {
+        throw new Error(`Enter a supplier quote in USD/kg for ${selectedPremix.sku} or request a quote below. We don't invent premix prices.`);
       }
-
-      const candidateIds = Array.from(new Set([
-        ...suggestion.ingredientIds,
-        ...visibleRows.map((row) => row.engineId),
-        ...extraVisibleIngredientIds,
-      ]));
-      const pricedIngredients = candidateIds.flatMap((ingredientId) => {
-        const pricePerKg = ingredientDefaultPricePerKg(ingredientId, ingredientPrices);
-        return pricePerKg === undefined ? [] : [{ ingredientId, pricePerKg }];
-      });
-      if (pricedIngredients.length === 0) {
-        throw new Error('No planning prices are available for the selected ingredients.');
+      let pricedIngredients: Array<{
+        ingredientId: string;
+        pricePerKg: number;
+        minInclusionPct?: number;
+        maxInclusionPct?: number;
+      }>;
+      if (selectedPremix.manufacturerRecipe) {
+        // The published CJ mix must be reproduced exactly, not reformulated.
+        pricedIngredients = selectedPremix.manufacturerRecipe.map((item) => {
+          const pricePerKg = item.ingredientId === selectedPremix.id
+            ? premixPrice : ingredientDefaultPricePerKg(item.ingredientId, ingredientPrices);
+          if (pricePerKg === undefined) {
+            throw new Error(`No planning price for ${item.ingredientId}. Request a quote or use Studio for detailed costing.`);
+          }
+          return {
+            ingredientId: item.ingredientId,
+            pricePerKg,
+            minInclusionPct: item.percent,
+            maxInclusionPct: item.percent,
+          };
+        });
+      } else {
+        const suggestionResponse = await fetch('/api/feed-formulation/suggest', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ programmeId, phaseId, energySystem: 'ME' }),
+        });
+        const suggestion = await suggestionResponse.json() as FormulationIngredientSuggestionResult | { status: 'error'; message?: string };
+        if (!suggestionResponse.ok || suggestion.status !== 'suggested') {
+          throw new Error('message' in suggestion && suggestion.message ? suggestion.message : 'Could not prepare ingredients for this phase.');
+        }
+        const candidateIds = Array.from(new Set([
+          ...suggestion.ingredientIds,
+          ...visibleRows.map((row) => row.engineId),
+          ...extraVisibleIngredientIds,
+        ]));
+        pricedIngredients = candidateIds.flatMap((ingredientId) => {
+          const pricePerKg = ingredientDefaultPricePerKg(ingredientId, ingredientPrices);
+          return pricePerKg === undefined ? [] : [{ ingredientId, pricePerKg }];
+        });
+        if (pricedIngredients.length === 0) {
+          throw new Error('No planning prices are available for the selected ingredients.');
+        }
+        pricedIngredients.push({
+          ingredientId: selectedPremix.id,
+          pricePerKg: premixPrice,
+          minInclusionPct: selectedPremix.inclusionPct,
+          maxInclusionPct: selectedPremix.inclusionPct,
+        });
       }
-      const premixProfile = publicPremixProfileForPhase(selectedPhase);
-
       const response = await fetch('/api/feed-formulation/optimize', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
-          programmeId,
-          phaseId,
-          energySystem: 'ME',
-          includeSupplementationTargets: true,
+          programmeId, phaseId, energySystem: 'ME',
+          includeSupplementationTargets: false,
           traceMineralBasis: 'inorganic',
-          customPremixes: [premixProfile],
-          ingredients: [
-            ...pricedIngredients,
-            {
-              ingredientId: PUBLIC_PREMIX_ID,
-              pricePerKg: ingredientDefaultPricePerKg(PUBLIC_PREMIX_ID, ingredientPrices) ?? 0,
-              minInclusionPct: PUBLIC_PREMIX_INCLUSION_PCT,
-              maxInclusionPct: PUBLIC_PREMIX_INCLUSION_PCT,
-            },
-          ],
+          ingredients: pricedIngredients,
         }),
       });
-      const result = await response.json() as LeastCostFormulationResult & { message?: string };
-      if (!response.ok || result.status !== 'optimal') {
-        throw new Error(result.message ?? 'No balanced formula could be found for this programme and phase.');
+      const result = await response.json() as (LeastCostFormulationResult & { message?: string }) | {
+        status: 'manufacturer_recipe'; recipe: DietFormula; warning: string;
+        cost_per_kg: number | null;
+      };
+      if (!response.ok) {
+        throw new Error('message' in result && result.message ? result.message : 'Could not calculate this feed.');
       }
-
-      const selectedAlternative = formulationPriority === 'least-cost'
-        ? undefined
-        : result.alternatives.find((alternative) => alternative.id === formulationPriority);
-      const selectedRecipe = selectedAlternative?.solution ?? result.solution;
-      const solution = new Map(
-        selectedRecipe.formula.ingredients.map((ingredient) => [ingredient.ingredientId, ingredient.inclusionPct]),
-      );
-      const nextKnown = Object.fromEntries(
-        rows.map((row) => [row.id, solution.get(row.engineId) ?? 0]),
-      ) as Inclusion;
-      const nextExtraIds = selectedRecipe.formula.ingredients
-        .filter((ingredient) => ingredient.ingredientId !== PUBLIC_PREMIX_ID && !knownEngineIds.has(ingredient.ingredientId) && ingredient.inclusionPct > .0001)
-        .map((ingredient) => ingredient.ingredientId);
-      const nextExtras = Object.fromEntries(
-        nextExtraIds.map((ingredientId) => [ingredientId, solution.get(ingredientId) ?? 0]),
-      );
-
-      setInclusions(nextKnown);
-      setVisibleIngredientIds(rows.filter((row) => (solution.get(row.engineId) ?? 0) > .0001).map((row) => row.id));
-      setExtraVisibleIngredientIds(nextExtraIds);
-      setExtraInclusions(nextExtras);
-      setDownloadableFormulation({
-        formula: selectedRecipe.formula,
-        priority: selectedAlternative?.id ?? 'least-cost',
-      });
-      if (formulationPriority !== 'least-cost' && !selectedAlternative) {
-        setFormulationNote(`${selectedPriority.label} did not produce a materially different valid recipe, so the lowest-cost formula was applied.`);
-      } else if (selectedAlternative) {
-        setFormulationNote(`${selectedAlternative.label} applied · ${selectedAlternative.costIncreasePct.toFixed(2)}% above the least-cost formula.`);
-      } else {
-        setFormulationNote('Lowest-cost valid formula applied using current planning prices.');
+      if (result.status === 'manufacturer_recipe') {
+        const amounts = new Map(result.recipe.ingredients.map((row) => [row.ingredientId, row.inclusionPct]));
+        setInclusions(Object.fromEntries(rows.map((row) => [row.id, amounts.get(row.engineId) ?? 0])) as Inclusion);
+        setVisibleIngredientIds(rows.filter((row) => (amounts.get(row.engineId) ?? 0) > 0).map((row) => row.id));
+        const extras = result.recipe.ingredients.filter((row) =>
+          row.ingredientId !== selectedPremix.id && !knownEngineIds.has(row.ingredientId) && row.inclusionPct > 0);
+        setExtraVisibleIngredientIds(extras.map((row) => row.ingredientId));
+        setExtraInclusions(Object.fromEntries(extras.map((row) => [row.ingredientId, row.inclusionPct])));
+        setDownloadableFormulation({ formula: result.recipe, priority: 'least-cost' });
+        setFormulationNote(`Manufacturer's original recipe, not independently optimised. ${result.warning}`);
+        return;
       }
+      if (result.status !== 'optimal') {
+        throw new Error('message' in result && result.message ? result.message : 'No formula could be found for this phase.');
+      }
+      const alternative = formulationPriority === 'least-cost'
+        ? undefined : result.alternatives.find((item) => item.id === formulationPriority);
+      const chosen = alternative?.solution ?? result.solution;
+      const amounts = new Map(chosen.formula.ingredients.map((row) => [row.ingredientId, row.inclusionPct]));
+      setInclusions(Object.fromEntries(rows.map((row) => [row.id, amounts.get(row.engineId) ?? 0])) as Inclusion);
+      setVisibleIngredientIds(rows.filter((row) => (amounts.get(row.engineId) ?? 0) > .0001).map((row) => row.id));
+      const extraIds = chosen.formula.ingredients.filter((row) =>
+        row.ingredientId !== selectedPremix.id && !knownEngineIds.has(row.ingredientId) && row.inclusionPct > .0001)
+        .map((row) => row.ingredientId);
+      setExtraVisibleIngredientIds(extraIds);
+      setExtraInclusions(Object.fromEntries(extraIds.map((id) => [id, amounts.get(id) ?? 0])));
+      setDownloadableFormulation({ formula: chosen.formula, priority: alternative?.id ?? 'least-cost' });
+      setFormulationNote(alternative
+        ? `${alternative.label} applied · ${alternative.costIncreasePct.toFixed(2)}% above least cost. Premix micronutrients unverified.`
+        : 'Basal nutrient optimisation completed. Commercial premix micronutrients remain UNVERIFIED; this is not certified complete feed.');
     } catch (error) {
       setBalanceError(error instanceof Error ? error.message : String(error));
     } finally {
