@@ -110,14 +110,28 @@ export function commercialPremixById(id: string): CommercialPremix | undefined {
   return COMMERCIAL_PREMIXES.find((premix) => premix.id === id);
 }
 
+/**
+ * Map only recognized programme families. Never infer premix compatibility from
+ * incidental substrings (especially "boar" versus sow/breeding products).
+ * These mappings remain UNVERIFIED manufacturer compatibility assumptions.
+ */
 export function commercialPremixForProgramme(programmeId: string): CommercialPremix | undefined {
-  const key = programmeId.toLowerCase();
+  const programme = programmeId.split(":")[0].toLowerCase();
   const sku =
-    key.includes("broiler") ? "X812" :
-    key.includes("layer") ? "X811" :
-    key.includes("nursery") ? "X911" :
-    key.includes("gestat") || key.includes("lactat") || key.includes("boar") ? "X913" :
-    key.includes("pig") || key.includes("gilt") || key.includes("barrow") ? "X912" : undefined;
+    programme.startsWith("nursery-pig") ? "X911" :
+    programme.startsWith("grow-finish-pig") ||
+    programme.startsWith("growing-barrows") ||
+    programme.startsWith("growing-entire-immunocastrated-males") ||
+    programme.startsWith("developing-gilt") ? "X912" :
+    programme.startsWith("gestating-gilt-sow") ||
+    programme.startsWith("lactating-gilt-sow") ? "X913" :
+    programme.startsWith("broiler-") ? "X812" :
+    programme.startsWith("layer-") ? "X811" :
+    undefined;
+
+  // No confirmed combined vitamin-mineral product in this catalogue for mature
+  // boars. X913 is sow-only; X303 is a vitamin-only breeding-pig product.
+  if (!sku) return undefined;
   return COMMERCIAL_PREMIXES.find((p) => p.sku === `GlyPro ${sku}`);
 }
 
