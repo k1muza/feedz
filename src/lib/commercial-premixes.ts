@@ -21,6 +21,16 @@ export type CommercialPremix = {
   manufacturerRecipe?: readonly { ingredientId: string; percent: number }[];
   /** Manufacturer-listed per-kg-of-premix ranges/minima, not verified nutrient matrix entries. */
   publishedGuarantees?: readonly { nutrient: string; unit: "IU/kg" | "mg/kg" | "%"; min?: number; max?: number }[];
+  /**
+   * Exact source-verified as-fed concentrations, NOT minimum guarantees.
+   * Populate SID only when the manufacturer supplies a digestible value or
+   * source-validated digestibility. Never derive SID from total lysine minima.
+   */
+  verifiedAsFedAminoAcids?: {
+    reference: string;
+    totalPct?: Record<string, number>;
+    sidPct?: Record<string, number>;
+  };
   pricePerTonne: null;
   specificationUrl: string;
   publishedAnalysis: {
