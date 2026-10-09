@@ -26,6 +26,42 @@ describe("FeedSport MCP automatic ingredient mode", () => {
     assert.ok(result.unsupported_requirements.includes("vitamin-trace-mineral-supplementation"));
   });
 
+  it("can optimise a nursery basal ration with real Sustar X911 without missing basal premix macros", async () => {
+    const result = await formulate({
+      programme_id,
+      energy_system: "ME",
+      ingredient_mode: "selected",
+      ingredients: [
+        "corn-yellow-dent",
+        "soybean-meal-dehulled-solvent-extracted",
+        "soybean-full-fat-extruded",
+        "soybean-degummed-oil",
+        "corn-oil",
+        "dicalcium-phosphate",
+        "limestone-ground",
+        "sodium-chloride",
+        "l-lysine-hcl",
+        "dl-methionine",
+        "l-threonine",
+        "l-tryptophan",
+        "l-valine",
+        "sustar-glypro-x911",
+      ],
+      constraints: {
+        "soybean-full-fat-extruded": { max_percent: 10 },
+        "soybean-degummed-oil": { max_percent: 2 },
+        "corn-oil": { max_percent: 2 },
+        "sustar-glypro-x911": { min_percent: 0.2, max_percent: 0.2, price_per_tonne: 1500 },
+      },
+    }, context);
+    assert.notEqual(result.status, "missing_data", "Sustar's omitted basal-macro values must not block solving");
+    assert.equal(result.status, "optimal");
+    if (result.status === "optimal") {
+      assert.equal(result.premix_verification, "unverified");
+      assert.ok(result.unsupported_requirements.includes("vitamin-trace-mineral-supplementation"));
+    }
+  });
+
   it("keeps explicit ingredient calls backward-compatible as selected mode", async () => {
     const result = await formulate(
       {
@@ -160,5 +196,9 @@ describe("CJ S174 manufacturer-only mature-boar workflow", () => {
     assert.ok(result.missing_data.length > 0);
     assert.deepEqual(result.fixes, []);
     assert.ok(result.findings.some((finding) => finding.includes("cannot be verified")));
+    assert.ok(result.missing_data.every((row) => typeof row.nutrient === "string" && !row.nutrient.includes("Pct")));
+    assert.ok(result.checked_shortfalls.every((row) =>
+      typeof row.nutrient === "string" && !row.nutrient.includes("Pct") &&
+      Number.isFinite(row.actual) && Number.isFinite(row.requirement)));
   });
 });
