@@ -41,7 +41,7 @@ const INSTRUCTIONS = `FeedSport formulates and analyses pig and poultry feeds wi
 
 Workflow: get_programmes → get_programme → search_ingredients → formulate. Generic requests should omit ingredients (ingredient_mode="automatic") so FeedSport chooses its priced BASAL ingredient pool. Automatic mode does not include any premix. Use ingredient_mode="selected" when users provide their ingredient basket or want to include a named, real commercial premix. Use analyse_formulation for existing recipes.
 
-For explanations and counterfactuals, use the solver-backed diagnostics tools: explain_formulation, diagnose_infeasibility, run_sensitivity_analysis, find_ingredient_opportunities and compare_formulation_strategies. Quote their findings and numeric results rather than calculating your own.
+For explanations and counterfactuals, use the solver-backed diagnostics tools. Exception: CJ S174 manufacturer-recipe-only is not optimised; diagnose_infeasibility returns read-only nutrient/data-gap findings without changing proportions. Do not request ingredient substitutions or relaxed ratios for CJ S174. Quote tool results rather than inventing numbers.
 
 Premix workflow: search_ingredients with category="vitamin_mineral_premix" and available_only=false, then get_ingredient for the exact manufacturer SKU, stage, published fixed dose, source link and verification status. Current Sustar SKUs are X911 for piglets, X912 for growing/finishing pigs, X913 for sows, X812 for broilers and X811 for layers. CJ Feed S174 is a 4% boar-specific premix; selected-mode requests must lock each basal ingredient to CJ's published percentages using equal min_percent and max_percent constraints, and include S174 at 4%. A SKU can only be used for a compatible programme phase. Include exactly one compatible SKU in selected mode, and provide a REAL supplier quote as constraints.<sku_id>.price_per_tonne because the catalogue has no verified planning price. Do not infer or invent a price from other SKUs.
 
@@ -54,7 +54,7 @@ Rules:
 - Automatic mode selects priced basal ingredients only. Its optimal recipes do NOT include a premix and are NOT complete feeds.
 - In selected mode, use a real SKU and a supplier price if available. Even with a selected premix, status="optimal" or analysis status="pass" only means the constraints actually checked were met. Examine premix_verification, unsupported_requirements and notes, and never claim complete-feed adequacy, manufacturer approval or feeding safety.
 - FeedSport programme requirements and ingredient inclusion ceilings cannot be relaxed; caller constraints can only tighten them.
-- Status "infeasible", "missing_data", "error" or "fail" is not a valid result. Report the issues rather than presenting a recipe.
+- Status "manufacturer_recipe" is a reproducible manufacturer-provided mixing recipe for costing/review, NOT a nutritionally validated or least-cost formulation. Read incomplete_requirements, checked_shortfalls and unsupported_requirements; do not claim complete feed. diagnose_infeasibility returns status "unverified" with data gaps/shortfalls for CJ S174 and no substitution fixes. Status "infeasible", "missing_data", "error" or "fail" is not a valid nutrition pass.
 - For a generic request, let automatic mode choose basal ingredients; do not arbitrarily shrink the ingredient pool. If the user needs a product-backed total-feed price without a premix quotation, explain that cost cannot yet be verified.
 - Prices are FeedSport planning prices (USD/t) for priced ingredients, or the caller's explicitly supplied prices.`;
 
@@ -240,7 +240,7 @@ export function createFeedSportMcpServer(
     {
       title: "Formulate a feed",
       description:
-        "Formulate with GLPK. Automatic mode selects priced BASAL ingredients only (no premix or micronutrient verification). To include a real commercial premix, use selected mode with the compatible Sustar SKU and a genuine constraints.<sku_id>.price_per_tonne override if unpriced. Its manufacturer dosage is fixed; vitamin/trace-mineral adequacy is UNVERIFIED. An optimal recipe is not a validated complete feed. Returns checked requirements, unsupported requirements and notes.",
+        "Formulate with GLPK for unrestricted programmes, or reproduce and cost the exact CJ S174 fixed boar recipe without optimisation. Automatic mode selects priced BASAL ingredients only. Use selected mode for an exact commercial SKU and genuine price quote. CJ S174 needs its entire recipe locked at its manufacturer percentages and returns status=manufacturer_recipe, with incomplete nutrient checks and no claim of optimality or complete feed. Other unverified premixes also do not establish micronutrient adequacy.",
       inputSchema: z.object({
         programme_id: programmeId,
         energy_system: energySystem,
