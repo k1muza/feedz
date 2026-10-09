@@ -11,6 +11,7 @@ import {
 } from "@/lib/ingredient-nutrients";
 import { assertManufacturerRecipe, commercialPremixById, commercialPremixCompatibleWithProgramme } from "@/lib/commercial-premixes";
 import { PUBLIC_PREMIX_ID } from "@/lib/public-feed-premix";
+import { assessManufacturerRecipe } from "@/lib/manufacturer-recipe";
 
 const optionalNutrient = z.number().finite().nonnegative().optional();
 
@@ -130,6 +131,26 @@ export async function POST(request: Request) {
       premixes,
       ingredientLibraryForPhase(phase),
     );
+    const manufacturer = selectedCommercial.find((p) => p.formulationCompatibility === "manufacturer_recipe_only");
+    if (manufacturer?.manufacturerRecipe) {
+      const recipe = { ingredients: manufacturer.manufacturerRecipe.map((row) => ({
+        ingredientId: row.ingredientId, inclusionPct: row.percent,
+      })) };
+      const assessment = assessManufacturerRecipe(manufacturer, recipe, phase, energySystem, library);
+      const prices = new Map(ingredients.map((row) => [row.ingredientId, row.pricePerKg]));
+      const costPerKg = recipe.ingredients.reduce((sum, row) =>
+        sum + row.inclusionPct / 100 * prices.get(row.ingredientId)!, 0);
+      return NextResponse.json({
+        ...assessment,
+        costPerKg,
+        manufacturer: manufacturer.manufacturer,
+        productId: manufacturer.id,
+        // Deliberately NOT "optimal". This is a prescribed recipe with
+        // known gaps; do not route it into the complete-feed reporting UI.
+        premixVerification: "unverified",
+      });
+    }
+
     const result = await formulateLeastCostDiet(
       phase,
       energySystem,
