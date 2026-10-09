@@ -9,6 +9,7 @@ import {
   commercialPremixCompatibleWithProgramme,
   commercialPremixForProgramme,
   publishedPremixAminoAcids,
+  publishedMinimumTotalAminoAcidsInFeed,
 } from "./commercial-premixes";
 
 describe("Manufacturer-backed commercial premix catalogue", () => {
@@ -97,6 +98,10 @@ describe("Manufacturer-backed commercial premix catalogue", () => {
       maximumPct: null,
       usableAsSid: false,
     }]);
+    assert.deepEqual(publishedMinimumTotalAminoAcidsInFeed(cj), [
+      { name: "Lysine", minTotalFeedPct: 0.16, usableAsSid: false },
+    ]);
+    assert.deepEqual(publishedMinimumTotalAminoAcidsInFeed(commercialPremixById("sustar-glypro-x912")!), []);
     assert.deepEqual(publishedPremixAminoAcids(commercialPremixById("sustar-glypro-x912")!), []);
     assert.deepEqual(publishedPremixAminoAcids(commercialPremixById("sustar-glypro-x911")!), []);
   });
