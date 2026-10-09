@@ -17,7 +17,7 @@ describe("MCP nutrition profile provenance", () => {
     assert.ok(maize.nutrition_profile_source.source?.url);
     const commercial = getIngredient("sustar-glypro-x912", context);
     assert.equal(commercial.nutrition_profile_source.verificationStatus, "manufacturer_unverified");
-    assert.match(commercial.nutrition_profile_source.source?.url, /^https:\/\//);
+    assert.ok(commercial.nutrition_profile_source.source?.url?.startsWith("https://"));
   });
 
   it("does not claim the Brazilian Tables as source of an unsourced farmer premix", () => {
