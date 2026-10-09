@@ -1043,7 +1043,7 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
   const ingredientName = (id: string) => catalogueById.get(id)?.name ?? id;
   const addIng = (id: string) => {
     if (!canAddStudioIngredient(id, S.programmeId, S.pool)) {
-      flash("Premixes are selected automatically for your animal and stage.");
+      flash(commercialPremixById(id) ? ingredientName(id) + " is not eligible for " + P.name + "." : "This ingredient is not allowed with the fixed manufacturer recipe.");
       return;
     }
     update((state) => ({ pool: selectStudioIngredient(state.pool, id, state.programmeId) }));
