@@ -19,6 +19,8 @@ export type CommercialPremix = {
   formulationCompatibility: "unconfirmed" | "manufacturer_recipe_only";
   /** Source-provided percentages. Never derive a commercial formula in the app. */
   manufacturerRecipe?: readonly { ingredientId: string; percent: number }[];
+  /** Manufacturer-listed per-kg-of-premix ranges/minima, not verified nutrient matrix entries. */
+  publishedGuarantees?: readonly { nutrient: string; unit: "IU/kg" | "mg/kg" | "%"; min?: number; max?: number }[];
   pricePerTonne: null;
   specificationUrl: string;
   publishedAnalysis: {
@@ -46,6 +48,22 @@ export const COMMERCIAL_PREMIXES: readonly CommercialPremix[] = [
       copperMgKg: { min: 50, max: 625 },
       vitaminAIuKg: { min: 32500, max: 300000 },
     },
+    publishedGuarantees: [
+      { nutrient: "Vitamin A", unit: "IU/kg", min: 32500, max: 300000 },
+      { nutrient: "Vitamin D3", unit: "IU/kg", min: 3750, max: 125000 },
+      { nutrient: "Vitamin E", unit: "IU/kg", min: 800 },
+      { nutrient: "Vitamin B2", unit: "mg/kg", min: 85 },
+      { nutrient: "Copper", unit: "mg/kg", min: 50, max: 625 },
+      { nutrient: "Iron", unit: "mg/kg", min: 100, max: 5000 },
+      { nutrient: "Zinc", unit: "mg/kg", min: 350, max: 1800 },
+      { nutrient: "Manganese", unit: "mg/kg", min: 50, max: 3750 },
+      { nutrient: "Selenium", unit: "mg/kg", min: 5, max: 12 },
+      { nutrient: "Iodine", unit: "mg/kg", min: 3, max: 250 },
+      { nutrient: "Phosphorus", unit: "%", min: 2 },
+      { nutrient: "Lysine", unit: "%", min: 4 },
+      { nutrient: "Sodium chloride", unit: "%", min: 5, max: 15 },
+      { nutrient: "Moisture", unit: "%", max: 10 },
+    ],
     manufacturerRecipe: [
       { ingredientId: "corn-yellow-dent", percent: 64.3 },
       { ingredientId: "wheat-bran", percent: 12 },
