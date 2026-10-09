@@ -364,7 +364,7 @@ export async function formulate(snap: Snapshot, ctx: EngineContext): Promise<For
     });
     if (!ingredients.length) return { status: "blocked", errs: [{ title: "None of these ingredients has the data this stage needs", body: "Add ingredients with complete nutrient values from the catalogue." }], warns };
     try {
-      result = await post<LeastCostFormulationResult>("/api/feed-formulation/optimize", { programmeId: programme.id, phaseId: phase.id, energySystem: "ME", ingredients });
+      result = await post<typeof result>("/api/feed-formulation/optimize", { programmeId: programme.id, phaseId: phase.id, energySystem: "ME", ingredients });
     } catch (error) {
       return { status: "error", warns, message: error instanceof Error ? error.message : String(error) };
     }
