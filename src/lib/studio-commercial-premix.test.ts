@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { poolWithProgrammePremix } from "./studio-commercial-premix";
+import { canAddStudioIngredient, studioPremixProblems, poolWithProgrammePremix } from "./studio-commercial-premix";
 
 test("Studio replaces premix by animal class without inheriting old SKU or price", () => {
   const grower = poolWithProgrammePremix({ "corn-yellow-dent": { role: "available" } }, "grow-finish-pig");
@@ -52,4 +52,19 @@ test("leaving CJ's boar programme clears all former manufacturer locks and offer
   for (const id of ["limestone-ground", "dicalcium-phosphate", "sodium-chloride", "l-lysine-hcl"]) {
     assert.equal(grower[id]?.role, "available", id);
   }
+});
+
+test("commercial premixes are never free-choice ingredients in the Studio picker", () => {
+  for (const id of ["sustar-glypro-x912", "sustar-glypro-x911", "sustar-glypro-x812", "cj-s174-boar-premix"]) {
+    assert.equal(canAddStudioIngredient(id, "grow-finish-pig"), false, id);
+  }
+  assert.equal(canAddStudioIngredient("corn-yellow-dent", "grow-finish-pig"), true);
+});
+test("bad saved premix choices stop in Studio before reaching HTTP 400", () => {
+  const wrong = { "sustar-glypro-x812": { role: "available" as const } };
+  assert.ok(studioPremixProblems(wrong, "grow-finish-pig").some((reason) => /not suitable/.test(reason)));
+  const right = poolWithProgrammePremix({ "corn-yellow-dent": { role: "available" } }, "grow-finish-pig");
+  assert.deepEqual(studioPremixProblems(right, "grow-finish-pig"), []);
+  right["sustar-glypro-x912"].role = "available";
+  assert.ok(studioPremixProblems(right, "grow-finish-pig").some((reason) => /fixed/.test(reason)));
 });
