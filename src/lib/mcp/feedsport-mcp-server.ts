@@ -450,6 +450,11 @@ const suggestionShape = z
 
 const NOT_CONFIGURED = "Advisor access is not configured on this server: set SUPABASE_SECRET_KEY.";
 
+// Write tools take strict input, so a misspelt or unknown field is an error
+// rather than silently dropped, and they honour dry_run: a client working from
+// an older tool list must never save when it asked only to check.
+const dryRun = z.boolean().default(false).describe("true previews without saving anything, like the matching preview tool.");
+
 function registerAdvisorTools(
   server: McpServer,
   { formulations: store, featured }: AdvisorOptions,
@@ -525,8 +530,8 @@ function registerAdvisorTools(
     {
       title: "Save a featured formulation",
       description:
-        "Create or replace a featured formulation on Studio Home. FeedSport formulates it at planning prices first and refuses to save it unless the recipe is valid; the response shows what its Home card will display. Check it with preview_featured_formulation first.",
-      inputSchema: z.object(featuredShape),
+        "Create or replace a featured formulation on Studio Home. FeedSport formulates it at planning prices first and refuses to save it unless the recipe is valid; the response shows what its Home card will display. Check it with preview_featured_formulation first; dry_run: true also previews without saving.",
+      inputSchema: z.strictObject({ ...featuredShape, dry_run: dryRun }),
       annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false },
     },
     async (args) => withFeatured((s) => saveFeaturedTool(args, s, context)),
@@ -537,7 +542,7 @@ function registerAdvisorTools(
     {
       title: "Publish or unpublish a featured formulation",
       description: "Show or hide a featured formulation on Studio Home without deleting it.",
-      inputSchema: z.object({ id: slug, published: z.boolean() }),
+      inputSchema: z.strictObject({ id: slug, published: z.boolean() }),
       annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
     },
     async (args) => withFeatured((s) => setFeaturedPublishedTool(args, s)),
@@ -613,8 +618,8 @@ function registerAdvisorTools(
     {
       title: "Leave advice on a formulation",
       description:
-        "Attach the nutritionist's advice to a user's saved formulation, optionally with a suggested revision that FeedSport formulates and checks first. The user sees it in FeedSport Studio. Check it with preview_formulation_advice first.",
-      inputSchema: z.object(adviceShape),
+        "Attach the nutritionist's advice to a user's saved formulation, optionally with a suggested revision that FeedSport formulates and checks first. The user sees it in FeedSport Studio. Check it with preview_formulation_advice first; dry_run: true also previews without saving.",
+      inputSchema: z.strictObject({ ...adviceShape, dry_run: dryRun }),
       annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
     },
     async (args) => withStore((s) => addFormulationAdviceTool(args, s, context)),
