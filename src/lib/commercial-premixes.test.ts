@@ -113,6 +113,7 @@ describe("Manufacturer-backed commercial premix catalogue", () => {
       id: "test-confirmed-aa-premix",
       verifiedAsFedAminoAcids: {
         reference: "test fixture only — not an actual supplier analysis",
+        sourceUrl: "https://example.com/fictional-test-only",
         totalPct: { lysine: 5 },
         sidPct: { lysine: 4.2 },
       },
