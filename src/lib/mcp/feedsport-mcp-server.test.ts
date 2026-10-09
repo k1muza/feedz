@@ -116,6 +116,11 @@ describe("MCP premix guidance", () => {
     assert.match(instructions, /vitamin and trace-mineral adequacy is NOT validated/i);
     assert.match(instructions, /price_per_tonne/);
     assert.match(instructions, /CJ Feed S174/);
+    assert.match(instructions, /explain_formulation/);
+    assert.match(instructions, /diagnose_infeasibility/);
+    assert.match(instructions, /run_sensitivity_analysis/);
+    assert.match(instructions, /find_ingredient_opportunities/);
+    assert.match(instructions, /compare_formulation_strategies/);
     assert.match(instructions, /supplier ratios/);
     assert.doesNotMatch(instructions, /automatic ingredient mode includes the FeedSport premix/i);
     assert.doesNotMatch(instructions, /include the FeedSport premix .* to cover/i);
@@ -132,6 +137,9 @@ describe("MCP premix guidance", () => {
     };
     assert.match(find("formulate"), /BASAL ingredients only/);
     assert.match(find("formulate"), /UNVERIFIED/);
+    assert.match(find("formulate"), /fixed manufacturer inclusion dose/);
+    assert.match(find("formulate"), /Vitamin and trace-mineral adequacy/);
+    assert.match(find("formulate"), /Sustar/);
     assert.match(find("search_ingredients"), /unpriced manufacturer products/);
     assert.match(find("get_ingredient"), /manufacturer specification metadata/);
     assert.doesNotMatch(find("formulate"), /including its fixed premix/i);
