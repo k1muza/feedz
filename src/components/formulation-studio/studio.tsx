@@ -537,8 +537,9 @@ type ManualView = ReturnType<typeof manualRecipe> & {
 
 function summarise(r: FormulateResult, manual: ManualView | null): Summary {
   if (manual) return { status: "manual", costT: manual.cost, recipe: manual.recipe, met: manual.nutrients.filter((n) => n.status === "met").length, req: manual.nutrients.length + manual.incompleteRequirements.length, adv: manual.advisories.length, fail: manual.nutrients.filter((n) => n.status !== "met").length, unknown: manual.incompleteRequirements.length };
+  if (r.status === "manufacturer_recipe") return { status: r.status, recipe: r.recipe.map((row) => ({ id: row.id, pct: row.pct })), ...(r.costT === null ? {} : { costT: r.costT }) };
   if (r.status !== "optimal") return { status: r.status };
-  return { status: "optimal", costT: r.costT, recipe: r.recipe.map((x) => ({ id: x.id, pct: x.pct })), met: r.nutrients.filter((n) => n.status === "met").length, req: r.nutrients.length, adv: r.advisories.length, fail: 0 };
+  return { status: "optimal", ...(r.costExcludesPremix ? {} : { costT: r.costT }), recipe: r.recipe.map((x) => ({ id: x.id, pct: x.pct })), met: r.nutrients.filter((n) => n.status === "met").length, req: r.nutrients.length, adv: r.advisories.length, fail: 0 };
 }
 
 function programmeLabel(programmes: StudioProgrammeData, snap: Pick<Snapshot, "programmeId" | "phaseId">) {
@@ -634,7 +635,7 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
     let current = true;
     void formulate(snap, engine).then((r) => {
       if (!current) return;
-      const h: RunEntry = { t: new Date(), status: r.status, cost: r.status === "optimal" ? r.costT : undefined, goal: snap.goal, n: r.status === "optimal" ? r.recipe.length : 0 };
+      const h: RunEntry = { t: new Date(), status: r.status, cost: r.status === "optimal" && !r.costExcludesPremix ? r.costT : undefined, goal: snap.goal, n: (r.status === "optimal" || r.status === "manufacturer_recipe") ? r.recipe.length : 0 };
       update((s) => (s.runToken !== token ? {} : { running: false, result: r, runSig: sig, runSnap: snap, history: [h, ...s.history].slice(0, 12), mode: "optimised", manual: {}, manualCheck: null, dismissed: {} }));
     });
     return () => {
@@ -1448,6 +1449,11 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
   const optimal = R && R.status === "optimal" ? R : null;
   const blockedLike = R?.status === "blocked" || R?.status === "error";
   const view = { none: !R && !S.running, blocked: blockedLike, infeasible: R?.status === "infeasible", optimal: !!optimal };
+  const manufacturerResult = R?.status === "manufacturer_recipe" ? {
+    recipe: R.recipe,
+    costText: R.costT == null ? "Supplier premix quote required — total cost unknown" : money(R.costT) + "/tonne",
+    message: R.message,
+  } : null;
   const changes = stale ? diff(S.runSnap!, snapOf(S), engine) : [];
   const runState = S.running
     ? { label: "Formulating…", color: "#45473f", bg: "#c98a1e", r: "50%", btn: "Formulating…", btnBg: "#e2dfd6", btnFg: "#64665c" }
@@ -1458,7 +1464,7 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
         : { label: "Result is up to date", color: "#2b6a42", bg: "#2f7a4a", r: "50%", btn: "Re-formulate", btnBg: "#e2dfd6", btnFg: "#45473f" };
   const manualOff = !!manualView && !manualView.checking && !manualView.recipeValidity?.valid;
   const saveDisabled = !R || stale || S.running || S.saving || R.status === "blocked" || R.status === "error" || manualOff || !!manualView?.checking;
-  const exportDisabled = !optimal || stale || S.running || S.exporting || manualOff || !!manualView?.checking;
+  const exportDisabled = !optimal || optimal.costExcludesPremix || stale || S.running || S.exporting || manualOff || !!manualView?.checking;
   const exportPdf = async () => {
     if (exportDisabled || !optimal) return;
     const viewerWindow = window.open("", "_blank");
@@ -1660,7 +1666,7 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
     canBack: S.step > 1, stepBack: () => update({ step: S.step - 1 }), stepNext, nextDisabled, nextBg: nextDisabled ? "#b9b6ab" : "#2f5a3f", nextLabel: S.step === 3 ? "Formulate" : "Continue",
     skipToWorkspace: () => update({ screen: "workspace" }),
     docName: S.docName, onName: (e: InputEvent) => update({ docName: e.target.value }), saveState, save: () => void save(), saveDisabled, saveBg: saveDisabled ? "#b9b6ab" : "#2f5a3f", saveTitle: stale ? "Re-formulate first" : manualOff ? "Resolve the manual recipe validity issues" : "", manualOff, manualIssues: manualView?.recipeValidity?.issues ?? [],
-    exportDisabled, exportColor: exportDisabled ? "#8d8a80" : "#222420", exportLabel: S.exporting ? "Opening PDF…" : "Export PDF", exportTitle: !optimal ? "Formulate a valid recipe first" : stale ? "Re-formulate first" : manualOff ? "Resolve the manual recipe validity issues" : "Open recipe and nutrient report as PDF", doExport: () => void exportPdf(),
+    exportDisabled, exportColor: exportDisabled ? "#8d8a80" : "#222420", exportLabel: S.exporting ? "Opening PDF…" : "Export PDF", exportTitle: !optimal ? "Formulate a valid recipe first" : optimal.costExcludesPremix ? "Enter the supplier premix quote before exporting a full-cost report" : stale ? "Re-formulate first" : manualOff ? "Resolve the manual recipe validity issues" : "Open recipe and nutrient report as PDF", doExport: () => void exportPdf(),
     leftW: wide ? "300px" : "100%", programmeId: P.id, progList: programmes.programmes.map((p) => ({ id: p.id, name: p.name })),
     onProgramme: (e: InputEvent) => update(programmeChoice(e.target.value)),
     phaseList: P.phases.map((ph) => ({ id: ph.id, name: ph.label })), phaseId: PH.id, onPhase: (e: InputEvent) => update({ phaseId: e.target.value }),
@@ -1679,7 +1685,7 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
     isStale: stale && !S.running, staleTitle: "You changed " + changes.length + " setting" + (changes.length === 1 ? "" : "s") + " since the last run", changes,
     undoChanges: () => { const s = S.runSnap!; const { programme } = phaseOf(programmes, s.programmeId, s.phaseId); update({ programmeId: s.programmeId, phaseId: s.phaseId, species: programme.species, pool: clone(s.pool), goal: s.goal }); },
     view, dimOpacity: S.running || stale ? "0.5" : "1", emptyTitle: activeCount ? "Ready to formulate" : "Before you can formulate", checklist, blockErrs, hasWarns: warns.length > 0 && !S.running, warns, inf,
-    opt, showSolver: showSolverDetails, tabs, tabRecipe: S.tab === "recipe", tabNutrients: S.tab === "nutrients", tabWhy: S.tab === "why", tabHistory: S.tab === "history",
+    opt, manufacturerResult, showSolver: showSolverDetails, tabs, tabRecipe: S.tab === "recipe", tabNutrients: S.tab === "nutrients", tabWhy: S.tab === "why", tabHistory: S.tab === "history",
     advisoriesOpen: S.advisoriesOpen && (!!opt?.advisories.length || docAdvice.length > 0),
     advisoriesLabel: advisoryCount((opt?.advisories.length ?? 0) + docAdvice.length),
     openAdvisories: () => {
