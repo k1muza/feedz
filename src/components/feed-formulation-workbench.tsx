@@ -634,8 +634,8 @@ export function FeedFormulationWorkbench({
     {
       id: "opportunities",
       label: "Opportunities",
-      description: "Ingredient substitutions and savings",
-      disabled: result?.status !== "optimal",
+      description: selectedPremix?.manufacturerRecipe ? "Not available for manufacturer-restricted premixes" : "Ingredient substitutions and savings",
+      disabled: result?.status !== "optimal" || Boolean(selectedPremix?.manufacturerRecipe),
     },
     {
       id: "nutrition",
@@ -1318,11 +1318,17 @@ function ResultPanel({
       <Card>
         <CardHeader>
           <div className="flex flex-wrap items-center gap-2">
-            <CardTitle>{selectedRecipe.label}</CardTitle>
+            <CardTitle>{formulationBasis?.fixedPremix &&
+              commercialPremixById(formulationBasis.fixedPremix.id)?.manufacturerRecipe
+                ? "CJ published boar ration (fixed proportions)"
+                : selectedRecipe.label}</CardTitle>
             <Badge variant="secondary">Basal constraints satisfied only</Badge>
           </div>
           <CardDescription>
-            {selectedRecipe.description} Cost: {selectedRecipe.solution.costPerKg.toFixed(4)} per kg
+            {formulationBasis?.fixedPremix &&
+              commercialPremixById(formulationBasis.fixedPremix.id)?.manufacturerRecipe
+                ? "Manufacturer's original ingredient ratios, not an independently optimised recipe."
+                : selectedRecipe.description} Cost: {selectedRecipe.solution.costPerKg.toFixed(4)} per kg
             {" · "}
             {(selectedRecipe.solution.costPerKg * batchWeightKg).toFixed(2)} for{" "}
             {batchWeightKg.toFixed(1)} kg
