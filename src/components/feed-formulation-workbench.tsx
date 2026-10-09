@@ -751,13 +751,13 @@ export function FeedFormulationWorkbench({
             <DialogDescription className="max-w-3xl leading-6">
               {selectedPremix
                 ? "The specified Sustar premix is included at its published dose (not a universal 10 kg/t). Its micronutrient contribution is UNVERIFIED; enter a real supplier quote."
-                : "No compatible commercial premix has been established for mature boars. You can plan the basal ingredients only; this is NOT complete feed and must not be manufactured or fed as a finished recipe."}
+                : "No compatible commercial premix has been established for this programme. You can plan the basal ingredients only; this is NOT complete feed and must not be manufactured or fed as a finished recipe."}
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-5 px-5 py-2 sm:px-6">
             <div className="grid gap-4 md:grid-cols-2">
-              <Field label="Finished feed weight (kg)">
+              <Field label={selectedPremix ? "Planned feed weight (kg)" : "Basal mix weight (kg)"}>
                 <Input
                   type="number"
                   min="0.1"
