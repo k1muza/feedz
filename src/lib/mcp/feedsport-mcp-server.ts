@@ -98,7 +98,7 @@ const ingredientConstraints = z
         .number()
         .nonnegative()
         .optional()
-        .describe("Price in USD per tonne. For unpriced commercial Sustar SKUs, provide a REAL supplier quote here; never invent a price."),
+        .describe("Price in USD per tonne. For unpriced commercial manufacturer SKUs, provide a REAL supplier quote here; never invent a price."),
     }),
   )
   .optional()
