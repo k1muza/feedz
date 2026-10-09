@@ -2245,12 +2245,27 @@ function libraryVals(
     ? {
         name: catSel.name,
         sub: catSel.category + " · " + (catSel.verificationStatus ? "manufacturer analysis UNVERIFIED · supplier quote required" : catSel.price ? "planning price $" + fmt(catSel.price.usdPerTonne, 0) + " / t · " + catSel.price.market : "no planning price"),
+        nutritionSource: {
+          title: catSel.nutritionSource.title,
+          publisher: catSel.nutritionSource.publisher,
+          year: catSel.nutritionSource.year,
+          url: catSel.nutritionSource.url,
+          table: catSel.nutritionSource.sourceTable,
+          page: catSel.nutritionSource.sourcePage,
+          verification: catSel.nutritionSource.verificationStatus,
+          basis: catSel.nutritionSource.basis,
+          notes: catSel.nutritionSource.notes,
+        },
         close: () => update({ catSel: null }),
         // Values the library doesn't publish read "Missing" only where this kind of ingredient should have one.
         profile: CAT_NUTRIENTS.map((n) => {
           const x = catSel.nutrients[n.id];
           const missing = x == null && catSel.expected.includes(n.id);
-          return { name: n.name, val: x != null ? catVal(n, x) : missing ? "Missing" : "—", color: missing ? "#a63d2a" : x == null ? "#64665c" : "#222420" };
+          return {
+            name: n.name, val: x != null ? catVal(n, x) : missing ? "Missing" : "—",
+            color: missing ? "#a63d2a" : x == null ? "#64665c" : "#222420",
+            attribution: catSel.nutrientSources[n.id] ?? null,
+          };
         }),
         limits: catSel.limits.map((l) => ({ name: l.stage, limit: "max " + l.maxPct + "%", guide: l.practicalPct != null ? "guideline " + l.practicalPct + "%" : "" })),
         noLimits: catSel.limits.length === 0,
