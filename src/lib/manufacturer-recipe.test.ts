@@ -3,7 +3,7 @@ import { describe, test } from "node:test";
 import { commercialPremixById } from "./commercial-premixes";
 import { feedProgrammePhaseById } from "./feed-programmes";
 import { ingredientLibraryForPhase, ingredientLibraryWithCustomPremixes } from "./ingredient-nutrients";
-import { assessManufacturerRecipe } from "./manufacturer-recipe";
+import { assessManufacturerRecipe, buildManufacturerRecipeReport } from "./manufacturer-recipe";
 
 describe("CJ S174 prescribed recipe verification limits", () => {
   test("preserves original ratios and explicitly marks missing fish-meal and CJ premix nutrients as unknown", () => {
@@ -31,7 +31,16 @@ describe("CJ S174 prescribed recipe verification limits", () => {
     assert.ok(result.incompleteRequirements.some((row) =>
       /sodium|chloride|phosphorus|energy|lysine/i.test(row.label) && row.missingIngredientIds.includes(premix.id)),
     "CJ salt, phosphorus, energy and lysine cannot be assumed absent");
-    assert.ok(result.unsupportedRequirements.includes("vitamin-trace-mineral-supplementation"));
+    assert.ok(!result.unsupportedRequirements.includes("vitamin-trace-mineral-supplementation"),
+      "Supplier analysis gap must not masquerade as missing Brazilian Tables supplementation targets");
+    const report = buildManufacturerRecipeReport(premix, phase, "ME", library);
+    assert.equal(report.premix_analysis.reason, "manufacturer_nutrient_analysis_incomplete");
+    assert.ok(report.incomplete_requirements.some((row) => row.missing_data_for.includes(premix.id)));
+    assert.ok(!("incompleteRequirements" in report), "No duplicate camelCase requirement arrays");
+    assert.ok(!("checkedShortfalls" in report), "No duplicate camelCase shortfall arrays");
+    assert.ok(!("unsupportedRequirements" in report), "No duplicate unsupported requirements");
+    assert.ok(report.checked_shortfalls.every((row) => typeof row.nutrient === "string"));
+    assert.equal(report.costPerKg, null, "No supplier price must not silently become zero");
   });
 
   test("refuses an altered manufacturer ration", () => {
