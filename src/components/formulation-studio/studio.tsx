@@ -1974,6 +1974,7 @@ function drawerVals(S: State, D: Draft, R: OptimalResult | null, ctx: { update: 
   const { engine, phase } = ctx;
   const g = engine.catalogue.get(D.id);
   const isListRule = !!D.listId;
+  const commercialProduct = commercialPremixById(D.id);
   const listRole = D.listRole ?? "available";
   const fs = isListRule ? 100 : fsLimit(engine, phase, D.id),
     guide = isListRule ? undefined : guideline(engine, phase, D.id);
@@ -2024,9 +2025,15 @@ function drawerVals(S: State, D: Draft, R: OptimalResult | null, ctx: { update: 
         ...(role === "fixed" || role === "excluded" ? { max: "" } : {}),
       }),
     })),
-    showLimits: !isListRule || listRole !== "excluded", limitsTitle: isListRule ? "Reusable inclusion rule" : "Inclusion limits · hard",
-    showMin: !isListRule || listRole === "required" || listRole === "fixed", showMax: !isListRule || listRole === "available" || listRole === "required",
-    minLabel: isListRule && listRole === "fixed" ? "Fixed %" : "Minimum %", maxLabel: "Maximum %", limitHint: lockHint,
+    showLimits: !commercialProduct && (!isListRule || listRole !== "excluded"),
+    limitsTitle: isListRule ? "Reusable inclusion rule" : "Inclusion limits · hard",
+    showMin: !commercialProduct && (!isListRule || listRole === "required" || listRole === "fixed"),
+    showMax: !commercialProduct && (!isListRule || listRole === "available" || listRole === "required"),
+    minLabel: isListRule && listRole === "fixed" ? "Fixed %" : "Minimum %",
+    maxLabel: "Maximum %",
+    limitHint: commercialProduct
+      ? `Manufacturer-published dose: ${commercialProduct.inclusionKgPerTonne} kg/t (${commercialProduct.inclusionPct}%). Use a compatible alternative to change product; this dosage is not editable.`
+      : lockHint,
     min: D.min, max: D.max, maxPh: fs < 100 ? "Limit " + fs : "No limit", onMin: (e: InputEvent) => upd({ min: e.target.value }), onMax: (e: InputEvent) => upd({ max: e.target.value }),
     zl: px(effLo), zw: Math.max(0, ((Math.min(effHi, scale) - effLo) / scale) * 100) + "%", fx: px(Math.min(fs, scale)), hasUserMax: userMax != null, ux: px(userMax || 0), userMaxTxt: (userMax || 0) + "%", hasGuide: guide != null, gx: px(guide || 0), guideTxt: (guide || 0) + "%", fsTxt: isListRule ? "Per-stage" : fs < 100 ? fs + "%" : "No", fsNote: isListRule ? "FeedSport limits are applied when you formulate" : "FeedSport limit for this stage — you can tighten it, not exceed it", inRecipe: !!inR, cx: px(inR ? inR.pct : 0), cur: inR ? fmt(inR.pct, 1) : "", scaleMax: fmt(scale, 0) + "%",
     showPrice: !isListRule, price: D.price, pricePh: dispDef == null ? "No planning price — enter yours" : String(+dispDef.toFixed(3)), unitWord: D.unit === "t" ? "tonne" : "kg", onPrice: (e: InputEvent) => upd({ price: e.target.value }),
@@ -2037,9 +2044,12 @@ function drawerVals(S: State, D: Draft, R: OptimalResult | null, ctx: { update: 
       ] as const
     ).map(([k, label]) => ({ label, bg: D.unit === k ? "#fff" : "transparent", pick: () => D.unit !== k && upd({ unit: k, price: D.price === "" ? "" : String(+(k === "t" ? +D.price * 1000 : +D.price / 1000).toFixed(4)) }) })),
     tag: D.price !== "" ? "YOUR PRICE" : defP == null ? "NO PRICE" : "DEFAULT", tagBg: D.price !== "" ? "#faecd0" : defP == null ? "#f7e4df" : "#f3f0e8", tagFg: D.price !== "" ? "#5c4012" : defP == null ? "#7a2a1c" : "#45473f",
-    priceConv: curPrice == null ? "Least cost needs a price" : "= $" + fmt(curPrice, 0) + "/t · $" + fmt(curPrice / 1000, 3) + "/kg",
+    priceConv: curPrice == null
+      ? commercialProduct ? "Quote optional for solving · cost excludes this product" : "Least cost needs a price"
+      : "= $" + fmt(curPrice, 0) + "/t · $" + fmt(curPrice / 1000, 3) + "/kg",
     canReset: D.price !== "" && defP != null, resetLabel: defP == null ? "" : "Reset to $" + fmt(D.unit === "t" ? defP : defP / 1000, D.unit === "t" ? 0 : 3) + " planning price", resetPrice: () => upd({ price: "" }),
     hasWhy: !!why, whyTitle, why,
+    nutritionalSource: g?.nutritionSource ?? null,
     profile: CAT_NUTRIENTS.filter((n) => n.id !== (species === "broiler" ? "mePig" : "mePoultry")).map((n) => {
       const x = g?.nutrients[n.id] ?? null;
       const missing = x == null && !!g?.expected.includes(n.id);
