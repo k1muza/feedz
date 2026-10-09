@@ -6,11 +6,12 @@ import { createFeedSportMcpServer } from "@/lib/mcp/feedsport-mcp-server";
 export const runtime = "nodejs";
 
 /**
- * FeedSport MCP endpoint (Streamable HTTP, read-only).
+ * FeedSport MCP endpoint (Streamable HTTP, public, read-only).
  *
  * Serves the 2026-07-28 protocol revision with a fresh server per request,
- * and falls back to stateless serving for 2025-era clients. v0.2 is
- * unauthenticated and never writes data.
+ * and falls back to stateless serving for 2025-era clients. It needs no
+ * credentials and never writes data. Users' saved formulations are served
+ * separately, behind OAuth, at /api/mcp/advisor.
  */
 const handler = createMcpHandler(() => createFeedSportMcpServer(getIngredientPrices), {
   onerror: (error) => console.error("FeedSport MCP error:", error),

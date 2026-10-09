@@ -124,4 +124,27 @@ claude mcp add --transport http feedsport http://localhost:9002/api/mcp
 # production: https://www.feedsport.co.zw/api/mcp
 ```
 
-v0.1 has no authentication and never writes data.
+`/api/mcp` needs no credentials, is read-only and never writes data.
+
+### Advisor endpoint (saved formulations, OAuth)
+
+FeedSport's advising nutritionist connects to **`/api/mcp/advisor`**, which adds every user's saved Studio formulations and advice: `list_users`, `list_saved_formulations`, `get_saved_formulation` and `add_formulation_advice` (logic in `src/lib/mcp/feedsport-formulations.ts`). Advice, optionally with a suggested revision that FeedSport formulates before saving, appears under the formulation's History tab in the Studio.
+
+Every request needs a bearer token. Supabase Auth is the OAuth 2.1 authorization server: clients find it through `/.well-known/oauth-protected-resource/api/mcp/advisor`, send the nutritionist to `/oauth/consent` to approve, and receive a Supabase access token. The account must be in `advisor_users` (admins count as advisors); anyone else gets `403`. The static `FEEDSPORT_MCP_ADVISOR_TOKEN` is accepted too, for scripts and clients without OAuth.
+
+Setup:
+
+1. Apply `supabase/migrations/20261009000000_formulation_advice.sql` and `20261009010000_advisor_users.sql`, then add the nutritionist (after they've signed up in the Studio):
+   ```sql
+   insert into public.advisor_users (user_id, email)
+   select id, email from auth.users where email = 'nutritionist@example.com';
+   ```
+2. In Supabase → **Authentication → OAuth Server**: enable it, set the authorization path to `/oauth/consent`, and allow dynamic client registration (Claude registers itself). Check **Authentication → URL Configuration → Site URL** is `https://www.feedsport.co.zw` — the consent link is Site URL + path.
+3. Set `SUPABASE_SECRET_KEY` (Supabase → Project Settings → API Keys; bypasses row-level security, so server-side only) locally and in Vercel. Optionally set `FEEDSPORT_MCP_ADVISOR_TOKEN` (at least 32 characters, `openssl rand -hex 32`).
+
+Connect:
+
+- **claude.ai / Claude Desktop:** Settings → Connectors → Add custom connector → `https://www.feedsport.co.zw/api/mcp/advisor`, then Connect and sign in with the advisor account.
+- **Claude Code:** `claude mcp add --transport http feedsport-advisor https://www.feedsport.co.zw/api/mcp/advisor`, then run `/mcp` and choose Authenticate. With the static token instead: add `--header "Authorization: Bearer $FEEDSPORT_MCP_ADVISOR_TOKEN"`.
+
+Revoke a person's access by deleting their `advisor_users` row (takes effect on their next request); OAuth grants can also be revoked in Supabase. Rotate the static token by changing the env var.

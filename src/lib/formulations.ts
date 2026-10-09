@@ -57,3 +57,38 @@ export async function saveFormulationVersion<Snap, Sum>(id: string | null, name:
   const row = rows[0];
   return { id: row.formulation_id, version: row.version, createdAt: row.created_at };
 }
+
+export interface FormulationAdviceRow<Snap> {
+  id: string;
+  formulationId: string;
+  version: number | null;
+  author: string;
+  body: string;
+  suggestedSnapshot: Snap | null;
+  createdAt: string;
+}
+
+/**
+ * Advice the nutritionist left on the user's formulations, newest first.
+ * Returns nothing rather than failing, so formulations still load if advice
+ * is unavailable.
+ */
+export async function fetchFormulationAdvice<Snap>(): Promise<FormulationAdviceRow<Snap>[]> {
+  const { data, error } = await createClient()
+    .from("formulation_advice")
+    .select("id, formulation_id, version, author, body, suggested_snapshot, created_at")
+    .order("created_at", { ascending: false });
+  if (error) {
+    console.error("Failed to load formulation advice:", error.message);
+    return [];
+  }
+  return (data as { id: string; formulation_id: string; version: number | null; author: string; body: string; suggested_snapshot: unknown; created_at: string }[]).map((row) => ({
+    id: row.id,
+    formulationId: row.formulation_id,
+    version: row.version,
+    author: row.author,
+    body: row.body,
+    suggestedSnapshot: row.suggested_snapshot as Snap | null,
+    createdAt: row.created_at,
+  }));
+}

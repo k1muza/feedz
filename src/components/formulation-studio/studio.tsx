@@ -349,7 +349,9 @@ const SIMPLE_ROUTES: [Screen, string][] = [
 const AUTH_PATHS = [BASE + "/login", BASE + "/signup", BASE + "/forgot-password", BASE + "/reset-password"];
 
 // Only same-studio paths are followed after sign-in, never another site.
-const safeNext = (next: string | null) => (next && next.startsWith(BASE) && !next.startsWith("//") ? next : null);
+// Sign-in can also be on behalf of the OAuth consent page, which lives outside the studio.
+const OAUTH_CONSENT = "/oauth/consent?";
+const safeNext = (next: string | null) => (next && (next.startsWith(BASE) || next.startsWith(OAUTH_CONSENT)) && !next.startsWith("//") ? next : null);
 
 interface Route {
   screen: Screen;
@@ -1062,6 +1064,15 @@ function useStudio({ catalogue, nutrients, programmes, showSolverDetails = false
     update(versionState(doc, programmes, v));
     run();
   };
+  /** Opens a nutritionist's suggested revision as unsaved changes to its formulation. */
+  const openSuggestion = (docId: string, adviceId: string) => {
+    const doc = formulations.docs.find((d) => d.id === docId);
+    const advice = doc?.advice.find((a) => a.id === adviceId);
+    if (!doc || !advice?.suggestion) return;
+    const base = doc.versions.find((x) => x.v === advice.v) || doc.versions[doc.versions.length - 1];
+    update({ ...versionState({ ...doc, versions: [{ ...base, snap: advice.suggestion }] }, programmes), tab: "recipe", toast: "Opened " + advice.author + "’s suggestion · save to keep it as a new version" });
+    run();
+  };
   /** Opens the workspace with these ingredients for a programme phase; runs straight away when asked. */
   const openWorkspace = (pool: Pool, docName: string, at: { programmeId: string; phaseId: string } = { programmeId: S.programmeId, phaseId: S.phaseId }, runNow = false) => {
     const { programme, phase } = phaseOf(programmes, at.programmeId, at.phaseId);
@@ -1107,6 +1118,10 @@ function useStudio({ catalogue, nutrients, programmes, showSolverDetails = false
   // route entry a direct visit uses; the sign-in page itself leaves history.
   const signedIn = (auth: Account) => {
     const next = safeNext(S.authNext) ?? BASE;
+    if (next.startsWith(OAUTH_CONSENT)) {
+      window.location.assign(next);
+      return;
+    }
     const [path, search = ""] = next.split("?");
     const entry = enterRoute({ ...S, auth }, parseRoute(path, new URLSearchParams(search)), { programmes, docs: null }, next);
     replaceNext.current = true;
@@ -1560,11 +1575,21 @@ function useStudio({ catalogue, nutrients, programmes, showSolverDetails = false
       ["recipe", "Recipe"],
       ["nutrients", "Nutrients"],
       ["why", "Why this recipe"],
-      ["history", "History"],
+      ["history", doc?.advice.length ? "History · " + doc.advice.length + " advice" : "History"],
     ] as [Tab, string][]
   ).map(([k, label]) => ({ label, bd: S.tab === k ? "#222420" : "transparent", color: S.tab === k ? "#222420" : "#64665c", go: () => update({ tab: k }) }));
   const why = optimal ? whyVals(S, optimal, { update, run, engine, phase: PH }) : { limiting: [], held: [], opps: [], misses: [], none: false };
   const runs = S.history.map((h) => ({ time: h.t.toTimeString().slice(0, 5), label: h.status === "optimal" ? GOALS[h.goal].label + " · " + h.n + " ingredients" : h.status === "infeasible" ? "No valid recipe" : "Couldn’t formulate", cost: h.status === "optimal" ? money(h.cost) + "/t" : "—" }));
+  const docAdvice = doc
+    ? doc.advice.map((a) => ({
+        id: a.id,
+        author: a.author,
+        body: a.body,
+        meta: new Date(a.date).toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) + (a.v != null ? " · on v" + a.v : ""),
+        hasSuggestion: !!a.suggestion,
+        openSuggestion: () => openSuggestion(doc.id, a.id),
+      }))
+    : [];
   const docVersions = doc ? doc.versions.slice().reverse().map((v) => ({ v: v.v, date: new Date(v.date).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }), cost: v.sum.costT != null ? money(v.sum.costT) + "/t" : "—", open: () => openVersion(doc.id, v.v) })) : [];
 
   // ---- formulations list ----
@@ -1655,7 +1680,7 @@ function useStudio({ catalogue, nutrients, programmes, showSolverDetails = false
     })),
     isManual: !!manualView, notManual: !manualView, optimiseFromHere: () => update({ mode: "optimised", manual: {}, manualCheck: null }), priceHead: S.unit === "t" ? "Price / t" : "Price / kg",
     nutTitle: "Nutrients vs. requirements", goNutrients: () => update({ tab: "nutrients" }),
-    whyLoading: false, whyReady: !!optimal, why, runs, docVersions, noVersions: docVersions.length === 0,
+    whyLoading: false, whyReady: !!optimal, why, runs, docVersions, noVersions: docVersions.length === 0, docAdvice, hasAdvice: docAdvice.length > 0,
     listRows, selText: S.sel.length + " of 2 selected", cmpDisabled: S.sel.length !== 2, cmpBg: S.sel.length === 2 ? "#e3aa45" : "#64665c", doCompare: () => S.sel.length === 2 && update({ screen: "compare", cmp: S.sel.slice() }), cmp,
     d, closeDrawer: () => update({ drawer: null }),
     hasToast: !!S.toast, toast: S.toast || "",

@@ -8,6 +8,8 @@ const APPROVED_AUTH_PATHS = [
   /^\/studio\/formulations(?:\/[^/]+)?\/?$/,
   /^\/studio\/ingredients(?:\/[^/]+)?\/?$/,
   /^\/studio\/programmes(?:\/[^/]+(?:\/phases\/[^/]+)?)?\/?$/,
+  // Approving an OAuth client (e.g. a Claude connector) after signing in.
+  /^\/oauth\/consent\/?$/,
 ];
 
 function hasUnsafeCharacters(value: string) {

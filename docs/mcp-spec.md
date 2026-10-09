@@ -441,3 +441,27 @@ Side-by-side cost, ingredient count, soybean-meal inclusion, binding requirement
 - without the request's own inclusion limits (when any were given);
 - forced-ingredient variants (`force_ingredients`);
 - other programmes, e.g. a high-performance phase (`compare_programme_ids`).
+
+---
+
+## 12. Advisor Access (v0.4)
+
+FeedSport's advising nutritionist reviews users' saved Studio formulations through MCP.
+
+Endpoint: `/api/mcp/advisor` serves the public tools plus the tools below; `/api/mcp` stays public and read-only.
+
+Access (OAuth 2.1, MCP authorization spec): the endpoint is an OAuth resource server and Supabase Auth is the authorization server. Requests without a valid bearer token get `401` with `WWW-Authenticate: Bearer … resource_metadata=…/.well-known/oauth-protected-resource/api/mcp/advisor`; that document names Supabase (`https://<ref>.supabase.co/auth/v1`) as the authorization server. Clients register dynamically, send the user to Supabase's authorize endpoint, which hands off to FeedSport's consent page (`/oauth/consent`), and receive a Supabase JWT. The server verifies it (`auth.getClaims`) and requires the account to be in `advisor_users` or `admin_users` (`403` otherwise). A static `FEEDSPORT_MCP_ADVISOR_TOKEN` is also accepted. Data is read with the Supabase secret key, so row-level security does not apply to these tools — the bearer check is the gate.
+
+### `list_users`
+Studio users with email, name, organisation, sign-up date and formulation count.
+
+### `list_saved_formulations`
+All saved formulations, newest first, filterable by user, name and programme, with the latest version's status and cost and the number of advice notes.
+
+### `get_saved_formulation`
+Owner, version history, the chosen version's programme, goal, ingredient pool and saved result, previous advice, plus `tool_inputs` (selected-mode `formulate` / diagnostics input that reproduces it) and `analyse_formulation_input` (the saved recipe).
+
+### `add_formulation_advice`
+The only writing tool. Stores a note against a formulation version, shown to the user under the formulation's History tab. An optional `suggestion` (ingredient role, price and limit changes, programme or goal) is applied to the saved snapshot and formulated by FeedSport; the result comes back as `suggestion_check`, and the user can open the suggestion in the Studio and save it as a new version. `dry_run` previews without saving.
+
+Storage: `public.formulation_advice` (`supabase/migrations/20261009000000_formulation_advice.sql`). Users can read advice on their own formulations; only the server writes it.

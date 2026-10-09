@@ -164,10 +164,23 @@ export interface SavedVersion {
   snap: Snapshot;
   sum: Summary;
 }
+/** A note from FeedSport's advising nutritionist, left through the MCP server. */
+export interface SavedAdvice {
+  id: string;
+  /** The version it was written against; null for the formulation as a whole. */
+  v: number | null;
+  author: string;
+  body: string;
+  date: number;
+  /** A suggested revision the user can open and save as a new version. */
+  suggestion: Snapshot | null;
+}
 export interface SavedDoc {
   id: string;
   name: string;
   versions: SavedVersion[];
+  /** Newest first. */
+  advice: SavedAdvice[];
 }
 
 export interface EngineContext {

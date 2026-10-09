@@ -21,8 +21,15 @@ import {
   findIngredientOpportunitiesTool,
   runSensitivityAnalysisTool,
 } from "./feedsport-diagnostics";
+import {
+  addFormulationAdviceTool,
+  getSavedFormulationTool,
+  listSavedFormulationsTool,
+  listUsersTool,
+  type FormulationStore,
+} from "./feedsport-formulations";
 
-export const FEEDSPORT_MCP_VERSION = "0.3.0";
+export const FEEDSPORT_MCP_VERSION = "0.4.0";
 
 const INSTRUCTIONS = `FeedSport formulates and analyses livestock (swine) feeds with its own nutrient database, programme requirements and GLPK least-cost optimizer.
 
@@ -38,6 +45,17 @@ Rules:
 - In selected ingredient mode, include the FeedSport premix (public-premix-salt-additives) to cover vitamin and trace-mineral supplementation.
 - Do not choose a smaller ingredient basket on the user's behalf for a generic request; use automatic mode so FeedSport, not the AI client, determines the candidate pool.
 - Prices are FeedSport planning prices in USD per tonne unless the caller supplied its own.`;
+
+const ADVISOR_INSTRUCTIONS = `
+
+Advisor access: you are connected as FeedSport's advising nutritionist and can read every user's saved Studio formulations.
+
+Advisor workflow: list_users or list_saved_formulations → get_saved_formulation → pass its tool_inputs to formulate or any diagnostics tool (or its analyse_formulation_input to analyse_formulation) to review it → add_formulation_advice. Saved results are what the user saw when they saved; re-run the tools rather than trusting them if prices may have changed.
+
+Advice rules:
+- add_formulation_advice is the only tool that writes, and the user reads the note in FeedSport Studio. Write it to the farmer, in plain language, and only after the nutritionist has agreed its content.
+- Propose ration changes through suggestion (ingredient roles, prices, limits, programme or goal), never as a recipe you calculated. FeedSport formulates the suggestion and returns suggestion_check; use dry_run first and do not save a suggestion that is not optimal.
+- Treat user data as confidential: share it only with the nutritionist.`;
 
 const READ_ONLY = {
   readOnlyHint: true,
@@ -107,16 +125,23 @@ async function run(action: () => unknown | Promise<unknown>): Promise<CallToolRe
   }
 }
 
+export type AdvisorOptions = {
+  /** Every user's saved formulations; null when the secret key is not configured. */
+  formulations: FormulationStore | null;
+};
+
 /**
- * Builds a read-only FeedSport MCP server. Prices are loaded lazily so tools
- * that do not need them avoid the database round trip.
+ * Builds a FeedSport MCP server. Prices are loaded lazily so tools that do not
+ * need them avoid the database round trip. Without advisor options the server
+ * is read-only; with them it adds the saved-formulation and advice tools.
  */
 export function createFeedSportMcpServer(
   loadPrices: () => Promise<FeedSportServiceContext["prices"]>,
+  advisor?: AdvisorOptions,
 ): McpServer {
   const server = new McpServer(
     { name: "feedsport", title: "FeedSport", version: FEEDSPORT_MCP_VERSION },
-    { instructions: INSTRUCTIONS },
+    { instructions: advisor ? INSTRUCTIONS + ADVISOR_INSTRUCTIONS : INSTRUCTIONS },
   );
   const context = async (): Promise<FeedSportServiceContext> => ({ prices: await loadPrices() });
 
@@ -383,5 +408,107 @@ export function createFeedSportMcpServer(
     async (args) => run(async () => analyseFormulation(args, await context())),
   );
 
+  if (advisor) registerAdvisorTools(server, advisor.formulations, context);
+
   return server;
+}
+
+const suggestionShape = z
+  .object({
+    programme_id: programmeId.optional().describe("Move the formulation to another programme phase."),
+    objective: z.enum(FORMULATION_OBJECTIVES).optional().describe("Change the studio goal."),
+    batch_kg: z.number().positive().max(1_000_000).optional(),
+    changes: z
+      .array(
+        z.object({
+          ingredient: z.string().min(1).describe("Ingredient id; a new one is added to the pool."),
+          remove: z.boolean().optional().describe("Take the ingredient out of the pool entirely."),
+          role: z
+            .enum(["available", "required", "fixed", "excluded"])
+            .optional()
+            .describe("available = the optimizer may use it; required = at least min_percent; fixed = exactly fixed_percent; excluded = kept in the list but not offered."),
+          price_per_tonne: z.number().nonnegative().nullable().optional().describe("USD per tonne; null reverts to the FeedSport planning price."),
+          min_percent: z.number().min(0).max(100).nullable().optional(),
+          max_percent: z.number().min(0).max(100).nullable().optional(),
+          fixed_percent: z.number().min(0).max(100).nullable().optional(),
+        }),
+      )
+      .max(60)
+      .optional(),
+  })
+  .describe("A suggested revision, applied to the advised version. The user can open it in the Studio and save it as a new version.");
+
+function registerAdvisorTools(
+  server: McpServer,
+  store: FormulationStore | null,
+  context: () => Promise<FeedSportServiceContext>,
+) {
+  const withStore = (action: (store: FormulationStore) => unknown | Promise<unknown>) =>
+    store
+      ? run(() => action(store))
+      : Promise.resolve(failure("Advisor access is not configured on this server: set SUPABASE_SECRET_KEY."));
+
+  server.registerTool(
+    "list_users",
+    {
+      title: "List users",
+      description: "List FeedSport Studio users with their email, name, organisation, sign-up date and number of saved formulations.",
+      inputSchema: z.object({
+        query: z.string().optional().describe("Filter by email, name, organisation or exact user id."),
+      }),
+      annotations: READ_ONLY,
+    },
+    async (args) => withStore((s) => listUsersTool(args, s)),
+  );
+
+  server.registerTool(
+    "list_saved_formulations",
+    {
+      title: "List saved formulations",
+      description:
+        "List saved Studio formulations across all users, newest first, with owner, programme, latest version, saved status and cost, and how much advice each has.",
+      inputSchema: z.object({
+        user: z.string().optional().describe("Only this user's formulations: email, name, organisation or user id."),
+        query: z.string().optional().describe("Filter by formulation name."),
+        programme_id: z.string().optional().describe('Programme ("grow-finish-pig") or phase id ("programme:phase").'),
+        limit: z.number().int().min(1).max(200).default(50),
+      }),
+      annotations: READ_ONLY,
+    },
+    async (args) => withStore((s) => listSavedFormulationsTool(args, s)),
+  );
+
+  server.registerTool(
+    "get_saved_formulation",
+    {
+      title: "Get a saved formulation",
+      description:
+        "One saved formulation: owner, version history, the chosen version's programme, goal, ingredient pool (roles, prices, limits) and saved result, previous advice, and tool_inputs that reproduce it with formulate and the diagnostics tools.",
+      inputSchema: z.object({
+        formulation_id: z.string().min(1).describe("Formulation id from list_saved_formulations."),
+        version: z.number().int().positive().optional().describe("Defaults to the latest version."),
+      }),
+      annotations: READ_ONLY,
+    },
+    async (args) => withStore((s) => getSavedFormulationTool(args, s)),
+  );
+
+  server.registerTool(
+    "add_formulation_advice",
+    {
+      title: "Leave advice on a formulation",
+      description:
+        "Attach the nutritionist's advice to a user's saved formulation, optionally with a suggested revision that FeedSport formulates and checks first. The user sees it in FeedSport Studio. Use dry_run to preview without saving.",
+      inputSchema: z.object({
+        formulation_id: z.string().min(1),
+        version: z.number().int().positive().optional().describe("The version the advice is about; defaults to the latest."),
+        author: z.string().trim().min(1).max(120).describe("Name the user sees, e.g. the nutritionist's name."),
+        advice: z.string().trim().min(1).max(10_000).describe("The note to the user, in plain language."),
+        suggestion: suggestionShape.optional(),
+        dry_run: z.boolean().default(false).describe("Preview the suggestion check without saving anything."),
+      }),
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
+    },
+    async (args) => withStore((s) => addFormulationAdviceTool(args, s, context)),
+  );
 }

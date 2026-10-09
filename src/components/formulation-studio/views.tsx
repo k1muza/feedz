@@ -1291,6 +1291,24 @@ function Optimal({ v, opt }: V & { opt: NonNullable<StudioVals["opt"]> }) {
         </>
       )}
 
+      {v.tabHistory && v.hasAdvice && (
+        <div style={sx("background:#fff;border:1px solid #e2dfd6;border-radius:10px;overflow:hidden")}>
+          <div style={sx("padding:14px 18px;font:600 15px/1 'IBM Plex Sans',sans-serif;border-bottom:1px solid #e2dfd6")}>Advice from FeedSport</div>
+          {v.docAdvice.map((a) => (
+            <div key={a.id} style={sx("padding:14px 18px;border-top:1px solid #ece8df;display:flex;flex-direction:column;gap:8px")}>
+              <div style={sx("display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;font:400 13px/1.3 'IBM Plex Sans',sans-serif;color:#64665c")}>
+                <span style={sx("font-weight:600;color:#222420")}>{a.author}</span>
+                <span style={sx("font:400 12px/1.3 'IBM Plex Mono',monospace")}>{a.meta}</span>
+              </div>
+              <div style={sx("font:400 14px/1.55 'IBM Plex Sans',sans-serif;color:#222420;white-space:pre-wrap;overflow-wrap:anywhere")}>{a.body}</div>
+              {a.hasSuggestion && (
+                <button onClick={a.openSuggestion} style={sx("align-self:flex-start;border:1px solid #2f5a3f;background:#eef3ee;color:#2f5a3f;border-radius:6px;padding:8px 12px;font:600 13px/1 'IBM Plex Sans',sans-serif")}>Open suggested revision</button>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
       {v.tabHistory && (
         <div style={sx("display:flex;flex-wrap:wrap;gap:18px;align-items:flex-start")}>
           <div style={sx("flex:1 1 360px;background:#fff;border:1px solid #e2dfd6;border-radius:10px;overflow:hidden")}>

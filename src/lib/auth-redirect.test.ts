@@ -11,6 +11,7 @@ describe("safeAuthRedirect", () => {
     assert.equal(safeAuthRedirect("/studio/catalogue?q=maize%20meal#results", ORIGIN), "/studio/catalogue?q=maize%20meal#results");
     assert.equal(safeAuthRedirect("/studio/formulations/formulation-1", ORIGIN), "/studio/formulations/formulation-1");
     assert.equal(safeAuthRedirect("/studio/programmes/grow-finish/phases/grower", ORIGIN), "/studio/programmes/grow-finish/phases/grower");
+    assert.equal(safeAuthRedirect("/oauth/consent?authorization_id=abc", ORIGIN), "/oauth/consent?authorization_id=abc");
   });
 
   test("rejects external, backslash, control-character, and encoded variants", () => {
@@ -35,6 +36,7 @@ describe("safeAuthRedirect", () => {
       "/studio/not-a-route",
       "/studio/programmes/a/extra",
       "/studio/%2e%2e/%2e%2e//evil.example",
+      "/oauth/consent/extra",
     ];
     for (const value of unapproved) assert.equal(safeAuthRedirect(value, ORIGIN), null, value);
   });
