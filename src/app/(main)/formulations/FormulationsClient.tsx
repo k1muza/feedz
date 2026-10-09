@@ -9,7 +9,7 @@ import type { IngredientPackSize } from '@/lib/ingredient-pack-sizes';
 import type { FormulationAlternativeKind, FormulationIngredientSuggestionResult, LeastCostFormulationResult } from '@/lib/feed-optimizer';
 import { feedProgrammeById, feedProgrammePhaseById } from '@/lib/feed-programmes';
 import { INGREDIENT_LIBRARY, ingredientLibraryForPhase, ingredientLibraryWithCommercialPremixes } from '@/lib/ingredient-nutrients';
-import { commercialPremixForProgramme } from '@/lib/commercial-premixes';
+import { commercialPremixForProgramme, publishedPremixAminoAcids } from '@/lib/commercial-premixes';
 import { initialFeedMix } from '@/lib/public-formulation-defaults';
 import { FEED_PROGRAMMES } from '@/lib/feed-programmes';
 import { resolveNutritionTargets } from '@/lib/nutrition-targets';
@@ -375,6 +375,13 @@ export default function FormulationsClient({ ingredientPrices, ingredientPackSiz
               <p className="my-1 text-[13px] text-[#4f524b]">
                 Published inclusion: {selectedPremix.inclusionKgPerTonne} kg/t ({selectedPremix.inclusionPct}%). {selectedPremix.application}.
               </p>
+              {publishedPremixAminoAcids(selectedPremix).map((claim) => (
+                <p key={claim.name} className="my-1 text-[13px] text-[#6d4b12]">
+                  Manufacturer amino-acid guarantee: {claim.name} total
+                  {claim.minimumPct !== null ? ` ≥${claim.minimumPct}%` : ""} in premix.
+                  This is not a verified SID value and is not credited to SID requirements.
+                </p>
+              ))}
               {selectedPremix.manufacturerRecipe ? (
                 <p className="my-1 text-[13px] font-semibold text-[#84511a]">
                   Fixed manufacturer recipe: published ingredient proportions are locked. No substitutions.
