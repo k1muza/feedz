@@ -28,6 +28,12 @@ import {
   listUsersTool,
   type FormulationStore,
 } from "./feedsport-formulations";
+import {
+  listFeaturedTool,
+  saveFeaturedTool,
+  setFeaturedPublishedTool,
+  type FeaturedStore,
+} from "./feedsport-featured";
 
 export const FEEDSPORT_MCP_VERSION = "0.4.0";
 
@@ -55,7 +61,9 @@ Advisor workflow: list_users or list_saved_formulations → get_saved_formulatio
 Advice rules:
 - add_formulation_advice is the only tool that writes, and the user reads the note in FeedSport Studio. Write it to the farmer, in plain language, and only after the nutritionist has agreed its content.
 - Propose ration changes through suggestion (ingredient roles, prices, limits, programme or goal), never as a recipe you calculated. FeedSport formulates the suggestion and returns suggestion_check; use dry_run first and do not save a suggestion that is not optimal.
-- Treat user data as confidential: share it only with the nutritionist.`;
+- Treat user data as confidential: share it only with the nutritionist.
+
+Featured formulations (the starting points on FeedSport Studio's Home screen): list_featured_formulations → save_featured_formulation (dry_run first) → set_featured_formulation_published. They are public, written in FeedSport's name, and formulated live at FeedSport planning prices, so they carry no prices. FeedSport refuses to save one that does not formulate to a valid recipe; never work around a rejection by inventing numbers.`;
 
 const READ_ONLY = {
   readOnlyHint: true,
@@ -128,6 +136,8 @@ async function run(action: () => unknown | Promise<unknown>): Promise<CallToolRe
 export type AdvisorOptions = {
   /** Every user's saved formulations; null when the secret key is not configured. */
   formulations: FormulationStore | null;
+  /** Featured formulations on Studio Home; null when the secret key is not configured. */
+  featured: FeaturedStore | null;
 };
 
 /**
@@ -408,7 +418,7 @@ export function createFeedSportMcpServer(
     async (args) => run(async () => analyseFormulation(args, await context())),
   );
 
-  if (advisor) registerAdvisorTools(server, advisor.formulations, context);
+  if (advisor) registerAdvisorTools(server, advisor, context);
 
   return server;
 }
@@ -438,15 +448,87 @@ const suggestionShape = z
   })
   .describe("A suggested revision, applied to the advised version. The user can open it in the Studio and save it as a new version.");
 
+const NOT_CONFIGURED = "Advisor access is not configured on this server: set SUPABASE_SECRET_KEY.";
+
 function registerAdvisorTools(
   server: McpServer,
-  store: FormulationStore | null,
+  { formulations: store, featured }: AdvisorOptions,
   context: () => Promise<FeedSportServiceContext>,
 ) {
   const withStore = (action: (store: FormulationStore) => unknown | Promise<unknown>) =>
-    store
-      ? run(() => action(store))
-      : Promise.resolve(failure("Advisor access is not configured on this server: set SUPABASE_SECRET_KEY."));
+    store ? run(() => action(store)) : Promise.resolve(failure(NOT_CONFIGURED));
+  const withFeatured = (action: (store: FeaturedStore) => unknown | Promise<unknown>) =>
+    featured ? run(() => action(featured)) : Promise.resolve(failure(NOT_CONFIGURED));
+
+  const slug = z
+    .string()
+    .regex(/^[a-z0-9]+(-[a-z0-9]+)*$/)
+    .max(80)
+    .describe('Stable lowercase slug, e.g. "pig-grower-maize-soya-lysine". Saving an existing id replaces it.');
+
+  server.registerTool(
+    "list_featured_formulations",
+    {
+      title: "List featured formulations",
+      description:
+        "Every featured formulation on FeedSport Studio's Home screen, published or not, in display order, with its programme, ingredient pool and tool_inputs for formulate.",
+      inputSchema: z.object({}),
+      annotations: READ_ONLY,
+    },
+    async () => withFeatured((s) => listFeaturedTool(s)),
+  );
+
+  server.registerTool(
+    "save_featured_formulation",
+    {
+      title: "Save a featured formulation",
+      description:
+        "Create or replace a featured formulation on Studio Home. FeedSport formulates it at planning prices first and refuses to save it unless the recipe is valid; the response shows what its Home card will display. Use dry_run to preview.",
+      inputSchema: z.object({
+        id: slug,
+        name: z.string().trim().min(1).max(120).describe("Card title, e.g. \"Sorghum finisher for maize-short seasons\"."),
+        description: z.string().trim().min(1).max(500).describe("One or two sentences for farmers: who it is for and why."),
+        programme_id: programmeId,
+        objective: z.enum(FORMULATION_OBJECTIVES).default("least_cost").describe("The Studio goal the card opens with."),
+        batch_kg: z.number().positive().max(100_000).default(1000).describe("Batch size the copy opens with."),
+        ingredients: z
+          .array(
+            z.object({
+              ingredient: z.string().min(1).describe("Ingredient id from search_ingredients."),
+              role: z
+                .enum(["available", "required", "fixed"])
+                .optional()
+                .describe("available (default) = optimizer may use it; required = at least min_percent; fixed = exactly fixed_percent."),
+              min_percent: z.number().min(0).max(100).optional(),
+              max_percent: z.number().min(0).max(100).optional(),
+              fixed_percent: z.number().min(0).max(100).optional(),
+            }),
+          )
+          .min(2)
+          .max(40)
+          .describe("The ingredient pool. Planning prices apply; every ingredient needs one."),
+        author: z.string().trim().min(1).max(120).optional().describe('Defaults to "FeedSport Nutrition Team".'),
+        author_role: z.string().trim().min(1).max(120).optional().describe('Defaults to "FeedSport nutritionist".'),
+        place: z.string().trim().min(1).max(120).optional().describe('Defaults to "Harare".'),
+        published: z.boolean().optional().describe("Defaults to true for a new one; keeps the current value when replacing."),
+        sort_order: z.number().int().min(0).max(10_000).optional().describe("Lower shows first. Defaults to 100 for a new one."),
+        dry_run: z.boolean().default(false),
+      }),
+      annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false },
+    },
+    async (args) => withFeatured((s) => saveFeaturedTool(args, s, context)),
+  );
+
+  server.registerTool(
+    "set_featured_formulation_published",
+    {
+      title: "Publish or unpublish a featured formulation",
+      description: "Show or hide a featured formulation on Studio Home without deleting it.",
+      inputSchema: z.object({ id: slug, published: z.boolean() }),
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+    },
+    async (args) => withFeatured((s) => setFeaturedPublishedTool(args, s)),
+  );
 
   server.registerTool(
     "list_users",

@@ -9,6 +9,7 @@ import {
 import { getIngredientPrices } from "@/lib/ingredient-prices";
 import { NotAdvisorError, createAdvisorVerifier } from "@/lib/mcp/advisor-auth";
 import { advisorResourceUrl, supabaseAdvisorDirectory } from "@/lib/mcp/advisor-oauth";
+import { createSupabaseFeaturedStore } from "@/lib/mcp/feedsport-featured";
 import { createSupabaseFormulationStore } from "@/lib/mcp/feedsport-formulations";
 import { createFeedSportMcpServer } from "@/lib/mcp/feedsport-mcp-server";
 import { createSecretClient } from "@/lib/supabase/secret";
@@ -28,6 +29,7 @@ const handler = createMcpHandler(
     const supabase = createSecretClient();
     return createFeedSportMcpServer(getIngredientPrices, {
       formulations: supabase ? createSupabaseFormulationStore(supabase) : null,
+      featured: supabase ? createSupabaseFeaturedStore(supabase) : null,
     });
   },
   { onerror: (error) => console.error("FeedSport advisor MCP error:", error) },

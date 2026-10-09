@@ -34,7 +34,7 @@ import {
   type Snapshot,
   type Summary,
 } from "./engine";
-import { FEATURED } from "./featured";
+import type { FeaturedFormulation } from "./featured";
 import { useFormulations } from "./use-formulations";
 import { MAX_LIST_LABEL, useMyLists, type MyLists } from "./use-my-lists";
 import { StudioView } from "./views";
@@ -292,6 +292,8 @@ export interface StudioProps {
   nutrients: StudioNutrientData;
   /** Real feeding programmes, built on the server. */
   programmes: StudioProgrammeData;
+  /** Published featured formulations, loaded on the server. */
+  featured: FeaturedFormulation[];
   showSolverDetails?: boolean;
 }
 
@@ -598,7 +600,7 @@ const INITIAL: State = {
 
 const spinnerStyle = (track: string, head: string): CSSProperties => ({ width: 16, height: 16, borderRadius: "50%", border: "2px solid " + track, borderTopColor: head, display: "inline-block", animation: "fsspin .8s linear infinite", flex: "none" });
 
-function useStudio({ catalogue, nutrients, programmes, showSolverDetails = false }: StudioProps) {
+function useStudio({ catalogue, nutrients, programmes, featured: featuredList, showSolverDetails = false }: StudioProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -783,8 +785,8 @@ function useStudio({ catalogue, nutrients, programmes, showSolverDetails = false
   useEffect(() => {
     if (!ready || !S.auth || S.screen !== "home" || featuredStarted.current) return;
     featuredStarted.current = true;
-    void Promise.all(FEATURED.map((f) => formulate(f.snap, engine))).then((results) => setFeatured(Object.fromEntries(FEATURED.map((f, i) => [f.id, results[i]]))));
-  }, [ready, S.auth, S.screen, engine]);
+    void Promise.all(featuredList.map((f) => formulate(f.snap, engine))).then((results) => setFeatured(Object.fromEntries(featuredList.map((f, i) => [f.id, results[i]]))));
+  }, [ready, S.auth, S.screen, engine, featuredList]);
 
   // Manual mode: the engine checks typed-in amounts a moment after typing stops.
   const manualSig = S.mode === "manual" ? manualRecipe(S, catalogueById).sig : "";
@@ -1706,7 +1708,7 @@ function useStudio({ catalogue, nutrients, programmes, showSolverDetails = false
       markAllAdviceRead: () => formulations.markAdviceRead(formulations.docs.flatMap((d) => d.advice.map((a) => a.id))),
       docs: formulations.docs, catalogue, myLists, programmes, nutrients,
     }),
-    ...featuredVals(S, featured, { update, run, flash, programmes }),
+    ...featuredVals(S, featuredList, featured, { update, run, flash, programmes }),
     ...contactVals(S, {
       update, flash, user, inWs,
       describe: () => {
@@ -2503,9 +2505,9 @@ function notificationVals(S: State, ctx: { update: Update; docs: SavedDoc[]; ope
 
 // Featured formulations on Home (see featured.ts). Only those that still meet
 // their stage are shown; "Use as a starting point" opens an unsaved copy.
-function featuredVals(S: State, results: Record<string, FormulateResult> | null, ctx: { update: Update; run: () => void; flash: (m: string) => void; programmes: StudioProgrammeData }) {
+function featuredVals(S: State, list: FeaturedFormulation[], results: Record<string, FormulateResult> | null, ctx: { update: Update; run: () => void; flash: (m: string) => void; programmes: StudioProgrammeData }) {
   const F = S.featFilter;
-  const featured = FEATURED.flatMap((f) => {
+  const featured = list.flatMap((f) => {
     const R = results?.[f.id];
     const { programme, phase } = phaseOf(ctx.programmes, f.snap.programmeId, f.snap.phaseId);
     if (R?.status !== "optimal" || (F !== "all" && programme.species !== F)) return [];
