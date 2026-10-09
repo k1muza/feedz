@@ -1,13 +1,36 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { analyseFormulation, formulate, FeedSportInputError, type FeedSportServiceContext } from "./feedsport-service";
+import { analyseFormulation, formulate, getIngredient, FeedSportInputError, type FeedSportServiceContext } from "./feedsport-service";
+import { INGREDIENT_LIBRARY, ingredientLibraryWithCustomPremixes } from "@/lib/ingredient-nutrients";
 import { INGREDIENT_DEFAULT_PRICES } from "@/lib/feed-ingredient-prices";
 import { diagnoseInfeasibilityTool } from "./feedsport-diagnostics";
 import { commercialPremixById } from "@/lib/commercial-premixes";
 
 const context: FeedSportServiceContext = { prices: INGREDIENT_DEFAULT_PRICES };
 const programme_id = "nursery-pig:br2024-5-32-35-49d-8.4-17.9kg";
+
+describe("MCP nutrition profile provenance", () => {
+  it("identifies Brazilian Tables ingredient profiles and manufacturer premixes separately", () => {
+    const maize = getIngredient("corn-yellow-dent", context);
+    assert.equal(maize.nutrition_profile_source.verificationStatus, "published_reference");
+    assert.ok(maize.nutrition_profile_source.source?.url);
+    const commercial = getIngredient("sustar-glypro-x912", context);
+    assert.equal(commercial.nutrition_profile_source.verification_status, "manufacturer_unverified");
+    assert.match(commercial.nutrition_profile_source.url, /^https:\/\//);
+  });
+
+  it("does not claim the Brazilian Tables as source of an unsourced farmer premix", () => {
+    const library = ingredientLibraryWithCustomPremixes([{
+      id: "farmer-mix-123", name: "Farmer formula",
+      vitamins: {}, traceMineralsPpm: {},
+    }], INGREDIENT_LIBRARY);
+    const result = getIngredient("farmer-mix-123", context, undefined, library);
+    assert.equal(result.verification_status, "user_supplied_unverified");
+    assert.equal(result.source_url, null);
+    assert.match(result.source, /user-provided/i);
+  });
+});
 
 describe("FeedSport MCP automatic ingredient mode", () => {
   it("builds the candidate pool itself for a generic formulation", async () => {
