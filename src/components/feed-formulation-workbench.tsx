@@ -1365,7 +1365,7 @@ function ResultPanel({
           {result.incomplete_requirements.length > 0 ? (
             <div className="space-y-2">
               <div className="font-medium text-ink">Cannot verify — missing ingredient nutrient values</div>
-              {result.incompleteRequirements.map((row) => (
+              {result.incomplete_requirements.map((row) => (
                 <div key={row.nutrient} className="rounded-lg border border-hairline p-3 text-sm">
                   <strong>{row.label}</strong> · Missing: {row.missing_data_for.join(", ")}
                 </div>
@@ -1375,8 +1375,8 @@ function ResultPanel({
           {result.checked_shortfalls.length > 0 ? (
             <div className="space-y-2">
               <div className="font-medium text-ink">Known nutrient shortfalls against selected programme</div>
-              {result.checkedShortfalls.map((row) => (
-                <div key={row.id} className="rounded-lg border border-hairline p-3 text-sm">
+              {result.checked_shortfalls.map((row) => (
+                <div key={row.nutrient} className="rounded-lg border border-hairline p-3 text-sm">
                   {row.label}: {row.actual.toFixed(3)} {row.unit} vs {row.relation} {row.requirement.toFixed(3)}
                 </div>
               ))}
