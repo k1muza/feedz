@@ -49,12 +49,8 @@ import {
 } from "@/lib/ingredient-inclusion-limits";
 import type { EnergySystem } from "@/lib/nutrition-targets";
 import type { NutritionPhase, NutritionSpecies } from "@/lib/nutrition";
-import {
-  PUBLIC_PREMIX_ID,
-  PUBLIC_PREMIX_INCLUSION_PCT,
-  PUBLIC_PREMIX_NAME,
-  publicPremixProfileForPhase,
-} from "@/lib/public-feed-premix";
+import { PUBLIC_PREMIX_ID } from "@/lib/public-feed-premix";
+import { COMMERCIAL_PREMIXES, commercialPremixById, commercialPremixCompatibleWithProgramme, type CommercialPremix } from "@/lib/commercial-premixes";
 
 export const SOLVER = "GLPK (glpk.js)";
 export const CURRENCY = "USD";
@@ -303,7 +299,7 @@ export function getProgramme(id: string, energySystem: EnergySystem = "ME") {
     ...(premix.length > 0
       ? {
           supplementation_requirements: {
-            applies_when: `Enforced only when the FeedSport premix (${PUBLIC_PREMIX_ID}) is included in a formulation.`,
+            applies_when: "Only enforce if a verified manufacturer profile exists; current Sustar products are UNVERIFIED.",
             source_tables: phase.supplementation?.sourceTables,
             requirements: requirementMap(premix),
           },
@@ -370,17 +366,19 @@ function priceSummary(ingredientId: string, context: FeedSportServiceContext) {
   };
 }
 
-function premixSummary(context: FeedSportServiceContext) {
+function premixSummary(premix: CommercialPremix, context: FeedSportServiceContext) {
   return {
-    id: PUBLIC_PREMIX_ID,
-    name: PUBLIC_PREMIX_NAME,
-    category: "vitamin_mineral_premix",
-    aliases: PREMIX_ALIASES,
-    ...priceSummary(PUBLIC_PREMIX_ID, context),
-    default_constraints: {
-      min_inclusion_percent: PUBLIC_PREMIX_INCLUSION_PCT,
-      max_inclusion_percent: PUBLIC_PREMIX_INCLUSION_PCT,
-    },
+    id: premix.id, name: premix.name, category: "vitamin_mineral_premix" as const,
+    aliases: [premix.sku, premix.manufacturer],
+    ...priceSummary(premix.id, context),
+    manufacturer: premix.manufacturer, sku: premix.sku,
+    application: premix.application,
+    verification_status: premix.verificationStatus,
+    formulation_compatibility: premix.formulationCompatibility,
+    specification_url: premix.specificationUrl,
+    published_analysis: premix.publishedAnalysis,
+    ...(premix.note ? { note: premix.note } : {}),
+    default_constraints: { min_inclusion_percent: premix.inclusionPct, max_inclusion_percent: premix.inclusionPct },
   };
 }
 
@@ -520,12 +518,12 @@ export function searchIngredients(
           )
         : undefined,
     })),
-    {
-      summary: premixSummary(context),
-      text: `${PUBLIC_PREMIX_ID} ${PUBLIC_PREMIX_NAME} ${PREMIX_ALIASES.join(" ")} vitamin_mineral_premix`,
-      exact: PREMIX_ALIASES.includes(filters.query?.trim().toLowerCase() ?? ""),
+    ...COMMERCIAL_PREMIXES.map((premix) => ({
+      summary: premixSummary(premix, context),
+      text: `${premix.id} ${premix.sku} ${premix.name} ${premix.manufacturer} ${premix.application} vitamin_mineral_premix`,
+      exact: [premix.id, premix.sku, premix.name].some((label) => label.toLowerCase() === filters.query?.trim().toLowerCase()),
       nutrientValues: nutrient ? {} : undefined,
-    },
+    })),
   ];
 
   const matches = candidates.filter((candidate) => {
@@ -563,25 +561,14 @@ export function getIngredient(
   programmeId?: string,
   library: IngredientLibrary = INGREDIENT_LIBRARY,
 ) {
-  if (id === PUBLIC_PREMIX_ID) {
-    if (!programmeId) {
-      return {
-        ...premixSummary(context),
-        nutrients: null,
-        note: "The FeedSport premix profile is phase-specific: it is built to meet the phase's Brazilian Tables Chapter 7 vitamin and trace-mineral supplementation targets at a fixed 1% inclusion. Pass programme_id to see the profile for a phase.",
-        source: "FeedSport premix specification derived from Brazilian Tables 2024 Chapter 7",
-      };
-    }
-    const { phase } = resolvePhase(programmeId);
-    const premixLibrary = ingredientLibraryWithCustomPremixes([publicPremixProfileForPhase(phase)], library);
-    const record = premixLibrary.ingredients.find((ingredient) => ingredient.id === PUBLIC_PREMIX_ID)!;
-    return {
-      ...premixSummary(context),
-      programme_id: resolvePhase(programmeId).id,
-      nutrients: ingredientNutrients(record),
-      source: "FeedSport premix specification derived from Brazilian Tables 2024 Chapter 7",
-    };
-  }
+  if (id === PUBLIC_PREMIX_ID) throw new FeedSportInputError("The theoretical premix is retired. Choose a real manufacturer SKU.");
+  const commercial = commercialPremixById(id);
+  if (commercial) return {
+    ...premixSummary(commercial, context),
+    nutrients: null,
+    source: commercial.specificationUrl,
+    note: "Published specification ranges are for reference only. No unverified concentration is treated as a feed guarantee; request a supplier COA.",
+  };
 
   const ingredient = resolveIngredient(id, library).record;
   const provenance = ingredient.provenance;
@@ -647,7 +634,9 @@ function resolveIngredient(requested: string, library: IngredientLibrary): Resol
 
 export function resolveRequestedIngredient(requested: string, library: IngredientLibrary): string {
   const normalized = requested.trim().toLowerCase();
-  if (normalized === PUBLIC_PREMIX_ID || PREMIX_ALIASES.includes(normalized)) return PUBLIC_PREMIX_ID;
+  if (normalized === PUBLIC_PREMIX_ID || PREMIX_ALIASES.includes(normalized)) throw new FeedSportInputError("Generic premix retired; specify manufacturer SKU.");
+  const commercial = COMMERCIAL_PREMIXES.find((p) => [p.id, p.sku.toLowerCase(), p.name.toLowerCase()].includes(normalized));
+  if (commercial) return commercial.id;
   return resolveIngredient(requested, library).id;
 }
 
@@ -888,18 +877,21 @@ function prepareRequest(
     if (id !== requested) resolvedNames.push({ requested, ingredient: id });
   }
 
-  const includesPremix = ingredientIds.includes(PUBLIC_PREMIX_ID);
+  const selectedPremixes = ingredientIds.flatMap((id) => {
+    const premix = commercialPremixById(id);
+    if (!premix) return [];
+    if (!commercialPremixCompatibleWithProgramme(premix, programmeId)) throw new FeedSportInputError(`${premix.name} is not assigned to ${programmeId}.`);
+    return [premix];
+  });
+  if (selectedPremixes.length > 1) throw new FeedSportInputError("Use one commercial premix at a time.");
+  const includesPremix = selectedPremixes.length > 0;
   const speciesLibrary = ingredientLibraryForPhase(resolved.phase);
   return {
-    resolved,
-    energySystem,
+    resolved, energySystem,
     library: includesPremix
-      ? ingredientLibraryWithCustomPremixes([publicPremixProfileForPhase(resolved.phase)], speciesLibrary)
+      ? ingredientLibraryWithCustomPremixes(selectedPremixes.map((p) => ({ id: p.id, name: p.name, vitamins: {}, traceMineralsPpm: {} })), speciesLibrary)
       : speciesLibrary,
-    settings: {
-      includeSupplementationTargets: includesPremix,
-      traceMineralBasis: "inorganic",
-    },
+    settings: { includeSupplementationTargets: false, traceMineralBasis: "inorganic" },
     includesPremix,
     ingredientIds,
     resolvedNames,
@@ -910,11 +902,11 @@ function formulationNotes(request: PreparedRequest): string[] {
   const notes: string[] = [];
   if (request.includesPremix) {
     notes.push(
-      `The FeedSport premix is fixed at ${PUBLIC_PREMIX_INCLUSION_PCT}% and its vitamin and trace-mineral supplementation targets are enforced.`,
+      "Commercial premix is UNVERIFIED; supplier dosage is fixed but vitamin and trace-mineral adequacy was NOT checked.",
     );
   } else {
     notes.push(
-      `No FeedSport premix was included, so vitamin and trace-mineral supplementation is not formulated or checked. Add ${PUBLIC_PREMIX_ID} to cover it.`,
+      "No verified premix included: vitamin and trace-mineral supplementation has NOT been checked.",
     );
   }
   return notes;
