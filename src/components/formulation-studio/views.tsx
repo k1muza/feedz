@@ -969,6 +969,27 @@ function Workspace({ v }: V) {
             </div>
           )}
 
+          {v.manufacturerResult && (
+            <section style={sx("background:#fff;border:1px solid #e2dfd6;border-radius:10px;padding:20px;display:flex;flex-direction:column;gap:14px")}>
+              <h2 style={sx("font:600 21px/1.3 'IBM Plex Sans',sans-serif;color:#222420;margin:0")}>
+                Manufacturer's fixed mixing recipe
+              </h2>
+              <p style={sx("font:400 14px/1.5 'IBM Plex Sans',sans-serif;color:#45473f;margin:0")}>
+                These are the supplier's prescribed proportions, not a FeedSport least-cost optimisation. Do not change the formulation without manufacturer approval.
+              </p>
+              <div style={sx("border:1px solid #ece8df;border-radius:6px;overflow:hidden")}>
+                {v.manufacturerResult.recipe.map((row: { id: string; name: string; pct: number }) => (
+                  <div key={row.id} style={sx("display:flex;justify-content:space-between;gap:16px;padding:11px 14px;border-bottom:1px solid #ece8df;font:400 14px/1.4 'IBM Plex Sans',sans-serif")}>
+                    <span>{row.name}</span><strong>{row.pct}%</strong>
+                  </div>
+                ))}
+              </div>
+              <strong style={sx("font:600 15px/1.4 'IBM Plex Sans',sans-serif")}>{v.manufacturerResult.costText}</strong>
+              <p style={sx("font:400 13px/1.5 'IBM Plex Sans',sans-serif;color:#8a5f18;margin:0")}>
+                {v.manufacturerResult.message}
+              </p>
+            </section>
+          )}
           {v.inf && <Infeasible v={v} inf={v.inf} />}
           {v.opt && <Optimal v={v} opt={v.opt} />}
 
