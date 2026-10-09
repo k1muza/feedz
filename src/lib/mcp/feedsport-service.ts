@@ -378,6 +378,7 @@ function premixSummary(premix: CommercialPremix, context: FeedSportServiceContex
     ...(premix.manufacturerRecipe ? { manufacturer_recipe: premix.manufacturerRecipe } : {}),
     specification_url: premix.specificationUrl,
     published_analysis: premix.publishedAnalysis,
+    ...(premix.publishedGuarantees ? { published_guarantees: premix.publishedGuarantees } : {}),
     ...(premix.note ? { note: premix.note } : {}),
     default_constraints: { min_inclusion_percent: premix.inclusionPct, max_inclusion_percent: premix.inclusionPct },
   };
