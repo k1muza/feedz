@@ -1,5 +1,8 @@
 name: Test
 
+permissions:
+  contents: read
+
 on:
   pull_request:
   push:
@@ -20,9 +23,10 @@ jobs:
           node-version: '22'
           cache: npm
       - name: Install dependencies
+        id: install
         run: npm ci
-      - name: Typecheck
-        run: npm run typecheck
+      - name: Typecheck formulation and MCP
+        run: npx tsc --project tsconfig.formulation.json --noEmit
       - name: Unit tests
-        if: always()
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: npm test
