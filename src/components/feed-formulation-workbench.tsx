@@ -52,6 +52,7 @@ import {
 } from "@/lib/feed-formulation-report";
 import { PUBLIC_PREMIX_ID } from "@/lib/public-feed-premix";
 import { commercialPremixById, commercialPremixForProgramme } from "@/lib/commercial-premixes";
+import type { ManufacturerRecipeAssessment } from "@/lib/manufacturer-recipe";
 import type {
   FormulationIngredientOption,
   FormulationIngredientSuggestionResult,
@@ -90,6 +91,13 @@ export type IngredientOption = {
 };
 
 type IngredientPoolMode = "automatic" | "selected";
+
+type ManufacturerWorkbenchResult = ManufacturerRecipeAssessment & {
+  costPerKg: number;
+  productId: string;
+  manufacturer: string;
+};
+type WorkbenchResult = LeastCostFormulationResult | ManufacturerWorkbenchResult;
 
 type Row = {
   key: number;
@@ -242,7 +250,7 @@ export function FeedFormulationWorkbench({
   const [rows, setRows] = useState<Row[]>(
     (initialManufacturerRows ?? initialRows).map((row, index) => ({ ...row, key: index })),
   );
-  const [result, setResult] = useState<LeastCostFormulationResult | null>(
+  const [result, setResult] = useState<WorkbenchResult | null>(
     initialResult,
   );
   const [running, setRunning] = useState(false);
@@ -266,6 +274,9 @@ export function FeedFormulationWorkbench({
   );
   const [activeSavedId, setActiveSavedId] = useState(initialFormulaSet?.id);
   const requirementsWereEdited = useRef(false);
+  // Temporarily entering a manufacturer-locked programme must not overwrite a
+  // farmer's manually chosen pool or their entered ingredient prices.
+  const priorEditablePool = useRef<{ mode: IngredientPoolMode; rows: Row[] } | null>(null);
 
   const allIngredientOptions = useMemo<IngredientOption[]>(
     () => ingredients,
@@ -392,23 +403,32 @@ export function FeedFormulationWorkbench({
     requirementsWereEdited.current = true;
     const programme = programmes.find((candidate) => candidate.id === value);
     const premix = commercialPremixForProgramme(value);
+    const wasManufacturerLocked = Boolean(selectedPremix?.manufacturerRecipe);
     if (premix?.manufacturerRecipe) {
-      // No discretionary ingredient selection: use only CJ's published mix.
+      if (!wasManufacturerLocked) {
+        priorEditablePool.current = { mode: ingredientPoolMode, rows: rows.map((row) => ({ ...row })) };
+      }
       setIngredientPoolMode("selected");
       setRows(premix.manufacturerRecipe
         .filter((item) => item.ingredientId !== premix.id)
         .map((item, index) => ({
           key: index,
           ingredientId: item.ingredientId,
-          price: defaultPriceInput(item.ingredientId, ingredients),
+          // Preserve previously entered prices when possible.
+          price: rows.find((row) => row.ingredientId === item.ingredientId)?.price ??
+            defaultPriceInput(item.ingredientId, ingredients),
           min: "",
           max: "",
           lockedPct: String(item.percent),
         })));
       setSuggestionError(null);
-    } else {
-      setIngredientPoolMode("automatic");
+    } else if (wasManufacturerLocked) {
+      const original = priorEditablePool.current;
+      priorEditablePool.current = null;
+      setIngredientPoolMode(original?.mode ?? "automatic");
+      setRows(original?.rows ?? []);
     }
+    // Otherwise preserve the selected ingredient pool and its price/limits.
     setProgrammeId(value);
     setPhaseId(programme?.phases[0]?.id ?? "");
     setResult(null);
@@ -543,11 +563,18 @@ export function FeedFormulationWorkbench({
           ingredients: requestIngredients,
         }),
       });
-      const payload = (await response.json()) as LeastCostFormulationResult & {
+      const payload = (await response.json()) as WorkbenchResult & {
         message?: string;
       };
       if (!response.ok) {
         throw new Error(payload.message ?? "Formulation request failed.");
+      }
+      if (payload.status === "manufacturer_recipe") {
+        setFormulationBasis(undefined);
+        setResult(payload);
+        setSelectedRecipeId("least-cost");
+        setActiveTab("recipes");
+        return true;
       }
       if (payload.status === "optimal") {
         const basisIngredients = requestIngredients.map((requestIngredient) => {
@@ -1300,7 +1327,7 @@ function ResultPanel({
   onSelectedRecipeChange,
   batchWeightKg,
 }: {
-  result: LeastCostFormulationResult;
+  result: WorkbenchResult;
   ingredientById: Map<string, IngredientOption>;
   formulationBasis?: FeedFormulationBasisSnapshot;
   reportContext: RecipeReportContext;
@@ -1308,6 +1335,56 @@ function ResultPanel({
   onSelectedRecipeChange: (recipeId: string) => void;
   batchWeightKg: number;
 }) {
+
+  if (result.status === "manufacturer_recipe") {
+    return (
+      <Card>
+        <CardHeader>
+          <div className="flex flex-wrap items-center gap-2">
+            <CardTitle>Manufacturer's fixed boar ration</CardTitle>
+            <Badge variant="secondary">Nutritional verification incomplete</Badge>
+          </div>
+          <CardDescription>
+            {result.manufacturer} · Published ingredients only ·
+            {" "}${result.costPerKg.toFixed(4)}/kg
+            {" · "}${(result.costPerKg * batchWeightKg).toFixed(2)} for {batchWeightKg.toFixed(1)} kg
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 p-4 text-sm leading-6">
+            <strong>Not nutritionally verified.</strong> {result.warning}
+            No GLPK optimisation was performed and no complete-feed pass is claimed.
+          </div>
+          <FormulaTable
+            rows={result.recipe.ingredients}
+            ingredientById={ingredientById}
+            batchWeightKg={batchWeightKg}
+          />
+          {result.incompleteRequirements.length > 0 ? (
+            <div className="space-y-2">
+              <div className="font-medium text-ink">Cannot verify — missing ingredient nutrient values</div>
+              {result.incompleteRequirements.map((row) => (
+                <div key={row.id} className="rounded-lg border border-hairline p-3 text-sm">
+                  <strong>{row.label}</strong> · Missing: {row.missingIngredientIds.join(", ")}
+                </div>
+              ))}
+            </div>
+          ) : null}
+          {result.checkedShortfalls.length > 0 ? (
+            <div className="space-y-2">
+              <div className="font-medium text-ink">Known nutrient shortfalls against selected programme</div>
+              {result.checkedShortfalls.map((row) => (
+                <div key={row.id} className="rounded-lg border border-hairline p-3 text-sm">
+                  {row.label}: {row.actual.toFixed(3)} {row.unit} vs {row.relation} {row.requirement.toFixed(3)}
+                </div>
+              ))}
+            </div>
+          ) : null}
+          <Unsupported requirements={result.unsupportedRequirements as Extract<LeastCostFormulationResult, {status:"optimal"}>["unsupportedRequirements"]} />
+        </CardContent>
+      </Card>
+    );
+  }
 
   if (result.status === "optimal") {
     const recipes = recipeViews(result);
