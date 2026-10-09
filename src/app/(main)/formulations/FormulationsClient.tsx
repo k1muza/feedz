@@ -212,9 +212,12 @@ export default function FormulationsClient({ ingredientPrices, ingredientPackSiz
     setDownloadableFormulation(null);
     setFormulationNote(null);
     try {
-      if (premixPrice === undefined || !Number.isFinite(premixPrice) || premixPrice < 0) {
-        throw new Error(`Enter a supplier quote in USD/kg for ${selectedPremix.sku} or request a quote below. We don't invent premix prices.`);
+      if (premixPrice !== undefined && (!Number.isFinite(premixPrice) || premixPrice < 0)) {
+        throw new Error("Enter a valid supplier quotation in USD/kg.");
       }
+      // Zero is an objective-only neutral fixed-cost term, NOT a feed price.
+      const costIncomplete = premixPrice === undefined;
+      const objectivePrice = premixPrice ?? 0;
       let pricedIngredients: Array<{
         ingredientId: string;
         pricePerKg: number;
@@ -225,7 +228,7 @@ export default function FormulationsClient({ ingredientPrices, ingredientPackSiz
         // The published CJ mix must be reproduced exactly, not reformulated.
         pricedIngredients = selectedPremix.manufacturerRecipe.map((item) => {
           const pricePerKg = item.ingredientId === selectedPremix.id
-            ? premixPrice : ingredientDefaultPricePerKg(item.ingredientId, ingredientPrices);
+            ? objectivePrice : ingredientDefaultPricePerKg(item.ingredientId, ingredientPrices);
           if (pricePerKg === undefined) {
             throw new Error(`No planning price for ${item.ingredientId}. Request a quote or use Studio for detailed costing.`);
           }
@@ -260,7 +263,7 @@ export default function FormulationsClient({ ingredientPrices, ingredientPackSiz
         }
         pricedIngredients.push({
           ingredientId: selectedPremix.id,
-          pricePerKg: premixPrice,
+          pricePerKg: objectivePrice,
           minInclusionPct: selectedPremix.inclusionPct,
           maxInclusionPct: selectedPremix.inclusionPct,
         });
@@ -291,7 +294,7 @@ export default function FormulationsClient({ ingredientPrices, ingredientPackSiz
         setExtraVisibleIngredientIds(extras.map((row) => row.ingredientId));
         setExtraInclusions(Object.fromEntries(extras.map((row) => [row.ingredientId, row.inclusionPct])));
         setDownloadableFormulation({ formula: result.recipe, priority: 'least-cost' });
-        setFormulationNote(`Manufacturer's original recipe, not independently optimised. ${result.warning}`);
+        setFormulationNote(`Manufacturer's original recipe, not independently optimised. ${costIncomplete ? 'Total cost UNKNOWN until a supplier premix quote is entered. ' : ''}${result.warning}`);
         return;
       }
       if (result.status !== 'optimal') {
@@ -309,9 +312,9 @@ export default function FormulationsClient({ ingredientPrices, ingredientPackSiz
       setExtraVisibleIngredientIds(extraIds);
       setExtraInclusions(Object.fromEntries(extraIds.map((id) => [id, amounts.get(id) ?? 0])));
       setDownloadableFormulation({ formula: chosen.formula, priority: alternative?.id ?? 'least-cost' });
-      setFormulationNote(alternative
+      setFormulationNote((costIncomplete ? "Cost estimate EXCLUDES unquoted premix; total feed cost is unknown. " : "") + (alternative
         ? `${alternative.label} applied · ${alternative.costIncreasePct.toFixed(2)}% above least cost. Premix micronutrients unverified.`
-        : 'Basal nutrient optimisation completed. Commercial premix micronutrients remain UNVERIFIED; this is not certified complete feed.');
+        : 'Basal nutrient optimisation completed. Commercial premix micronutrients remain UNVERIFIED; this is not certified complete feed.'));
     } catch (error) {
       setBalanceError(error instanceof Error ? error.message : String(error));
     } finally {
