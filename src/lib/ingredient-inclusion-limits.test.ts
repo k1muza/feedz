@@ -312,6 +312,9 @@ describe("MCP reports effective phase limits", () => {
       context,
     );
     assert.equal(result.passes, false);
+    if (!("inclusion_limit_violations" in result)) {
+      throw new Error("Expected an evaluated recipe with inclusion limit checks");
+    }
     const violation = result.inclusion_limit_violations.find((row) => row.ingredient === FULL_FAT_SOY);
     assert.equal(violation?.max_percent, 25);
   });
