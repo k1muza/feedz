@@ -211,3 +211,34 @@ export function assertManufacturerRecipe(
     throw new Error(`${premix.name} is restricted to CJ's published recipe. Lock every ingredient to the manufacturer percentages (including the 4% premix), or obtain a customised formula from CJ before changing ingredient ratios. See ${premix.specificationUrl}`);
   }
 }
+
+/** Present on all formulation responses, even when no commercial premix is used. */
+export type CommercialPremixAnalysis =
+  | {
+      status: "unverified";
+      reason: "manufacturer_nutrient_analysis_incomplete";
+      product_id: string;
+      message: string;
+    }
+  | {
+      status: "not_included";
+      reason: "no_commercial_premix";
+      product_id: null;
+      message: string;
+    };
+
+export function premixAnalysisForIds(ids: readonly string[]): CommercialPremixAnalysis {
+  const selected = ids.map(commercialPremixById).find((item) => item !== undefined);
+  if (!selected) return {
+    status: "not_included",
+    reason: "no_commercial_premix",
+    product_id: null,
+    message: "No commercial premix was included; complete-feed micronutrient coverage is not verified.",
+  };
+  return {
+    status: "unverified",
+    reason: "manufacturer_nutrient_analysis_incomplete",
+    product_id: selected.id,
+    message: `${selected.name}: manufacturer micronutrient analysis and feed compatibility remain unverified. This is a supplier specification gap, not missing programme guidance.`,
+  };
+}
