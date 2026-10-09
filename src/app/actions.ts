@@ -22,6 +22,7 @@ import { revalidatePath } from 'next/cache';
 import { after } from 'next/server';
 import { z } from 'zod';
 import { feedProductCatalog, PRODUCT_STATUSES } from '@/data/feedProducts';
+import { normalizeArticleProductReferences } from '@/lib/article-product-references';
 import { knowledgeTopics, type KnowledgeArticle } from '@/data/knowledgeArticles';
 import { getPolicies, getTeamMembers, rowToArticle, type ArticleRow } from '@/lib/content';
 import { isSupabaseConfigured, supabaseNotConfiguredError, supabaseUrl } from '@/lib/supabase/config';
@@ -652,7 +653,10 @@ const ArticleFormSchema = z.object({
   imageUrl: z.string().trim().url('Enter a valid image URL').refine((url) => allowedImageHosts.includes(new URL(url).hostname), `Images must be hosted on ${allowedImageHosts.join(', ')}`),
   imageAlt: z.string().trim().min(1, 'Describe the image for screen readers and search engines').max(300),
   imageCredit: z.string().trim().max(200).optional(),
-  ingredients: z.array(z.string().refine((id) => feedProductCatalog.some((product) => product.id === id))).default([]),
+  ingredients: z.preprocess(
+    normalizeArticleProductReferences,
+    z.array(z.string().refine((id) => feedProductCatalog.some((product) => product.id === id))).default([]),
+  ),
   keywords: z.string().optional(),
   keyPoints: z.string().optional(),
   body: z.string().min(1, 'Content is required'),

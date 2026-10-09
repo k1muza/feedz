@@ -11,11 +11,7 @@ import {
 import { INGREDIENT_LIBRARY, ingredientLibraryForPhase } from "./ingredient-nutrients";
 import { getIngredientPrices } from "./ingredient-prices";
 import type { NutritionPhase } from "./nutrition";
-import {
-  PUBLIC_PREMIX_ID,
-  PUBLIC_PREMIX_INCLUSION_PCT,
-  PUBLIC_PREMIX_NAME,
-} from "./public-feed-premix";
+import { COMMERCIAL_PREMIXES } from "./commercial-premixes";
 
 /** Phase-specific maxima that differ from each ingredient's static limit. */
 function phaseMaxInclusionPct(phase: NutritionPhase): Record<string, number> {
@@ -69,12 +65,6 @@ export async function feedFormulationEditorOptions() {
     };
   };
 
-  const premixPrice = ingredientDefaultPrice(PUBLIC_PREMIX_ID, prices);
-  const premixPlanningPricePerTonne = ingredientDefaultPlanningPricePerTonne(
-    PUBLIC_PREMIX_ID,
-    prices,
-  );
-
   return {
     programmes: FEED_PROGRAMMES.filter(
       (programme) => programme.status === "loaded" && programme.phases.length > 0,
@@ -92,24 +82,18 @@ export async function feedFormulationEditorOptions() {
     })),
     ingredients: [
       ...INGREDIENT_LIBRARY.ingredients.map(ingredientOption),
-      {
-        id: PUBLIC_PREMIX_ID,
-        name: PUBLIC_PREMIX_NAME,
+      ...COMMERCIAL_PREMIXES.map((premix) => ({
+        id: premix.id,
+        name: `${premix.name} (UNVERIFIED)`,
         category: "vitamin_mineral_premix",
-        minInclusionPct: PUBLIC_PREMIX_INCLUSION_PCT,
-        maxInclusionPct: PUBLIC_PREMIX_INCLUSION_PCT,
-        defaultPricePerKg:
-          premixPlanningPricePerTonne === undefined
-            ? undefined
-            : premixPlanningPricePerTonne / 1000,
-        priceMarket: premixPrice?.market,
-        priceAsOf: premixPrice?.asOf,
-        priceSource: premixPrice?.sourceLabel,
-        importMultiplier: premixPrice
-          ? ingredientImportPriceMultiplier(premixPrice.sourceScope)
-          : 1,
-        availabilityMultiplier: premixPrice?.availabilityMultiplier ?? 1,
-      },
+        minInclusionPct: premix.inclusionPct,
+        maxInclusionPct: premix.inclusionPct,
+        // No invented China-to-Harare planning price: the farmer must enter a quote.
+        defaultPricePerKg: undefined,
+        verificationStatus: premix.verificationStatus,
+        specificationUrl: premix.specificationUrl,
+      })),
+
     ],
   };
 }

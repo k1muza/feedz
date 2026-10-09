@@ -50,12 +50,10 @@ import {
   feedRecipeReportFilename,
   type FeedRecipeReportInput,
 } from "@/lib/feed-formulation-report";
-import {
-  PUBLIC_PREMIX_ID,
-  PUBLIC_PREMIX_INCLUSION_PCT,
-  PUBLIC_PREMIX_KG_PER_TONNE,
-  PUBLIC_PREMIX_NAME,
-} from "@/lib/public-feed-premix";
+import { PUBLIC_PREMIX_ID } from "@/lib/public-feed-premix";
+import { commercialPremixById, commercialPremixForProgramme } from "@/lib/commercial-premixes";
+import { mergeSuggestedIngredients, restoreIngredientPool } from "@/lib/ingredient-pool-transition";
+import type { ManufacturerRecipeReport } from "@/lib/manufacturer-recipe";
 import type {
   FormulationIngredientOption,
   FormulationIngredientSuggestionResult,
@@ -94,6 +92,10 @@ export type IngredientOption = {
 };
 
 type IngredientPoolMode = "automatic" | "selected";
+
+type ManufacturerWorkbenchResult = ManufacturerRecipeReport & {
+};
+type WorkbenchResult = LeastCostFormulationResult | ManufacturerWorkbenchResult;
 
 type Row = {
   key: number;
@@ -168,7 +170,7 @@ export function FeedFormulationWorkbench({
     firstProgramme;
   const initialRows: Omit<Row, "key">[] =
     initialFormulaSet?.setup?.rows.filter(
-      (row) => row.ingredientId !== PUBLIC_PREMIX_ID,
+      (row) => row.ingredientId !== PUBLIC_PREMIX_ID && !commercialPremixById(row.ingredientId),
     ).map((row) => ({
       ingredientId: row.ingredientId,
       price: row.price,
@@ -177,7 +179,7 @@ export function FeedFormulationWorkbench({
       lockedPct: row.lockedPct ?? "",
     })) ??
     initialFormulaSet?.ingredients
-      .filter((ingredient) => ingredient.ingredientId !== PUBLIC_PREMIX_ID)
+      .filter((ingredient) => ingredient.ingredientId !== PUBLIC_PREMIX_ID && !commercialPremixById(ingredient.ingredientId))
       .map((ingredient) => ({
         ingredientId: ingredient.ingredientId,
         price: String(ingredient.pricePerKg),
@@ -186,7 +188,26 @@ export function FeedFormulationWorkbench({
         lockedPct: "",
       })) ??
     [];
-  const initialResult = initialFormulaSet
+  const initialPremix = commercialPremixForProgramme(initialProgramme?.id ?? "");
+  const initialManufacturerRows = !initialFormulaSet && initialPremix?.manufacturerRecipe
+    ? initialPremix.manufacturerRecipe
+        .filter((item) => item.ingredientId !== initialPremix.id)
+        .map((item) => ({
+          ingredientId: item.ingredientId,
+          price: defaultPriceInput(item.ingredientId, ingredients),
+          min: "",
+          max: "",
+          lockedPct: String(item.percent),
+        }))
+    : undefined;
+  const legacySavedPremix = Boolean(initialFormulaSet) && (
+    initialFormulaSet!.ingredients.some((ingredient) => ingredient.ingredientId === PUBLIC_PREMIX_ID) ||
+    (initialPremix
+      ? initialFormulaSet!.setup?.fixedPremixName !== initialPremix.name
+      : initialFormulaSet!.setup?.useFixedPremix === true)
+  );
+  // Old recipes were approved by a fictional premix: they must be regenerated.
+  const initialResult = initialFormulaSet && !legacySavedPremix
     ? savedFeedFormulaResult(initialFormulaSet)
     : null;
   const [programmeId, setProgrammeId] = useState(initialProgramme?.id ?? "");
@@ -209,25 +230,25 @@ export function FeedFormulationWorkbench({
     initialFormulaSet?.energySystem ?? "ME",
   );
   const [ingredientPoolMode, setIngredientPoolMode] = useState<IngredientPoolMode>(
-    initialFormulaSet?.setup?.ingredientPoolMode ?? "automatic",
+    initialFormulaSet?.setup?.ingredientPoolMode ?? (initialManufacturerRows ? "selected" : "automatic"),
   );
   const [targetBatchWeight, setTargetBatchWeight] = useState(
     String(initialFormulaSet?.targetBatchKg ?? 1000),
   );
   const savedPremixPrice =
-    initialFormulaSet?.setup?.fixedPremixName === PUBLIC_PREMIX_NAME &&
-    initialFormulaSet.setup.fixedPremixPricePerKg.trim() !== ""
+    initialFormulaSet?.setup?.fixedPremixName === commercialPremixForProgramme(initialProgramme?.id ?? "")?.name &&
+    initialFormulaSet?.setup?.fixedPremixPricePerKg?.trim()
       ? initialFormulaSet.setup.fixedPremixPricePerKg
       : undefined;
   const [fixedPremixPricePerKg, setFixedPremixPricePerKg] = useState(
-    savedPremixPrice ?? defaultPriceInput(PUBLIC_PREMIX_ID, ingredients),
+    savedPremixPrice ?? "",
   );
   const [nextKey, setNextKey] = useState(100);
   const [addIngredientId, setAddIngredientId] = useState("");
   const [rows, setRows] = useState<Row[]>(
-    initialRows.map((row, index) => ({ ...row, key: index })),
+    (initialManufacturerRows ?? initialRows).map((row, index) => ({ ...row, key: index })),
   );
-  const [result, setResult] = useState<LeastCostFormulationResult | null>(
+  const [result, setResult] = useState<WorkbenchResult | null>(
     initialResult,
   );
   const [running, setRunning] = useState(false);
@@ -251,6 +272,9 @@ export function FeedFormulationWorkbench({
   );
   const [activeSavedId, setActiveSavedId] = useState(initialFormulaSet?.id);
   const requirementsWereEdited = useRef(false);
+  // Temporarily entering a manufacturer-locked programme must not overwrite a
+  // farmer's manually chosen pool or their entered ingredient prices.
+  const priorEditablePool = useRef<{ mode: IngredientPoolMode; rows: Row[] } | null>(null);
 
   const allIngredientOptions = useMemo<IngredientOption[]>(
     () => ingredients,
@@ -267,7 +291,17 @@ export function FeedFormulationWorkbench({
     Number.isFinite(parsedTargetBatchKg) && parsedTargetBatchKg > 0
       ? parsedTargetBatchKg
       : 1000;
-  const displayFixedPremixKgPerTonne = PUBLIC_PREMIX_KG_PER_TONNE;
+  const selectedPremix = commercialPremixForProgramme(programmeId);
+  const previousPremixId = useRef(commercialPremixForProgramme(initialProgramme?.id ?? "")?.id);
+  useEffect(() => {
+    if (previousPremixId.current !== selectedPremix?.id) {
+      previousPremixId.current = selectedPremix?.id;
+      // A supplier quote for one SKU is never carried over to another.
+      setFixedPremixPricePerKg("");
+      setResult(null);
+    }
+  }, [selectedPremix?.id]);
+  const displayFixedPremixKgPerTonne = selectedPremix?.inclusionKgPerTonne ?? 0;
   const fixedPremixBatchKg =
     (displayBatchKg * displayFixedPremixKgPerTonne) / 1000;
   const baseMixBatchKg = displayBatchKg - fixedPremixBatchKg;
@@ -280,7 +314,7 @@ export function FeedFormulationWorkbench({
 
   const availableToAdd = ingredients.filter(
     (ingredient) =>
-      ingredient.id !== PUBLIC_PREMIX_ID &&
+      ingredient.id !== PUBLIC_PREMIX_ID && !commercialPremixById(ingredient.id) &&
       !rows.some((row) => row.ingredientId === ingredient.id),
   );
 
@@ -328,22 +362,15 @@ export function FeedFormulationWorkbench({
 
         const suggestedIds = payload.ingredientIds.filter(
           (ingredientId) =>
-            ingredientId !== PUBLIC_PREMIX_ID &&
+            ingredientId !== PUBLIC_PREMIX_ID && !commercialPremixById(ingredientId) &&
             ingredients.some((ingredient) => ingredient.id === ingredientId),
         );
-        setRows(
-          suggestedIds.map((ingredientId, index) => ({
-            key: index,
-            ingredientId,
-            price: defaultPriceInput(ingredientId, ingredients),
-            min: "",
-            max: "",
-            lockedPct: "",
-          })),
+        setRows((current) =>
+          mergeSuggestedIngredients(suggestedIds, current, (id) => defaultPriceInput(id, ingredients)),
         );
       } catch (error) {
         if (controller.signal.aborted) return;
-        setRows([]);
+        // Preserve usable ingredient rows even if suggesting the new pool fails.
         setSuggestionError(error instanceof Error ? error.message : String(error));
       } finally {
         if (!controller.signal.aborted) {
@@ -356,6 +383,7 @@ export function FeedFormulationWorkbench({
   }, [programmeId, phaseId, energySystem, ingredients, ingredientPoolMode]);
 
   function changeIngredientPoolMode(value: IngredientPoolMode) {
+    if (selectedPremix?.manufacturerRecipe) return; // CJ supplies a fixed ingredient list.
     requirementsWereEdited.current = true;
     setIngredientPoolMode(value);
     setSuggestionError(null);
@@ -365,6 +393,33 @@ export function FeedFormulationWorkbench({
   function changeProgramme(value: string) {
     requirementsWereEdited.current = true;
     const programme = programmes.find((candidate) => candidate.id === value);
+    const premix = commercialPremixForProgramme(value);
+    const wasManufacturerLocked = Boolean(selectedPremix?.manufacturerRecipe);
+    if (premix?.manufacturerRecipe) {
+      if (!wasManufacturerLocked) {
+        priorEditablePool.current = { mode: ingredientPoolMode, rows: rows.map((row) => ({ ...row })) };
+      }
+      setIngredientPoolMode("selected");
+      setRows(premix.manufacturerRecipe
+        .filter((item) => item.ingredientId !== premix.id)
+        .map((item, index) => ({
+          key: index,
+          ingredientId: item.ingredientId,
+          // Preserve previously entered prices when possible.
+          price: rows.find((row) => row.ingredientId === item.ingredientId)?.price ??
+            defaultPriceInput(item.ingredientId, ingredients),
+          min: "",
+          max: "",
+          lockedPct: String(item.percent),
+        })));
+      setSuggestionError(null);
+    } else if (wasManufacturerLocked) {
+      const restored = restoreIngredientPool(priorEditablePool.current, rows);
+      priorEditablePool.current = null;
+      setIngredientPoolMode(restored.mode);
+      setRows(restored.rows);
+    }
+    // Otherwise preserve the selected ingredient pool and its price/limits.
     setProgrammeId(value);
     setPhaseId(programme?.phases[0]?.id ?? "");
     setResult(null);
@@ -416,7 +471,7 @@ export function FeedFormulationWorkbench({
     let requestIngredients: FormulationIngredientOption[];
     try {
       requestIngredients = rows
-        .filter((row) => row.ingredientId !== PUBLIC_PREMIX_ID)
+        .filter((row) => row.ingredientId !== PUBLIC_PREMIX_ID && !commercialPremixById(row.ingredientId))
         .map((row) => {
         const pricePerKg = Number(row.price);
         if (!Number.isFinite(pricePerKg) || pricePerKg < 0 || row.price.trim() === "") {
@@ -450,20 +505,36 @@ export function FeedFormulationWorkbench({
         };
       });
 
-      const premixPricePerKg = Number(fixedPremixPricePerKg);
-      if (
-        !Number.isFinite(premixPricePerKg) ||
-        premixPricePerKg < 0 ||
-        fixedPremixPricePerKg.trim() === ""
-      ) {
-        throw new Error("Enter a valid FeedSport premix price per kg.");
+      // Include the stage-compatible real product when available.
+      // CJ S174 is manufacturer-recipe-only; its entire basal ration is locked.
+      if (selectedPremix) {
+        // CJ S174: reject edits to the manufacturer's ingredient pool/proportions.
+        if (selectedPremix.manufacturerRecipe) {
+          const standard = selectedPremix.manufacturerRecipe.filter((item) => item.ingredientId !== selectedPremix.id);
+          if (requestIngredients.length !== standard.length || standard.some((item) => {
+            const offered = requestIngredients.find((row) => row.ingredientId === item.ingredientId);
+            return !offered ||
+              Math.abs((offered.minInclusionPct ?? -1) - item.percent) > 0.000001 ||
+              Math.abs((offered.maxInclusionPct ?? -1) - item.percent) > 0.000001;
+          })) {
+            throw new Error("CJ S174 permits the manufacturer recipe only. Use the published ingredient amounts or request a customised ration from CJ.");
+          }
+        }
+        const premixPricePerKg = Number(fixedPremixPricePerKg);
+        if (
+          !Number.isFinite(premixPricePerKg) ||
+          premixPricePerKg < 0 ||
+          fixedPremixPricePerKg.trim() === ""
+        ) {
+          throw new Error("Enter a supplier-quoted price per kg for the selected commercial premix.");
+        }
+        requestIngredients.push({
+          ingredientId: selectedPremix.id,
+          pricePerKg: premixPricePerKg,
+          minInclusionPct: selectedPremix.inclusionPct,
+          maxInclusionPct: selectedPremix.inclusionPct,
+        });
       }
-      requestIngredients.push({
-        ingredientId: PUBLIC_PREMIX_ID,
-        pricePerKg: premixPricePerKg,
-        minInclusionPct: PUBLIC_PREMIX_INCLUSION_PCT,
-        maxInclusionPct: PUBLIC_PREMIX_INCLUSION_PCT,
-      });
     } catch (error) {
       setRequestError(error instanceof Error ? error.message : String(error));
       return false;
@@ -478,16 +549,23 @@ export function FeedFormulationWorkbench({
           programmeId,
           phaseId,
           energySystem,
-          includeSupplementationTargets: true,
+          includeSupplementationTargets: false, // Unverified manufacturer spec: do not claim micronutrient coverage.
           customPremixes: [],
           ingredients: requestIngredients,
         }),
       });
-      const payload = (await response.json()) as LeastCostFormulationResult & {
+      const payload = (await response.json()) as WorkbenchResult & {
         message?: string;
       };
       if (!response.ok) {
         throw new Error(payload.message ?? "Formulation request failed.");
+      }
+      if (payload.status === "manufacturer_recipe") {
+        setFormulationBasis(undefined);
+        setResult(payload);
+        setSelectedRecipeId("least-cost");
+        setActiveTab("recipes");
+        return true;
       }
       if (payload.status === "optimal") {
         const basisIngredients = requestIngredients.map((requestIngredient) => {
@@ -529,16 +607,18 @@ export function FeedFormulationWorkbench({
             ingredientPoolMode,
             solverObjective: "least-cost-with-alternatives",
             settings: {
-              includeSupplementationTargets: true,
+              includeSupplementationTargets: false,
               traceMineralBasis: "inorganic",
             },
             ingredients: basisIngredients,
-            fixedPremix: {
-              id: PUBLIC_PREMIX_ID,
-              name: PUBLIC_PREMIX_NAME,
-              inclusionKgPerTonne: PUBLIC_PREMIX_KG_PER_TONNE,
-              pricePerKg: Number(fixedPremixPricePerKg),
-            },
+            ...(selectedPremix ? {
+              fixedPremix: {
+                id: selectedPremix.id,
+                name: selectedPremix.name,
+                inclusionKgPerTonne: selectedPremix.inclusionKgPerTonne,
+                pricePerKg: Number(fixedPremixPricePerKg),
+              },
+            } : {}),
           }),
         );
       } else {
@@ -572,8 +652,8 @@ export function FeedFormulationWorkbench({
     {
       id: "opportunities",
       label: "Opportunities",
-      description: "Ingredient substitutions and savings",
-      disabled: result?.status !== "optimal",
+      description: selectedPremix?.manufacturerRecipe ? "Not available for manufacturer-restricted premixes" : "Ingredient substitutions and savings",
+      disabled: result?.status !== "optimal" || Boolean(selectedPremix?.manufacturerRecipe),
     },
     {
       id: "nutrition",
@@ -604,12 +684,12 @@ export function FeedFormulationWorkbench({
             ingredient?.maxInclusionPct,
         };
       }),
-      {
-        ingredientId: PUBLIC_PREMIX_ID,
-        name: PUBLIC_PREMIX_NAME,
+      ...(selectedPremix ? [{
+        ingredientId: selectedPremix.id,
+        name: selectedPremix.name,
         pricePerKg: Number(fixedPremixPricePerKg),
-        maxInclusionPct: PUBLIC_PREMIX_INCLUSION_PCT,
-      },
+        maxInclusionPct: selectedPremix.inclusionPct,
+      }] : []),
     ],
   };
   const recipes = result?.status === "optimal" ? recipeViews(result) : [];
@@ -656,9 +736,9 @@ export function FeedFormulationWorkbench({
               lockedPct,
             })),
             ingredientPoolMode,
-            useFixedPremix: true,
-            fixedPremixName: PUBLIC_PREMIX_NAME,
-            fixedPremixKgPerTonne: String(PUBLIC_PREMIX_KG_PER_TONNE),
+            useFixedPremix: Boolean(selectedPremix),
+            fixedPremixName: selectedPremix?.name ?? "No verified commercial premix",
+            fixedPremixKgPerTonne: String(selectedPremix?.inclusionKgPerTonne ?? 0),
             fixedPremixPricePerKg,
             selectedRecipeId,
           },
@@ -729,15 +809,17 @@ export function FeedFormulationWorkbench({
           <DialogHeader className="border-b border-hairline px-5 py-4 pr-14 sm:px-6">
             <DialogTitle>Finished mix</DialogTitle>
             <DialogDescription className="max-w-3xl leading-6">
-              Set the final batch weight and FeedSport premix price. The phase-specific premix is
-              always included at 10 kg/t so vitamin and trace-mineral supplementation is validated
-              together with the basal diet requirements.
+              {selectedPremix
+                ? selectedPremix.manufacturerRecipe
+                  ? "CJ S174 is a manufacturer-recipe-only premix. Use only the published maize, wheat bran, soybean meal and fish meal proportions until CJ approves another formula. Its nutrient profile remains UNVERIFIED."
+                  : "The specified commercial premix is included at its published dose (not a universal 10 kg/t). Its micronutrient contribution is UNVERIFIED; enter a real supplier quote."
+                : "No compatible commercial premix has been established for this programme. You can plan the basal ingredients only; this is NOT complete feed and must not be manufactured or fed as a finished recipe."}
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-5 px-5 py-2 sm:px-6">
             <div className="grid gap-4 md:grid-cols-2">
-              <Field label="Finished feed weight (kg)">
+              <Field label={selectedPremix ? "Planned feed weight (kg)" : "Basal mix weight (kg)"}>
                 <Input
                   type="number"
                   min="0.1"
@@ -750,7 +832,7 @@ export function FeedFormulationWorkbench({
                   }}
                 />
               </Field>
-              <Field label="FeedSport premix price / kg">
+              {selectedPremix ? <Field label={`Supplier price / kg — ${selectedPremix.sku} (USD)`}>
                 <Input
                   type="number"
                   min="0"
@@ -763,29 +845,31 @@ export function FeedFormulationWorkbench({
                     setRequestError(null);
                   }}
                 />
-              </Field>
+              </Field> : null}
             </div>
 
             <div className="grid gap-3 lg:grid-cols-2">
               <div className="rounded-lg border border-hairline bg-background px-4 py-3 text-sm">
                 <div className="font-medium text-ink">Required supplementation</div>
                 <div className="mt-1 leading-6 text-ink-muted">
-                  {PUBLIC_PREMIX_NAME} is fixed at{" "}
-                  <strong className="text-ink">{PUBLIC_PREMIX_KG_PER_TONNE} kg/t</strong>.
-                  FeedSport validates the selected phase&apos;s vitamin and inorganic trace-mineral
-                  supplementation targets.
+                  {selectedPremix
+                    ? `${selectedPremix.name} is included at ${selectedPremix.inclusionKgPerTonne} kg/t (UNVERIFIED).`
+                    : "No commercially supported vitamin-mineral premix is assigned to this programme."}
+                  {" "}Vitamin and trace-mineral supplementation is NOT checked.
+                  This is not a complete feed formulation.
                 </div>
               </div>
 
               <div className="rounded-lg border border-hairline bg-background px-4 py-3 text-sm">
                 <div className="font-medium text-ink">Mix plan</div>
                 <div className="mt-1 leading-6 text-ink-muted">
-                  <strong className="text-ink">{baseMixBatchKg.toFixed(2)} kg</strong> basal
-                  feed{" + "}
-                  <strong className="text-ink">{fixedPremixBatchKg.toFixed(2)} kg</strong>
-                  premix{" = "}
-                  <strong className="text-ink">{displayBatchKg.toFixed(2)} kg</strong> finished
-                  feed.
+                  <strong className="text-ink">{baseMixBatchKg.toFixed(2)} kg</strong> basal feed
+                  {selectedPremix ? (
+                    <>{" + "}<strong className="text-ink">{fixedPremixBatchKg.toFixed(2)} kg</strong>
+                      {" "}unverified premix</>
+                  ) : null}
+                  {" = "}<strong className="text-ink">{displayBatchKg.toFixed(2)} kg</strong>
+                  {" "}{selectedPremix ? "planned mix" : "basal mix only"}.
                 </div>
               </div>
             </div>
@@ -918,7 +1002,7 @@ export function FeedFormulationWorkbench({
         {activeTab === "setup" ? (
           <Card>
         <CardHeader>
-          <CardTitle>Least-cost formulation</CardTitle>
+          <CardTitle>{selectedPremix?.manufacturerRecipe ? "Manufacturer's fixed recipe" : "Least-cost formulation"}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-5">
           <div className="grid gap-4 md:grid-cols-3">
@@ -968,6 +1052,17 @@ export function FeedFormulationWorkbench({
             </Field>
           </div>
 
+          {selectedPremix?.manufacturerRecipe ? (
+            <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 p-3 text-sm leading-6">
+              <strong>{selectedPremix.sku}: manufacturer's prescribed ration only.</strong>{" "}
+              The ingredient list and percentages below are locked to CJ's published recipe.
+              No independent least-cost substitutions are authorised. A matching recipe still
+              does not establish vitamin/mineral adequacy until its specifications are verified.{" "}
+              <a href={selectedPremix.specificationUrl} target="_blank" rel="noopener noreferrer" className="underline">
+                Manufacturer specification
+              </a>
+            </div>
+          ) : null}
           <div className="rounded-lg border border-hairline bg-raised/20 p-3">
             <div className="text-sm font-medium text-ink">Ingredient pool</div>
             <div className="mt-1 text-xs leading-5 text-ink-muted">
@@ -980,6 +1075,7 @@ export function FeedFormulationWorkbench({
                   name="ingredient-pool-mode"
                   value="automatic"
                   checked={ingredientPoolMode === "automatic"}
+                  disabled={Boolean(selectedPremix?.manufacturerRecipe)}
                   onChange={() => changeIngredientPoolMode("automatic")}
                   className="mt-0.5 h-4 w-4"
                 />
@@ -996,6 +1092,7 @@ export function FeedFormulationWorkbench({
                   name="ingredient-pool-mode"
                   value="selected"
                   checked={ingredientPoolMode === "selected"}
+                  disabled={Boolean(selectedPremix?.manufacturerRecipe)}
                   onChange={() => changeIngredientPoolMode("selected")}
                   className="mt-0.5 h-4 w-4"
                 />
@@ -1106,6 +1203,7 @@ export function FeedFormulationWorkbench({
                           value={row.lockedPct}
                           placeholder="—"
                           title="Set an exact inclusion percentage. This overrides Min % and Max % for this ingredient."
+                          disabled={Boolean(selectedPremix?.manufacturerRecipe)}
                           onChange={(event) => updateRow(row.key, "lockedPct", event.target.value)}
                         />
                       </td>
@@ -1115,6 +1213,7 @@ export function FeedFormulationWorkbench({
                           variant="ghost"
                           size="icon"
                           aria-label={`Remove ${ingredient?.name ?? row.ingredientId}`}
+                          disabled={Boolean(selectedPremix?.manufacturerRecipe)}
                           onClick={() => {
                             setRows((current) => current.filter((candidate) => candidate.key !== row.key));
                             setResult(null);
@@ -1138,6 +1237,7 @@ export function FeedFormulationWorkbench({
           <div className="flex flex-wrap gap-2">
             <select
               value={addIngredientId}
+              disabled={Boolean(selectedPremix?.manufacturerRecipe)}
               onChange={(event) => setAddIngredientId(event.target.value)}
               className="h-9 min-w-72 rounded-md border border-hairline bg-background px-3 text-sm text-ink"
             >
@@ -1148,7 +1248,7 @@ export function FeedFormulationWorkbench({
                 </option>
               ))}
             </select>
-            <Button type="button" variant="outline" onClick={addIngredient} disabled={!addIngredientId}>
+            <Button type="button" variant="outline" onClick={addIngredient} disabled={!addIngredientId || Boolean(selectedPremix?.manufacturerRecipe)}>
               <Plus size={15} />
               Add ingredient
             </Button>
@@ -1161,6 +1261,11 @@ export function FeedFormulationWorkbench({
             </div>
           ) : null}
 
+          {legacySavedPremix ? (
+            <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 p-3 text-sm text-ink">
+              This saved formulation used the retired hypothetical premix. Its previous nutrient verification has been withdrawn; enter a real premix price and generate a new recipe.
+            </div>
+          ) : null}
           {requestError ? (
             <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
               {requestError}
@@ -1191,7 +1296,12 @@ export function FeedFormulationWorkbench({
           ) : null}
 
         {activeTab === "nutrition" && result?.status === "optimal" ? (
-            <NutritionPanel result={result} selectedRecipeId={selectedRecipeId} />
+            <>
+              <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 px-4 py-3 text-sm">
+                Commercial premix UNVERIFIED. The displayed nutrients exclude vitamin and trace-mineral verification.
+              </div>
+              <NutritionPanel result={result} selectedRecipeId={selectedRecipeId} />
+            </>
           ) : null}
       </div>
     </div>
@@ -1208,7 +1318,7 @@ function ResultPanel({
   onSelectedRecipeChange,
   batchWeightKg,
 }: {
-  result: LeastCostFormulationResult;
+  result: WorkbenchResult;
   ingredientById: Map<string, IngredientOption>;
   formulationBasis?: FeedFormulationBasisSnapshot;
   reportContext: RecipeReportContext;
@@ -1216,6 +1326,62 @@ function ResultPanel({
   onSelectedRecipeChange: (recipeId: string) => void;
   batchWeightKg: number;
 }) {
+
+  if (result.status === "manufacturer_recipe") {
+    return (
+      <Card>
+        <CardHeader>
+          <div className="flex flex-wrap items-center gap-2">
+            <CardTitle>Manufacturer's fixed recipe</CardTitle>
+            <Badge variant="secondary">Nutritional verification incomplete</Badge>
+          </div>
+          <CardDescription>
+            {result.manufacturer} · Published ingredients only ·
+            {" "}{result.cost_per_kg === null ? "Quote missing" : <>
+              {"$"}{result.cost_per_kg.toFixed(4)}/kg
+              {" · $"}{(result.cost_per_kg * batchWeightKg).toFixed(2)} for {batchWeightKg.toFixed(1)} kg
+            </>}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 p-4 text-sm leading-6">
+            <strong>Not nutritionally verified.</strong> {result.warning}{" "}
+            No GLPK optimisation was performed and no complete-feed pass is claimed.
+          </div>
+          <FormulaTable
+            rows={result.recipe.ingredients}
+            ingredientById={ingredientById}
+            batchWeightKg={batchWeightKg}
+          />
+          {result.incomplete_requirements.length > 0 ? (
+            <div className="space-y-2">
+              <div className="font-medium text-ink">Cannot verify — missing ingredient nutrient values</div>
+              {result.incomplete_requirements.map((row) => (
+                <div key={row.nutrient} className="rounded-lg border border-hairline p-3 text-sm">
+                  <strong>{row.label}</strong> · Missing: {row.missing_data_for.join(", ")}
+                </div>
+              ))}
+            </div>
+          ) : null}
+          {result.checked_shortfalls.length > 0 ? (
+            <div className="space-y-2">
+              <div className="font-medium text-ink">Known nutrient shortfalls against selected programme</div>
+              {result.checked_shortfalls.map((row) => (
+                <div key={row.nutrient} className="rounded-lg border border-hairline p-3 text-sm">
+                  {row.label}: {row.actual.toFixed(3)} {row.unit} vs {row.relation} {row.requirement.toFixed(3)}
+                </div>
+              ))}
+            </div>
+          ) : null}
+          <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 p-3 text-sm">
+            <strong>Manufacturer analysis unverified:</strong>{" "}
+            {result.premix_analysis.message}
+          </div>
+          <Unsupported requirements={result.unsupported_requirements} />
+        </CardContent>
+      </Card>
+    );
+  }
 
   if (result.status === "optimal") {
     const recipes = recipeViews(result);
@@ -1226,11 +1392,17 @@ function ResultPanel({
       <Card>
         <CardHeader>
           <div className="flex flex-wrap items-center gap-2">
-            <CardTitle>{selectedRecipe.label}</CardTitle>
-            <Badge variant="secondary">Hard constraints satisfied</Badge>
+            <CardTitle>{formulationBasis?.fixedPremix &&
+              commercialPremixById(formulationBasis.fixedPremix.id)?.manufacturerRecipe
+                ? "CJ published boar ration (fixed proportions)"
+                : selectedRecipe.label}</CardTitle>
+            <Badge variant="secondary">Basal constraints satisfied only</Badge>
           </div>
           <CardDescription>
-            {selectedRecipe.description} Cost: {selectedRecipe.solution.costPerKg.toFixed(4)} per kg
+            {formulationBasis?.fixedPremix &&
+              commercialPremixById(formulationBasis.fixedPremix.id)?.manufacturerRecipe
+                ? "Manufacturer's original ingredient ratios, not an independently optimised recipe."
+                : selectedRecipe.description} Cost: {selectedRecipe.solution.costPerKg.toFixed(4)} per kg
             {" · "}
             {(selectedRecipe.solution.costPerKg * batchWeightKg).toFixed(2)} for{" "}
             {batchWeightKg.toFixed(1)} kg
@@ -1240,6 +1412,13 @@ function ResultPanel({
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-5">
+          <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 px-4 py-3 text-sm leading-6 text-ink">
+            <strong>{formulationBasis?.fixedPremix ? "Premix unverified:" : "Basal-only formulation:"}</strong>
+            {formulationBasis?.fixedPremix
+              ? ` The selected ${commercialPremixById(formulationBasis.fixedPremix.id)?.manufacturer ?? "commercial"} product is included at its published dose, but vitamin and trace-mineral concentrations have not been verified against a supplier COA.`
+              : " No commercial premix was included. This recipe does not cover vitamin and trace-mineral supplementation."}
+            {" "}Only basal nutrient constraints were checked. Do not manufacture or feed without qualified nutritionist review.
+          </div>
           <FormulationBasisPanel basis={formulationBasis} />
           {recipes.length > 1 ? (
             <div className="space-y-2">
@@ -1992,7 +2171,7 @@ function OpportunityRecipeDialog({
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button type="button" variant="link" size="xs" className="h-auto px-0 py-0 text-xs">
+        <Button type="button" variant="link" size="sm" className="h-auto px-0 py-0 text-xs">
           <Eye />
           View recipe
         </Button>

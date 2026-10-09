@@ -17,7 +17,8 @@ import {
 } from "@/lib/feed-formulation-diagnostics";
 import { formulationRequirements, type FormulationIngredientOption } from "@/lib/feed-optimizer";
 import { INGREDIENT_LIBRARY, type IngredientLibrary } from "@/lib/ingredient-nutrients";
-import { PUBLIC_PREMIX_ID } from "@/lib/public-feed-premix";
+import { commercialPremixById } from "@/lib/commercial-premixes";
+import { buildManufacturerRecipeReport } from "@/lib/manufacturer-recipe";
 
 import {
   CURRENCY,
@@ -43,6 +44,23 @@ const pct = (value: number, digits?: number) =>
   `${value.toFixed(digits ?? (Math.abs(value) >= 1 ? 1 : Math.abs(value) >= 0.1 ? 2 : 3))}%`;
 
 type Scenario = ReturnType<typeof buildScenario>;
+
+/** The adviser must never optimise away from a supplier-restricted recipe. */
+function restrictedPremix(built: Scenario) {
+  return built.request.ingredientIds
+    .map((id) => commercialPremixById(id))
+    .find((premix) => premix?.formulationCompatibility === "manufacturer_recipe_only");
+}
+
+function refuseSupplierRecipeAlternatives(built: Scenario): void {
+  const premix = restrictedPremix(built);
+  if (premix) {
+    throw new FeedSportInputError(
+      `${premix.sku} requires its manufacturer's published fixed recipe; independent ingredient opportunities, relaxed limits and alternative ratios are not supported. Request a customised ration from CJ.`
+    );
+  }
+}
+
 
 function labelLookup(built: Scenario): (constraintId: string) => string {
   const labels = new Map(
@@ -129,7 +147,7 @@ function candidateOptions(
     : INGREDIENT_LIBRARY.ingredients.map((ingredient) => ingredient.id);
 
   return [...new Set(ids)].flatMap((id) => {
-    if (offered.has(id) || id === PUBLIC_PREMIX_ID) return [];
+    if (offered.has(id) || !!commercialPremixById(id)) return [];
     const price = priceRecord(id, undefined, context);
     if (!price) {
       if (requested) {
@@ -196,8 +214,8 @@ export async function explainFormulationTool(input: ExplainInput, context: FeedS
     };
     const rc = row.reducedCostPerKg ?? 0;
 
-    if (row.ingredientId === PUBLIC_PREMIX_ID) {
-      // Fixed by FeedSport to deliver supplementation; marginal values don't apply.
+    if (!!commercialPremixById(row.ingredientId)) {
+      // Fixed to the supplier-published inclusion; no micronutrient guarantee is implied.
       return { ...base, status: "fixed_inclusion" as const };
     }
 
@@ -291,16 +309,46 @@ export type DiagnoseInput = FormulationBaseInput & {
 export async function diagnoseInfeasibilityTool(input: DiagnoseInput, context: FeedSportServiceContext) {
   const built = buildScenario(input, context);
   const { library } = built.request;
+  const restricted = restrictedPremix(built);
+  if (restricted?.manufacturerRecipe) {
+    // Explain verified gaps against CJ's unaltered original recipe. No
+    // substitute ingredients or relaxed-limit suggestions are generated.
+    const report = buildManufacturerRecipeReport(
+      restricted, built.scenario.phase, built.scenario.energySystem, library,
+    );
+    const findings = [
+      report.warning,
+      ...report.incomplete_requirements.map((row) =>
+        `${row.label} cannot be verified: missing nutrient values for ${row.missing_data_for.join(", ")}.`),
+      ...report.checked_shortfalls.map((row) =>
+        `${row.label}: known calculated value ${row.actual} ${row.unit} does not meet ${row.relation} ${row.requirement} ${row.unit}.`),
+    ];
+    return {
+      status: "unverified" as const,
+      message: "CJ manufacturer's fixed recipe can be priced but lacks sufficient verified analytical data for complete-feed assessment.",
+      findings,
+      missing_data: report.incomplete_requirements,
+      checked_shortfalls: report.checked_shortfalls,
+      unsupported_requirements: report.unsupported_requirements,
+      fixes: [],
+      notes: [
+        ...built.notes,
+        "Only analytical gaps and shortfalls are reported. CJ's manufacturer formula is not altered.",
+      ],
+      ...built.common,
+    };
+  }
+
   const label = labelLookup(built);
 
   const hasRequestLimits = built.options.some(
     (option) =>
-      option.ingredientId !== PUBLIC_PREMIX_ID &&
+      !commercialPremixById(option.ingredientId) &&
       (option.minInclusionPct !== undefined || option.maxInclusionPct !== undefined),
   );
   const defaultLimitOptions = hasRequestLimits
     ? built.options.map((option) =>
-        option.ingredientId === PUBLIC_PREMIX_ID
+        !!commercialPremixById(option.ingredientId)
           ? option
           : { ingredientId: option.ingredientId, pricePerKg: option.pricePerKg },
       )
@@ -432,6 +480,12 @@ export async function runSensitivityAnalysisTool(input: SensitivityInput, contex
   const label = labelLookup(built);
   const basePrice = new Map(built.options.map((option) => [option.ingredientId, option.pricePerKg]));
 
+  if (restrictedPremix(built) && input.scenarios?.some((scenario) => scenario.changes.some(
+    (change) => change.min_percent !== undefined || change.max_percent !== undefined,
+  ))) {
+    throw new FeedSportInputError("CJ S174 is manufacturer-recipe-only; sensitivity analysis may vary prices but not any inclusion limits.");
+  }
+
   const variations: SensitivityScenario[] = input.scenarios
     ? input.scenarios.map((scenario, index) => ({
         name: scenario.name ?? `Scenario ${index + 1}`,
@@ -440,8 +494,8 @@ export async function runSensitivityAnalysisTool(input: SensitivityInput, contex
           if (!ingredientIds.includes(id)) {
             throw new FeedSportInputError(`Scenario changes ${id}, which is not in the ingredient list.`);
           }
-          if (id === PUBLIC_PREMIX_ID && (change.min_percent !== undefined || change.max_percent !== undefined)) {
-            throw new FeedSportInputError("The FeedSport premix inclusion is fixed; it cannot be varied.");
+          if (!!commercialPremixById(id) && (change.min_percent !== undefined || change.max_percent !== undefined)) {
+            throw new FeedSportInputError("The manufacturer's premix addition rate is fixed and cannot be varied.");
           }
           if (change.price_per_tonne !== undefined && change.price_change_percent !== undefined) {
             throw new FeedSportInputError(`Give either price_per_tonne or price_change_percent for ${id}, not both.`);
@@ -461,7 +515,7 @@ export async function runSensitivityAnalysisTool(input: SensitivityInput, contex
         }),
       }))
     : ingredientIds
-        .filter((id) => id !== PUBLIC_PREMIX_ID)
+        .filter((id) => !commercialPremixById(id))
         .flatMap((id) =>
           (input.price_steps_percent ?? [-10, 10]).map((step) => ({
             name: `${nameOf(id, library)} price ${step > 0 ? "+" : ""}${step}%`,
@@ -541,6 +595,7 @@ export type OpportunitiesInput = FormulationBaseInput & {
 
 export async function findIngredientOpportunitiesTool(input: OpportunitiesInput, context: FeedSportServiceContext) {
   const built = buildScenario(input, context);
+  refuseSupplierRecipeAlternatives(built);
   const { library } = built.request;
   const label = labelLookup(built);
   const candidates = candidateOptions(built, context, input.candidate_ingredients);
@@ -627,12 +682,13 @@ export type CompareInput = FormulationBaseInput & {
 
 export async function compareFormulationStrategiesTool(input: CompareInput, context: FeedSportServiceContext) {
   const built = buildScenario(input, context);
+  refuseSupplierRecipeAlternatives(built);
   const { library } = built.request;
   const extras: ExtraStrategy[] = [];
 
   const hasRequestLimits = built.options.some(
     (option) =>
-      option.ingredientId !== PUBLIC_PREMIX_ID &&
+      !commercialPremixById(option.ingredientId) &&
       (option.minInclusionPct !== undefined || option.maxInclusionPct !== undefined),
   );
   if (hasRequestLimits) {
@@ -643,7 +699,7 @@ export async function compareFormulationStrategiesTool(input: CompareInput, cont
       scenario: {
         ...built.scenario,
         options: built.options.map((option) =>
-          option.ingredientId === PUBLIC_PREMIX_ID
+          !!commercialPremixById(option.ingredientId)
             ? option
             : { ingredientId: option.ingredientId, pricePerKg: option.pricePerKg },
         ),
@@ -653,8 +709,8 @@ export async function compareFormulationStrategiesTool(input: CompareInput, cont
 
   for (const force of input.force_ingredients ?? []) {
     const id = resolveRequestedIngredient(force.ingredient, INGREDIENT_LIBRARY);
-    if (id === PUBLIC_PREMIX_ID) {
-      throw new FeedSportInputError("The FeedSport premix inclusion is fixed; it cannot be forced.");
+    if (!!commercialPremixById(id)) {
+      throw new FeedSportInputError("The manufacturer's premix addition rate is fixed and cannot be forced.");
     }
     const existing = built.options.find((option) => option.ingredientId === id);
     let options: FormulationIngredientOption[];

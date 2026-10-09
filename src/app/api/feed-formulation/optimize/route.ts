@@ -8,11 +8,11 @@ import { feedProgrammePhaseById } from "@/lib/feed-programmes";
 import {
   ingredientLibraryForPhase,
   ingredientLibraryWithCustomPremixes,
+  ingredientLibraryWithCommercialPremixes,
 } from "@/lib/ingredient-nutrients";
-import {
-  PUBLIC_PREMIX_ID,
-  publicPremixProfileForPhase,
-} from "@/lib/public-feed-premix";
+import { assertManufacturerRecipe, commercialPremixById, commercialPremixCompatibleWithProgramme, premixAnalysisForIds } from "@/lib/commercial-premixes";
+import { PUBLIC_PREMIX_ID } from "@/lib/public-feed-premix";
+import { buildManufacturerRecipeReport } from "@/lib/manufacturer-recipe";
 
 const optionalNutrient = z.number().finite().nonnegative().optional();
 
@@ -95,30 +95,63 @@ export async function POST(request: Request) {
   }
 
   try {
-    const includesFeedSportPremix = ingredients.some(
-      (ingredient) => ingredient.ingredientId === PUBLIC_PREMIX_ID,
+    if (ingredients.some((ingredient) => ingredient.ingredientId === PUBLIC_PREMIX_ID)) {
+      throw new Error("The theoretical FeedSport premix has been retired. Select a real manufacturer product.");
+    }
+    const selectedCommercial = ingredients.flatMap((ingredient) => {
+      const premix = commercialPremixById(ingredient.ingredientId);
+      if (!premix) return [];
+      if (!commercialPremixCompatibleWithProgramme(premix, programmeId)) {
+        throw new Error(`${premix.name} is not assigned to this animal stage.`);
+      }
+      if (Math.abs((ingredient.minInclusionPct ?? -1) - premix.inclusionPct) > 1e-6 ||
+          Math.abs((ingredient.maxInclusionPct ?? -1) - premix.inclusionPct) > 1e-6) {
+        throw new Error(`${premix.name} must be included at its published ${premix.inclusionKgPerTonne} kg/t; changing its dose is not supported.`);
+      }
+      return [premix];
+    });
+    if (selectedCommercial.length > 1) throw new Error("Select only one commercial premix for a formulation.");
+    // CJ S174 is not an unrestricted component: enforce the manufacturer's
+    // EXACT formula on the server, even if the UI is bypassed.
+    for (const premix of selectedCommercial) assertManufacturerRecipe(premix, ingredients);
+    if (customPremixes.some((premix) => premix.id === PUBLIC_PREMIX_ID || commercialPremixById(premix.id))) {
+      throw new Error("Do not override manufacturer products with user-supplied nutrient profiles.");
+    }
+    // User-provided analyses remain separate from manufacturer-identified
+    // products, whose unverified nutrients cannot satisfy requirements.
+    const library = ingredientLibraryWithCommercialPremixes(
+      selectedCommercial,
+      ingredientLibraryWithCustomPremixes(customPremixes, ingredientLibraryForPhase(phase)),
     );
-    const premixes = [
-      ...customPremixes.filter((premix) => premix.id !== PUBLIC_PREMIX_ID),
-      ...(includesFeedSportPremix ? [publicPremixProfileForPhase(phase)] : []),
-    ];
-    const library = ingredientLibraryWithCustomPremixes(
-      premixes,
-      ingredientLibraryForPhase(phase),
-    );
+    const manufacturer = selectedCommercial.find((p) => p.formulationCompatibility === "manufacturer_recipe_only");
+    if (manufacturer?.manufacturerRecipe) {
+      const report = buildManufacturerRecipeReport(
+        manufacturer, phase, energySystem, library,
+        new Map(ingredients.map((row) => [row.ingredientId, row.pricePerKg])),
+      );
+      return NextResponse.json(report);
+    }
+
     const result = await formulateLeastCostDiet(
       phase,
       energySystem,
       ingredients,
       library,
       {
-        includeSupplementationTargets:
-          includeSupplementationTargets || includesFeedSportPremix,
+        includeSupplementationTargets: selectedCommercial.length > 0
+          ? false
+          : includeSupplementationTargets,
         traceMineralBasis,
       },
     );
 
-    return NextResponse.json(result);
+    return NextResponse.json({
+      ...result,
+      premix_analysis: premixAnalysisForIds(ingredients.map((row) => row.ingredientId)),
+      ...(selectedCommercial.length > 0 ? {
+        premixWarning: "Commercial premix is unverified. Vitamin and trace-mineral requirements have NOT been checked; this is not a validated complete feed.",
+      } : {}),
+    });
   } catch (error) {
     return NextResponse.json(
       {

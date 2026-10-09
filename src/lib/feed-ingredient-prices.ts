@@ -1,4 +1,3 @@
-import { PUBLIC_PREMIX_ID } from "@/lib/public-feed-premix";
 
 export type IngredientPriceSourceScope =
   | "harare"
@@ -268,16 +267,6 @@ export const INGREDIENT_DEFAULT_PRICES: readonly IngredientDefaultPrice[] = [
     sourceLabel: "User-observed retail refined soybean oil",
     note:
       "Planning proxy from a user-observed refined soybean oil price of USD 3.60 per 2 L, normalized to approximately USD 1.96/kg. The market product is refined soybean oil; the nutrient profile remains the Brazilian Tables 2024 Soybean, Degummed Oil record.",
-  },
-  {
-    ingredientId: PUBLIC_PREMIX_ID,
-    usdPerTonne: 2000,
-    market: "Harare, Zimbabwe",
-    asOf: "2026-10-06",
-    sourceScope: "harare",
-    sourceLabel: "FeedSport International — Vitamin-mineral premix (10 kg/t)",
-    sourceUrl: "https://www.feedsport.co.zw/products/premix",
-    note: "USD 40 per 20 kg bag; MOQ 20 kg.",
   },
   {
     ingredientId: "barley-two-row",

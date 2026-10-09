@@ -1,3 +1,4 @@
+import { commercialPremixById } from "./commercial-premixes";
 import {
   INGREDIENT_LIBRARY,
   sidAminoAcidPct,
@@ -735,6 +736,17 @@ type NutrientFamily =
  * Premix vitamin/mineral content, for example, is unknown until a supplier
  * specification is loaded.
  */
+/**
+ * Legacy formulation assumption: simple Sustar and custom vitamin/mineral
+ * premixes carry zero basal macronutrients. The manufacturer-specific compound
+ * CJ S174 is NOT covered: its nutrient contributions remain UNKNOWN until COA.
+ * This is a modeling assumption, not confirmation of manufacturer guarantees.
+ */
+function premixWithBasalZeroAssumption(ingredient: IngredientNutrientRecord): boolean {
+  return ingredient.category === "vitamin_mineral_premix" &&
+    commercialPremixById(ingredient.id)?.formulationCompatibility !== "manufacturer_recipe_only";
+}
+
 function structuralZero(
   ingredient: IngredientNutrientRecord,
   family: NutrientFamily,
@@ -744,46 +756,46 @@ function structuralZero(
       return (
         ingredient.category === "mineral" ||
         ingredient.category === "amino_acid" ||
-        ingredient.category === "vitamin_mineral_premix"
+        premixWithBasalZeroAssumption(ingredient)
       );
     case "crudeProtein":
       return (
         ingredient.category === "mineral" ||
-        ingredient.category === "oil_fat" ||
-        ingredient.category === "vitamin_mineral_premix"
+        premixWithBasalZeroAssumption(ingredient) ||
+        ingredient.category === "oil_fat"
       );
     case "digestibleProtein":
       return (
         ingredient.category === "mineral" ||
-        ingredient.category === "oil_fat" ||
-        ingredient.category === "vitamin_mineral_premix"
+        premixWithBasalZeroAssumption(ingredient) ||
+        ingredient.category === "oil_fat"
       );
     case "fibre":
       return (
         ingredient.category === "mineral" ||
         ingredient.category === "oil_fat" ||
         ingredient.category === "amino_acid" ||
-        ingredient.category === "vitamin_mineral_premix"
+        premixWithBasalZeroAssumption(ingredient)
       );
     case "fattyAcid":
       return (
         ingredient.category === "mineral" ||
         ingredient.category === "amino_acid" ||
-        ingredient.category === "vitamin_mineral_premix"
+        premixWithBasalZeroAssumption(ingredient)
       );
     case "aminoAcid":
       return (
         ingredient.category === "mineral" ||
         ingredient.category === "oil_fat" ||
         ingredient.category === "amino_acid" ||
-        ingredient.category === "vitamin_mineral_premix"
+        premixWithBasalZeroAssumption(ingredient)
       );
     case "macroMineral":
       return (
         ingredient.category === "oil_fat" ||
+        premixWithBasalZeroAssumption(ingredient) ||
         ingredient.category === "amino_acid" ||
-        ingredient.category === "mineral" ||
-        ingredient.category === "vitamin_mineral_premix"
+        ingredient.category === "mineral"
       );
     case "traceMineral":
       return (

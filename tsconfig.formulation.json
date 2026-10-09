@@ -1,0 +1,26 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "incremental": false,
+    "tsBuildInfoFile": null
+  },
+  "include": [
+    "next-env.d.ts",
+    "src/lib/commercial-premixes.ts",
+    "src/lib/commercial-premixes.test.ts",
+    "src/lib/ingredient-pool-transition.ts",
+    "src/lib/ingredient-pool-transition.test.ts",
+    "src/lib/manufacturer-recipe.ts",
+    "src/lib/manufacturer-recipe.test.ts",
+    "src/lib/premix-structural-zero.test.ts",
+    "src/lib/feed-optimizer.ts",
+    "src/lib/mcp/feedsport-service.ts",
+    "src/lib/mcp/feedsport-service.test.ts",
+    "src/lib/mcp/feedsport-diagnostics.ts",
+    "src/lib/mcp/feedsport-mcp-server.ts",
+    "src/lib/mcp/feedsport-mcp-server.test.ts",
+    "src/app/api/feed-formulation/optimize/route.ts",
+    "src/components/feed-formulation-workbench.tsx"
+  ],
+  "exclude": ["node_modules", ".next", "src/ai", "src/components/admin"]
+}
