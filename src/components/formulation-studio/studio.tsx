@@ -11,7 +11,7 @@ import { isSupabaseConfigured, supabaseKey, supabaseUrl } from "@/lib/supabase/c
 import type { CatalogueIngredient, CatalogueNutrientId } from "@/lib/studio-catalogue";
 import type { StudioNutrientData } from "@/lib/studio-nutrients";
 import type { StudioProgrammeData } from "@/lib/studio-programmes";
-import { poolWithProgrammePremix } from "@/lib/studio-commercial-premix";
+import { canAddStudioIngredient, poolWithProgrammePremix } from "@/lib/studio-commercial-premix";
 
 import {
   evaluateManual,
@@ -1024,12 +1024,16 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
   };
   const ingredientName = (id: string) => catalogueById.get(id)?.name ?? id;
   const addIng = (id: string) => {
+    if (!canAddStudioIngredient(id, S.programmeId)) {
+      flash("Premixes are selected automatically for your animal and stage.");
+      return;
+    }
     update({ pool: { ...S.pool, [id]: { role: "available" } } });
     flash(ingredientName(id) + " added as Available");
   };
-  const toggleAddPick = (id: string) => update((state) => ({ addPick: state.addPick.includes(id) ? state.addPick.filter((x) => x !== id) : [...state.addPick, id] }));
+  const toggleAddPick = (id: string) => { if (canAddStudioIngredient(id, S.programmeId)) update((state) => ({ addPick: state.addPick.includes(id) ? state.addPick.filter((x) => x !== id) : [...state.addPick, id] })); };
   const addPicked = () => {
-    const ids = S.addPick;
+    const ids = S.addPick.filter((id) => canAddStudioIngredient(id, S.programmeId));
     if (!ids.length) return;
     const what = ids.length === 1 ? ingredientName(ids[0]) : ids.length + " ingredients";
     if (S.addTarget === "set") {
@@ -1042,10 +1046,11 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
       flash(what + " added to " + list.label);
       return;
     }
-    update((state) => ({ pool: { ...state.pool, ...Object.fromEntries(ids.map((id) => [id, { role: "available" as Role }])) }, addOpen: false, addQ: "", addPick: [] }));
+    update((state) => ({ pool: poolWithProgrammePremix({ ...state.pool, ...Object.fromEntries(ids.map((id) => [id, { role: "available" as Role }])) }, state.programmeId), addOpen: false, addQ: "", addPick: [] }));
     flash(what + " added as Available");
   };
   const addCompletionIngredients = (ids: string[]) => {
+    ids = ids.filter((id) => canAddStudioIngredient(id, S.programmeId));
     if (!ids.length) return;
     update((state) => ({
       pool: {
@@ -1312,7 +1317,7 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
   const ingGroups = [...CAT_ORDER, ...new Set(ingRows.map((r) => r.cat).filter((c) => !CAT_ORDER.includes(c)))].map((cat) => ({ cat, rows: ingRows.filter((r) => r.cat === cat) })).filter((g) => g.rows.length);
   const catMatches = iq
     ? catalogue
-        .filter((g) => !S.pool[g.id] && matchesQuery(g, g.id))
+        .filter((g) => canAddStudioIngredient(g.id, S.programmeId) && !S.pool[g.id] && matchesQuery(g, g.id))
         .slice(0, 12)
         .map((g) => ({ name: g.name, sub: g.category + " · " + (g.price ? "$" + fmt(g.price.usdPerTonne, 0) + "/t planning price" : "no planning price"), subColor: g.price ? "#64665c" : "#a63d2a", add: () => { addIng(g.id); update({ ingQ: "" }); } }))
     : [];
@@ -1631,7 +1636,7 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
   const q = S.addQ.trim().toLowerCase();
   const addList = S.addTarget === "set" ? currentList(S, myLists) : null;
   const addResults = catalogue
-    .filter((g) => (addList ? !addList.items.some((it) => it.ingredientId === g.id) : !S.pool[g.id]) && (!q || [g.name, g.category, ...g.aliases].join(" ").toLowerCase().includes(q)))
+    .filter((g) => canAddStudioIngredient(g.id, S.programmeId) && (addList ? !addList.items.some((it) => it.ingredientId === g.id) : !S.pool[g.id]) && (!q || [g.name, g.category, ...g.aliases].join(" ").toLowerCase().includes(q)))
     .map((g) => ({ name: g.name, sub: g.category + " · " + (g.price ? "$" + fmt(g.price.usdPerTonne, 0) + "/t planning price" : "no planning price"), subColor: g.price ? "#64665c" : "#a63d2a", picked: S.addPick.includes(g.id), toggle: () => toggleAddPick(g.id) }));
   const rules = programmes.requirementFields.flatMap((f, i) => {
     const value = PH.requirements[i];
