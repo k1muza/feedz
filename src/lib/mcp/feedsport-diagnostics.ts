@@ -18,6 +18,7 @@ import {
 import { formulationRequirements, type FormulationIngredientOption } from "@/lib/feed-optimizer";
 import { INGREDIENT_LIBRARY, type IngredientLibrary } from "@/lib/ingredient-nutrients";
 import { commercialPremixById } from "@/lib/commercial-premixes";
+import { assessManufacturerRecipe } from "@/lib/manufacturer-recipe";
 
 import {
   CURRENCY,
@@ -307,8 +308,41 @@ export type DiagnoseInput = FormulationBaseInput & {
 
 export async function diagnoseInfeasibilityTool(input: DiagnoseInput, context: FeedSportServiceContext) {
   const built = buildScenario(input, context);
-  refuseSupplierRecipeAlternatives(built);
   const { library } = built.request;
+  const restricted = restrictedPremix(built);
+  if (restricted?.manufacturerRecipe) {
+    // The diagnostic tool remains available, but CJ's prescribed formula may
+    // NOT be loosened or replaced as an automatic "fix".
+    const recipe = { ingredients: restricted.manufacturerRecipe.map((row) => ({
+      ingredientId: row.ingredientId, inclusionPct: row.percent,
+    })) };
+    const assessment = assessManufacturerRecipe(
+      restricted, recipe, built.scenario.phase, built.scenario.energySystem, library,
+    );
+    const findings = [
+      assessment.warning,
+      ...assessment.incompleteRequirements.map((row) =>
+        `${row.label} cannot be verified because values are missing for ${row.missingIngredientIds.join(", ")}.`),
+      ...assessment.checkedShortfalls.map((row) =>
+        `${row.label}: known calculated value ${round(row.actual, 4)} ${row.unit} does not meet the ${row.relation} limit ${round(row.requirement, 4)} ${row.unit}.`),
+    ];
+    return {
+      status: "unverified" as const,
+      message: "CJ manufacturer's fixed recipe can be costed, but it has insufficient verified analytical data to be assessed as complete feed.",
+      findings,
+      missing_data: assessment.incompleteRequirements.map((row) => ({
+        nutrient: snake(row.id), label: row.label, missing_data_for: row.missingIngredientIds,
+      })),
+      checked_shortfalls: assessment.checkedShortfalls,
+      unsupported_requirements: assessment.unsupportedRequirements,
+      fixes: [],
+      notes: [
+        ...built.notes,
+        "No alternative ingredients or relaxation suggestions are offered because CJ only authorises its published recipe.",
+      ],
+      ...built.common,
+    };
+  }
   const label = labelLookup(built);
 
   const hasRequestLimits = built.options.some(
