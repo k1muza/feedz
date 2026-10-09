@@ -30,3 +30,6 @@ jobs:
       - name: Unit tests
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: npm test
+      - name: Build application routes
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: npm run build
