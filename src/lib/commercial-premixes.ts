@@ -13,6 +13,8 @@ export type CommercialPremix = {
   name: string;
   species: "pig" | "broiler" | "layer";
   application: string;
+  /** Prefixes for which the supplier/product policy permits this product. */
+  eligibleProgrammePrefixes: readonly string[];
   inclusionPct: number;
   inclusionKgPerTonne: number;
   verificationStatus: "unverified";
@@ -28,6 +30,7 @@ export type CommercialPremix = {
    */
   verifiedAsFedAminoAcids?: {
     reference: string;
+    sourceUrl?: string;
     totalPct?: Record<string, number>;
     sidPct?: Record<string, number>;
   };
@@ -47,6 +50,7 @@ export const COMMERCIAL_PREMIXES: readonly CommercialPremix[] = [
     manufacturer: "CJ (Tianjin) Feed", sku: "S174",
     name: "CJ Feed S174 — Breeding boar premix",
     species: "pig", application: "Mature breeding boars",
+    eligibleProgrammePrefixes: ["mature-boar"],
     inclusionPct: 4, inclusionKgPerTonne: 40,
     verificationStatus: "unverified", formulationCompatibility: "manufacturer_recipe_only",
     pricePerTonne: null,
@@ -88,6 +92,7 @@ export const COMMERCIAL_PREMIXES: readonly CommercialPremix[] = [
     manufacturer: "Chengdu Sustar Feed", sku: "GlyPro X911",
     name: "Sustar GlyPro X911 — Piglet vitamin-mineral premix",
     species: "pig", application: "Piglets, approximately 5–25 kg",
+    eligibleProgrammePrefixes: ["nursery-pig"],
     inclusionPct: 0.2, inclusionKgPerTonne: 2,
     verificationStatus: "unverified", formulationCompatibility: "unconfirmed",
     pricePerTonne: null,
@@ -103,6 +108,7 @@ export const COMMERCIAL_PREMIXES: readonly CommercialPremix[] = [
     manufacturer: "Chengdu Sustar Feed", sku: "GlyPro X912",
     name: "Sustar GlyPro X912 — Grower-finisher pig premix",
     species: "pig", application: "Growing and finishing pigs over 25 kg",
+    eligibleProgrammePrefixes: ["grow-finish-pig", "growing-barrows", "growing-entire-immunocastrated-males", "developing-gilt"],
     inclusionPct: 0.2, inclusionKgPerTonne: 2,
     verificationStatus: "unverified", formulationCompatibility: "unconfirmed",
     pricePerTonne: null,
@@ -119,6 +125,7 @@ export const COMMERCIAL_PREMIXES: readonly CommercialPremix[] = [
     manufacturer: "Chengdu Sustar Feed", sku: "GlyPro X913",
     name: "Sustar GlyPro X913 — Sow vitamin-mineral premix",
     species: "pig", application: "Breeding, gestating and lactating sows",
+    eligibleProgrammePrefixes: ["gestating-gilt-sow", "lactating-gilt-sow"],
     inclusionPct: 0.2, inclusionKgPerTonne: 2,
     verificationStatus: "unverified", formulationCompatibility: "unconfirmed",
     pricePerTonne: null,
@@ -134,6 +141,7 @@ export const COMMERCIAL_PREMIXES: readonly CommercialPremix[] = [
     manufacturer: "Chengdu Sustar Feed", sku: "GlyPro X812",
     name: "Sustar GlyPro X812 — Broiler vitamin-mineral premix",
     species: "broiler", application: "Broiler chickens",
+    eligibleProgrammePrefixes: ["broiler-"],
     inclusionPct: 0.1, inclusionKgPerTonne: 1,
     verificationStatus: "unverified", formulationCompatibility: "unconfirmed",
     pricePerTonne: null,
@@ -149,6 +157,7 @@ export const COMMERCIAL_PREMIXES: readonly CommercialPremix[] = [
     manufacturer: "Chengdu Sustar Feed", sku: "GlyPro X811",
     name: "Sustar GlyPro X811 — Layer vitamin-mineral premix",
     species: "layer", application: "Laying hens",
+    eligibleProgrammePrefixes: ["layer-"],
     inclusionPct: 0.1, inclusionKgPerTonne: 1,
     verificationStatus: "unverified", formulationCompatibility: "unconfirmed",
     pricePerTonne: null,
@@ -190,7 +199,12 @@ export function commercialPremixForProgramme(programmeId: string): CommercialPre
 }
 
 export function commercialPremixCompatibleWithProgramme(premix: CommercialPremix, programmeId: string): boolean {
-  return commercialPremixForProgramme(programmeId)?.id === premix.id;
+  const family = programmeId.split(":")[0].toLowerCase();
+  return premix.eligibleProgrammePrefixes.some((prefix) => family.startsWith(prefix));
+}
+
+export function eligibleCommercialPremixes(programmeId: string): CommercialPremix[] {
+  return COMMERCIAL_PREMIXES.filter((product) => commercialPremixCompatibleWithProgramme(product, programmeId));
 }
 
 /**
