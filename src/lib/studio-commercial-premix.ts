@@ -1,4 +1,4 @@
-import { commercialPremixById, commercialPremixForProgramme } from "./commercial-premixes";
+import { commercialPremixById, commercialPremixForProgramme, commercialPremixCompatibleWithProgramme } from "./commercial-premixes";
 import type { Pool, PoolEntry } from "@/components/formulation-studio/engine";
 
 /**
@@ -45,4 +45,35 @@ export function poolWithProgrammePremix(pool: Pool, programmeId: string): Pool {
       ...(pool[product.id]?.price != null ? { price: pool[product.id].price } : {}),
     },
   };
+}
+
+/** A premix is a dedicated programme choice, never an unrestricted ingredient. */
+export function canAddStudioIngredient(ingredientId: string, programmeId: string): boolean {
+  // All commercial premixes are auto-selected in the programme selector.
+  // Adding them through the regular ingredient picker bypasses required fixed
+  // dose, supplier restrictions and one-product-per-recipe checks.
+  return commercialPremixById(ingredientId) === undefined;
+}
+
+/** Validate old imported/saved snapshots before a network request. */
+export function studioPremixProblems(pool: Pool, programmeId: string): string[] {
+  const products = Object.entries(pool).filter(([id, row]) =>
+    commercialPremixById(id) && row.role !== "excluded");
+  const chosen = commercialPremixForProgramme(programmeId);
+  if (products.length > 1) return ["Only one commercial premix may be included in a formulation."];
+  if (products.length === 0) return [];
+  const [id, row] = products[0];
+  const product = commercialPremixById(id)!;
+  if (!commercialPremixCompatibleWithProgramme(product, programmeId))
+    return [`${product.name} is not suitable for this programme. Select the appropriate premix by changing programme.`];
+  if (row.role !== "fixed" || Math.abs(Number(row.fixed) - product.inclusionPct) > 1e-6)
+    return [`${product.name} must be fixed at its manufacturer dose of ${product.inclusionKgPerTonne} kg/t.`];
+  if (chosen?.formulationCompatibility === "manufacturer_recipe_only") {
+    const recipe = chosen.manufacturerRecipe ?? [];
+    if (Object.keys(pool).length !== recipe.length || !recipe.every((part) => {
+      const entry = pool[part.ingredientId];
+      return entry?.role === "fixed" && Math.abs(Number(entry.fixed) - part.percent) < 1e-6;
+    })) return [`${chosen.name} must use the manufacturer's complete fixed recipe. Do not alter ingredients or ratios.`];
+  }
+  return [];
 }
