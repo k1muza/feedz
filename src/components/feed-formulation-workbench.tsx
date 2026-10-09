@@ -53,7 +53,7 @@ import {
 import { PUBLIC_PREMIX_ID } from "@/lib/public-feed-premix";
 import { commercialPremixById, commercialPremixForProgramme } from "@/lib/commercial-premixes";
 import { restoreIngredientPool } from "@/lib/ingredient-pool-transition";
-import type { ManufacturerRecipeAssessment } from "@/lib/manufacturer-recipe";
+import type { ManufacturerRecipeReport } from "@/lib/manufacturer-recipe";
 import type {
   FormulationIngredientOption,
   FormulationIngredientSuggestionResult,
@@ -93,8 +93,7 @@ export type IngredientOption = {
 
 type IngredientPoolMode = "automatic" | "selected";
 
-type ManufacturerWorkbenchResult = ManufacturerRecipeAssessment & {
-  costPerKg: number | null;
+type ManufacturerWorkbenchResult = ManufacturerRecipeReport & {
   productId: string;
   manufacturer: string;
 };
@@ -1347,8 +1346,10 @@ function ResultPanel({
           </div>
           <CardDescription>
             {result.manufacturer} · Published ingredients only ·
-            {" "}{result.costPerKg === null ? "Quote missing" : `${result.costPerKg.toFixed(4)}/kg`}
-            {result.costPerKg === null ? null : ` · ${(result.costPerKg * batchWeightKg).toFixed(2)} for ${batchWeightKg.toFixed(1)} kg`}
+            {" "}{result.costPerKg === null ? "Quote missing" : <>
+              {"$"}{result.costPerKg.toFixed(4)}/kg
+              {" · $"}{(result.costPerKg * batchWeightKg).toFixed(2)} for {batchWeightKg.toFixed(1)} kg
+            </>}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -1361,17 +1362,17 @@ function ResultPanel({
             ingredientById={ingredientById}
             batchWeightKg={batchWeightKg}
           />
-          {result.incompleteRequirements.length > 0 ? (
+          {result.incomplete_requirements.length > 0 ? (
             <div className="space-y-2">
               <div className="font-medium text-ink">Cannot verify — missing ingredient nutrient values</div>
               {result.incompleteRequirements.map((row) => (
-                <div key={row.id} className="rounded-lg border border-hairline p-3 text-sm">
-                  <strong>{row.label}</strong> · Missing: {row.missingIngredientIds.join(", ")}
+                <div key={row.nutrient} className="rounded-lg border border-hairline p-3 text-sm">
+                  <strong>{row.label}</strong> · Missing: {row.missing_data_for.join(", ")}
                 </div>
               ))}
             </div>
           ) : null}
-          {result.checkedShortfalls.length > 0 ? (
+          {result.checked_shortfalls.length > 0 ? (
             <div className="space-y-2">
               <div className="font-medium text-ink">Known nutrient shortfalls against selected programme</div>
               {result.checkedShortfalls.map((row) => (
@@ -1382,10 +1383,10 @@ function ResultPanel({
             </div>
           ) : null}
           <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 p-3 text-sm">
-            Vitamin and trace-mineral adequacy is <strong>not verified</strong> because
-            CJ S174&apos;s nutrient analysis is unverified. This is a supplier data
-            gap, not missing Brazilian Tables guidance for mature boars.
+            <strong>Manufacturer analysis unverified:</strong>{" "}
+            {result.premix_analysis.message}
           </div>
+          <Unsupported requirements={result.unsupported_requirements} />
         </CardContent>
       </Card>
     );
