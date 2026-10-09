@@ -94,8 +94,6 @@ export type IngredientOption = {
 type IngredientPoolMode = "automatic" | "selected";
 
 type ManufacturerWorkbenchResult = ManufacturerRecipeReport & {
-  productId: string;
-  manufacturer: string;
 };
 type WorkbenchResult = LeastCostFormulationResult | ManufacturerWorkbenchResult;
 
@@ -1334,20 +1332,20 @@ function ResultPanel({
       <Card>
         <CardHeader>
           <div className="flex flex-wrap items-center gap-2">
-            <CardTitle>Manufacturer's fixed boar ration</CardTitle>
+            <CardTitle>Manufacturer's fixed recipe</CardTitle>
             <Badge variant="secondary">Nutritional verification incomplete</Badge>
           </div>
           <CardDescription>
             {result.manufacturer} · Published ingredients only ·
-            {" "}{result.costPerKg === null ? "Quote missing" : <>
-              {"$"}{result.costPerKg.toFixed(4)}/kg
-              {" · $"}{(result.costPerKg * batchWeightKg).toFixed(2)} for {batchWeightKg.toFixed(1)} kg
+            {" "}{result.cost_per_kg === null ? "Quote missing" : <>
+              {"$"}{result.cost_per_kg.toFixed(4)}/kg
+              {" · $"}{(result.cost_per_kg * batchWeightKg).toFixed(2)} for {batchWeightKg.toFixed(1)} kg
             </>}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 p-4 text-sm leading-6">
-            <strong>Not nutritionally verified.</strong> {result.warning}
+            <strong>Not nutritionally verified.</strong> {result.warning}{" "}
             No GLPK optimisation was performed and no complete-feed pass is claimed.
           </div>
           <FormulaTable
