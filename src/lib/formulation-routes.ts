@@ -12,11 +12,11 @@ const SECTION_PATHS: Record<FeedFormulationSection, string> = {
 };
 
 export function feedFormulationHref(section?: FeedFormulationSection): string {
-  return section ? `/dashboard/${SECTION_PATHS[section]}` : "/dashboard";
+  return section ? `/studio/${SECTION_PATHS[section] === "ingredients" ? "catalogue" : SECTION_PATHS[section]}` : "/studio";
 }
 
 export function feedIngredientHref(ingredientId: string): string {
-  return feedFormulationHref("ingredients") + "/" + encodeURIComponent(ingredientId);
+  return feedFormulationHref("ingredients") + "?q=" + encodeURIComponent(ingredientId);
 }
 
 export function feedProgrammeHref(programmeId: string): string {
@@ -32,13 +32,13 @@ export function feedFormulationStrategyHref(formulationId: string): string {
 }
 
 export function newFeedFormulationHref(): string {
-  return feedFormulationHref("formulations") + "/new";
+  return "/studio/new";
 }
 
 export function editFeedFormulationHref(formulationId: string): string {
-  return feedFormulationStrategyHref(formulationId) + "/edit";
+  return feedFormulationStrategyHref(formulationId);
 }
 
 export function feedNutrientHref(nutrientId: string): string {
-  return feedFormulationHref("nutrients") + "/" + encodeURIComponent(nutrientId);
+  return feedFormulationHref("nutrients") + "?q=" + encodeURIComponent(nutrientId);
 }
