@@ -8,6 +8,7 @@ import { feedProgrammePhaseById } from "@/lib/feed-programmes";
 import {
   ingredientLibraryForPhase,
   ingredientLibraryWithCustomPremixes,
+  ingredientLibraryWithCommercialPremixes,
 } from "@/lib/ingredient-nutrients";
 import { assertManufacturerRecipe, commercialPremixById, commercialPremixCompatibleWithProgramme, premixAnalysisForIds } from "@/lib/commercial-premixes";
 import { PUBLIC_PREMIX_ID } from "@/lib/public-feed-premix";
@@ -116,17 +117,11 @@ export async function POST(request: Request) {
     if (customPremixes.some((premix) => premix.id === PUBLIC_PREMIX_ID || commercialPremixById(premix.id))) {
       throw new Error("Do not override manufacturer products with user-supplied nutrient profiles.");
     }
-    // An unverified product is present as an inclusion-only ingredient. No
-    // synthetic nutrient values are generated from the programme targets.
-    const premixes = [
-      ...customPremixes,
-      ...selectedCommercial.map((premix) => ({
-        id: premix.id, name: premix.name, vitamins: {}, traceMineralsPpm: {},
-      })),
-    ];
-    const library = ingredientLibraryWithCustomPremixes(
-      premixes,
-      ingredientLibraryForPhase(phase),
+    // User-provided analyses remain separate from manufacturer-identified
+    // products, whose unverified nutrients cannot satisfy requirements.
+    const library = ingredientLibraryWithCommercialPremixes(
+      selectedCommercial,
+      ingredientLibraryWithCustomPremixes(customPremixes, ingredientLibraryForPhase(phase)),
     );
     const manufacturer = selectedCommercial.find((p) => p.formulationCompatibility === "manufacturer_recipe_only");
     if (manufacturer?.manufacturerRecipe) {
