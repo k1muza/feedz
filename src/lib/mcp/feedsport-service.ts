@@ -943,10 +943,10 @@ export function buildScenario(
     if (value.min_percent !== undefined && value.max_percent !== undefined && value.min_percent > value.max_percent) {
       throw new FeedSportInputError(`Constraint for ${id} has min_percent greater than max_percent.`);
     }
-    if (id === PUBLIC_PREMIX_ID && (value.min_percent !== undefined || value.max_percent !== undefined)) {
-      throw new FeedSportInputError(
-        `The FeedSport premix inclusion is fixed at ${PUBLIC_PREMIX_INCLUSION_PCT}%; it cannot be constrained.`,
-      );
+    const premix = commercialPremixById(id);
+    if (premix && ((value.min_percent !== undefined && Math.abs(value.min_percent - premix.inclusionPct) > 1e-6) ||
+      (value.max_percent !== undefined && Math.abs(value.max_percent - premix.inclusionPct) > 1e-6))) {
+      throw new FeedSportInputError(`${premix.name} must remain at ${premix.inclusionKgPerTonne} kg/t.`);
     }
     constraints.set(id, value);
   }
@@ -970,8 +970,8 @@ export function buildScenario(
     return {
       ingredientId: id,
       pricePerKg: pricesPerTonne.get(id)! / 1000,
-      ...(id === PUBLIC_PREMIX_ID
-        ? { minInclusionPct: PUBLIC_PREMIX_INCLUSION_PCT, maxInclusionPct: PUBLIC_PREMIX_INCLUSION_PCT }
+      ...(commercialPremixById(id)
+        ? { minInclusionPct: commercialPremixById(id)!.inclusionPct, maxInclusionPct: commercialPremixById(id)!.inclusionPct }
         : { minInclusionPct: constraint?.min_percent, maxInclusionPct: constraint?.max_percent }),
     };
   });
@@ -1026,12 +1026,10 @@ function automaticIngredientIds(
   const resolved = resolvePhase(input.programme_id);
   const energySystem = input.energy_system ?? "ME";
   const speciesLibrary = ingredientLibraryForPhase(resolved.phase);
-  const library = ingredientLibraryWithCustomPremixes(
-    [publicPremixProfileForPhase(resolved.phase)],
-    speciesLibrary,
-  );
+  // No synthetic premix is injected in automatic mode.
+  const library = speciesLibrary;
   const settings: FormulationSettings = {
-    includeSupplementationTargets: true,
+    includeSupplementationTargets: false,
     traceMineralBasis: "inorganic",
   };
 
@@ -1056,15 +1054,8 @@ function automaticIngredientIds(
     return [{
       ingredientId: ingredient.id,
       pricePerKg: price.price_per_tonne / 1000,
-      ...(ingredient.id === PUBLIC_PREMIX_ID
-        ? {
-            minInclusionPct: PUBLIC_PREMIX_INCLUSION_PCT,
-            maxInclusionPct: PUBLIC_PREMIX_INCLUSION_PCT,
-          }
-        : {
-            minInclusionPct: requestConstraint?.min_percent,
-            maxInclusionPct: requestConstraint?.max_percent,
-          }),
+      minInclusionPct: requestConstraint?.min_percent,
+      maxInclusionPct: requestConstraint?.max_percent,
     }];
   });
 
@@ -1086,11 +1077,6 @@ function automaticIngredientIds(
     .map((ingredient) => ingredient.option.ingredientId)
     .filter((id) => !incomplete.has(id));
 
-  if (!ingredientIds.includes(PUBLIC_PREMIX_ID)) {
-    throw new FeedSportInputError(
-      `FeedSport could not build an automatic candidate pool containing ${PUBLIC_PREMIX_ID}.`,
-    );
-  }
   if (ingredientIds.length <= 1) {
     throw new FeedSportInputError(
       "FeedSport could not find enough priced ingredients with complete nutrient data for this phase.",
@@ -1249,7 +1235,8 @@ export async function formulate(input: FormulateInput, context: FeedSportService
     requirement_comparison: comparisonRows(chosen.profile),
     inclusion_limits: inclusionLimits,
     ...(advisories.length > 0 ? { above_practical_inclusion: advisories } : {}),
-    unsupported_requirements: result.unsupportedRequirements,
+    unsupported_requirements: [...new Set([...result.unsupportedRequirements, "vitamin-trace-mineral-supplementation"])],
+    premix_verification: request.includesPremix ? "unverified" : "not_included",
     notes: [
       ...notes,
       ...(common.formulation_basis.ingredient_mode === "automatic"
@@ -1326,7 +1313,11 @@ export function analyseFormulation(input: AnalyseInput, context: FeedSportServic
     limit_source?: string;
   };
   const inclusionLimitViolations = formula.ingredients.flatMap((row): InclusionLimitViolation[] => {
-    if (row.ingredientId === PUBLIC_PREMIX_ID) return [];
+    const premix = commercialPremixById(row.ingredientId);
+    if (premix && Math.abs(row.inclusionPct - premix.inclusionPct) > 1e-6) {
+      return [{ ingredient: row.ingredientId, percentage: round(row.inclusionPct, 4), min_percent: premix.inclusionPct, max_percent: premix.inclusionPct, limit_source: premix.specificationUrl }];
+    }
+    if (premix) return [];
     const record = library.ingredients.find((ingredient) => ingredient.id === row.ingredientId)!;
     const limits = feedsportInclusionLimits(record.id, record.constraints, resolved.phase);
     if (row.inclusionPct > limits.maxPct + 1e-6) {
@@ -1361,7 +1352,7 @@ export function analyseFormulation(input: AnalyseInput, context: FeedSportServic
 
   const notes = formulationNotes(request);
   if (request.includesPremix) {
-    notes[0] = "The FeedSport premix profile for this phase is assumed; its vitamin and trace-mineral supplementation targets are checked.";
+    notes[0] = "The manufacturer's premix is unverified; no vitamin or trace-mineral sufficiency checks were performed.";
   }
   if (unverifiable.length > 0) {
     notes.push("Some requirements cannot be verified because ingredient nutrient data is missing; the formulation cannot pass until they can.");
@@ -1395,7 +1386,8 @@ export function analyseFormulation(input: AnalyseInput, context: FeedSportServic
     ...(practicalInclusionAdvisories.length > 0
       ? { above_practical_inclusion: practicalInclusionAdvisories }
       : {}),
-    unsupported_requirements: evaluation.unsupportedRequirements,
+    unsupported_requirements: [...new Set([...evaluation.unsupportedRequirements, "vitamin-trace-mineral-supplementation"])],
+    premix_verification: request.includesPremix ? "unverified" : "not_included",
     notes,
     programme: programmeHeader(resolved),
     ...(request.resolvedNames.length > 0 ? { resolved_ingredient_names: request.resolvedNames } : {}),
