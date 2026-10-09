@@ -400,32 +400,6 @@ export default function FormulationsClient({ ingredientPrices, ingredientPackSiz
     }
   }
 
-  function downloadFormula() {
-    if (!downloadableFormulation || !selectedPremix) return;
-    const cell = (parts: Array<string | number>) =>
-      parts.map((part) => `"${String(part).replaceAll('"', '""')}"`).join(',');
-    const labels = new Map(INGREDIENT_LIBRARY.ingredients.map((item) => [item.id, item.name]));
-    const csv = [
-      cell(['FeedSport public formulation', selectedProgramme.label, selectedPhase?.label ?? '']),
-      cell(['Commercial premix', selectedPremix.name]),
-      cell(['Manufacturer reference', selectedPremix.specificationUrl]),
-      ...(manufacturerOnly ? [cell(['Restriction', 'Fixed manufacturer recipe. No substitutions permitted.'])] : []),
-      cell(['Ingredient', 'ID', 'Inclusion %', 'Kilograms per tonne']),
-      ...downloadableFormulation.formula.ingredients.map((row) => cell([
-        labels.get(row.ingredientId) ?? (row.ingredientId === selectedPremix.id ? selectedPremix.name : row.ingredientId),
-        row.ingredientId,
-        row.inclusionPct.toFixed(3),
-        (row.inclusionPct * 10).toFixed(2),
-      ])),
-    ].join('\r\n');
-    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
-    const anchor = document.createElement('a');
-    anchor.href = url;
-    anchor.download = `feedsport-${programmeId}-${phaseId}-recipe.csv`;
-    anchor.click();
-    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
-  }
-
   return (
     <main className="fs-page bg-[#f3f0e8] [container-type:inline-size]">
       <p className="fs-mono mb-2.5 mt-0 text-[12px] uppercase tracking-[.08em] text-[#4f524b]">Formulation</p>
@@ -522,7 +496,7 @@ export default function FormulationsClient({ ingredientPrices, ingredientPackSiz
           {downloadError ? <div className="border-t border-[#ece8de] bg-[#f6e0d9] px-5 py-3 text-[13px] leading-5 text-[#8f3420]">{downloadError}</div> : null}
           
           {formulationNote ? <div className="border-t border-[#ece8de] bg-[#e3eadf] px-5 py-3 text-[13px] leading-5 text-[#1f5c38]">{formulationNote}</div> : null}
-          <div className="flex flex-wrap gap-2.5 border-t border-[#d9d4c7] px-5 py-4"><button type="button" onClick={() => void calculateFormula()} disabled={balancing || !selectedPhase} className="h-[42px] rounded-[4px] border-[1.5px] border-[#191b18] bg-transparent px-4 text-[14px] font-semibold disabled:cursor-not-allowed disabled:opacity-40">{balancing ? 'Calculating…' : manufacturerOnly ? 'Cost manufacturer recipe' : 'Optimize this recipe'}</button><button type="button" onClick={() => void openDetailedPdf()} disabled={!downloadableFormulation || balancing || downloadingPdf} title={downloadableFormulation ? 'Open the detailed formulation PDF in a new tab' : 'Calculate the recipe before downloading'} className="h-[42px] rounded-[4px] border-[1.5px] border-[#191b18] bg-[#fbfaf6] px-4 text-[14px] font-semibold text-[#191b18] disabled:cursor-not-allowed disabled:opacity-40">{downloadingPdf ? 'Preparing formula…' : 'Download recipe PDF'}</button><button type="button" onClick={downloadFormula} disabled={!downloadableFormulation || balancing} title={downloadableFormulation ? 'Download the source-labelled recipe CSV' : 'Calculate the recipe before downloading'} className="h-[42px] rounded-[4px] border-[1.5px] border-[#bdb7a9] bg-transparent px-4 text-[14px] font-semibold text-[#4f524b] disabled:cursor-not-allowed disabled:opacity-40">CSV</button><button type="button" onClick={() => setQuoteDialogOpen(true)} disabled={balancing} className="inline-flex h-[42px] items-center rounded-[4px] bg-[#d99a2b] px-4 text-[14px] font-semibold text-[#191b18] disabled:cursor-not-allowed disabled:opacity-40">Quote ingredients</button></div>
+          <div className="flex flex-wrap gap-2.5 border-t border-[#d9d4c7] px-5 py-4"><button type="button" onClick={() => void calculateFormula()} disabled={balancing || !selectedPhase} className="h-[42px] rounded-[4px] border-[1.5px] border-[#191b18] bg-transparent px-4 text-[14px] font-semibold disabled:cursor-not-allowed disabled:opacity-40">{balancing ? 'Calculating…' : manufacturerOnly ? 'Cost manufacturer recipe' : 'Optimize this recipe'}</button><button type="button" onClick={() => void openDetailedPdf()} disabled={!downloadableFormulation || balancing || downloadingPdf} title={downloadableFormulation ? 'Open the detailed formulation PDF in a new tab' : 'Calculate the recipe before downloading'} className="h-[42px] rounded-[4px] border-[1.5px] border-[#191b18] bg-[#fbfaf6] px-4 text-[14px] font-semibold text-[#191b18] disabled:cursor-not-allowed disabled:opacity-40">{downloadingPdf ? 'Preparing formula…' : 'Download recipe PDF'}</button><button type="button" onClick={() => setQuoteDialogOpen(true)} disabled={balancing} className="inline-flex h-[42px] items-center rounded-[4px] bg-[#d99a2b] px-4 text-[14px] font-semibold text-[#191b18] disabled:cursor-not-allowed disabled:opacity-40">Quote ingredients</button></div>
         </section>
 
         <section className="rounded-[6px] border border-[#d9d4c7] bg-[#fbfaf6] px-5 pb-4">
