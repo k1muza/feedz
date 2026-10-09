@@ -279,3 +279,21 @@ export function publishedPremixAminoAcids(premix: CommercialPremix): Array<{
       usableAsSid: false as const,
     }));
 }
+
+/** Conditional, supplier-label MINIMUM contribution to total (never SID) AA.
+ * Assumes the labelled SKU matches the product actually supplied, an
+ * outstanding verification issue for CJ S174 versus ST174A.
+ */
+export function publishedMinimumTotalAminoAcidsInFeed(premix: CommercialPremix): Array<{
+  name: string;
+  minTotalFeedPct: number;
+  usableAsSid: false;
+}> {
+  return publishedPremixAminoAcids(premix)
+    .filter((claim) => claim.minimumPct !== null)
+    .map((claim) => ({
+      name: claim.name,
+      minTotalFeedPct: Math.round((claim.minimumPct! * premix.inclusionPct / 100) * 10000) / 10000,
+      usableAsSid: false as const,
+    }));
+}
