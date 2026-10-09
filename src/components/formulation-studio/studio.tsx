@@ -209,6 +209,8 @@ interface State {
   advisoriesOpen: boolean;
   addOpen: boolean;
   addQ: string;
+  /** Catalogue ids ticked in the add-ingredient picker, in the order ticked. */
+  addPick: string[];
   mode: "optimised" | "manual";
   manual: Record<string, string>;
   manualCheck: (ManualCheck & { sig: string }) | null;
@@ -560,7 +562,7 @@ function draftErr(d: Draft, fs: number) {
 }
 
 const INITIAL: State = {
-  w: 1400, screen: "home", step: 1, species: "swine", programmeId: DEFAULT_PROGRAMME, phaseId: "", setKey: "none", setupListId: null, pool: {}, goal: "least_cost", batch: 100, batchMode: "100", customBatch: "", unit: "t", docName: "Untitled formulation", docId: null, pendingDoc: null, pendingCmp: null, result: null, runSig: null, runSnap: null, running: false, runToken: 0, tab: "recipe", drawer: null, advisoriesOpen: false, addOpen: false, addQ: "", mode: "optimised", manual: {}, manualCheck: null, rulesOpen: false, history: [], sel: [], cmp: null, toast: null, dismissed: {}, savedSig: null, saving: false, exporting: false, suggestion: null, completionSuggestion: null, ingQ: "", catQ: "", catSel: null, catPage: 1, catPageSize: CAT_DEFAULT_PAGE_SIZE, progSel: null, progPhase: null, progAllLimits: false, addTarget: "pool", auth: null, authNext: null, af: { email: "", password: "", name: "", org: "", role: "farmer" }, aShow: false, aErr: {}, aBusy: false, aGoogleBusy: false, aSent: null, myListSel: null, listRename: null, listCreate: null,
+  w: 1400, screen: "home", step: 1, species: "swine", programmeId: DEFAULT_PROGRAMME, phaseId: "", setKey: "none", setupListId: null, pool: {}, goal: "least_cost", batch: 100, batchMode: "100", customBatch: "", unit: "t", docName: "Untitled formulation", docId: null, pendingDoc: null, pendingCmp: null, result: null, runSig: null, runSnap: null, running: false, runToken: 0, tab: "recipe", drawer: null, advisoriesOpen: false, addOpen: false, addQ: "", addPick: [], mode: "optimised", manual: {}, manualCheck: null, rulesOpen: false, history: [], sel: [], cmp: null, toast: null, dismissed: {}, savedSig: null, saving: false, exporting: false, suggestion: null, completionSuggestion: null, ingQ: "", catQ: "", catSel: null, catPage: 1, catPageSize: CAT_DEFAULT_PAGE_SIZE, progSel: null, progPhase: null, progAllLimits: false, addTarget: "pool", auth: null, authNext: null, af: { email: "", password: "", name: "", org: "", role: "farmer" }, aShow: false, aErr: {}, aBusy: false, aGoogleBusy: false, aSent: null, myListSel: null, listRename: null, listCreate: null,
 };
 
 const spinnerStyle = (track: string, head: string): CSSProperties => ({ width: 16, height: 16, borderRadius: "50%", border: "2px solid " + track, borderTopColor: head, display: "inline-block", animation: "fsspin .8s linear infinite", flex: "none" });
@@ -961,16 +963,26 @@ function useStudio({ catalogue, nutrients, programmes, showSolverDetails = false
   };
   const ingredientName = (id: string) => catalogueById.get(id)?.name ?? id;
   const addIng = (id: string) => {
+    update({ pool: { ...S.pool, [id]: { role: "available" } } });
+    flash(ingredientName(id) + " added as Available");
+  };
+  const toggleAddPick = (id: string) => update((state) => ({ addPick: state.addPick.includes(id) ? state.addPick.filter((x) => x !== id) : [...state.addPick, id] }));
+  const addPicked = () => {
+    const ids = S.addPick;
+    if (!ids.length) return;
+    const what = ids.length === 1 ? ingredientName(ids[0]) : ids.length + " ingredients";
     if (S.addTarget === "set") {
       const list = currentList(S, myLists);
       if (!list) return;
-      void myLists.addItem(list.id, id);
-      update({ addOpen: false, addQ: "" });
-      flash(ingredientName(id) + " added to " + list.label);
+      void (async () => {
+        for (const id of ids) await myLists.addItem(list.id, id);
+      })();
+      update({ addOpen: false, addQ: "", addPick: [] });
+      flash(what + " added to " + list.label);
       return;
     }
-    update({ pool: { ...S.pool, [id]: { role: "available" } }, addOpen: false, addQ: "" });
-    flash(ingredientName(id) + " added as Available");
+    update((state) => ({ pool: { ...state.pool, ...Object.fromEntries(ids.map((id) => [id, { role: "available" as Role }])) }, addOpen: false, addQ: "", addPick: [] }));
+    flash(what + " added as Available");
   };
   const addCompletionIngredients = (ids: string[]) => {
     if (!ids.length) return;
@@ -1445,7 +1457,7 @@ function useStudio({ catalogue, nutrients, programmes, showSolverDetails = false
           body: e.body,
           hasEdit: !!e.id || /minimums|maximums/.test(e.title) || !poolIds.length,
           editLabel: e.id ? "Edit " + ingredientName(e.id) : poolIds.length ? "Review ingredients" : "Add an ingredient",
-          edit: () => (e.id ? openDrawer(e.id) : poolIds.length ? openDrawer(poolIds.find((id) => S.pool[id].role === "fixed" || S.pool[id].role === "required") || poolIds[0]) : update({ addOpen: true, addQ: "", addTarget: "pool" })),
+          edit: () => (e.id ? openDrawer(e.id) : poolIds.length ? openDrawer(poolIds.find((id) => S.pool[id].role === "fixed" || S.pool[id].role === "required") || poolIds[0]) : update({ addOpen: true, addQ: "", addPick: [], addTarget: "pool" })),
         }))
       : R?.status === "error"
         ? [{ title: "FeedSport couldn’t formulate this", body: R.message, hasEdit: false, editLabel: "", edit: () => {} }]
@@ -1516,7 +1528,7 @@ function useStudio({ catalogue, nutrients, programmes, showSolverDetails = false
   const addList = S.addTarget === "set" ? currentList(S, myLists) : null;
   const addResults = catalogue
     .filter((g) => (addList ? !addList.items.some((it) => it.ingredientId === g.id) : !S.pool[g.id]) && (!q || [g.name, g.category, ...g.aliases].join(" ").toLowerCase().includes(q)))
-    .map((g) => ({ name: g.name, sub: g.category + " · " + (g.price ? "$" + fmt(g.price.usdPerTonne, 0) + "/t planning price" : "no planning price"), subColor: g.price ? "#64665c" : "#a63d2a", add: () => addIng(g.id) }));
+    .map((g) => ({ name: g.name, sub: g.category + " · " + (g.price ? "$" + fmt(g.price.usdPerTonne, 0) + "/t planning price" : "no planning price"), subColor: g.price ? "#64665c" : "#a63d2a", picked: S.addPick.includes(g.id), toggle: () => toggleAddPick(g.id) }));
   const rules = programmes.requirementFields.flatMap((f, i) => {
     const value = PH.requirements[i];
     if (value == null) return [];
@@ -1544,7 +1556,7 @@ function useStudio({ catalogue, nutrients, programmes, showSolverDetails = false
     onProgramme: (e: InputEvent) => update(programmeChoice(e.target.value)),
     phaseList: P.phases.map((ph) => ({ id: ph.id, name: ph.label })), phaseId: PH.id, onPhase: (e: InputEvent) => update({ phaseId: e.target.value }),
     overrideText: PH.weightRange,
-    openAdd: () => update({ addOpen: true, addQ: "", addTarget: "pool", advisoriesOpen: false }), closeAdd: () => update({ addOpen: false }), addOpen: S.addOpen, addQ: S.addQ, onAddQ: (e: InputEvent) => update({ addQ: e.target.value }), addResults, addEmpty: addResults.length === 0,
+    openAdd: () => update({ addOpen: true, addQ: "", addPick: [], addTarget: "pool", advisoriesOpen: false }), closeAdd: () => update({ addOpen: false }), addOpen: S.addOpen, addQ: S.addQ, onAddQ: (e: InputEvent) => update({ addQ: e.target.value }), addResults, addEmpty: addResults.length === 0, addPickN: S.addPick.length, addPicked, clearAddPick: () => update({ addPick: [] }), addCta: S.addPick.length ? "Add " + S.addPick.length + " ingredient" + (S.addPick.length === 1 ? "" : "s") : "Add ingredients",
     poolRows: poolIds.map((id) => {
       const e = S.pool[id];
       return { name: ingredientName(id), short: isEligible(id) ? roleShort(e) : "Set aside", chip: CHIP[e.role], nameColor: e.role === "excluded" || !isEligible(id) ? "#8d8a80" : "#222420", roleColor: e.role === "fixed" ? "#222420" : e.role === "excluded" || !isEligible(id) ? "#8d8a80" : "#2f5a3f", open: () => openDrawer(id) };
@@ -2128,7 +2140,7 @@ function libraryVals(
       update({ myListSel: null, listRename: null });
       flash("Deleted “" + name + "”. Saved formulations keep their own copy.");
     },
-    addToSet: () => update({ addOpen: true, addQ: "", addTarget: "set" }),
+    addToSet: () => update({ addOpen: true, addQ: "", addPick: [], addTarget: "set" }),
     formulateWithSet: () => cur && ctx.formulateWithList(cur),
     progGroups: (
       [

@@ -1707,20 +1707,30 @@ function AddIngredient({ v }: V) {
       <div onClick={v.closeAdd} style={sx("position:fixed;inset:0;background:rgba(34,36,32,.38);z-index:30")} />
       <div style={sx("position:fixed;top:10vh;left:50%;transform:translateX(-50%);width:min(520px,94vw);max-height:76vh;background:#fff;border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,.25);z-index:31;display:flex;flex-direction:column;overflow:hidden;animation:fsin .2s ease-out")}>
         <div style={sx("padding:16px;border-bottom:1px solid #e2dfd6;display:flex;flex-direction:column;gap:10px")}>
-          <span style={sx("font:600 17px/1.2 'IBM Plex Sans',sans-serif")}>Add an ingredient</span>
-          <input value={v.addQ} onChange={v.onAddQ} placeholder="Search the FeedSport catalogue" style={sx("padding:11px 12px;border:1px solid #d0cdc3;border-radius:8px;font:400 15px/1 'IBM Plex Sans',sans-serif")} />
+          <div style={sx("display:flex;justify-content:space-between;align-items:baseline;gap:10px")}>
+            <span style={sx("font:600 17px/1.2 'IBM Plex Sans',sans-serif")}>Add ingredients</span>
+            <span style={sx("font:400 12px/1.2 'IBM Plex Sans',sans-serif;color:#64665c")}>Tick as many as you need</span>
+          </div>
+          <input autoFocus value={v.addQ} onChange={v.onAddQ} placeholder="Search the FeedSport catalogue" style={sx("padding:11px 12px;border:1px solid #d0cdc3;border-radius:8px;font:400 15px/1 'IBM Plex Sans',sans-serif")} />
         </div>
-        <div style={sx("overflow-y:auto;display:flex;flex-direction:column")}>
+        <div style={sx("overflow-y:auto;display:flex;flex-direction:column;flex:1;min-height:0")}>
           {v.addResults.map((a) => (
-            <button key={a.name} onClick={a.add} className={hv("row")} style={sx("border:0;border-bottom:1px solid #ece8df;background:#fff;text-align:left;display:flex;justify-content:space-between;align-items:center;gap:10px;padding:13px 16px;color:#222420")}>
+            <button key={a.name} onClick={a.toggle} role="checkbox" aria-checked={a.picked} className={hv("row")} style={sx(`border:0;border-bottom:1px solid #ece8df;background:${a.picked ? "#eef3ec" : "#fff"};text-align:left;display:flex;align-items:center;gap:12px;padding:13px 16px;color:#222420`)}>
+              <span style={sx(`flex:none;width:18px;height:18px;border-radius:4px;border:1.5px solid ${a.picked ? "#2f5a3f" : "#b5b2a8"};background:${a.picked ? "#2f5a3f" : "#fff"};color:#fff;display:flex;align-items:center;justify-content:center;font:700 12px/1 'IBM Plex Sans',sans-serif`)}>{a.picked ? "✓" : ""}</span>
               <span style={sx("display:flex;flex-direction:column;gap:3px")}>
                 <span style={sx("font:500 15px/1.2 'IBM Plex Sans',sans-serif")}>{a.name}</span>
                 <span style={sx(`font:400 12px/1.2 'IBM Plex Sans',sans-serif;color:${a.subColor}`)}>{a.sub}</span>
               </span>
-              <span style={sx("font:600 13px/1 'IBM Plex Sans',sans-serif;color:#2f5a3f")}>Add</span>
             </button>
           ))}
           {v.addEmpty && <div style={sx("padding:16px;font:400 14px/1.4 'IBM Plex Sans',sans-serif;color:#64665c")}>Nothing matches. Everything in the catalogue may already be in your list.</div>}
+        </div>
+        <div style={sx("padding:12px 16px;border-top:1px solid #e2dfd6;display:flex;justify-content:space-between;align-items:center;gap:10px")}>
+          {v.addPickN > 0 ? <button onClick={v.clearAddPick} style={sx("border:0;background:transparent;font:500 13px/1 'IBM Plex Sans',sans-serif;color:#64665c;padding:0")}>Clear {v.addPickN} selected</button> : <span style={sx("font:400 13px/1 'IBM Plex Sans',sans-serif;color:#64665c")}>None selected</span>}
+          <div style={sx("display:flex;gap:10px")}>
+            <button onClick={v.closeAdd} style={sx("border:1px solid #d0cdc3;background:#fff;font:500 14px/1 'IBM Plex Sans',sans-serif;padding:11px 14px;border-radius:8px;color:#222420")}>Cancel</button>
+            <button onClick={v.addPicked} disabled={v.addPickN === 0} style={sx(`border:0;background:${v.addPickN ? "#2f5a3f" : "#a9b8ad"};color:#fff;font:600 14px/1 'IBM Plex Sans',sans-serif;padding:11px 16px;border-radius:8px`)}>{v.addCta}</button>
+          </div>
         </div>
       </div>
     </>
