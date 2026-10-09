@@ -11,7 +11,7 @@ import { evaluateFormulation, type FormulationIncompleteRequirement } from "./fe
 import type { IngredientLibrary } from "./ingredient-nutrients";
 import type { EnergySystem } from "./nutrition-targets";
 import type { NutritionPhase } from "./nutrition";
-import { assertManufacturerRecipe, type CommercialPremix } from "./commercial-premixes";
+import { assertManufacturerRecipe, premixAnalysisForIds, type CommercialPremix } from "./commercial-premixes";
 import { round, snake } from "./feed-number-format";
 
 /** Client supplied ingredients or ratios that conflict with a fixed manufacturer's recipe. */
@@ -86,7 +86,7 @@ export function assessManufacturerRecipe(
     // micronutrient analysis is a separate supplier verification gap, NOT
     // "Brazilian Tables lack phase-specific supplementation guidance".
     unsupportedRequirements: evaluation.unsupportedRequirements,
-    warning: `${premix.sku} is a manufacturer-prescribed recipe, NOT an optimized or nutritionally verified feed. Missing fish-meal/compound-premix analytical values prevent complete nutrient checking. Known nutrient shortfalls, if any, are listed; missing values are NOT treated as zero. Confirm the exact product, technical data sheet and recipe suitability with the manufacturer before feeding.`,
+    warning: `${premix.name} is a manufacturer-prescribed recipe, NOT an optimized or nutritionally verified feed. Missing ingredient and commercial-premix analytical values prevent complete nutrient checking. Known nutrient shortfalls, if any, are listed; missing values are NOT treated as zero. Confirm the exact product, technical data sheet and recipe suitability with the manufacturer before feeding.`,
   };
 }
 
@@ -95,9 +95,11 @@ export type ManufacturerRecipeReport = {
   status: "manufacturer_recipe";
   verification: "unverified";
   recipe: DietFormula;
-  costPerKg: number | null;
-  costPerTonne: number | null;
-  unpricedIngredients: string[];
+  manufacturer: string;
+  product_id: string;
+  cost_per_kg: number | null;
+  cost_per_tonne: number | null;
+  unpriced_ingredients: string[];
   incomplete_requirements: Array<{
     nutrient: string;
     label: string;
@@ -114,12 +116,7 @@ export type ManufacturerRecipeReport = {
     requirement: number;
   }>;
   unsupported_requirements: string[];
-  premix_analysis: {
-    status: "unverified";
-    reason: "manufacturer_nutrient_analysis_incomplete";
-    product_id: string;
-    message: string;
-  };
+  premix_analysis: ReturnType<typeof premixAnalysisForIds>;
   warning: string;
 };
 
@@ -154,9 +151,11 @@ export function buildManufacturerRecipeReport(
     status: "manufacturer_recipe",
     verification: "unverified",
     recipe,
-    costPerKg,
-    costPerTonne: costPerKg === null ? null : round(costPerKg * 1000, 2),
-    unpricedIngredients,
+    manufacturer: premix.manufacturer,
+    product_id: premix.id,
+    cost_per_kg: costPerKg,
+    cost_per_tonne: costPerKg === null ? null : round(costPerKg * 1000, 2),
+    unpriced_ingredients: unpricedIngredients,
     incomplete_requirements: assessment.incompleteRequirements.map((row) => ({
       nutrient: snake(row.id),
       label: row.label,
@@ -173,12 +172,7 @@ export function buildManufacturerRecipeReport(
       actual: round(row.actual),
     })),
     unsupported_requirements: assessment.unsupportedRequirements,
-    premix_analysis: {
-      status: "unverified",
-      reason: "manufacturer_nutrient_analysis_incomplete",
-      product_id: premix.id,
-      message: `${premix.name}: manufacturer nutrient analysis is incomplete/unverified; vitamin and trace-mineral adequacy cannot be assessed. This is a supplier specification gap, not missing programme guidance.`,
-    },
+    premix_analysis: premixAnalysisForIds([premix.id]),
     warning: assessment.warning,
   };
 }
