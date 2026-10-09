@@ -12,6 +12,7 @@ import type { IngredientLibrary } from "./ingredient-nutrients";
 import type { EnergySystem } from "./nutrition-targets";
 import type { NutritionPhase } from "./nutrition";
 import { assertManufacturerRecipe, type CommercialPremix } from "./commercial-premixes";
+import { round, snake } from "./feed-number-format";
 
 export type ManufacturerRecipeShortfall = {
   id: string;
@@ -72,17 +73,51 @@ export function assessManufacturerRecipe(
     recipe: formula,
     incompleteRequirements: evaluation.incompleteRequirements,
     checkedShortfalls,
-    unsupportedRequirements: [
-      ...new Set([...evaluation.unsupportedRequirements, "vitamin-trace-mineral-supplementation"]),
-    ],
+    // This contains actual programme-model limitations. Missing CJ
+    // micronutrient analysis is a separate supplier verification gap, NOT
+    // "Brazilian Tables lack phase-specific supplementation guidance".
+    unsupportedRequirements: evaluation.unsupportedRequirements,
     warning: `${premix.sku} is a manufacturer-prescribed recipe, NOT an optimized or nutritionally verified feed. Missing fish-meal/compound-premix analytical values prevent complete nutrient checking. Known nutrient shortfalls, if any, are listed; missing values are NOT treated as zero. Confirm the exact product, technical data sheet and recipe suitability with the manufacturer before feeding.`,
   };
 }
 
+/** Externally visible contract — each nutrient list appears exactly once. */
+export type ManufacturerRecipeReport = {
+  status: "manufacturer_recipe";
+  verification: "unverified";
+  recipe: DietFormula;
+  costPerKg: number | null;
+  costPerTonne: number | null;
+  unpricedIngredients: string[];
+  incomplete_requirements: Array<{
+    nutrient: string;
+    label: string;
+    unit: string;
+    requirement: number;
+    missing_data_for: string[];
+  }>;
+  checked_shortfalls: Array<{
+    nutrient: string;
+    label: string;
+    unit: string;
+    relation: "min" | "max";
+    actual: number;
+    requirement: number;
+  }>;
+  unsupported_requirements: string[];
+  premix_analysis: {
+    status: "unverified";
+    reason: "manufacturer_nutrient_analysis_incomplete";
+    product_id: string;
+    message: string;
+  };
+  warning: string;
+};
+
 /**
- * Single canonical CJ manufacturer recipe/cost/validation result used by
- * Studio, optimize API, MCP formulate, analyse and diagnostics.
- * Pricing is optional for analysis; missing prices never silently become $0.
+ * Single canonical manufacturer recipe, costing and normalized assessment.
+ * Does not silently replace unknown supplier concentrations with zero,
+ * relax ingredient restrictions, or invent unquoted product prices.
  */
 export function buildManufacturerRecipeReport(
   premix: CommercialPremix,
@@ -91,7 +126,7 @@ export function buildManufacturerRecipeReport(
   library: IngredientLibrary,
   pricesPerKg: ReadonlyMap<string, number> = new Map(),
   suppliedFormula?: DietFormula,
-) {
+): ManufacturerRecipeReport {
   if (!premix.manufacturerRecipe) throw new Error(`No manufacturer recipe for ${premix.sku}`);
   const recipe: DietFormula = suppliedFormula ?? {
     ingredients: premix.manufacturerRecipe.map(({ ingredientId, percent }) => ({
@@ -106,14 +141,9 @@ export function buildManufacturerRecipeReport(
     ? null
     : recipe.ingredients.reduce((sum, row) =>
       sum + row.inclusionPct / 100 * pricesPerKg.get(row.ingredientId)!, 0);
-  const snake = (value: string) => value
-    .replace(/([a-z0-9])([A-Z])/g, "$1_$2")
-    .replace(/-/g, "_")
-    .toLowerCase();
-  const round = (value: number, digits = 4) =>
-    Math.round(value * 10 ** digits) / 10 ** digits;
   return {
-    ...assessment,
+    status: "manufacturer_recipe",
+    verification: "unverified",
     recipe,
     costPerKg,
     costPerTonne: costPerKg === null ? null : round(costPerKg * 1000, 2),
@@ -133,5 +163,13 @@ export function buildManufacturerRecipeReport(
       requirement: round(row.requirement),
       actual: round(row.actual),
     })),
+    unsupported_requirements: assessment.unsupportedRequirements,
+    premix_analysis: {
+      status: "unverified",
+      reason: "manufacturer_nutrient_analysis_incomplete",
+      product_id: premix.id,
+      message: `${premix.name}: manufacturer nutrient analysis is incomplete/unverified; vitamin and trace-mineral adequacy cannot be assessed. This is a supplier specification gap, not missing programme guidance.`,
+    },
+    warning: assessment.warning,
   };
 }
