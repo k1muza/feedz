@@ -30,6 +30,7 @@ const ProductImageSchema = z.string().trim().refine(
 const ProductFormSchema = z.object({
   nutritionIngredientId: z.string().trim().min(1, 'Choose a Brazilian Tables ingredient.'),
   name: z.string().trim().min(1, 'Product name is required.'),
+  searchTerms: z.string().max(2000).optional(),
   categoryId: z.string().trim().min(1, 'A category is required.'),
   description: z.string().trim().min(1, 'Description is required.'),
   status: z.enum(PRODUCT_STATUSES),
@@ -64,6 +65,7 @@ export const ProductForm = ({ product, categories, nutritionIngredients }: Produ
       defaultValues: {
           nutritionIngredientId: product?.ingredientId || '',
           name: product?.ingredient?.name || '',
+          searchTerms: product?.searchTerms.join(', ') || '',
           categoryId: product?.categoryId || '',
           description: product?.ingredient?.description || '',
           status: product?.status || 'Available to order',
@@ -203,6 +205,12 @@ export const ProductForm = ({ product, categories, nutritionIngredients }: Produ
               <input id="name" {...register('name')} className="mt-1 block w-full bg-ash-700 border-ash-600 rounded-md p-2" />
               {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name.message}</p>}
               {product && <p className="text-xs text-ash-400 mt-1">Record ID: {product.id}</p>}
+            </div>
+            <div>
+              <label htmlFor="searchTerms" className="block text-sm font-medium text-ash-300">Alternative search terms</label>
+              <input id="searchTerms" {...register('searchTerms')} placeholder="soya, soyabean meal, sbm" className="mt-1 block w-full bg-ash-700 border-ash-600 rounded-md p-2" />
+              {errors.searchTerms && <p className="text-red-500 text-xs mt-1">{errors.searchTerms.message}</p>}
+              <p className="text-xs text-ash-400 mt-1">Comma-separated customer names and industry abbreviations.</p>
             </div>
             <div>
               <label htmlFor="categoryId" className="block text-sm font-medium text-ash-300">FeedZ category</label>

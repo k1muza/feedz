@@ -16,6 +16,7 @@ type PublicProductRow = {
   id: string;
   nutrition_ingredient_id: string;
   name: string;
+  search_terms: string[] | null;
   description: string;
   status: FeedProduct['status'];
   animals: string[] | null;
@@ -46,6 +47,7 @@ function rowToCatalogItem(row: PublicProductRow): FeedProductCatalogItem {
     id: row.id,
     nutritionIngredientId: row.nutrition_ingredient_id,
     name: row.name,
+    searchTerms: row.search_terms ?? [],
     gradeFallback: row.grade_fallback,
     category: category.name,
     categorySlug: category.slug,
@@ -66,7 +68,7 @@ export const getPublishedProducts = cache(async (): Promise<FeedProduct[]> => {
 
   const { data, error } = await createPublicClient()
     .from('products')
-    .select('id, nutrition_ingredient_id, name, description, status, animals, grade_fallback, packaging, price, currency, pack_size_kg, stock, moq_kg, certifications, images, shipping, image_label, origin, product_categories!inner(name, slug)')
+    .select('id, nutrition_ingredient_id, name, search_terms, description, status, animals, grade_fallback, packaging, price, currency, pack_size_kg, stock, moq_kg, certifications, images, shipping, image_label, origin, product_categories!inner(name, slug)')
     .eq('active', true)
     // Never publicly list the retired generic premix, even if its DB migration has not run.
     .neq('id', 'premix')

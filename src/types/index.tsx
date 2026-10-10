@@ -137,6 +137,7 @@ export type Ingredient = {
 export type Product = {
   id: string;
   ingredientId: string;
+  searchTerms: string[];
   ingredient?: Ingredient;
   categoryId: string;
   status: ProductStatus;

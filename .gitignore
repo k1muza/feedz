@@ -51,3 +51,8 @@ google-credentials.json
 
 # Source drafts for knowledge articles
 drafts/
+
+# Playwright MCP browser logs and snapshots
+.playwright-mcp/
+/playwright-report/
+/test-results/

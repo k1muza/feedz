@@ -106,6 +106,7 @@ type ProductRow = {
   id: string;
   nutrition_ingredient_id: string;
   name: string;
+  search_terms: string[] | null;
   category_id: string;
   product_categories: { name: string; slug: string } | { name: string; slug: string }[];
   description: string;
@@ -132,6 +133,7 @@ function rowToProduct(row: ProductRow): Product {
   return {
     id: row.id,
     ingredientId: row.nutrition_ingredient_id,
+    searchTerms: row.search_terms ?? [],
     ingredient: {
       id: row.nutrition_ingredient_id,
       name: row.name,
@@ -190,6 +192,7 @@ const ProductImageSchema = z.string().trim().refine(
 const ProductFormSchema = z.object({
   nutritionIngredientId: z.string().trim().min(1, 'Choose a Brazilian Tables ingredient.').max(160),
   name: z.string().trim().min(1, 'Product name is required.').max(160),
+  searchTerms: z.string().trim().max(2000).optional(),
   categoryId: z.string().trim().min(1, 'Category is required.').max(100),
   description: z.string().trim().min(1, 'Description is required.').max(2000),
   status: z.enum(PRODUCT_STATUSES),
@@ -321,6 +324,7 @@ export async function saveProduct(productData: unknown, productId?: string) {
   const row = {
     nutrition_ingredient_id: values.nutritionIngredientId,
     name: values.name,
+    search_terms: Array.from(new Set(commaList(values.searchTerms).map((term) => term.toLowerCase()))),
     category_id: values.categoryId,
     description: values.description,
     status: values.status,
@@ -1047,7 +1051,7 @@ export async function getAllBlogPosts(): Promise<BlogPost[]> {
     tags: article.keywords,
     featured: false,
     date: article.published,
-    author: { name: 'FeedSport Nutrition Team', role: 'Nutrition', image: '/favicon.png' },
+    author: { name: 'FeedSport Nutrition Team', role: 'Nutrition', image: '/favicon.webp' },
     readingTime: '',
   }));
 }
