@@ -69,16 +69,19 @@ test("premixes are first-class selectable ingredients, with species/programme el
 test("AECI V1736 can be explicitly simulated for grower pigs but not finishers", () => {
   const id = "aeci-v1736-pig-weaner-premix";
   const grower = "br2024-5-43-63-91d-26-47kg";
-  const finisher = "br2024-5-43-91-119d-47-74kg";
+  const laterGrower = "br2024-5-43-91-119d-47-74kg";
+  const finisher = "br2024-5-43-119-147d-74-103kg";
   const pool = { "corn-yellow-dent": { role: "available" as const, price: 270 } };
   assert.equal(canAddStudioIngredient(id, "grow-finish-pig", pool), false);
   assert.equal(canAddStudioIngredient(id, "grow-finish-pig", pool, grower), true);
+  assert.equal(canAddStudioIngredient(id, "grow-finish-pig", pool, laterGrower), true);
   assert.equal(canAddStudioIngredient(id, "grow-finish-pig", pool, finisher), false);
   const selection = poolWithPremixSelection(pool, "grow-finish-pig", id, grower);
   assert.equal(selection[id]?.role, "fixed");
   assert.equal(selection[id]?.fixed, 1);
   assert.equal(selection["corn-yellow-dent"]?.price, 270);
   assert.deepEqual(studioPremixProblems(selection, "grow-finish-pig", grower), []);
+  assert.deepEqual(studioPremixProblems(selection, "grow-finish-pig", laterGrower), []);
   assert.ok(studioPremixProblems(selection, "grow-finish-pig", finisher).some((x) => /not suitable/.test(x)));
   assert.throws(() => poolWithPremixSelection(pool, "grow-finish-pig", id, finisher), /not eligible/);
   const moved = poolWithCarriedPremixSelection(pool, selection, "grow-finish-pig", finisher);
