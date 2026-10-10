@@ -56,7 +56,6 @@ describe("Manufacturer-backed commercial premix catalogue", () => {
         manganese: 15_000,
         copper: 1_000,
         iodine: 300,
-        selenium: 50.2,
       },
     });
     const contributions = premixFinishedFeedContributions(product);
