@@ -134,6 +134,26 @@ describe("Manufacturer-backed commercial premix catalogue", () => {
     assert.equal(actualItem.aminoAcids.sidPct.lysine, undefined, "Do not fabricate Sustar SID lysine.");
   });
 
+  test("retains Sustar vitamin E mass guarantees without inventing IU or choline", () => {
+    const published: Record<string, [number, number]> = {
+      "sustar-glypro-x911": [180, 230],
+      "sustar-glypro-x912": [60, 80],
+      "sustar-glypro-x913": [230, 270],
+      "sustar-glypro-x812": [80, 120],
+      "sustar-glypro-x811": [100, 120],
+    };
+    for (const [id, [min, max]] of Object.entries(published)) {
+      const product = commercialPremixById(id)!;
+      assert.deepEqual(product.publishedGuarantees?.find((entry) => entry.nutrient === "Vitamin E"), {
+        nutrient: "Vitamin E", unit: "g/kg", min, max,
+      });
+      assert.equal(product.guaranteedMinimumAsFed?.vitamins.vitaminEIuKg, undefined,
+        "Supplier-published mass values cannot be treated as IU without the vitamin form.");
+      assert.equal(product.guaranteedMinimumAsFed?.vitamins.totalCholineMgKg, undefined,
+        "Undeclared choline must remain unknown.");
+    }
+  });
+
   test("does not substitute a broiler product for layers or pigs", () => {
     const broiler = commercialPremixById("sustar-glypro-x812");
     assert.ok(broiler);
