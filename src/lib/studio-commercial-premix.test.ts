@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { canAddStudioIngredient, selectStudioIngredient, studioPremixProblems, poolWithProgrammePremix, poolWithPremixPrice, poolWithoutPremix } from "./studio-commercial-premix";
+import { canAddStudioIngredient, selectStudioIngredient, studioPremixProblems, poolWithCarriedPremixSelection, poolWithProgrammePremix, poolWithPremixPrice, poolWithPremixSelection, poolWithStudioPremixSelection, poolWithoutPremix } from "./studio-commercial-premix";
 
 test("Studio replaces premix by animal class without inheriting old SKU or price", () => {
   const grower = poolWithProgrammePremix({ "corn-yellow-dent": { role: "available" } }, "grow-finish-pig");
@@ -74,6 +74,66 @@ test("choosing an eligible premix sets manufacturer dose without discarding cere
   assert.equal(choice["sustar-glypro-x912"].fixed, 0.2);
   assert.equal(choice["corn-yellow-dent"].price, 265);
   assert.deepEqual(studioPremixProblems(choice, "grow-finish-pig"), []);
+});
+
+test("Studio's explicit premix selector can choose an eligible product or no premix", () => {
+  const base = { "corn-yellow-dent": { role: "available" as const, price: 265 } };
+  const chosen = poolWithPremixSelection(base, "grow-finish-pig", "sustar-glypro-x912");
+  assert.equal(chosen["sustar-glypro-x912"]?.fixed, 0.2);
+  assert.equal(chosen["corn-yellow-dent"]?.price, 265);
+
+  const none = poolWithPremixSelection(chosen, "grow-finish-pig", null);
+  assert.equal(none["sustar-glypro-x912"], undefined);
+  assert.equal(none["corn-yellow-dent"]?.price, 265);
+  assert.throws(
+    () => poolWithPremixSelection(base, "grow-finish-pig", "sustar-glypro-x812"),
+    /not eligible/,
+  );
+
+  const replacementIngredients = { "wheat-bran": { role: "available" as const } };
+  const carried = poolWithCarriedPremixSelection(replacementIngredients, chosen, "grow-finish-pig");
+  assert.equal(carried["sustar-glypro-x912"]?.fixed, 0.2);
+  assert.equal(carried["wheat-bran"]?.role, "available");
+  const carriedNone = poolWithCarriedPremixSelection(replacementIngredients, none, "grow-finish-pig");
+  assert.equal(carriedNone["sustar-glypro-x912"], undefined);
+});
+
+test("choosing no premix unlocks a manufacturer-restricted recipe", () => {
+  const boar = poolWithProgrammePremix({}, "mature-boar");
+  const none = poolWithPremixSelection(boar, "mature-boar", null);
+  assert.equal(none["cj-s174-boar-premix"], undefined);
+  assert.equal(none["corn-yellow-dent"]?.role, "available");
+  assert.equal(none["limestone-ground"]?.role, "available");
+});
+
+test("Studio can select a phase-eligible research premix at its fixed study dose", () => {
+  const phase = "br2024-5-43-63-91d-26-47kg";
+  const chosen = poolWithStudioPremixSelection(
+    { "corn-yellow-dent": { role: "available", price: 265 } },
+    "grow-finish-pig",
+    phase,
+    "feedsport-growerpro-research-2023",
+  );
+  assert.equal(chosen["feedsport-growerpro-research-2023"]?.fixed, 0.4);
+  assert.equal(chosen["sustar-glypro-x912"], undefined);
+  assert.deepEqual(studioPremixProblems(chosen, "grow-finish-pig", phase), []);
+  assert.equal(canAddStudioIngredient("feedsport-growerpro-research-2023", "grow-finish-pig"), false, "research choices require a phase");
+  assert.equal(canAddStudioIngredient("feedsport-growerpro-research-2023", "grow-finish-pig", chosen, phase), true);
+  const selectedAsIngredient = selectStudioIngredient(
+    {
+      "corn-yellow-dent": { role: "available" },
+      "sustar-glypro-x912": { role: "fixed", fixed: 0.2 },
+    },
+    "feedsport-growerpro-research-2023",
+    "grow-finish-pig",
+    phase,
+  );
+  assert.equal(selectedAsIngredient["feedsport-growerpro-research-2023"]?.fixed, 0.4);
+  assert.equal(selectedAsIngredient["sustar-glypro-x912"], undefined, "an alternative replaces the current premix");
+  assert.throws(
+    () => poolWithStudioPremixSelection(chosen, "grow-finish-pig", "br2024-5-43-91-119d-47-74kg", "feedsport-growerpro-research-2023"),
+    /not eligible/,
+  );
 });
 
 test("bad saved premix choices stop in Studio before reaching HTTP 400", () => {

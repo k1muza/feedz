@@ -3,7 +3,15 @@ import {
   commercialPremixForProgramme,
   commercialPremixCompatibleWithProgramme,
 } from "./commercial-premixes";
+import {
+  researchPremixById,
+  researchPremixCompatibleWithPhase,
+} from "./research-premixes";
 import type { Pool, PoolEntry } from "@/components/formulation-studio/engine";
+
+export function studioPremixById(id: string) {
+  return commercialPremixById(id) ?? researchPremixById(id);
+}
 
 /** Premixes participate in the same ingredient pool as maize, lysine or salt.
  * Their additional species, dose and manufacturer-recipe rules belong to the
@@ -39,7 +47,7 @@ function unlockedAfterManufacturerRecipe(
 export function poolWithProgrammePremix(pool: Pool, programmeId: string, preferredId?: string): Pool {
   const previous = unlockedAfterManufacturerRecipe(pool);
   const next: Pool = Object.fromEntries(Object.entries(previous)
-    .filter(([id]) => !commercialPremixById(id)));
+    .filter(([id]) => !studioPremixById(id)));
   const preferred = preferredId ? commercialPremixById(preferredId) : undefined;
   const chosen = preferred && commercialPremixCompatibleWithProgramme(preferred, programmeId)
     ? preferred
@@ -64,6 +72,69 @@ export function poolWithProgrammePremix(pool: Pool, programmeId: string, preferr
   };
 }
 
+/** Applies the farmer's explicit premix choice from Studio. Unlike
+ * poolWithProgrammePremix, null means "no premix" and must not fall back to
+ * the programme default.
+ */
+export function poolWithPremixSelection(pool: Pool, programmeId: string, premixId: string | null): Pool {
+  if (premixId) {
+    const product = commercialPremixById(premixId);
+    if (!product || !commercialPremixCompatibleWithProgramme(product, programmeId)) {
+      throw new Error(`Premix ${premixId} is not eligible for ${programmeId}.`);
+    }
+    return poolWithProgrammePremix(pool, programmeId, premixId);
+  }
+
+  const unlocked = unlockedAfterManufacturerRecipe(pool);
+  return Object.fromEntries(Object.entries(unlocked).filter(([id]) => !studioPremixById(id)));
+}
+
+/** Selects either a supplier product or an explicitly labelled research
+ * reference. Research references are locked to the dose and age band used in
+ * their source study, and never become automatic catalogue suggestions.
+ */
+export function poolWithStudioPremixSelection(
+  pool: Pool,
+  programmeId: string,
+  phaseId: string,
+  premixId: string | null,
+): Pool {
+  const research = premixId ? researchPremixById(premixId) : undefined;
+  if (!research) return poolWithPremixSelection(pool, programmeId, premixId);
+  if (!researchPremixCompatibleWithPhase(research, programmeId, phaseId)) {
+    throw new Error(`Premix ${premixId} is not eligible for ${programmeId}:${phaseId}.`);
+  }
+  const unlocked = unlockedAfterManufacturerRecipe(pool);
+  const next: Pool = Object.fromEntries(Object.entries(unlocked)
+    .filter(([id]) => !studioPremixById(id)));
+  return {
+    ...next,
+    [research.id]: {
+      role: "fixed",
+      fixed: research.inclusionPct,
+      ...(pool[research.id]?.price != null ? { price: pool[research.id].price } : {}),
+    },
+  };
+}
+
+/** Replaces the basal ingredient source while carrying the premix choice made
+ * in Studio's separate selector. This also preserves an explicit no-premix
+ * choice while an asynchronous suggestion list arrives.
+ */
+export function poolWithCarriedPremixSelection(nextPool: Pool, currentPool: Pool, programmeId: string, phaseId?: string): Pool {
+  const selected = Object.entries(currentPool)
+    .find(([id, row]) => {
+      if (row.role === "excluded") return false;
+      const commercial = commercialPremixById(id);
+      if (commercial) return commercialPremixCompatibleWithProgramme(commercial, programmeId);
+      const research = researchPremixById(id);
+      return !!research && !!phaseId && researchPremixCompatibleWithPhase(research, programmeId, phaseId);
+    });
+  return phaseId
+    ? poolWithStudioPremixSelection(nextPool, programmeId, phaseId, selected?.[0] ?? null)
+    : poolWithPremixSelection(nextPool, programmeId, selected?.[0] ?? null);
+}
+
 /** Takes a premix out of the formulation: deleted, or kept as an unticked row.
  * Leaving a manufacturer recipe also unlocks its basal ingredients, which
  * would otherwise stay fixed at shares nothing else can complete.
@@ -74,6 +145,23 @@ export function poolWithoutPremix(pool: Pool, premixId: string, keepUnticked = f
   if (keepUnticked && row) next[premixId] = { ...row, was: row.role, role: "excluded" };
   else delete next[premixId];
   return next;
+}
+
+export function poolWithStudioPremixPrice(
+  pool: Pool,
+  premixId: string,
+  programmeId: string,
+  phaseId: string,
+  price?: number,
+): Pool {
+  const research = researchPremixById(premixId);
+  if (!research) return poolWithPremixPrice(pool, premixId, programmeId, price);
+  const row: PoolEntry = { ...(pool[premixId] ?? { role: "fixed", fixed: research.inclusionPct }) };
+  if (price === undefined) delete row.price;
+  else row.price = price;
+  const next = { ...pool, [premixId]: row };
+  if (row.role === "excluded" || !researchPremixCompatibleWithPhase(research, programmeId, phaseId)) return next;
+  return poolWithStudioPremixSelection(next, programmeId, phaseId, premixId);
 }
 
 /** Records a supplier quote for a premix. An eligible one is re-asserted at
@@ -94,7 +182,9 @@ export function poolWithPremixPrice(pool: Pool, premixId: string, programmeId: s
 /** Ingredient-picker eligibility: cereals are unrestricted here (other limits
  * apply later), while commercial products require stage-specific approval.
  */
-export function canAddStudioIngredient(ingredientId: string, programmeId: string, pool?: Pool): boolean {
+export function canAddStudioIngredient(ingredientId: string, programmeId: string, pool?: Pool, phaseId?: string): boolean {
+  const research = researchPremixById(ingredientId);
+  if (research) return !!phaseId && researchPremixCompatibleWithPhase(research, programmeId, phaseId);
   const product = commercialPremixById(ingredientId);
   if (product && !commercialPremixCompatibleWithProgramme(product, programmeId)) return false;
   // A restricted manufacturer recipe is atomic: only another eligible premix
@@ -103,9 +193,12 @@ export function canAddStudioIngredient(ingredientId: string, programmeId: string
   return true;
 }
 
-export function selectStudioIngredient(pool: Pool, ingredientId: string, programmeId: string): Pool {
-  if (!canAddStudioIngredient(ingredientId, programmeId)) {
+export function selectStudioIngredient(pool: Pool, ingredientId: string, programmeId: string, phaseId?: string): Pool {
+  if (!canAddStudioIngredient(ingredientId, programmeId, pool, phaseId)) {
     throw new Error(`Ingredient ${ingredientId} is not eligible for ${programmeId}.`);
+  }
+  if (researchPremixById(ingredientId)) {
+    return poolWithStudioPremixSelection(pool, programmeId, phaseId!, ingredientId);
   }
   if (commercialPremixById(ingredientId)) return poolWithProgrammePremix(pool, programmeId, ingredientId);
   const selected = activeProduct(pool, programmeId);
@@ -118,12 +211,22 @@ export function selectStudioIngredient(pool: Pool, ingredientId: string, program
 }
 
 /** Legacy stored formulations are never allowed to bypass product rules. */
-export function studioPremixProblems(pool: Pool, programmeId: string): string[] {
+export function studioPremixProblems(pool: Pool, programmeId: string, phaseId?: string): string[] {
   const selected = Object.entries(pool).filter(([id, row]) =>
-    commercialPremixById(id) && row.role !== "excluded");
-  if (selected.length > 1) return ["Only one commercial premix may be included in a formulation."];
+    studioPremixById(id) && row.role !== "excluded");
+  if (selected.length > 1) return ["Only one premix may be included in a formulation."];
   if (selected.length === 0) return [];
   const [id, row] = selected[0];
+  const research = researchPremixById(id);
+  if (research) {
+    if (!phaseId || !researchPremixCompatibleWithPhase(research, programmeId, phaseId)) {
+      return [`${research.name} is not suitable for this programme phase. Choose a compatible premix reference.`];
+    }
+    if (row.role !== "fixed" || Math.abs(Number(row.fixed) - research.inclusionPct) > 1e-6) {
+      return [`${research.name} must be fixed at its published study dose of ${research.inclusionKgPerTonne} kg/t.`];
+    }
+    return [];
+  }
   const product = commercialPremixById(id)!;
   if (!commercialPremixCompatibleWithProgramme(product, programmeId))
     return [`${product.name} is not suitable for ${programmeId}. Choose a compatible premix ingredient.`];

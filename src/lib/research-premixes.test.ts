@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
-import { FEEDSPORT_RESEARCH_PIGLET_VTM as premix, FEEDSPORT_GROWER_PRO, FEEDSPORT_FINISHER_PRO, FEEDSPORT_RESEARCH_PREMIXES } from "./research-premixes";
+import { FEEDSPORT_RESEARCH_PIGLET_VTM as premix, FEEDSPORT_GROWER_PRO, FEEDSPORT_FINISHER_PRO, FEEDSPORT_RESEARCH_PREMIXES, eligibleResearchPremixes, researchPremixCompatibleWithPhase } from "./research-premixes";
 
 describe("FeedSport WeanerPro research reference", () => {
   test("matches Yang et al. Table 2 VTM Premix 2", () => {
@@ -48,5 +48,24 @@ describe("Sampath 2023 grower and finisher research references", () => {
       assert.equal(record.source.doi, "10.3389/fvets.2023.1095877");
     }
     assert.equal(FEEDSPORT_RESEARCH_PREMIXES.length, 4);
+  });
+
+  test("offers each research profile only in its corresponding Studio phase", () => {
+    assert.deepEqual(
+      eligibleResearchPremixes("grow-finish-pig", "br2024-5-43-63-91d-26-47kg").map((p) => p.id),
+      [FEEDSPORT_GROWER_PRO.id],
+    );
+    assert.deepEqual(
+      eligibleResearchPremixes("grow-finish-pig", "br2024-5-43-91-119d-47-74kg").map((p) => p.id),
+      [FEEDSPORT_FINISHER_PRO[0].id],
+    );
+    assert.deepEqual(
+      eligibleResearchPremixes("grow-finish-pig", "br2024-5-43-119-147d-74-103kg").map((p) => p.id),
+      [FEEDSPORT_FINISHER_PRO[1].id],
+    );
+    assert.equal(
+      researchPremixCompatibleWithPhase(FEEDSPORT_GROWER_PRO, "broiler-standard", "br2024-2-30-22-33d"),
+      false,
+    );
   });
 });

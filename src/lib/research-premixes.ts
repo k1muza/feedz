@@ -11,8 +11,9 @@
  * of elemental choline. Do not map it to totalCholineMgKg without establishing
  * the chemical composition and conversion basis.
  *
- * This research record deliberately does NOT enter COMMERCIAL_PREMIXES,
- * Studio's purchasable catalog, or automatic ingredient selection.
+ * This research record deliberately does NOT enter COMMERCIAL_PREMIXES or
+ * automatic ingredient selection. Studio may expose it as an explicitly
+ * labelled research-reference choice, never as a purchasable product.
  * It requires technical review before real feeding or manufacturing.
  */
 export const FEEDSPORT_RESEARCH_PIGLET_VTM = {
@@ -147,7 +148,7 @@ function sampathReference(
     separateSupplement: {
       name: "Choline chloride 50% (separately added)",
       inclusionPctOfFinishedFeed: cholineChloride50PctOfFinishedFeed,
-      kgPerTonne: cholineChloride50PctOfFinishedFeed * 10,
+      kgPerTonne: Math.round(cholineChloride50PctOfFinishedFeed * 1_000) / 100,
       includedInPremix: false as const,
     },
     limitations: [
@@ -192,3 +193,60 @@ export const FEEDSPORT_RESEARCH_PREMIXES = [
   FEEDSPORT_GROWER_PRO,
   ...FEEDSPORT_FINISHER_PRO,
 ] as const;
+
+export type FeedSportResearchPremix = (typeof FEEDSPORT_RESEARCH_PREMIXES)[number];
+
+const GROW_FINISH_PROGRAMME_PREFIXES = [
+  "grow-finish-pig",
+  "growing-barrows",
+  "growing-entire-immunocastrated-males",
+  "developing-gilt",
+] as const;
+
+export function researchPremixById(id: string): FeedSportResearchPremix | undefined {
+  return FEEDSPORT_RESEARCH_PREMIXES.find((premix) => premix.id === id);
+}
+
+/**
+ * Research diet periods are matched to the corresponding Brazilian Tables
+ * age bands. No research profile is inferred beyond the published periods.
+ */
+export function researchPremixCompatibleWithPhase(
+  premix: FeedSportResearchPremix,
+  programmeId: string,
+  phaseId: string,
+): boolean {
+  if (premix.id === FEEDSPORT_RESEARCH_PIGLET_VTM.id) {
+    return programmeId.startsWith("nursery-pig");
+  }
+  if (!GROW_FINISH_PROGRAMME_PREFIXES.some((prefix) => programmeId.startsWith(prefix))) return false;
+  if (premix.id === FEEDSPORT_GROWER_PRO.id) return /-63-91d-/.test(phaseId);
+  if (premix.id === FEEDSPORT_FINISHER_PRO[0].id) return /-91-119d-/.test(phaseId);
+  if (premix.id === FEEDSPORT_FINISHER_PRO[1].id) return /-119-147d-/.test(phaseId);
+  return false;
+}
+
+export function eligibleResearchPremixes(programmeId: string, phaseId: string): FeedSportResearchPremix[] {
+  return FEEDSPORT_RESEARCH_PREMIXES.filter((premix) =>
+    researchPremixCompatibleWithPhase(premix, programmeId, phaseId));
+}
+
+/** Canonical nutrient profile used by Studio and both formulation APIs. */
+export function researchPremixNutrientProfile(premix: FeedSportResearchPremix) {
+  return {
+    id: premix.id,
+    name: premix.name,
+    vitamins: premix.vitamins,
+    traceMineralsPpm: premix.traceMineralsPpm,
+    source: {
+      publisher: premix.source.authors,
+      title: premix.source.title,
+      year: premix.source.year,
+      url: premix.source.url,
+      basis: "as-fed",
+      priority: "primary" as const,
+      note: `${premix.source.table}. Research-derived target; not a supplier guarantee.`,
+    },
+    notes: [...premix.limitations],
+  };
+}

@@ -5,8 +5,9 @@ import { z } from "zod";
 
 import { ingredientDefaultPricePerKg } from "@/lib/feed-ingredient-prices";
 import { commercialPremixById } from "@/lib/commercial-premixes";
-import { ingredientLibraryForPhase, ingredientLibraryWithCommercialPremixes } from "@/lib/ingredient-nutrients";
+import { ingredientLibraryForPhase, ingredientLibraryWithCommercialPremixes, ingredientLibraryWithCustomPremixes } from "@/lib/ingredient-nutrients";
 import { getIngredientPrices } from "@/lib/ingredient-prices";
+import { researchPremixById, researchPremixCompatibleWithPhase, researchPremixNutrientProfile } from "@/lib/research-premixes";
 import {
   suggestFormulationAdditions,
   suggestFormulationIngredients,
@@ -62,7 +63,10 @@ export async function POST(request: Request) {
     const options: FormulationIngredientOption[] = currentIngredients.flatMap(
       (ingredient) => {
         const pricePerKg =
-          ingredient.pricePerKg ?? planningPrice(ingredient.ingredientId);
+          ingredient.pricePerKg ??
+          (commercialPremixById(ingredient.ingredientId) || researchPremixById(ingredient.ingredientId)
+            ? 0
+            : planningPrice(ingredient.ingredientId));
         return pricePerKg === undefined ? [] : [{ ...ingredient, pricePerKg }];
       },
     );
@@ -70,6 +74,8 @@ export async function POST(request: Request) {
       .filter(
         (ingredient) =>
           ingredient.pricePerKg === undefined &&
+          !commercialPremixById(ingredient.ingredientId) &&
+          !researchPremixById(ingredient.ingredientId) &&
           planningPrice(ingredient.ingredientId) === undefined,
       )
       .map((ingredient) => ingredient.ingredientId);
@@ -88,11 +94,34 @@ export async function POST(request: Request) {
       const premix = commercialPremixById(option.ingredientId);
       return premix ? [premix] : [];
     });
+    const researchPremixes = options.flatMap((option) => {
+      const premix = researchPremixById(option.ingredientId);
+      if (!premix) return [];
+      if (!researchPremixCompatibleWithPhase(premix, programmeId, phaseId)) return [];
+      return [premix];
+    });
+    const incompatibleResearch = options.find((option) => {
+      const premix = researchPremixById(option.ingredientId);
+      return premix && !researchPremixCompatibleWithPhase(premix, programmeId, phaseId);
+    });
+    if (incompatibleResearch) {
+      return NextResponse.json({
+        status: "blocked",
+        ingredientIds: [],
+        message: `${researchPremixById(incompatibleResearch.ingredientId)!.name} is not assigned to this animal phase.`,
+      });
+    }
     const result = await suggestFormulationAdditions(
       phase,
       energySystem,
       options,
-      ingredientLibraryWithCommercialPremixes(premixes, ingredientLibraryForPhase(phase)),
+      ingredientLibraryWithCommercialPremixes(
+        premixes,
+        ingredientLibraryWithCustomPremixes(
+          researchPremixes.map(researchPremixNutrientProfile),
+          ingredientLibraryForPhase(phase),
+        ),
+      ),
       planningPrice,
     );
     return NextResponse.json(result);

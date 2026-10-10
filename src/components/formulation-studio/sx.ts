@@ -74,7 +74,7 @@ export const STUDIO_CSS =
   "@media (min-width:1000px){.fs-studio .fs-assessment-card.fs-has-explanation{grid-template-columns:auto minmax(0,1fr) minmax(320px,.72fr)!important}.fs-studio .fs-assessment-explanation{grid-column:3!important;grid-row:1 / 4;align-self:start!important}}" +
   // "Not ready to mix" rows: one line when there is room, stacked cells otherwise.
   ".fs-studio .fs-verify-row{display:grid;grid-template-columns:1fr;gap:8px}" +
-  "@media (min-width:1000px){.fs-studio .fs-verify-row{grid-template-columns:120px minmax(90px,.55fr) minmax(170px,.9fr) minmax(0,3fr) 44px;gap:14px}}" +
+  "@media (min-width:1000px){.fs-studio .fs-verify-row{grid-template-columns:120px minmax(90px,.55fr) minmax(190px,1fr) minmax(0,2.6fr) 44px;gap:14px}}" +
   // Validation panel: collapsed categories point their caret down.
   ".fs-studio details>summary::-webkit-details-marker{display:none}.fs-studio details:not([open]) .fs-caret{display:inline-block;transform:rotate(180deg)}" +
   // On short screens the sidebar scrolls, with a thin scrollbar in its own colours.

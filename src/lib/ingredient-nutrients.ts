@@ -352,6 +352,8 @@ export type CustomPremixProfile = {
   };
   /** Optional origin of user-provided analytical values; does not imply verification. */
   source?: NutrientValueSource;
+  /** Disclosure carried with a built-in or user-supplied unverified profile. */
+  notes?: string[];
 };
 
 export function ingredientLibraryWithCustomPremixes(
@@ -374,7 +376,7 @@ export function ingredientLibraryWithCustomPremixes(
       macroMinerals: {},
       traceMineralsPpm: premix.traceMineralsPpm,
       vitamins: premix.vitamins,
-      constraints: { notes: ["User-entered commercial premix profile."] },
+      constraints: { notes: premix.notes ?? ["User-entered commercial premix profile."] },
     });
 
     return {
@@ -387,7 +389,7 @@ export function ingredientLibraryWithCustomPremixes(
         ...(premix.source ? { source: nutrientSourceSchema.parse(premix.source) } : {}),
         verificationStatus: "user_supplied_unverified",
         profileBasis: "as-fed",
-        notes: [
+        notes: premix.notes ?? [
           "User-provided nutrient values; original datasheet not supplied. Never treat this as a published nutrient profile.",
         ],
       },

@@ -11,6 +11,11 @@ import {
   ingredientLibraryWithCommercialPremixes,
 } from "@/lib/ingredient-nutrients";
 import { assertManufacturerRecipe, commercialPremixById, commercialPremixCompatibleWithProgramme, premixAnalysisForIds } from "@/lib/commercial-premixes";
+import {
+  researchPremixById,
+  researchPremixCompatibleWithPhase,
+  researchPremixNutrientProfile,
+} from "@/lib/research-premixes";
 import { PUBLIC_PREMIX_ID } from "@/lib/public-feed-premix";
 import { buildManufacturerRecipeReport } from "@/lib/manufacturer-recipe";
 import {
@@ -123,18 +128,33 @@ export async function POST(request: Request) {
       }
       return [premix];
     });
-    if (selectedCommercial.length > 1) throw new Error("Select only one commercial premix for a formulation.");
+    const selectedResearch = ingredients.flatMap((ingredient) => {
+      const premix = researchPremixById(ingredient.ingredientId);
+      if (!premix) return [];
+      if (!researchPremixCompatibleWithPhase(premix, programmeId, phaseId)) {
+        throw new Error(`${premix.name} is not assigned to this animal phase.`);
+      }
+      if (Math.abs((ingredient.minInclusionPct ?? -1) - premix.inclusionPct) > 1e-6 ||
+          Math.abs((ingredient.maxInclusionPct ?? -1) - premix.inclusionPct) > 1e-6) {
+        throw new Error(`${premix.name} must be included at its published study dose of ${premix.inclusionKgPerTonne} kg/t.`);
+      }
+      return [premix];
+    });
+    if (selectedCommercial.length + selectedResearch.length > 1) throw new Error("Select only one premix for a formulation.");
     // CJ S174 is not an unrestricted component: enforce the manufacturer's
     // EXACT formula on the server, even if the UI is bypassed.
     for (const premix of selectedCommercial) assertManufacturerRecipe(premix, ingredients);
-    if (customPremixes.some((premix) => premix.id === PUBLIC_PREMIX_ID || commercialPremixById(premix.id))) {
-      throw new Error("Do not override manufacturer products with user-supplied nutrient profiles.");
+    if (customPremixes.some((premix) => premix.id === PUBLIC_PREMIX_ID || commercialPremixById(premix.id) || researchPremixById(premix.id))) {
+      throw new Error("Do not override built-in premix references with user-supplied nutrient profiles.");
     }
     // User-provided analyses remain separate from manufacturer-identified
     // products, whose nutrients are not credited against requirements.
     const library = ingredientLibraryWithCommercialPremixes(
       selectedCommercial,
-      ingredientLibraryWithCustomPremixes(customPremixes, ingredientLibraryForPhase(phase)),
+      ingredientLibraryWithCustomPremixes(
+        [...customPremixes, ...selectedResearch.map(researchPremixNutrientProfile)],
+        ingredientLibraryForPhase(phase),
+      ),
     );
     const manufacturer = selectedCommercial.find((p) => p.formulationCompatibility === "manufacturer_recipe_only");
     if (manufacturer?.manufacturerRecipe) {

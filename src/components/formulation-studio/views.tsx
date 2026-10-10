@@ -746,7 +746,7 @@ function Setup({ v }: V) {
                       <div style={sx("display:flex;gap:8px;flex-wrap:wrap")}>
                         {v.completionPanel.items.map((g) => (
                           <button key={g.name} onClick={g.add} className={hv("chip")} style={sx("font:500 13px/1.15 'IBM Plex Sans',sans-serif;padding:8px 12px;border-radius:99px;border:1px solid #d0cdc3;background:#fff;color:#222420;display:flex;gap:7px;align-items:center")}>
-                            <span>+ {g.name}</span>
+                            <span>{g.action} {g.name}</span>
                             <span style={sx("font:400 10px/1 'IBM Plex Mono',monospace;color:#64665c")}>{g.modelPct}</span>
                           </button>
                         ))}
@@ -1086,8 +1086,8 @@ function Infeasible({ v, inf }: V & { inf: NonNullable<StudioVals["inf"]> }) {
                       Can&apos;t meet
                     </span>
                     <span role="cell" style={sx("font:600 14px/1.3 'IBM Plex Sans',sans-serif")}>{row.name}</span>
-                    <span role="cell" style={sx("display:flex;align-items:center;gap:10px;color:#45473f;min-width:0")}>
-                      <span style={sx("white-space:nowrap")}>best <b style={sx("font-weight:600;color:#222420;font-size:14px")}>{row.best}</b> / {row.req}</span>
+                    <span role="cell" style={sx("display:flex;align-items:center;flex-wrap:wrap;gap:4px 10px;color:#45473f;min-width:0")}>
+                      <span>best <b style={sx("font-weight:600;color:#222420;font-size:14px")}>{row.best}</b> / {row.req}</span>
                       <span style={sx("position:relative;flex:0 0 44px;height:5px;background:#f3f0e8;border-radius:3px")}>
                         <span style={sx(`position:absolute;left:0;top:0;bottom:0;width:${row.w};background:#e7b3a6;border-radius:3px`)} />
                         <span style={sx(`position:absolute;left:${row.m};top:-4px;width:2px;height:13px;background:#222420`)} />
@@ -1236,10 +1236,10 @@ function VerificationCard({ v, card, strip }: V & { card: VerificationVals; stri
                     {row.status.label}
                   </span>
                   <span role="cell" title={row.sub} style={sx("font:600 14px/1.3 'IBM Plex Sans',sans-serif")}>{row.name}</span>
-                  <span role="cell" style={sx("display:flex;align-items:center;gap:10px;color:#45473f;min-width:0")}>
+                  <span role="cell" style={sx("display:flex;align-items:center;flex-wrap:wrap;gap:4px 10px;color:#45473f;min-width:0")}>
                     {row.known ? (
                       <>
-                        <span style={sx("white-space:nowrap")}><b style={sx("font-weight:600;color:#222420;font-size:14px")}>{row.actual}</b> / {row.limitShort}</span>
+                        <span><b style={sx("font-weight:600;color:#222420;font-size:14px")}>{row.actual}</b> / {row.limitShort}</span>
                         <span title={row.bar.delta} style={sx("position:relative;flex:0 0 60px;height:5px;background:#f3f0e8;border-radius:3px")}>
                           <span style={sx(`position:absolute;left:0;top:0;bottom:0;width:${row.bar.fill};background:#e7b3a6;border-radius:3px`)} />
                           <span style={sx(`position:absolute;left:${row.bar.marker};top:-4px;width:2px;height:13px;background:#222420`)} />
