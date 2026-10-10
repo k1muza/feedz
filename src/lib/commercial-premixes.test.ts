@@ -61,7 +61,7 @@ describe("Manufacturer-backed commercial premix catalogue", () => {
     const contributions = premixFinishedFeedContributions(product);
     assert.equal(contributions.find((item) => item.nutrient === "Vitamin A")?.finishedFeedContribution, 50_000);
     assert.equal(contributions.find((item) => item.nutrient === "Zinc")?.finishedFeedContribution, 300);
-    assert.equal(contributions.find((item) => item.nutrient === "Selenium")?.finishedFeedContribution, 0.502);
+    assert.equal(contributions.find((item) => item.nutrient === "Selenium"), undefined, "Selenium must remain unknown until supplier analysis is obtained.");
   });
 
   test("selects the stage-specific commercial product, never one universal premix", () => {
