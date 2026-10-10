@@ -17,7 +17,7 @@
  */
 export const FEEDSPORT_RESEARCH_PIGLET_VTM = {
   id: "feedsport-research-piglet-vtm-1pct",
-  name: "FeedSport MaxPro",
+  name: "FeedSport WeanerPro",
   category: "research_reference",
   species: "pig",
   application: "Weanling piglets only",
