@@ -12,7 +12,7 @@ import type { CatalogueIngredient, CatalogueNutrientId } from "@/lib/studio-cata
 import type { StudioNutrientData } from "@/lib/studio-nutrients";
 import type { StudioProgrammeData } from "@/lib/studio-programmes";
 import { canAddStudioIngredient, selectStudioIngredient, poolWithCarriedPremixSelection, poolWithPremixPrice, poolWithPremixSelection, poolWithProgrammePremix, poolWithoutPremix } from "@/lib/studio-commercial-premix";
-import { commercialPremixById, commercialPremixCompatibleWithProgramme } from "@/lib/commercial-premixes";
+import { commercialPremixById, commercialPremixCompatibleWithProgramme, unverifiedPremixLabelName } from "@/lib/commercial-premixes";
 import {
   FORMULATION_VERDICT_LABELS,
   micronutrientAssessmentGroups,
@@ -2307,6 +2307,13 @@ function optimalVals(
     const supplemented = /^supplemented\s/i.test(check.label);
     const failed = check.status === "below_target" || check.status === "above_limit";
     const premixName = supplemented ? selectedPremix?.name ?? null : null;
+    const supplierLabelNames = check.status === "unknown"
+      ? check.missingIngredientIds.flatMap((id) => {
+          const premix = commercialPremixById(id);
+          const sourceName = premix ? unverifiedPremixLabelName(premix, check.nutrientId) : null;
+          return sourceName ? [sourceName] : [];
+        })
+      : [];
     const chips = chipsFor([check.nutrientId]);
     const checking = !!trials && trials.status === "loading";
     const fixNote = chips.length ? "" : checking ? "Checking ingredients…" : failed ? "No catalogue ingredient fixes this." : "";
@@ -2324,10 +2331,18 @@ function optimalVals(
       const subject = allPremix ? (check.missingIngredientIds.length === 1 ? "The premix" : "The premixes") : joinWords(check.missingIngredientIds.map((id) => engine.catalogue.get(id)?.name ?? id));
       const repeat = firstUnknownFor.has(key);
       firstUnknownFor.add(key);
-      why = repeat
-        ? { pre: "Same " + (allPremix ? "premix" : "ingredients") + ", no published " + lower + " value.", strong: "", post: "" }
-        : { pre: subject + "’s published data has no " + lower + " value. The feed may well contain enough; FeedSport can’t confirm it.", strong: "", post: "" };
-      shortWhy = "No published data";
+      why = supplierLabelNames.length
+        ? {
+            pre: subject + " label lists ",
+            strong: joinWords(supplierLabelNames),
+            post: " for " + lower + ", but the available label does not establish a usable as-fed concentration. This cannot be credited until the manufacturer confirms the quantity, units and chemical form.",
+          }
+        : repeat
+          ? { pre: "Same " + (allPremix ? "premix" : "ingredients") + ", no published " + lower + " value.", strong: "", post: "" }
+          : { pre: subject + "’s published data has no " + lower + " value. The feed may well contain enough; FeedSport can’t confirm it.", strong: "", post: "" };
+      shortWhy = supplierLabelNames.length
+        ? "Listed as " + joinWords(supplierLabelNames) + "; quantity unverified"
+        : "No published data";
     } else {
       why = { pre: check.reason, strong: "", post: "" };
       shortWhy = check.reason;
@@ -2353,7 +2368,11 @@ function optimalVals(
       actual: check.actual == null ? "Unknown" : num(check.actual),
       limitTxt,
       limitShort,
-      missingTxt: check.missingIngredientIds.length && check.missingIngredientIds.every((id) => engine.catalogue.get(id)?.premix) ? "No value in premix data" : check.missingIngredientIds.length ? "No published value" : "Unknown",
+      missingTxt: supplierLabelNames.length
+        ? "Label: " + joinWords(supplierLabelNames) + " · quantity unverified"
+        : check.missingIngredientIds.length && check.missingIngredientIds.every((id) => engine.catalogue.get(id)?.premix)
+          ? "No value in premix data"
+          : check.missingIngredientIds.length ? "No published value" : "Unknown",
       known: failed && check.actual != null,
       bar,
       why,
