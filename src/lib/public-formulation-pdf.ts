@@ -383,7 +383,7 @@ export async function renderPublicFormulationPdf(input: PublicFormulationPdfInpu
     ],
     input.validation.categories.map((category) => [
       category.label,
-      category.status === 'met' ? 'Met' : 'Not met',
+      category.status === 'met' ? 'Met' : category.status === 'not_met' ? 'Not met' : 'No target',
       `${category.checked}/${category.required}`,
       category.note,
     ]),

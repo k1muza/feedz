@@ -16,7 +16,8 @@ export type NutritionalValidationCategoryId =
   | "vitamins"
   | "trace-minerals";
 
-export type NutritionalValidationStatus = "met" | "not_met";
+/** `no_target`: the stage has no loaded targets for the category, so nothing is assessed. */
+export type NutritionalValidationStatus = "met" | "not_met" | "no_target";
 
 export type NutritionalValidationCategory = {
   id: NutritionalValidationCategoryId;
@@ -88,7 +89,7 @@ function category(
     (nutrientId) => incomplete.has(nutrientId) || !comparisons.has(nutrientId),
   );
   const shortfalls = failedNutrientIds.length + missingDataNutrientIds.length;
-  const status: NutritionalValidationStatus = shortfalls ? "not_met" : "met";
+  const status: NutritionalValidationStatus = requiredIds.length === 0 ? "no_target" : shortfalls ? "not_met" : "met";
   const missingLabels = missingDataNutrientIds
     .map((nutrientId) => incomplete.get(nutrientId)?.label ?? nutrientId.replace(/^supplement-/, "").replace(/-/g, " "));
   const notes = [
@@ -107,7 +108,9 @@ function category(
     required: requiredIds.length,
     failedNutrientIds,
     missingDataNutrientIds,
-    note: status === "met" ? `All ${requiredIds.length} requirements are met.` : notes.join(" "),
+    note: status === "no_target"
+      ? `No ${(id === "vitamins" ? "vitamin" : id === "trace-minerals" ? "trace-mineral" : CATEGORY_LABELS[id].toLowerCase())} targets are loaded for this stage.`
+      : status === "met" ? `All ${requiredIds.length} requirements are met.` : notes.join(" "),
   };
 }
 
@@ -146,13 +149,11 @@ export function buildCompleteFeedValidation(
     "vitamins",
     "trace-minerals",
   ];
-  // Categories without loaded targets for this stage are not assessed, so they
-  // are omitted; they still prevent a complete-feed claim.
-  const unassessed = categoryIds.filter((id) => (requiredByCategory.get(id) ?? []).length === 0);
   const categories = categoryIds
-    .filter((id) => !unassessed.includes(id))
     .map((id) => category(id, requiredByCategory.get(id) ?? [], comparisons, incomplete));
-  const allMet = categories.every((item) => item.status === "met");
+  // A category without loaded targets still prevents a complete-feed claim.
+  const unassessed = categories.filter((item) => item.status === "no_target").map((item) => item.id);
+  const allMet = categories.every((item) => item.status !== "not_met");
   const completeFeed = allMet && unassessed.length === 0 ? "complete" as const : "incomplete" as const;
   const unassessedLabels = unassessed.map((id) => CATEGORY_LABELS[id].toLowerCase()).join(" and ");
   return {

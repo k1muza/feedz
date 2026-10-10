@@ -1944,7 +1944,9 @@ function optimalVals(
   const validationRows = displayedValidationCategories.map((item) => {
     const st = item.status === "met"
       ? { label: "Met", color: "#2b6a42", bg: "#2f7a4a", r: "50%" }
-      : { label: "Not met", color: "#a63d2a", bg: "#b2412e", r: "0" };
+      : item.status === "not_met"
+        ? { label: "Not met", color: "#a63d2a", bg: "#b2412e", r: "0" }
+        : { label: "No target", color: "#64665c", bg: "#d0cdc3", r: "50%" };
     return { label: item.label, status: st, note: item.note };
   });
   const validationView = {

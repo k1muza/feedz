@@ -88,11 +88,10 @@ describe("complete-feed validation", () => {
     const vitamins = result.categories.find((row) => row.id === "vitamins");
     assert.equal(vitamins?.status, "not_met");
     assert.ok(vitamins?.missingDataNutrientIds.includes("supplement-vitamin-e"));
-    assert.ok(result.categories.every((row) => row.status === "met" || row.status === "not_met"));
     assert.equal(result.completeFeed, "incomplete");
   });
 
-  test("omits categories without loaded targets but makes no complete-feed claim", () => {
+  test("shows categories without loaded targets as no_target and makes no complete-feed claim", () => {
     const nursery = feedProgrammePhaseById("nursery-pig", "br2024-5-32-14-21d-4.4-6.2kg");
     assert.ok(nursery);
     const required = formulationRequirements(nursery, "ME", { includeSupplementationTargets: true, traceMineralBasis: "inorganic" });
@@ -106,7 +105,12 @@ describe("complete-feed validation", () => {
       unsupportedRequirements: [],
     } satisfies FormulationEvaluation;
     const result = buildCompleteFeedValidation(nursery, "ME", { ingredients: [] }, ingredientLibraryForPhase(nursery), evaluation);
-    assert.deepEqual(result.categories.map((row) => row.id), ["energy-protein-amino-acids", "major-minerals"]);
+    assert.deepEqual(result.categories.map((row) => [row.id, row.status]), [
+      ["energy-protein-amino-acids", "met"],
+      ["major-minerals", "met"],
+      ["vitamins", "no_target"],
+      ["trace-minerals", "no_target"],
+    ]);
     assert.equal(result.completeFeed, "incomplete");
   });
 

@@ -1562,7 +1562,7 @@ function CompleteFeedValidationPanel({
   validation: NonNullable<Extract<LeastCostFormulationResult, { status: "optimal" }>["validation"]>;
 }) {
   const label = (status: (typeof validation.categories)[number]["status"]) =>
-    status === "met" ? "Met" : "Not met";
+    status === "met" ? "Met" : status === "not_met" ? "Not met" : "No target";
   const hasNotMet = validation.categories.some((category) => category.status === "not_met");
   const overallLabel = validation.completeFeed === "complete"
     ? "Overall · Targets met"
