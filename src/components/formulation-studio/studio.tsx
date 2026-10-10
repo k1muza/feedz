@@ -926,7 +926,7 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
   useEffect(() => {
     if (S.screen !== "setup" || S.step !== 2 || S.setKey !== "none" || !listsKnown) return;
     const list = myLists.lists[0] ?? null; // the default list comes first
-    if (list) update((s) => ({ setKey: "list", setupListId: list.id, pool: poolWithCarriedPremixSelection(poolFromList(list), s.pool, s.programmeId), ingQ: "" }));
+    if (list) update((s) => ({ setKey: "list", setupListId: list.id, pool: poolWithCarriedPremixSelection(poolFromList(list), s.pool, s.programmeId, s.phaseId), ingQ: "" }));
     else
       update((s) => {
         const ready = s.suggestion?.status === "ready" && s.suggestion.key === s.programmeId + "|" + s.phaseId ? s.suggestion.ids : [];
@@ -1647,7 +1647,7 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
     },
   ].map((o) => {
     const on = S.setKey === o.k;
-    return { label: o.label, sub: o.sub, segBg: on ? "#fff" : "transparent", segSh: on ? "0 1px 2px rgba(0,0,0,.1)" : "none", segW: on ? "600" : "500", pick: () => update((state) => ({ setKey: o.k, pool: poolWithCarriedPremixSelection(o.pool(), state.pool, state.programmeId), ingQ: "", ...(o.k === "list" && setupList ? { setupListId: setupList.id } : {}) })) };
+    return { label: o.label, sub: o.sub, segBg: on ? "#fff" : "transparent", segSh: on ? "0 1px 2px rgba(0,0,0,.1)" : "none", segW: on ? "600" : "500", pick: () => update((state) => ({ setKey: o.k, pool: poolWithCarriedPremixSelection(o.pool(), state.pool, state.programmeId, state.phaseId), ingQ: "", ...(o.k === "list" && setupList ? { setupListId: setupList.id } : {}) })) };
   });
   const setNote =
     S.setKey === "system"
@@ -2013,6 +2013,7 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
     .map((ingredient) => {
       const product = commercialPremixById(ingredient.id)!;
       const allowed = commercialPremixCompatibleWithProgramme(product, S.programmeId, S.phaseId);
+      const exploratory = commercialPremixSimulationOnlyForPhase(product, S.programmeId, S.phaseId);
       const selected = S.premixPick === ingredient.id;
       const documented = !!(product.verifiedAsFedMicronutrients || product.guaranteedMinimumAsFed);
       return {
@@ -2021,9 +2022,9 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
         selected,
         disabled: !allowed,
         application: product.application,
-        detail: "Dose " + product.inclusionKgPerTonne + " kg/t" + (documented ? " · Full vitamin and trace-mineral profile" : " · Limited documented profile"),
-        detailColor: documented ? "#2f7a4a" : "#8a5f18",
-        warning: product.verifiedAsFedAminoAcids ? "" : "No SID amino-acid analysis",
+        detail: "Dose " + product.inclusionKgPerTonne + " kg/t" + (exploratory ? " · Experimental grower simulation only" : documented ? " · Documented vitamin and trace-mineral values" : " · Limited documented profile"),
+        detailColor: exploratory ? "#a06310" : documented ? "#2f7a4a" : "#8a5f18",
+        warning: exploratory ? "Weaner-labelled premix: NOT approved for grower feeding" : product.verifiedAsFedAminoAcids ? "" : "No SID amino-acid analysis",
         dose: fmt(product.inclusionPct, product.inclusionPct < 1 ? 1 : 0) + "%",
         price: ingredient.price ? "$" + fmt(ingredient.price.usdPerTonne, 0) : "Quote",
         pick: () => { if (allowed) update({ premixPick: ingredient.id }); },
@@ -2037,14 +2038,14 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
       premixOpen: false,
       premixPick: null,
     }));
-    flash(pickedPremix.name + " selected at its fixed supplier dose");
+    flash(pickedPremix.name + (commercialPremixSimulationOnlyForPhase(pickedPremix, S.programmeId, S.phaseId) ? " selected for a grower simulation only. Not approved for feeding." : " selected at its fixed supplier dose"));
     if (rerun && S.screen === "workspace") run();
   };
   const premixCurrent = currentPremix ? {
     name: currentPremix.name,
     detail: currentPremix.application + " · fixed " + fmt(currentPremix.inclusionPct, currentPremix.inclusionPct < 1 ? 1 : 0) + "%",
-    status: commercialPremixCompatibleWithProgramme(currentPremix, S.programmeId, S.phaseId) ? "For this stage" : "Wrong stage",
-    statusColor: commercialPremixCompatibleWithProgramme(currentPremix, S.programmeId, S.phaseId) ? "#2f7a4a" : "#a06310",
+    status: commercialPremixSimulationOnlyForPhase(currentPremix, S.programmeId, S.phaseId) ? "Simulation only — not approved for grower feeding" : commercialPremixCompatibleWithProgramme(currentPremix, S.programmeId, S.phaseId) ? "For this stage" : "Wrong stage",
+    statusColor: commercialPremixSimulationOnlyForPhase(currentPremix, S.programmeId, S.phaseId) ? "#a06310" : commercialPremixCompatibleWithProgramme(currentPremix, S.programmeId, S.phaseId) ? "#2f7a4a" : "#a06310",
   } : null;
   const rules = programmes.requirementFields.flatMap((f, i) => {
     const value = PH.requirements[i];
