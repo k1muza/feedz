@@ -6,7 +6,7 @@ import { createPageMetadata } from '@/lib/seo';
 
 export const metadata: Metadata = createPageMetadata({
   title: 'Free Feed Formulation Calculator — FeedSport',
-  description: 'Build and compare animal feed mixes by stage using real named premixes, published inclusion rates, Brazilian Tables/PIC requirements and transparent nutrient verification.',
+  description: 'Build and compare animal feed mixes by stage using real named premixes, published inclusion rates, Brazilian Tables 2024 requirements and transparent nutrient verification.',
   path: '/formulations',
 });
 

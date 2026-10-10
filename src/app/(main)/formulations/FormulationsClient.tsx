@@ -37,10 +37,23 @@ const defaultVisibleIngredientIds = rows
   .filter((row) => defaults[row.id] > 0)
   .map((row) => row.id);
 
-const programmeChoices = FEED_PROGRAMMES
-  .filter((programme) => programme.status === 'loaded' && programme.phases.length > 0 &&
-    commercialPremixForProgramme(programme.id) !== undefined)
-  .map((programme) => ({ id: programme.id, label: programme.name, programme }));
+// The public formulator offers a curated subset; Studio exposes every programme.
+const PUBLIC_PROGRAMME_IDS = [
+  'grow-finish-pig',
+  'grow-finish-pig-high-performance',
+  'broiler-standard',
+  'broiler-high-performance',
+] as const;
+
+const programmeChoices = PUBLIC_PROGRAMME_IDS.flatMap((id) => {
+  const programme = FEED_PROGRAMMES.find((candidate) => candidate.id === id);
+  if (!programme || programme.status !== 'loaded' || programme.phases.length === 0 ||
+    commercialPremixForProgramme(programme.id) === undefined) return [];
+  return [{ id: programme.id, label: programme.name, programme }];
+});
+if (programmeChoices.length !== PUBLIC_PROGRAMME_IDS.length) {
+  throw new Error('A public formulator programme is missing, unloaded, or has no commercial premix.');
+}
 
 const priorityChoices: { id: FormulationPriority; label: string; description: string }[] = [
   { id: 'least-cost', label: 'Lowest cost', description: 'Minimizes the total ingredient cost using current planning prices.' },
@@ -411,7 +424,7 @@ export default function FormulationsClient({ ingredientPrices, ingredientPackSiz
       <section className="mb-5 rounded-[6px] border border-[#d9d4c7] bg-[#fbfaf6] p-5">
         <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
           <div><p className="fs-label m-0 text-[#4f524b]">Step 1 · Choose requirements and priority</p><h2 className="mb-0 mt-1.5 text-[20px] font-bold">What animals are you feeding?</h2></div>
-          <span className="rounded-[3px] bg-[#e3eadf] px-2.5 py-1 text-[12px] font-bold text-[#1f5c38]">Brazilian Tables 2024 / PIC</span>
+          <span className="rounded-[3px] bg-[#e3eadf] px-2.5 py-1 text-[12px] font-bold text-[#1f5c38]">Brazilian Tables 2024</span>
         </div>
         <div className="grid gap-4 md:grid-cols-3">
           <label className="flex flex-col gap-2"><span className="text-[13px] font-semibold text-[#4f524b]">Production track</span><select value={programmeId} onChange={(event) => changeProgramme(event.target.value)} className="h-12 rounded-[4px] border border-[#bdb7a9] bg-white px-3 text-[15px] font-semibold text-[#191b18]">{programmeChoices.map((choice) => <option key={choice.id} value={choice.id}>{choice.label}</option>)}</select></label>
