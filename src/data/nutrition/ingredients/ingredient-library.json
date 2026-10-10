@@ -24099,7 +24099,14 @@
           "The official AECI page confirms the manufacturer and premix business but does not publish a V1736 product specification; retain manufacturer-unverified status until a product datasheet or batch certificate is obtained.",
           "The label's zero declarations and the unclear Vitamin B9/formulation-column entries are not treated as analytical structural zeros. Folic acid and digestible amino-acid values remain unknown.",
           "Selenium content is unknown: a Brazilian Tables supplementation target or an unidentified selenium-source inclusion cannot establish a manufacturer-guaranteed elemental selenium concentration. Do not credit selenium until the supplier specifies its elemental concentration and units.",
-          "Vitamin and mineral figures are transcribed from the label's nutrient-specification column and treated conservatively as label guarantees, not exact analytical concentrations."
+          "Vitamin and mineral figures are transcribed from the label's nutrient-specification column and treated conservatively as label guarantees, not exact analytical concentrations.",
+          "GROWER SIMULATION ONLY: the photographed manufacturer label says PIG WEANER and provides no approved grower feeding range. Offered for comparison in the Grow-Finish Pig grower phase, not for actual grower feeding or manufacturing without supplier/nutritionist clearance."
+        ],
+        "simulationOnlyPhases": [
+          {
+            "programmeId": "grow-finish-pig",
+            "phaseClass": "grower"
+          }
         ]
       }
     },
