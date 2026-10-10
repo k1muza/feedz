@@ -12,7 +12,7 @@ import type { CatalogueIngredient, CatalogueNutrientId } from "@/lib/studio-cata
 import type { StudioNutrientData } from "@/lib/studio-nutrients";
 import type { StudioProgrammeData } from "@/lib/studio-programmes";
 import { canAddStudioIngredient, selectStudioIngredient, poolWithCarriedPremixSelection, poolWithPremixPrice, poolWithPremixSelection, poolWithProgrammePremix, poolWithoutPremix } from "@/lib/studio-commercial-premix";
-import { commercialPremixById, commercialPremixCompatibleWithProgramme } from "@/lib/commercial-premixes";
+import { commercialPremixById, commercialPremixCompatibleWithProgramme, commercialPremixSimulationOnlyForPhase } from "@/lib/commercial-premixes";
 import {
   FORMULATION_VERDICT_LABELS,
   micronutrientAssessmentGroups,
@@ -454,7 +454,7 @@ const DEFAULT_PROGRAMME = "grow-finish-pig";
 
 function defaultProgramme(programmes: StudioProgrammeData) {
   const programme = programmes.programmes.find((p) => p.id === DEFAULT_PROGRAMME) ?? programmes.programmes[0];
-  return { programmeId: programme.id, phaseId: programme.phases[0].id, species: programme.species, pool: poolWithProgrammePremix({}, programme.id) };
+  return { programmeId: programme.id, phaseId: programme.phases[0].id, species: programme.species, pool: poolWithProgrammePremix({}, programme.id, undefined, programme.phases[0].id) };
 }
 
 /** A list's ingredients and settings, copied into a formulation. Later edits to the list don't reach it. */
@@ -467,7 +467,7 @@ function poolFromList(list: IngredientList | null): Pool {
 const RESET_RESULT: Partial<State> = { result: null, runSig: null, runSnap: null, history: [], mode: "optimised", manual: {}, manualCheck: null, tab: "recipe", dismissed: {}, savedSig: null, drawer: null, advisoriesOpen: false, recoveryUndo: null };
 
 function freshDoc(programmeId: string, phaseId: string, species: Species, pool: Pool, docName: string): Partial<State> {
-  return { ...RESET_RESULT, programmeId, phaseId, species, pool: poolWithProgrammePremix(pool, programmeId), goal: "least_cost", batch: 100, batchMode: "100", customBatch: "", docName, docId: null, pendingDoc: null };
+  return { ...RESET_RESULT, programmeId, phaseId, species, pool: poolWithProgrammePremix(pool, programmeId, undefined, phaseId), goal: "least_cost", batch: 100, batchMode: "100", customBatch: "", docName, docId: null, pendingDoc: null };
 }
 
 function versionState(doc: SavedDoc, programmes: StudioProgrammeData, v?: number): Partial<State> {
@@ -710,7 +710,7 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
   const rescueIds = rescueBase
     ? formulationRescueIngredientCandidates(
         rescueBase.assessment,
-        catalogue.filter((g) => !S.pool[g.id] && canAddStudioIngredient(g.id, S.programmeId, S.pool)),
+        catalogue.filter((g) => !S.pool[g.id] && canAddStudioIngredient(g.id, S.programmeId, S.pool, S.phaseId)),
         S.species,
         RESCUE_TRIAL_LIMIT,
       ).map((c) => c.id)
@@ -725,7 +725,7 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
     const snap = snapOf(S);
     void Promise.all(rescueIds.map(async (id): Promise<RescueTrial | null> => {
       try {
-        const r = await formulate({ ...snap, pool: selectStudioIngredient(snap.pool, id, snap.programmeId) }, engine);
+        const r = await formulate({ ...snap, pool: selectStudioIngredient(snap.pool, id, snap.programmeId, snap.phaseId) }, engine);
         if (r.status !== "optimal") return null;
         const met = new Set(r.assessment.nutrientChecks.filter((check) => check.status === "met").map((check) => check.nutrientId));
         const resolves = unresolved.filter((nutrientId) => met.has(nutrientId));
@@ -931,7 +931,7 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
       update((s) => {
         const ready = s.suggestion?.status === "ready" && s.suggestion.key === s.programmeId + "|" + s.phaseId ? s.suggestion.ids : [];
         const nextPool = Object.fromEntries(ready.map((id) => [id, { role: "available" as Role }]));
-        return { setKey: "system", pool: poolWithCarriedPremixSelection(nextPool, s.pool, s.programmeId), ingQ: "" };
+        return { setKey: "system", pool: poolWithCarriedPremixSelection(nextPool, s.pool, s.programmeId, s.phaseId), ingQ: "" };
       });
     // The step, the source still being unpicked and the lists arriving decide this.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -953,7 +953,7 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
           const suggestion: Suggestion = { key: suggestionKey, status: data.status === "suggested" ? "ready" : "error", ids };
           // Already showing the suggested list? Refresh it for the new stage.
           const nextPool = Object.fromEntries(ids.map((id) => [id, { role: "available" as Role }]));
-          return s.setKey === "system" ? { suggestion, pool: poolWithCarriedPremixSelection(nextPool, s.pool, s.programmeId) } : { suggestion };
+          return s.setKey === "system" ? { suggestion, pool: poolWithCarriedPremixSelection(nextPool, s.pool, s.programmeId, s.phaseId) } : { suggestion };
         }),
       )
       .catch(() => update((s) => (s.suggestion?.key === suggestionKey ? { suggestion: { key: suggestionKey, status: "error", ids: [] } } : {})));
@@ -1117,7 +1117,7 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
       // Price is editable but the supplier dose is not.
       update((state) => {
         const included: Pool = { ...state.pool, [d.id]: { role: "fixed", fixed: product.inclusionPct } };
-        return { pool: poolWithPremixPrice(included, d.id, state.programmeId, price), drawer: null };
+        return { pool: poolWithPremixPrice(included, d.id, state.programmeId, price, state.phaseId), drawer: null };
       });
       if (rerun && S.screen === "workspace") run();
       return;
@@ -1158,18 +1158,18 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
   };
   const ingredientName = (id: string) => catalogueById.get(id)?.name ?? id;
   const addIng = (id: string) => {
-    if (!canAddStudioIngredient(id, S.programmeId, S.pool)) {
+    if (!canAddStudioIngredient(id, S.programmeId, S.pool, S.phaseId)) {
       flash(commercialPremixById(id) ? ingredientName(id) + " is not eligible for " + P.name + " · " + PH.label + "." : "This ingredient is not allowed with the fixed manufacturer recipe.");
       return;
     }
-    update((state) => ({ pool: selectStudioIngredient(state.pool, id, state.programmeId) }));
+    update((state) => ({ pool: selectStudioIngredient(state.pool, id, state.programmeId, state.phaseId) }));
     flash(commercialPremixById(id)
       ? ingredientName(id) + " selected at its fixed premix dose"
       : ingredientName(id) + " added as Available");
   };
-  const toggleAddPick = (id: string) => { if (canAddStudioIngredient(id, S.programmeId, S.pool)) update((state) => ({ addPick: state.addPick.includes(id) ? state.addPick.filter((x) => x !== id) : [...state.addPick, id] })); };
+  const toggleAddPick = (id: string) => { if (canAddStudioIngredient(id, S.programmeId, S.pool, S.phaseId)) update((state) => ({ addPick: state.addPick.includes(id) ? state.addPick.filter((x) => x !== id) : [...state.addPick, id] })); };
   const addPicked = () => {
-    const ids = S.addPick.filter((id) => canAddStudioIngredient(id, S.programmeId, S.pool));
+    const ids = S.addPick.filter((id) => canAddStudioIngredient(id, S.programmeId, S.pool, S.phaseId));
     if (ids.filter((id) => commercialPremixById(id)).length > 1) {
       flash("Choose one premix at a time.");
       return;
@@ -1191,18 +1191,18 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
       return;
     }
     update((state) => ({
-      pool: ids.reduce((pool, id) => selectStudioIngredient(pool, id, state.programmeId), state.pool),
+      pool: ids.reduce((pool, id) => selectStudioIngredient(pool, id, state.programmeId, state.phaseId), state.pool),
       addOpen: false, addQ: "", addPick: [],
     }));
     flash(what + " added as Available");
   };
   const addCompletionIngredients = (ids: string[]) => {
-    ids = ids.filter((id) => canAddStudioIngredient(id, S.programmeId, S.pool));
+    ids = ids.filter((id) => canAddStudioIngredient(id, S.programmeId, S.pool, S.phaseId));
     if (!ids.length) return;
     update((state) => ({
       pool: ids.reduce((pool, id) =>
         commercialPremixById(id) || !pool[id]
-          ? selectStudioIngredient(pool, id, state.programmeId)
+          ? selectStudioIngredient(pool, id, state.programmeId, state.phaseId)
           : pool, state.pool),
     }));
     flash(
@@ -1214,13 +1214,13 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
     );
   };
   const applyRecoveryIngredients = (ids: string[]) => {
-    ids = ids.filter((id) => canAddStudioIngredient(id, S.programmeId, S.pool) && !S.pool[id]);
+    ids = ids.filter((id) => canAddStudioIngredient(id, S.programmeId, S.pool, S.phaseId) && !S.pool[id]);
     if (!ids.length) return;
     const label = ids.length === 1 ? ingredientName(ids[0]) : ids.length + " suggested ingredients";
     update((state) => ({
       recoveryUndo: { addedIds: [...ids], label },
       pool: ids.reduce(
-        (pool, id) => selectStudioIngredient(pool, id, state.programmeId),
+        (pool, id) => selectStudioIngredient(pool, id, state.programmeId, state.phaseId),
         state.pool,
       ),
     }));
@@ -1446,7 +1446,7 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
   const programmeChoice = (programmeId: string) => {
     const programme = programmes.programmes.find((p) => p.id === programmeId) ?? P;
     return { programmeId: programme.id, phaseId: programme.phases[0].id,
-      species: programme.species, pool: poolWithProgrammePremix(S.pool, programme.id), recoveryUndo: null };
+      species: programme.species, pool: poolWithProgrammePremix(S.pool, programme.id, undefined, programme.phases[0].id), recoveryUndo: null };
   };
   // ---- setup ----
   // Step 2 lists the chosen ingredients by category: tick what you have, set
@@ -1484,7 +1484,7 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
         onPrice: (ev: InputEvent) => {
           const value = ev.target.value;
           update((s) => {
-            if (commercialPremixById(id)) return { pool: poolWithPremixPrice(s.pool, id, s.programmeId, value === "" ? undefined : +value) };
+            if (commercialPremixById(id)) return { pool: poolWithPremixPrice(s.pool, id, s.programmeId, value === "" ? undefined : +value, s.phaseId) };
             const cur = { ...s.pool[id] };
             if (value === "") delete cur.price;
             else cur.price = +value;
@@ -1505,7 +1505,7 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
             const pool = { ...s.pool, [id]: cur };
             // Re-ticking a premix restores its dose, or CJ's whole recipe.
             return { pool: commercialPremixById(id)
-              ? poolWithPremixSelection(pool, s.programmeId, id)
+              ? poolWithPremixSelection(pool, s.programmeId, id, s.phaseId)
               : pool };
           }),
         limits: limitTxt(e),
@@ -1529,7 +1529,7 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
   }).filter((g) => g.rows.length);
   const catMatches = iq
     ? catalogue
-        .filter((g) => canAddStudioIngredient(g.id, S.programmeId, S.pool) && !S.pool[g.id] && matchesQuery(g, g.id))
+        .filter((g) => canAddStudioIngredient(g.id, S.programmeId, S.pool, S.phaseId) && !S.pool[g.id] && matchesQuery(g, g.id))
         .slice(0, 12)
         .map((g) => ({ name: g.name, sub: g.category + " · " + (g.price ? "$" + fmt(g.price.usdPerTonne, 0) + "/t planning price" : "no planning price"), subColor: g.price ? "#64665c" : "#a63d2a", add: () => { addIng(g.id); update({ ingQ: "" }); } }))
     : [];
@@ -1544,7 +1544,7 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
   const alternativePremixIds = catalogue
     .filter((ingredient) =>
       !!commercialPremixById(ingredient.id) &&
-      canAddStudioIngredient(ingredient.id, S.programmeId, S.pool) &&
+      canAddStudioIngredient(ingredient.id, S.programmeId, S.pool, S.phaseId) &&
       (!S.pool[ingredient.id] || S.pool[ingredient.id].role === "excluded"))
     .map((ingredient) => ingredient.id);
   const completionAlternativeIds =
@@ -1629,7 +1629,7 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
   const setupProgrammes = programmes.programmes.filter((p) => p.species === S.species).map((p) => ({ id: p.id, name: p.name }));
   const stageOpts = P.phases.map((ph) => {
     const on = ph.id === PH.id;
-    return { label: ph.label, range: ph.label.includes(ph.weightRange) ? "Table " + ph.sourceTable : ph.weightRange, disabled: false, cursor: "pointer", bs: "solid", bd: "#d0cdc3", ring: on ? "inset 0 0 0 1px #2f5a3f" : "none", bg: on ? "#eef3ee" : "#fff", pick: () => update((state) => ({ phaseId: ph.id, pool: poolWithCarriedPremixSelection(state.pool, state.pool, state.programmeId), recoveryUndo: null })) };
+    return { label: ph.label, range: ph.label.includes(ph.weightRange) ? "Table " + ph.sourceTable : ph.weightRange, disabled: false, cursor: "pointer", bs: "solid", bd: "#d0cdc3", ring: on ? "inset 0 0 0 1px #2f5a3f" : "none", bg: on ? "#eef3ee" : "#fff", pick: () => update((state) => ({ phaseId: ph.id, pool: poolWithCarriedPremixSelection(state.pool, state.pool, state.programmeId, ph.id), recoveryUndo: null })) };
   });
   const setupList = myLists.lists.find((l) => l.id === S.setupListId) ?? myLists.lists[0] ?? null;
   const setOpts = [
@@ -1955,7 +1955,7 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
     .map((ingredient) => {
       const existing = addInList(ingredient.id);
       const missingIds = (ingredient.requirementMissing[S.species] ?? []).filter((id) => PH.constraintIds.includes(id));
-      const stageAllowed = canAddStudioIngredient(ingredient.id, S.programmeId, S.pool);
+      const stageAllowed = canAddStudioIngredient(ingredient.id, S.programmeId, S.pool, S.phaseId);
       const disabled = existing || !stageAllowed || (!ingredient.premix && missingIds.length > 0);
       const picked = !disabled && S.addPick.includes(ingredient.id);
       const missing = missingIds[0] ? phaseMeta[missingIds[0]]?.label ?? missingIds[0] : "";
@@ -1996,7 +1996,7 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
   });
   const matchingPremixes = speciesPremixes.filter((ingredient) => {
     const product = commercialPremixById(ingredient.id)!;
-    return commercialPremixCompatibleWithProgramme(product, S.programmeId);
+    return commercialPremixCompatibleWithProgramme(product, S.programmeId, S.phaseId);
   });
   const documentedPremixes = speciesPremixes.filter((ingredient) => {
     const product = commercialPremixById(ingredient.id)!;
@@ -2012,7 +2012,7 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
     .filter((ingredient) => ingredient.id !== currentPremixId)
     .map((ingredient) => {
       const product = commercialPremixById(ingredient.id)!;
-      const allowed = commercialPremixCompatibleWithProgramme(product, S.programmeId);
+      const allowed = commercialPremixCompatibleWithProgramme(product, S.programmeId, S.phaseId);
       const selected = S.premixPick === ingredient.id;
       const documented = !!(product.verifiedAsFedMicronutrients || product.guaranteedMinimumAsFed);
       return {
@@ -2033,7 +2033,7 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
   const applyPremixChoice = (rerun: boolean) => {
     if (!pickedPremix) return;
     update((state) => ({
-      pool: poolWithPremixSelection(state.pool, state.programmeId, pickedPremix.id),
+      pool: poolWithPremixSelection(state.pool, state.programmeId, pickedPremix.id, state.phaseId),
       premixOpen: false,
       premixPick: null,
     }));
@@ -2043,8 +2043,8 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
   const premixCurrent = currentPremix ? {
     name: currentPremix.name,
     detail: currentPremix.application + " · fixed " + fmt(currentPremix.inclusionPct, currentPremix.inclusionPct < 1 ? 1 : 0) + "%",
-    status: commercialPremixCompatibleWithProgramme(currentPremix, S.programmeId) ? "For this stage" : "Wrong stage",
-    statusColor: commercialPremixCompatibleWithProgramme(currentPremix, S.programmeId) ? "#2f7a4a" : "#a06310",
+    status: commercialPremixCompatibleWithProgramme(currentPremix, S.programmeId, S.phaseId) ? "For this stage" : "Wrong stage",
+    statusColor: commercialPremixCompatibleWithProgramme(currentPremix, S.programmeId, S.phaseId) ? "#2f7a4a" : "#a06310",
   } : null;
   const rules = programmes.requirementFields.flatMap((f, i) => {
     const value = PH.requirements[i];
@@ -2073,7 +2073,7 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
     onProgramme: (e: InputEvent) => update(programmeChoice(e.target.value)),
     phaseList: P.phases.map((ph) => ({ id: ph.id, name: ph.label })), phaseId: PH.id, onPhase: (e: InputEvent) => {
       const phaseId = e.target.value;
-      update((state) => ({ phaseId, pool: poolWithCarriedPremixSelection(state.pool, state.pool, state.programmeId), recoveryUndo: null }));
+      update((state) => ({ phaseId, pool: poolWithCarriedPremixSelection(state.pool, state.pool, state.programmeId, phaseId), recoveryUndo: null }));
     },
     overrideText: PH.weightRange,
     openAdd: () => update({ addOpen: true, addQ: "", addCategory: null, addPick: [], addTarget: "pool", premixOpen: false, advisoriesOpen: false }),
@@ -2246,14 +2246,14 @@ function optimalVals(
     ? formulationRescueIngredientCandidates(
         assessment,
         [...engine.catalogue.values()].filter((ingredient) =>
-          !S.pool[ingredient.id] && canAddStudioIngredient(ingredient.id, S.programmeId, S.pool)),
+          !S.pool[ingredient.id] && canAddStudioIngredient(ingredient.id, S.programmeId, S.pool, S.phaseId)),
         S.species,
       ).map((ingredient) => ({
         ...ingredient,
         add: () => {
-          if (!canAddStudioIngredient(ingredient.id, S.programmeId, S.pool)) return;
+          if (!canAddStudioIngredient(ingredient.id, S.programmeId, S.pool, S.phaseId)) return;
           update((state) => ({
-            pool: selectStudioIngredient(state.pool, ingredient.id, state.programmeId),
+            pool: selectStudioIngredient(state.pool, ingredient.id, state.programmeId, state.phaseId),
           }));
           ctx.flash(commercialPremixById(ingredient.id)
             ? ingredient.name + " selected; reformulate to check the nutritional result"
@@ -2296,8 +2296,8 @@ function optimalVals(
       delta: trial.deltaT == null ? "" : signedCost(trial.deltaT),
       title: (trial.verified ? "Re-formulated with " + trial.name + ": every nutrient verified." : "Re-formulated with " + trial.name + ": resolves " + trial.resolves.length + " of " + unresolvedChecks.length + " unresolved nutrient" + (unresolvedChecks.length === 1 ? "" : "s") + ".") + " Click to apply and re-formulate.",
       go: () => {
-        if (!canAddStudioIngredient(trial.id, S.programmeId, S.pool)) return;
-        update((state) => ({ pool: selectStudioIngredient(state.pool, trial.id, state.programmeId) }));
+        if (!canAddStudioIngredient(trial.id, S.programmeId, S.pool, S.phaseId)) return;
+        update((state) => ({ pool: selectStudioIngredient(state.pool, trial.id, state.programmeId, state.phaseId) }));
         ctx.run();
       },
     }));
@@ -2390,7 +2390,7 @@ function optimalVals(
               label: "Apply all green" + (greenDelta == null ? "" : " · " + signedCost(greenDelta)),
               title: "Adds " + joinWords(greenTrials.map((trial) => trial.name)) + " and re-formulates. Each was confirmed on its own; the combined cost is the sum of their individual changes.",
               go: () => {
-                update((state) => ({ pool: greenTrials.reduce((pool, trial) => (canAddStudioIngredient(trial.id, state.programmeId, pool) ? selectStudioIngredient(pool, trial.id, state.programmeId) : pool), state.pool) }));
+                update((state) => ({ pool: greenTrials.reduce((pool, trial) => (canAddStudioIngredient(trial.id, state.programmeId, pool, state.phaseId) ? selectStudioIngredient(pool, trial.id, state.programmeId, state.phaseId) : pool), state.pool) }));
                 ctx.run();
               },
             }
@@ -3017,7 +3017,7 @@ function libraryVals(
         limits: catSel.limits.map((l) => ({ name: l.stage, limit: "max " + l.maxPct + "%", guide: l.practicalPct != null ? "guideline " + l.practicalPct + "%" : "" })),
         noLimits: catSel.limits.length === 0,
         sets:
-          !canAddStudioIngredient(catSel.id, S.programmeId, S.pool) || myLists.status !== "ready"
+          !canAddStudioIngredient(catSel.id, S.programmeId, S.pool, S.phaseId) || myLists.status !== "ready"
             ? []
             : lists.length
               ? lists.map((l) => {
