@@ -24091,15 +24091,14 @@
             "iron": 25000,
             "manganese": 15000,
             "copper": 1000,
-            "iodine": 300,
-            "selenium": 50.2
+            "iodine": 300
           }
         },
         "note": "Registration V1736 under Act 36 of 1947. The photographed label specifies 10 kg/t and a 20 kg pack (2 x 10 kg). No supplier price was provided.",
         "notes": [
           "The official AECI page confirms the manufacturer and premix business but does not publish a V1736 product specification; retain manufacturer-unverified status until a product datasheet or batch certificate is obtained.",
           "The label's zero declarations and the unclear Vitamin B9/formulation-column entries are not treated as analytical structural zeros. Folic acid and digestible amino-acid values remain unknown.",
-          "Selenium is recorded at 50.2 mg/kg premix: the 0.502 mg/kg early-weaner inorganic supplementation level divided by the 1% premix inclusion. This is equivalent to 50.2 g selenium per tonne of premix and a 12.55% elemental-selenium source when 0.4 kg of selenium source is used per tonne of premix.",
+          "Selenium content is unknown: a Brazilian Tables supplementation target or an unidentified selenium-source inclusion cannot establish a manufacturer-guaranteed elemental selenium concentration. Do not credit selenium until the supplier specifies its elemental concentration and units.",
           "Vitamin and mineral figures are transcribed from the label's nutrient-specification column and treated conservatively as label guarantees, not exact analytical concentrations."
         ]
       }
