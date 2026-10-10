@@ -66,6 +66,32 @@ test("premixes are first-class selectable ingredients, with species/programme el
   assert.throws(() => selectStudioIngredient({}, "sustar-glypro-x812", "grow-finish-pig"), /not eligible/);
 });
 
+test("AECI V1736 can be explicitly simulated for grower pigs but not finishers", () => {
+  const id = "aeci-v1736-pig-weaner-premix";
+  const grower = "br2024-5-43-63-91d-26-47kg";
+  const laterGrower = "br2024-5-43-91-119d-47-74kg";
+  const finisher = "br2024-5-43-119-147d-74-103kg";
+  const pool = { "corn-yellow-dent": { role: "available" as const, price: 270 } };
+  assert.equal(canAddStudioIngredient(id, "grow-finish-pig", pool), false);
+  assert.equal(canAddStudioIngredient(id, "grow-finish-pig", pool, grower), true);
+  assert.equal(canAddStudioIngredient(id, "grow-finish-pig", pool, laterGrower), true);
+  assert.equal(canAddStudioIngredient(id, "grow-finish-pig", pool, finisher), false);
+  const selection = poolWithPremixSelection(pool, "grow-finish-pig", id, grower);
+  assert.equal(selection[id]?.role, "fixed");
+  assert.equal(selection[id]?.fixed, 1);
+  assert.equal(selection["corn-yellow-dent"]?.price, 270);
+  assert.deepEqual(studioPremixProblems(selection, "grow-finish-pig", grower), []);
+  assert.deepEqual(studioPremixProblems(selection, "grow-finish-pig", laterGrower), []);
+  assert.ok(studioPremixProblems(selection, "grow-finish-pig", finisher).some((x) => /not suitable/.test(x)));
+  assert.throws(() => poolWithPremixSelection(pool, "grow-finish-pig", id, finisher), /not eligible/);
+  const moved = poolWithCarriedPremixSelection(pool, selection, "grow-finish-pig", finisher);
+  assert.equal(moved[id], undefined, "A weaner-labelled premix cannot carry into finishing phases");
+  assert.equal(moved["sustar-glypro-x912"], undefined, "Do not silently replace the farmer's selection");
+  const defaultGrower = poolWithProgrammePremix({}, "grow-finish-pig", undefined, grower);
+  assert.equal(defaultGrower["sustar-glypro-x912"]?.fixed, 0.2,
+    "Manufacturer-approved programme default is unchanged");
+});
+
 test("choosing an eligible premix sets manufacturer dose without discarding cereal prices", () => {
   const maize = { role: "available" as const, price: 265 };
   const choice = selectStudioIngredient(

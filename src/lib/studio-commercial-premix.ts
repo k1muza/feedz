@@ -9,10 +9,10 @@ import type { Pool, PoolEntry } from "@/components/formulation-studio/engine";
  * Their additional species, dose and manufacturer-recipe rules belong to the
  * ingredient, and are validated before the LP request AND on the server.
  */
-function activeProduct(pool: Pool, programmeId: string) {
+function activeProduct(pool: Pool, programmeId: string, phaseId?: string) {
   return Object.entries(pool)
     .filter(([id, row]) => row.role !== "excluded" &&
-      commercialPremixById(id) && commercialPremixCompatibleWithProgramme(commercialPremixById(id)!, programmeId))
+      commercialPremixById(id) && commercialPremixCompatibleWithProgramme(commercialPremixById(id)!, programmeId, phaseId))
     .map(([id]) => commercialPremixById(id)!)[0];
 }
 
@@ -36,14 +36,14 @@ function unlockedAfterManufacturerRecipe(
   return next;
 }
 
-export function poolWithProgrammePremix(pool: Pool, programmeId: string, preferredId?: string): Pool {
+export function poolWithProgrammePremix(pool: Pool, programmeId: string, preferredId?: string, phaseId?: string): Pool {
   const previous = unlockedAfterManufacturerRecipe(pool);
   const next: Pool = Object.fromEntries(Object.entries(previous)
     .filter(([id]) => !commercialPremixById(id)));
   const preferred = preferredId ? commercialPremixById(preferredId) : undefined;
-  const chosen = preferred && commercialPremixCompatibleWithProgramme(preferred, programmeId)
+  const chosen = preferred && commercialPremixCompatibleWithProgramme(preferred, programmeId, phaseId)
     ? preferred
-    : activeProduct(pool, programmeId) ?? commercialPremixForProgramme(programmeId);
+    : activeProduct(pool, programmeId, phaseId) ?? commercialPremixForProgramme(programmeId);
   if (!chosen) return next;
   if (chosen.manufacturerRecipe) {
     // Manufacturer-restricted SKUs are still first-class ingredients, but
@@ -68,13 +68,13 @@ export function poolWithProgrammePremix(pool: Pool, programmeId: string, preferr
  * poolWithProgrammePremix, null means "no premix" and must not fall back to
  * the programme default.
  */
-export function poolWithPremixSelection(pool: Pool, programmeId: string, premixId: string | null): Pool {
+export function poolWithPremixSelection(pool: Pool, programmeId: string, premixId: string | null, phaseId?: string): Pool {
   if (premixId) {
     const product = commercialPremixById(premixId);
-    if (!product || !commercialPremixCompatibleWithProgramme(product, programmeId)) {
+    if (!product || !commercialPremixCompatibleWithProgramme(product, programmeId, phaseId)) {
       throw new Error(`Premix ${premixId} is not eligible for ${programmeId}.`);
     }
-    return poolWithProgrammePremix(pool, programmeId, premixId);
+    return poolWithProgrammePremix(pool, programmeId, premixId, phaseId);
   }
 
   const unlocked = unlockedAfterManufacturerRecipe(pool);
@@ -85,14 +85,14 @@ export function poolWithPremixSelection(pool: Pool, programmeId: string, premixI
  * in Studio's separate selector. This also preserves an explicit no-premix
  * choice while an asynchronous suggestion list arrives.
  */
-export function poolWithCarriedPremixSelection(nextPool: Pool, currentPool: Pool, programmeId: string): Pool {
+export function poolWithCarriedPremixSelection(nextPool: Pool, currentPool: Pool, programmeId: string, phaseId?: string): Pool {
   const selected = Object.entries(currentPool)
     .find(([id, row]) => {
       if (row.role === "excluded") return false;
       const commercial = commercialPremixById(id);
-      return !!commercial && commercialPremixCompatibleWithProgramme(commercial, programmeId);
+      return !!commercial && commercialPremixCompatibleWithProgramme(commercial, programmeId, phaseId);
     });
-  return poolWithPremixSelection(nextPool, programmeId, selected?.[0] ?? null);
+  return poolWithPremixSelection(nextPool, programmeId, selected?.[0] ?? null, phaseId);
 }
 
 /** Takes a premix out of the formulation: deleted, or kept as an unticked row.
@@ -112,34 +112,34 @@ export function poolWithoutPremix(pool: Pool, premixId: string, keepUnticked = f
  * price, so studioPremixProblems still reports it rather than the programme
  * default being added alongside it.
  */
-export function poolWithPremixPrice(pool: Pool, premixId: string, programmeId: string, price?: number): Pool {
+export function poolWithPremixPrice(pool: Pool, premixId: string, programmeId: string, price?: number, phaseId?: string): Pool {
   const row: PoolEntry = { ...(pool[premixId] ?? { role: "fixed" }) };
   if (price === undefined) delete row.price;
   else row.price = price;
   const next = { ...pool, [premixId]: row };
   const product = commercialPremixById(premixId);
-  if (!product || row.role === "excluded" || !commercialPremixCompatibleWithProgramme(product, programmeId)) return next;
-  return poolWithProgrammePremix(next, programmeId, premixId);
+  if (!product || row.role === "excluded" || !commercialPremixCompatibleWithProgramme(product, programmeId, phaseId)) return next;
+  return poolWithProgrammePremix(next, programmeId, premixId, phaseId);
 }
 
 /** Ingredient-picker eligibility: cereals are unrestricted here (other limits
  * apply later), while commercial products require stage-specific approval.
  */
-export function canAddStudioIngredient(ingredientId: string, programmeId: string, pool?: Pool): boolean {
+export function canAddStudioIngredient(ingredientId: string, programmeId: string, pool?: Pool, phaseId?: string): boolean {
   const product = commercialPremixById(ingredientId);
-  if (product && !commercialPremixCompatibleWithProgramme(product, programmeId)) return false;
+  if (product && !commercialPremixCompatibleWithProgramme(product, programmeId, phaseId)) return false;
   // A restricted manufacturer recipe is atomic: only another eligible premix
   // selection can replace it, not a free-form basal addition.
-  if (!product && pool && activeProduct(pool, programmeId)?.manufacturerRecipe) return false;
+  if (!product && pool && activeProduct(pool, programmeId, phaseId)?.manufacturerRecipe) return false;
   return true;
 }
 
-export function selectStudioIngredient(pool: Pool, ingredientId: string, programmeId: string): Pool {
-  if (!canAddStudioIngredient(ingredientId, programmeId, pool)) {
+export function selectStudioIngredient(pool: Pool, ingredientId: string, programmeId: string, phaseId?: string): Pool {
+  if (!canAddStudioIngredient(ingredientId, programmeId, pool, phaseId)) {
     throw new Error(`Ingredient ${ingredientId} is not eligible for ${programmeId}.`);
   }
-  if (commercialPremixById(ingredientId)) return poolWithProgrammePremix(pool, programmeId, ingredientId);
-  const selected = activeProduct(pool, programmeId);
+  if (commercialPremixById(ingredientId)) return poolWithProgrammePremix(pool, programmeId, ingredientId, phaseId);
+  const selected = activeProduct(pool, programmeId, phaseId);
   if (selected?.manufacturerRecipe) {
     throw new Error(`${selected.name} requires a fixed manufacturer recipe. To change ingredients, remove this premix first.`);
   }
@@ -149,14 +149,14 @@ export function selectStudioIngredient(pool: Pool, ingredientId: string, program
 }
 
 /** Legacy stored formulations are never allowed to bypass product rules. */
-export function studioPremixProblems(pool: Pool, programmeId: string): string[] {
+export function studioPremixProblems(pool: Pool, programmeId: string, phaseId?: string): string[] {
   const selected = Object.entries(pool).filter(([id, row]) =>
     commercialPremixById(id) && row.role !== "excluded");
   if (selected.length > 1) return ["Only one premix may be included in a formulation."];
   if (selected.length === 0) return [];
   const [id, row] = selected[0];
   const product = commercialPremixById(id)!;
-  if (!commercialPremixCompatibleWithProgramme(product, programmeId))
+  if (!commercialPremixCompatibleWithProgramme(product, programmeId, phaseId))
     return [`${product.name} is not suitable for ${programmeId}. Choose a compatible premix ingredient.`];
   if (row.role !== "fixed" || Math.abs(Number(row.fixed) - product.inclusionPct) > 1e-6)
     return [`${product.name} must be fixed at its manufacturer dose of ${product.inclusionKgPerTonne} kg/t.`];

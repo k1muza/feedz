@@ -64,6 +64,25 @@ describe("Manufacturer-backed commercial premix catalogue", () => {
     assert.equal(contributions.find((item) => item.nutrient === "Selenium"), undefined, "Selenium must remain unknown until supplier analysis is obtained.");
   });
 
+  test("AECI V1736 is selectable for grower simulation only, not finisher feeding approval", () => {
+    const aeci = commercialPremixById("aeci-v1736-pig-weaner-premix")!;
+    const growerPhase = "br2024-5-43-63-91d-26-47kg";
+    const laterGrowerPhase = "br2024-5-43-91-119d-47-74kg";
+    const finisherPhase = "br2024-5-43-119-147d-74-103kg";
+    assert.equal(commercialPremixCompatibleWithProgramme(aeci, "nursery-pig"), true);
+    assert.equal(commercialPremixCompatibleWithProgramme(aeci, "grow-finish-pig"), false,
+      "A generic grow-finish programme must not imply manufacturer approval");
+    assert.equal(commercialPremixCompatibleWithProgramme(aeci, "grow-finish-pig", growerPhase), true);
+    assert.equal(commercialPremixCompatibleWithProgramme(aeci, "grow-finish-pig", laterGrowerPhase), true);
+    assert.equal(commercialPremixCompatibleWithProgramme(aeci, "grow-finish-pig", finisherPhase), false);
+    assert.equal(commercialPremixCompatibleWithProgramme(aeci, "broiler-standard", growerPhase), false);
+    assert.equal(commercialPremixCompatibleWithProgramme(aeci, "gestating-gilt-sow", growerPhase), false);
+    assert.equal(commercialPremixForProgramme("grow-finish-pig")?.id, "sustar-glypro-x912",
+      "Exploratory products must never become a programme default");
+    assert.equal(aeci.simulationOnlyPhases?.[0]?.phaseClass, "grower");
+    assert.equal(aeci.verificationStatus, "unverified");
+  });
+
   test("selects the stage-specific commercial product, never one universal premix", () => {
     const phases: Record<string, string> = {
       "nursery-pig": "X911",

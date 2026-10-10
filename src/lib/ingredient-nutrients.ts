@@ -194,6 +194,11 @@ const commercialPremixSchema = z
     species: z.enum(["pig", "broiler", "layer"]),
     application: z.string(),
     eligibleProgrammePrefixes: z.array(z.string()),
+    /** Non-manufacturer-approved research simulations, not feeding recommendations. */
+    simulationOnlyPhases: z.array(z.object({
+      programmeId: z.string(),
+      phaseClass: z.literal("grower"),
+    }).strict()).optional(),
     defaultForEligibleProgrammes: z.boolean().optional(),
     inclusionPct: z.number().positive(),
     inclusionKgPerTonne: z.number().positive(),

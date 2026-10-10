@@ -1,4 +1,5 @@
 import { PREMIX_RECORDS } from "./ingredient-nutrients";
+import { feedProgrammePhaseById } from "./feed-programmes";
 import type { Vitamins } from "./nutrition";
 
 /**
@@ -25,6 +26,8 @@ export type CommercialPremix = {
   application: string;
   /** Prefixes for which the supplier/product policy permits this product. */
   eligibleProgrammePrefixes: readonly string[];
+  /** Allowed for an explicitly selected *simulation* only, never supplier-approved feeding. */
+  simulationOnlyPhases?: readonly { programmeId: string; phaseClass: "grower" }[];
   /** One default supplier product per animal family; users may replace it. */
   defaultForEligibleProgrammes?: boolean;
   inclusionPct: number;
@@ -89,9 +92,27 @@ export function commercialPremixForProgramme(programmeId: string): CommercialPre
   return eligible.find((product) => product.defaultForEligibleProgrammes) ?? eligible[0];
 }
 
-export function commercialPremixCompatibleWithProgramme(premix: CommercialPremix, programmeId: string): boolean {
+/** Permits exploring an off-label scenario without claiming supplier approval. */
+export function commercialPremixSimulationOnlyForPhase(
+  premix: CommercialPremix,
+  programmeId: string,
+  phaseId?: string,
+): boolean {
+  if (!phaseId) return false;
+  const phase = feedProgrammePhaseById(programmeId, phaseId);
+  return !!phase && (premix.simulationOnlyPhases ?? []).some(
+    (rule) => rule.programmeId === programmeId && rule.phaseClass === phase.phaseClass,
+  );
+}
+
+export function commercialPremixCompatibleWithProgramme(
+  premix: CommercialPremix,
+  programmeId: string,
+  phaseId?: string,
+): boolean {
   const family = programmeId.split(":")[0].toLowerCase();
-  return premix.eligibleProgrammePrefixes.some((prefix) => family.startsWith(prefix));
+  return premix.eligibleProgrammePrefixes.some((prefix) => family.startsWith(prefix)) ||
+    commercialPremixSimulationOnlyForPhase(premix, programmeId, phaseId);
 }
 
 export function eligibleCommercialPremixes(programmeId: string): CommercialPremix[] {
