@@ -46,6 +46,8 @@ google-credentials.json
 *.json
 !.env.example
 !vercel.json
+# Data imported by the app is source, not credentials.
+!src/**/*.json
 
 # Source drafts for knowledge articles
 drafts/
