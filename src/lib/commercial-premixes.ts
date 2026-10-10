@@ -1,5 +1,6 @@
 import { PREMIX_RECORDS } from "./ingredient-nutrients";
 import type { Vitamins } from "./nutrition";
+import { premixNutrientKeyForAssessment, resolvePremixNutrientAlias } from "./premix-nutrient-aliases";
 
 /**
  * Supplier-published products, not FeedSport-designed "ideal" premixes.
@@ -25,6 +26,8 @@ export type CommercialPremix = {
   application: string;
   /** Prefixes for which the supplier/product policy permits this product. */
   eligibleProgrammePrefixes: readonly string[];
+  /** Names appearing on the label but NOT verified as usable as-fed concentrations. */
+  labelNutrientNamesUnverified?: readonly string[];
   /** One default supplier product per animal family; users may replace it. */
   defaultForEligibleProgrammes?: boolean;
   inclusionPct: number;
@@ -92,6 +95,20 @@ export function commercialPremixForProgramme(programmeId: string): CommercialPre
 export function commercialPremixCompatibleWithProgramme(premix: CommercialPremix, programmeId: string): boolean {
   const family = programmeId.split(":")[0].toLowerCase();
   return premix.eligibleProgrammePrefixes.some((prefix) => family.startsWith(prefix));
+}
+
+/**
+ * Labels may declare a nutrient under a different name without a usable
+ * concentration. The alias is evidence of a declaration, NOT a nutrient
+ * guarantee, and must never make an unknown verification check pass.
+ */
+export function unverifiedPremixLabelName(
+  premix: CommercialPremix,
+  assessmentNutrientId: string,
+): string | null {
+  const key = premixNutrientKeyForAssessment(assessmentNutrientId);
+  if (!key) return null;
+  return premix.labelNutrientNamesUnverified?.find((name) => resolvePremixNutrientAlias(name) === key) ?? null;
 }
 
 export function eligibleCommercialPremixes(programmeId: string): CommercialPremix[] {
