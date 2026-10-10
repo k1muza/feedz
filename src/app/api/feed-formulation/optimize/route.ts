@@ -110,7 +110,7 @@ export async function POST(request: Request) {
     const selectedCommercial = ingredients.flatMap((ingredient) => {
       const premix = commercialPremixById(ingredient.ingredientId);
       if (!premix) return [];
-      if (!commercialPremixCompatibleWithProgramme(premix, programmeId)) {
+      if (!commercialPremixCompatibleWithProgramme(premix, programmeId, phaseId)) {
         throw new Error(`${premix.name} is not assigned to this animal stage.`);
       }
       if (Math.abs((ingredient.minInclusionPct ?? -1) - premix.inclusionPct) > 1e-6 ||
