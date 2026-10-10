@@ -194,6 +194,8 @@ const commercialPremixSchema = z
     species: z.enum(["pig", "broiler", "layer"]),
     application: z.string(),
     eligibleProgrammePrefixes: z.array(z.string()),
+    /** Names printed on a supplier label without a verified usable concentration. */
+    labelNutrientNamesUnverified: z.array(z.string()).optional(),
     defaultForEligibleProgrammes: z.boolean().optional(),
     inclusionPct: z.number().positive(),
     inclusionKgPerTonne: z.number().positive(),
