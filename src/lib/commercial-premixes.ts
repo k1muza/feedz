@@ -144,6 +144,11 @@ export const COMMERCIAL_PREMIXES: readonly CommercialPremix[] = [
     verificationStatus: "unverified", formulationCompatibility: "unconfirmed",
     pricePerTonne: null,
     specificationUrl: "https://www.sustarfeed.com/glypro-x911-0-2-vitamin%EF%BC%86mineral-premix-for-piglets-oemodm-custom-pig-premix-manufacturer-direct-supply-premix-for-piglets-promoting-growth-of-pig-prestarter-animal-feed-additives-product/",
+    // Manufacturer guarantees VE by mass (g/kg). Do not credit as vitamin E IU
+    // without confirmed vitamin form/activity; choline is not declared.
+    publishedGuarantees: [
+      { nutrient: "Vitamin E", unit: "g/kg", min: 180, max: 230 },
+    ],
     publishedAnalysis: {
       zincMgKg: { min: 30000, max: 50000 },
       copperMgKg: { min: 40000, max: 70000 },
@@ -179,6 +184,11 @@ export const COMMERCIAL_PREMIXES: readonly CommercialPremix[] = [
     verificationStatus: "unverified", formulationCompatibility: "unconfirmed",
     pricePerTonne: null,
     specificationUrl: "https://www.sustarfeed.com/vitamin-mineral-premix-for-finishing-pig-sustar-glypro-x912-0-2-product/",
+    // Manufacturer guarantees VE by mass (g/kg). Do not credit as vitamin E IU
+    // without confirmed vitamin form/activity; choline is not declared.
+    publishedGuarantees: [
+      { nutrient: "Vitamin E", unit: "g/kg", min: 60, max: 80 },
+    ],
     publishedAnalysis: {
       zincMgKg: { min: 40000, max: 70000 },
       copperMgKg: { min: 13000, max: 17000 },
@@ -215,6 +225,11 @@ export const COMMERCIAL_PREMIXES: readonly CommercialPremix[] = [
     verificationStatus: "unverified", formulationCompatibility: "unconfirmed",
     pricePerTonne: null,
     specificationUrl: "https://www.sustarfeed.com/vitamin-mineral-premix-for-sows-sustar-glypro-x913-0-2-product/",
+    // Manufacturer guarantees VE by mass (g/kg). Do not credit as vitamin E IU
+    // without confirmed vitamin form/activity; choline is not declared.
+    publishedGuarantees: [
+      { nutrient: "Vitamin E", unit: "g/kg", min: 230, max: 270 },
+    ],
     publishedAnalysis: {
       zincMgKg: { min: 60000, max: 100000 },
       copperMgKg: { min: 7000, max: 8000 },
@@ -250,6 +265,11 @@ export const COMMERCIAL_PREMIXES: readonly CommercialPremix[] = [
     verificationStatus: "unverified", formulationCompatibility: "unconfirmed",
     pricePerTonne: null,
     specificationUrl: "https://www.sustarfeed.com/vitamin-mineral-premix-for-broiler-sustar-glypro-0-1-product/",
+    // Manufacturer guarantees VE by mass (g/kg). Do not credit as vitamin E IU
+    // without confirmed vitamin form/activity; choline is not declared.
+    publishedGuarantees: [
+      { nutrient: "Vitamin E", unit: "g/kg", min: 80, max: 120 },
+    ],
     publishedAnalysis: {
       zincMgKg: { min: 75000, max: 100000 },
       copperMgKg: { min: 8000, max: 11000 },
@@ -285,6 +305,11 @@ export const COMMERCIAL_PREMIXES: readonly CommercialPremix[] = [
     verificationStatus: "unverified", formulationCompatibility: "unconfirmed",
     pricePerTonne: null,
     specificationUrl: "https://www.sustarfeed.com/glypro-x811-0-1-vitamin%EF%BC%86mineral-premix-for-layer-premix-for-layer-animal-feed-additives-poultry-feed-additives-premix-for-laying-hens-vitamin-mineral-premix-feed-additives-product/",
+    // Manufacturer guarantees VE by mass (g/kg). Do not credit as vitamin E IU
+    // without confirmed vitamin form/activity; choline is not declared.
+    publishedGuarantees: [
+      { nutrient: "Vitamin E", unit: "g/kg", min: 100, max: 120 },
+    ],
     publishedAnalysis: {
       zincMgKg: { min: 60000, max: 85000 },
       copperMgKg: { min: 6800, max: 8000 },
