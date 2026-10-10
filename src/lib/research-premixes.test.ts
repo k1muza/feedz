@@ -2,25 +2,30 @@ import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import { FEEDSPORT_RESEARCH_PIGLET_VTM as premix, FEEDSPORT_GROWER_PRO, FEEDSPORT_FINISHER_PRO, FEEDSPORT_RESEARCH_PREMIXES, eligibleResearchPremixes, researchPremixCompatibleWithPhase } from "./research-premixes";
 
-describe("FeedSport WeanerPro research reference", () => {
-  test("matches Yang et al. Table 2 VTM Premix 2", () => {
-    assert.equal(premix.source.doi, "10.3390/ani9121154");
-    assert.equal(premix.source.table, "Table 2 — VTM Premix 2");
+describe("FeedSport WeanerPro — AECI label transcription pending verification", () => {
+  test("retains the on-pack dose and text without inventing nutrient units", () => {
+    assert.equal(premix.name, "FeedSport WeanerPro");
+    assert.equal(premix.source.table, "PIG WEANER label; registration V1736, Act 36/1947");
     assert.equal(premix.inclusionPct, 1);
     assert.equal(premix.inclusionKgPerTonne, 10);
-    assert.equal(premix.vitamins.vitaminEIuKg, 3_000);
-    assert.equal(premix.cholineChlorideMgKg, 40_000);
-    assert.deepEqual(premix.traceMineralsPpm, {
-      copper: 500, iodine: 14, iron: 10_000,
-      manganese: 300, selenium: 25, zinc: 8_000,
-    });
+    assert.equal(premix.photographedLabel.leftColumnBasis, "unknown");
+    assert.equal(premix.photographedLabel.rightColumnBasis, "unknown");
+    assert.deepEqual(premix.photographedLabel.declaredRows.find((row) => row.name === "Vitamin A"),
+      { name: "Vitamin A", firstColumn: "5.000.000" });
+    assert.deepEqual(premix.photographedLabel.declaredRows.find((row) => row.name === "Vitamin E (DL)"),
+      { name: "Vitamin E (DL)", firstColumn: "10.000" });
+    assert.deepEqual(premix.photographedLabel.declaredRows.find((row) => row.name === "Vitamin B4 (Choline)"),
+      { name: "Vitamin B4 (Choline)", firstColumn: "0.0000" });
   });
 
-  test("is research-only and does not mislabel choline chloride as choline", () => {
+  test("does not credit ambiguous printed quantities or offer the premix in Studio", () => {
     assert.equal(premix.category, "research_reference");
     assert.equal(premix.allowedForCommercialFormulation, false);
+    assert.deepEqual(premix.vitamins, {});
+    assert.deepEqual(premix.traceMineralsPpm, {});
+    assert.equal(premix.valuesBasis, "printed_label_columns_units_and_basis_unconfirmed");
     assert.equal("totalCholineMgKg" in premix.vitamins, false);
-    assert.equal(premix.valuesBasis, "formulated_study_target_not_supplier_guarantee");
+    assert.equal(researchPremixCompatibleWithPhase(premix, "nursery-pig", "br2024-5-41-5-7kg"), false);
   });
 });
 
