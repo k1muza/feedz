@@ -101,6 +101,7 @@ export function StudioView(props: { loading: true; shell: ShellVals } | { loadin
         {v && v.d && <Drawer v={v} d={v.d} />}
         {v && v.advisoriesOpen && <AdvisoryDrawer v={v} />}
         {v && v.addOpen && <AddIngredient v={v} />}
+        {v && v.premixOpen && <SwitchPremix v={v} />}
         {v && v.rulesOpen && <Rules v={v} />}
         {v && v.cOpen && <Contact v={v} />}
         {v && v.hasToast && (
@@ -604,7 +605,7 @@ function Featured({ v }: V) {
 }
 
 // Ingredient step table: tick, name, price, limits (FeedSport Prototype (2)).
-const ING_COLS = "display:grid;grid-template-columns:30px minmax(0,1fr) 150px 120px;gap:12px";
+const ING_COLS = "display:grid;gap:12px";
 
 function Setup({ v }: V) {
   return (
@@ -681,8 +682,9 @@ function Setup({ v }: V) {
                     <input value={v.ingQ} onChange={v.onIngQ} placeholder="Search your list, or find more in the catalogue" aria-label="Search ingredients" style={sx("flex:1;min-width:0;border:0;padding:9px 0;font:400 14px/1 'IBM Plex Sans',sans-serif;outline:none")} />
                   </div>
                   <span style={sx("font:500 13px/1 'IBM Plex Sans',sans-serif;color:#45473f")}>{v.tickCount}</span>
+                  <button onClick={v.openAdd} className={hv("green")} style={sx("border:0;background:#2f5a3f;color:#fff;font:600 13px/1 'IBM Plex Sans',sans-serif;padding:11px 14px;border-radius:7px;white-space:nowrap")}>+ Add ingredient</button>
                 </div>
-                <div style={sx(`${ING_COLS};padding:8px 14px;font:500 11px/1 'IBM Plex Mono',monospace;color:#64665c;text-transform:uppercase;letter-spacing:0.04em;background:#faf8f3`)}>
+                <div className="fs-ingredient-grid fs-ingredient-head" style={sx(`${ING_COLS};padding:8px 14px;font:500 11px/1 'IBM Plex Mono',monospace;color:#64665c;text-transform:uppercase;letter-spacing:0.04em;background:#faf8f3`)}>
                   <span />
                   <span>Ingredient</span>
                   <span>Your price / t</span>
@@ -690,9 +692,12 @@ function Setup({ v }: V) {
                 </div>
                 {v.ingGroups.map((g) => (
                   <div key={g.cat}>
-                    <div style={sx("padding:9px 14px 5px;font:500 11px/1 'IBM Plex Mono',monospace;color:#8a5f18;text-transform:uppercase;letter-spacing:0.05em;border-top:1px solid #ece8df")}>{g.cat}</div>
+                    <div style={sx("padding:10px 14px;display:flex;align-items:center;justify-content:space-between;gap:12px;font:500 11px/1 'IBM Plex Mono',monospace;color:#8a5f18;text-transform:uppercase;letter-spacing:0.05em;border-top:1px solid #ece8df;background:#faf8f3")}>
+                      <span>{g.cat} · {g.count}</span>
+                      <button onClick={g.open} style={sx("border:1px solid #d0cdc3;background:#fff;color:#2f5a3f;font:600 12px/1 'IBM Plex Sans',sans-serif;text-transform:none;letter-spacing:0;padding:7px 11px;border-radius:99px")}>{g.action}</button>
+                    </div>
                     {g.rows.map((r) => (
-                      <div key={r.id} className={hv("row")} style={sx(`${ING_COLS};padding:7px 14px;align-items:center;font:400 14px/1.2 'IBM Plex Sans',sans-serif;opacity:${r.opacity}`)}>
+                      <div key={r.id} className={`fs-ingredient-grid ${hv("row")}`} style={sx(`${ING_COLS};padding:10px 14px;align-items:center;font:400 14px/1.2 'IBM Plex Sans',sans-serif;opacity:${r.opacity};border-top:1px solid #ece8df`)}>
                         <button onClick={r.toggle} aria-label={r.cbLabel} aria-pressed={!!r.check} style={sx(`width:20px;height:20px;border-radius:5px;border:1.5px solid ${r.cbBd};background:${r.cbBg};color:#fff;font:600 12px/17px 'IBM Plex Sans',sans-serif;padding:0`)}>{r.check}</button>
                         <span style={sx("display:flex;flex-direction:column;gap:3px;min-width:0")}>
                           <span style={sx(`font-weight:500;text-decoration:${r.deco}`)}>{r.name}</span>
@@ -2399,31 +2404,95 @@ function AddIngredient({ v }: V) {
   return (
     <>
       <div onClick={v.closeAdd} style={sx("position:fixed;inset:0;background:rgba(34,36,32,.38);z-index:30")} />
-      <div style={sx("position:fixed;top:10vh;left:0;right:0;margin:0 auto;width:min(520px,94vw);max-height:76vh;background:#fff;border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,.25);z-index:31;display:flex;flex-direction:column;overflow:hidden;animation:fsin .2s ease-out")}>
-        <div style={sx("padding:16px;border-bottom:1px solid #e2dfd6;display:flex;flex-direction:column;gap:10px")}>
-          <div style={sx("display:flex;justify-content:space-between;align-items:baseline;gap:10px")}>
-            <span style={sx("font:600 17px/1.2 'IBM Plex Sans',sans-serif")}>Add ingredients</span>
-            <span style={sx("font:400 12px/1.2 'IBM Plex Sans',sans-serif;color:#64665c")}>Tick as many as you need</span>
+      <div role="dialog" aria-modal="true" aria-label={v.addTitle} style={sx("position:fixed;top:6vh;left:0;right:0;margin:0 auto;width:min(655px,96vw);max-height:88vh;background:#fff;border-radius:14px;box-shadow:0 20px 60px rgba(0,0,0,.25);z-index:31;display:flex;flex-direction:column;overflow:hidden;animation:fsin .2s ease-out")}>
+        <div style={sx("padding:18px 20px 12px;display:flex;flex-direction:column;gap:12px")}>
+          <div style={sx("display:flex;justify-content:space-between;align-items:center;gap:10px")}>
+            <span style={sx("font:600 18px/1.2 'IBM Plex Sans',sans-serif")}>{v.addTitle}</span>
+            <button onClick={v.closeAdd} aria-label="Close ingredient picker" style={sx("border:0;background:transparent;color:#45473f;font:400 22px/1 'IBM Plex Sans',sans-serif;padding:0 2px")}>×</button>
           </div>
-          <input autoFocus value={v.addQ} onChange={v.onAddQ} placeholder="Search the FeedSport catalogue" style={sx("padding:11px 12px;border:1px solid #d0cdc3;border-radius:8px;font:400 15px/1 'IBM Plex Sans',sans-serif")} />
+          <label style={sx("display:flex;align-items:center;gap:9px;padding:0 12px;border:1px solid #d0cdc3;border-radius:8px")}>
+            <span aria-hidden style={sx("flex:none;width:11px;height:11px;border:1.5px solid #8d8a80;border-radius:50%")} />
+            <input autoFocus value={v.addQ} onChange={v.onAddQ} aria-label="Search catalogue" placeholder={v.addCategoryLabel === "Ingredient" ? "Search ingredients" : "Search " + v.addCategoryLabel.toLowerCase() + "s"} style={sx("width:100%;min-width:0;padding:10px 0;border:0;outline:none;font:400 14px/1 'IBM Plex Sans',sans-serif")} />
+          </label>
+          <div style={sx("display:flex;gap:7px;align-items:center;overflow-x:auto;padding-bottom:1px;scrollbar-width:thin")}>
+            {v.addFilters.map((filter) => (
+              <button key={filter.label} onClick={filter.pick} style={sx(`flex:none;border:1px solid ${filter.active ? "#222420" : "#d0cdc3"};background:${filter.active ? "#222420" : "#fff"};color:${filter.active ? "#fff" : "#222420"};font:${filter.active ? "600" : "500"} 12px/1 'IBM Plex Sans',sans-serif;padding:8px 11px;border-radius:99px`)}>
+                {filter.label}{filter.active ? " · " + filter.count : ""}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="fs-add-grid fs-add-head" style={sx("display:grid;gap:10px;padding:9px 20px;background:#faf8f3;border-top:1px solid #ece8df;border-bottom:1px solid #ece8df;font:500 10px/1 'IBM Plex Mono',monospace;color:#64665c;text-transform:uppercase;letter-spacing:0.05em")}>
+          <span /><span>{v.addCategoryLabel}</span><span>ME kcal</span><span>CP</span><span>$ / t</span>
         </div>
         <div style={sx("overflow-y:auto;display:flex;flex-direction:column;flex:1;min-height:0")}>
           {v.addResults.map((a) => (
-            <button key={a.name} onClick={a.toggle} role="checkbox" aria-checked={a.picked} className={hv("row")} style={sx(`border:0;border-bottom:1px solid #ece8df;background:${a.picked ? "#eef3ec" : "#fff"};text-align:left;display:flex;align-items:center;gap:12px;padding:13px 16px;color:#222420`)}>
-              <span style={sx(`flex:none;width:18px;height:18px;border-radius:4px;border:1.5px solid ${a.picked ? "#2f5a3f" : "#b5b2a8"};background:${a.picked ? "#2f5a3f" : "#fff"};color:#fff;display:flex;align-items:center;justify-content:center;font:700 12px/1 'IBM Plex Sans',sans-serif`)}>{a.picked ? "✓" : ""}</span>
-              <span style={sx("display:flex;flex-direction:column;gap:3px")}>
-                <span style={sx("font:500 15px/1.2 'IBM Plex Sans',sans-serif")}>{a.name}</span>
-                <span style={sx(`font:400 12px/1.2 'IBM Plex Sans',sans-serif;color:${a.subColor}`)}>{a.sub}</span>
+            <button key={a.id} onClick={a.toggle} role="checkbox" aria-checked={a.picked || a.existing} aria-disabled={a.disabled} className={`fs-add-grid ${a.disabled ? "" : hv("row")}`} style={sx(`border:0;border-bottom:1px solid #ece8df;background:${a.picked ? "#eef3ee" : "#fff"};text-align:left;display:grid;gap:10px;align-items:center;padding:11px 20px;color:${a.disabled ? "#8d8a80" : "#222420"};cursor:${a.disabled ? "not-allowed" : "pointer"}`)}>
+              <span style={sx(`width:20px;height:20px;border-radius:5px;border:1.5px ${a.existing ? "solid #d0cdc3" : a.picked ? "solid #2f5a3f" : a.disabled ? "dashed #b9b6ab" : "solid #b9b6ab"};background:${a.existing ? "#e5e2da" : a.picked ? "#2f5a3f" : "#fff"};color:${a.existing ? "#64665c" : "#fff"};display:flex;align-items:center;justify-content:center;font:700 12px/1 'IBM Plex Sans',sans-serif`)}>{a.picked || a.existing ? "✓" : ""}</span>
+              <span style={sx("display:flex;flex-direction:column;gap:4px;min-width:0")}>
+                <span style={sx("font:500 14px/1.2 'IBM Plex Sans',sans-serif")}>{a.name}</span>
+                <span style={sx(`font:400 11px/1.2 'IBM Plex Sans',sans-serif;color:${a.noteColor}`)}>{a.noteMark && <>{a.noteMark} </>}{a.note}</span>
               </span>
+              <span style={sx("font:400 13px/1.2 'IBM Plex Sans',sans-serif;text-align:right")}>{a.me}</span>
+              <span style={sx("font:400 13px/1.2 'IBM Plex Sans',sans-serif;text-align:right")}>{a.cp}</span>
+              <span style={sx("font:500 13px/1.2 'IBM Plex Sans',sans-serif;text-align:right")}>{a.price}</span>
             </button>
           ))}
-          {v.addEmpty && <div style={sx("padding:16px;font:400 14px/1.4 'IBM Plex Sans',sans-serif;color:#64665c")}>Nothing matches. Everything in the catalogue may already be in your list.</div>}
+          {v.addEmpty && <div style={sx("padding:22px;font:400 14px/1.4 'IBM Plex Sans',sans-serif;color:#64665c")}>No catalogue ingredients match this search.</div>}
         </div>
-        <div style={sx("padding:12px 16px;border-top:1px solid #e2dfd6;display:flex;justify-content:space-between;align-items:center;gap:10px")}>
-          {v.addPickN > 0 ? <button onClick={v.clearAddPick} style={sx("border:0;background:transparent;font:500 13px/1 'IBM Plex Sans',sans-serif;color:#64665c;padding:0")}>Clear {v.addPickN} selected</button> : <span style={sx("font:400 13px/1 'IBM Plex Sans',sans-serif;color:#64665c")}>None selected</span>}
-          <div style={sx("display:flex;gap:10px")}>
-            <button onClick={v.closeAdd} style={sx("border:1px solid #d0cdc3;background:#fff;font:500 14px/1 'IBM Plex Sans',sans-serif;padding:11px 14px;border-radius:8px;color:#222420")}>Cancel</button>
-            <button onClick={v.addPicked} disabled={v.addPickN === 0} style={sx(`border:0;background:${v.addPickN ? "#2f5a3f" : "#a9b8ad"};color:#fff;font:600 14px/1 'IBM Plex Sans',sans-serif;padding:11px 16px;border-radius:8px`)}>{v.addCta}</button>
+        <div style={sx("padding:12px 20px;border-top:1px solid #e2dfd6;display:flex;justify-content:space-between;align-items:center;gap:14px;background:#faf8f3;flex-wrap:wrap")}>
+          <span style={sx("flex:1 1 260px;font:400 12px/1.45 'IBM Plex Sans',sans-serif;color:#64665c")}>{v.addFooter}</span>
+          {v.addPickN > 0 && <button onClick={v.clearAddPick} style={sx("border:0;background:transparent;font:500 12px/1 'IBM Plex Sans',sans-serif;color:#64665c;padding:8px 0")}>Clear</button>}
+          <button onClick={v.addPicked} disabled={v.addPickN === 0} style={sx(`border:0;background:${v.addPickN ? "#2f5a3f" : "#a9b8ad"};color:#fff;font:600 14px/1 'IBM Plex Sans',sans-serif;padding:12px 16px;border-radius:8px;white-space:nowrap`)}>{v.addCta}</button>
+        </div>
+      </div>
+    </>
+  );
+}
+
+function SwitchPremix({ v }: V) {
+  return (
+    <>
+      <div onClick={v.closePremix} style={sx("position:fixed;inset:0;background:rgba(34,36,32,.38);z-index:30")} />
+      <div role="dialog" aria-modal="true" aria-label="Switch premix" style={sx("position:fixed;top:6vh;left:0;right:0;margin:0 auto;width:min(655px,96vw);max-height:88vh;background:#fff;border-radius:14px;box-shadow:0 20px 60px rgba(0,0,0,.25);z-index:31;display:flex;flex-direction:column;overflow:hidden;animation:fsin .2s ease-out")}>
+        <div style={sx("padding:18px 20px 12px;display:flex;flex-direction:column;gap:12px")}>
+          <div style={sx("display:flex;justify-content:space-between;align-items:center;gap:12px")}>
+            <span style={sx("font:600 18px/1.2 'IBM Plex Sans',sans-serif")}>Switch premix</span>
+            <button onClick={v.closePremix} aria-label="Close premix selector" style={sx("border:0;background:transparent;color:#45473f;font:400 22px/1 'IBM Plex Sans',sans-serif;padding:0 2px")}>×</button>
+          </div>
+          {v.premixCurrent && (
+            <div style={sx("display:flex;justify-content:space-between;align-items:center;gap:12px;padding:11px 12px;background:#f6f4ee;border-radius:7px;font:400 12px/1.3 'IBM Plex Sans',sans-serif") }>
+              <span><b style={sx("font:500 9px/1 'IBM Plex Mono',monospace;color:#64665c;text-transform:uppercase;margin-right:9px")}>Now</b><strong style={sx("font-weight:600")}>{v.premixCurrent.name}</strong> · {v.premixCurrent.detail}</span>
+              <span style={sx(`flex:none;color:${v.premixCurrent.statusColor}`)}>◆ {v.premixCurrent.status}</span>
+            </div>
+          )}
+          <div style={sx("display:flex;gap:7px;align-items:center;overflow-x:auto;padding-bottom:1px;scrollbar-width:thin")}>
+            {v.premixFilterOpts.map((filter) => (
+              <button key={filter.key} onClick={filter.pick} style={sx(`flex:none;border:1px solid ${filter.active ? "#222420" : "#d0cdc3"};background:${filter.active ? "#222420" : "#fff"};color:${filter.active ? "#fff" : "#222420"};font:${filter.active ? "600" : "500"} 12px/1 'IBM Plex Sans',sans-serif;padding:8px 11px;border-radius:99px`)}>{filter.label} · {filter.count}</button>
+            ))}
+          </div>
+        </div>
+        <div style={sx("overflow-y:auto;display:flex;flex-direction:column;min-height:0;flex:1;border-top:1px solid #ece8df")}>
+          {v.premixRows.map((row) => (
+            <button key={row.id} onClick={row.pick} role="radio" aria-checked={row.selected} aria-disabled={row.disabled} className={`fs-premix-row ${row.disabled ? "" : hv("row")}`} style={sx(`border:0;border-bottom:1px solid #ece8df;border-left:3px solid ${row.selected ? "#2f5a3f" : "transparent"};background:${row.selected ? "#eef3ee" : "#fff"};display:grid;grid-template-columns:30px minmax(0,1fr) 62px 78px;gap:10px;align-items:center;text-align:left;padding:12px 18px;color:${row.disabled ? "#8d8a80" : "#222420"};cursor:${row.disabled ? "not-allowed" : "pointer"}`)}>
+              <span style={sx(`width:19px;height:19px;border-radius:50%;border:${row.selected ? "5px solid #2f5a3f" : "1.5px solid #8d8a80"};background:#fff`)} />
+              <span style={sx("display:flex;flex-direction:column;gap:5px;min-width:0")}>
+                <span style={sx("font:600 14px/1.2 'IBM Plex Sans',sans-serif")}>{row.name}</span>
+                <span style={sx("display:flex;gap:8px;flex-wrap:wrap;font:400 11px/1.2 'IBM Plex Sans',sans-serif;color:#64665c")}>
+                  <span style={sx(`color:${row.detailColor}`)}>● {row.application}</span><span>{row.detail}</span>{row.warning && <span style={sx("color:#a06310")}>▲ {row.warning}</span>}
+                </span>
+              </span>
+              <span style={sx("text-align:right;font:600 14px/1.2 'IBM Plex Sans',sans-serif")}>{row.dose}<small style={sx("display:block;font:400 10px/1.4 'IBM Plex Sans',sans-serif;color:#64665c")}>fixed</small></span>
+              <span style={sx("text-align:right;font:600 14px/1.2 'IBM Plex Sans',sans-serif")}>{row.price}<small style={sx("display:block;font:400 10px/1.4 'IBM Plex Sans',sans-serif;color:#64665c")}>/ t</small></span>
+            </button>
+          ))}
+          {v.premixEmpty && <div style={sx("padding:22px;font:400 14px/1.4 'IBM Plex Sans',sans-serif;color:#64665c")}>No other premix matches this filter.</div>}
+        </div>
+        <div style={sx("padding:13px 20px;border-top:1px solid #e2dfd6;display:flex;align-items:center;justify-content:space-between;gap:14px;background:#faf8f3;flex-wrap:wrap")}>
+          <span style={sx("flex:1 1 280px;font:400 12px/1.45 'IBM Plex Sans',sans-serif;color:#45473f")}>{v.premixFooter}</span>
+          <div style={sx("display:flex;gap:10px;margin-left:auto")}>
+            <button onClick={v.switchPremix} disabled={!v.premixPicked} style={sx(`border:1px solid #d0cdc3;background:#fff;color:${v.premixPicked ? "#222420" : "#8d8a80"};font:500 14px/1 'IBM Plex Sans',sans-serif;padding:12px 14px;border-radius:8px`)}>{v.premixPrimaryLabel}</button>
+            {v.showPremixRun && <button onClick={v.switchPremixAndRun} disabled={!v.premixPicked} style={sx(`border:0;background:${v.premixPicked ? "#2f5a3f" : "#a9b8ad"};color:#fff;font:600 14px/1 'IBM Plex Sans',sans-serif;padding:12px 16px;border-radius:8px`)}>Switch and re-formulate</button>}
           </div>
         </div>
       </div>

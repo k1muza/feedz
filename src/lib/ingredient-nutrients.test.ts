@@ -16,8 +16,8 @@ import {
 
 test("ingredient library is the single canonical ingredient dataset", () => {
   assert.equal(INGREDIENT_LIBRARY_SOURCE.schemaVersion, 2);
-  // 113 feedstuffs plus 6 manufacturer vitamin-mineral premixes.
-  assert.equal(INGREDIENT_LIBRARY_SOURCE.ingredients.length, 119);
+  // 113 feedstuffs plus 7 manufacturer vitamin-mineral premixes.
+  assert.equal(INGREDIENT_LIBRARY_SOURCE.ingredients.length, 120);
   assert.equal(INGREDIENT_LIBRARY.ingredients.length, 113);
   assert.ok(INGREDIENT_LIBRARY_SOURCE.ingredients.every((item) => item.provenance.source?.url && item.provenance.verificationStatus),
     "All canonical ingredient records must explicitly carry a source and verification status");
@@ -28,7 +28,7 @@ test("ingredient library is the single canonical ingredient dataset", () => {
 
 test("premixes live in the library but join a formulation only when selected", () => {
   const premixes = INGREDIENT_LIBRARY_SOURCE.ingredients.filter((ingredient) => ingredient.premix);
-  assert.equal(premixes.length, 6);
+  assert.equal(premixes.length, 7);
   assert.ok(premixes.every((ingredient) => ingredient.category === "vitamin_mineral_premix"));
   assert.deepEqual(PREMIX_RECORDS.map((record) => record.id), premixes.map((ingredient) => ingredient.id));
   assert.deepEqual(COMMERCIAL_PREMIXES.map((product) => product.id), premixes.map((ingredient) => ingredient.id));

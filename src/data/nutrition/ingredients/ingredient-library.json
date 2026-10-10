@@ -23951,6 +23951,160 @@
       }
     },
     {
+      "id": "aeci-v1736-pig-weaner-premix",
+      "name": "AECI V1736 — Pig Weaner premix",
+      "aliases": [
+        "AECI Pig Weaner",
+        "V1736",
+        "Irving's Africa Exports Pig Weaner"
+      ],
+      "category": "vitamin_mineral_premix",
+      "provenance": {
+        "source": {
+          "publisher": "AECI Animal Health",
+          "title": "AECI V1736 Pig Weaner — manufacturer bag label, batch 25254-07.2024",
+          "url": "https://www.aeciworld.net/animal-health.html",
+          "basis": "as-fed",
+          "priority": "supplier",
+          "note": "Nutrient specifications and dose were transcribed from the user-supplied new-premix.jpg bag-label photograph; the linked AECI page confirms the manufacturer but is not a product-specific datasheet."
+        },
+        "nutrientSources": {},
+        "notes": [
+          "Manufacturer bag-label values are unverified nutrient specifications, not a batch certificate of analysis."
+        ],
+        "verificationStatus": "manufacturer_unverified",
+        "profileBasis": "as-fed"
+      },
+      "premix": {
+        "manufacturer": "AECI Animal Health",
+        "sku": "V1736",
+        "species": "pig",
+        "application": "Weaner pigs",
+        "eligibleProgrammePrefixes": [
+          "nursery-pig"
+        ],
+        "inclusionPct": 1,
+        "inclusionKgPerTonne": 10,
+        "inclusionInstructions": "Use 10 kg per tonne of final feed. Do not feed undiluted; mix thoroughly with the basal ingredients.",
+        "verificationStatus": "unverified",
+        "formulationCompatibility": "unconfirmed",
+        "pricePerTonne": null,
+        "specificationUrl": "https://www.aeciworld.net/animal-health.html",
+        "publishedAnalysis": {
+          "zincMgKg": {
+            "min": 30000
+          },
+          "copperMgKg": {
+            "min": 1000
+          },
+          "vitaminAIuKg": {
+            "min": 5000000
+          }
+        },
+        "publishedGuarantees": [
+          {
+            "nutrient": "Vitamin A",
+            "unit": "IU/kg",
+            "min": 5000000
+          },
+          {
+            "nutrient": "Vitamin D3",
+            "unit": "IU/kg",
+            "min": 2000000
+          },
+          {
+            "nutrient": "Vitamin E (DL)",
+            "unit": "IU/kg",
+            "min": 10000
+          },
+          {
+            "nutrient": "Vitamin B3 (niacin)",
+            "unit": "g/kg",
+            "min": 15
+          },
+          {
+            "nutrient": "Vitamin B2 (riboflavin)",
+            "unit": "g/kg",
+            "min": 3
+          },
+          {
+            "nutrient": "Vitamin B6 (pyridoxine)",
+            "unit": "g/kg",
+            "min": 1
+          },
+          {
+            "nutrient": "Vitamin B1",
+            "unit": "g/kg",
+            "min": 1.5
+          },
+          {
+            "nutrient": "Vitamin K3",
+            "unit": "g/kg",
+            "min": 0.3
+          },
+          {
+            "nutrient": "Vitamin B12",
+            "unit": "g/kg",
+            "min": 0.015
+          },
+          {
+            "nutrient": "Zinc",
+            "unit": "g/kg",
+            "min": 30
+          },
+          {
+            "nutrient": "Manganese",
+            "unit": "g/kg",
+            "min": 15
+          },
+          {
+            "nutrient": "Iron",
+            "unit": "g/kg",
+            "min": 25
+          },
+          {
+            "nutrient": "Copper",
+            "unit": "g/kg",
+            "min": 1
+          },
+          {
+            "nutrient": "Iodine",
+            "unit": "g/kg",
+            "min": 0.3
+          }
+        ],
+        "guaranteedMinimumAsFed": {
+          "sourceUrl": "https://www.aeciworld.net/animal-health.html",
+          "vitamins": {
+            "vitaminAIuKg": 5000000,
+            "vitaminDIuKg": 2000000,
+            "vitaminEIuKg": 10000,
+            "vitaminKMgKg": 300,
+            "vitaminB1MgKg": 1500,
+            "riboflavinMgKg": 3000,
+            "vitaminB6MgKg": 1000,
+            "vitaminB12McgKg": 15000,
+            "niacinMgKg": 15000
+          },
+          "traceMineralsPpm": {
+            "zinc": 30000,
+            "iron": 25000,
+            "manganese": 15000,
+            "copper": 1000,
+            "iodine": 300,
+            "selenium": 50.2
+          }
+        },
+        "note": "Registration V1736 under Act 36 of 1947. The photographed label specifies 10 kg/t and a 20 kg pack (2 x 10 kg). No supplier price was provided.",
+        "notes": [
+          "The official AECI page confirms the manufacturer and premix business but does not publish a V1736 product specification; retain manufacturer-unverified status until a product datasheet or batch certificate is obtained.",
+          "The label's zero declarations and the unclear Vitamin B9/formulation-column entries are not treated as analytical structural zeros. Folic acid and digestible amino-acid values remain unknown.",
+          "Selenium is recorded at 50.2 mg/kg premix: the 0.502 mg/kg early-weaner inorganic supplementation level divided by the 1% premix inclusion. This is equivalent to 50.2 g selenium per tonne of premix and a 12.55% elemental-selenium source when 0.4 kg of selenium source is used per tonne of premix.",
+          "Vitamin and mineral figures are transcribed from the label's nutrient-specification column and treated conservatively as label guarantees, not exact analytical concentrations."
+        ]
+      }
+    },
+    {
       "id": "cj-s174-boar-premix",
       "name": "CJ Feed S174 — Breeding boar premix",
       "aliases": [

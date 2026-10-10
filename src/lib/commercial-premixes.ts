@@ -18,7 +18,7 @@ export type PremixMicronutrientProfile = {
 
 export type CommercialPremix = {
   id: string;
-  manufacturer: "Chengdu Sustar Feed" | "CJ (Tianjin) Feed";
+  manufacturer: "AECI Animal Health" | "Chengdu Sustar Feed" | "CJ (Tianjin) Feed";
   sku: string;
   name: string;
   species: "pig" | "broiler" | "layer";
@@ -61,9 +61,9 @@ export type CommercialPremix = {
   pricePerTonne: null;
   specificationUrl: string;
   publishedAnalysis: {
-    zincMgKg: { min: number; max: number };
-    copperMgKg: { min: number; max: number };
-    vitaminAIuKg: { min: number; max: number };
+    zincMgKg: { min: number; max?: number };
+    copperMgKg: { min: number; max?: number };
+    vitaminAIuKg: { min: number; max?: number };
   };
   note?: string;
   /** Data caveats recorded with the values, e.g. why a published figure isn't credited. */

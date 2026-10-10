@@ -81,6 +81,18 @@ export const STUDIO_CSS =
   ".fs-studio .fs-sidebar{overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:#45473f transparent}" +
   ".fs-studio .fs-sidebar::-webkit-scrollbar{width:8px}.fs-studio .fs-sidebar::-webkit-scrollbar-track{background:transparent}" +
   ".fs-studio .fs-sidebar::-webkit-scrollbar-thumb{background:#45473f;border-radius:8px;border:2px solid #222420}.fs-studio .fs-sidebar::-webkit-scrollbar-thumb:hover{background:#64665c}" +
+  // Ingredient selector and catalogue modal share exact column tracks.
+  ".fs-studio .fs-ingredient-grid{grid-template-columns:30px minmax(0,1fr) 205px 140px}" +
+  ".fs-studio .fs-add-grid{grid-template-columns:25px minmax(0,1fr) 70px 55px 62px}" +
+  "@media (max-width:720px){" +
+    ".fs-studio .fs-ingredient-grid{grid-template-columns:30px minmax(0,1fr)}" +
+    ".fs-studio .fs-ingredient-head>:nth-child(n+3){display:none}" +
+    ".fs-studio .fs-ingredient-grid>:nth-child(3),.fs-studio .fs-ingredient-grid>:nth-child(4){grid-column:2}" +
+    ".fs-studio .fs-add-grid{grid-template-columns:25px minmax(0,1fr) 62px}" +
+    ".fs-studio .fs-add-grid>:nth-child(3),.fs-studio .fs-add-grid>:nth-child(4){display:none}" +
+    ".fs-studio .fs-premix-row{grid-template-columns:25px minmax(0,1fr) 58px!important}" +
+    ".fs-studio .fs-premix-row>:nth-child(4){display:none}" +
+  "}" +
   "@keyframes fsspin{to{transform:rotate(360deg)}}" +
   "@keyframes fsin{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}" +
   Object.entries(HOVER)

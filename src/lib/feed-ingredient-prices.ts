@@ -59,6 +59,16 @@ export function ingredientImportPriceMultiplier(
  */
 export const INGREDIENT_DEFAULT_PRICES: readonly IngredientDefaultPrice[] = [
   {
+    ingredientId: "aeci-v1736-pig-weaner-premix",
+    usdPerTonne: 2200,
+    market: "Zimbabwe supplier price",
+    asOf: "2026-10-10",
+    sourceScope: "zimbabwe",
+    sourceLabel: "User-provided supplier price — AECI V1736 Pig Weaner",
+    note:
+      "User-provided price of USD 2.20/kg, stored as USD 2,200/t with no planning multiplier.",
+  },
+  {
     ingredientId: "cj-s174-boar-premix",
     usdPerTonne: 2550,
     market: "Alibaba China listing proxy",

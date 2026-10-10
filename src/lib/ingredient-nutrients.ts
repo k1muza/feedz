@@ -184,12 +184,12 @@ const premixMicronutrientProfileSchema = z
   })
   .strict();
 
-const rangeSchema = z.object({ min: z.number(), max: z.number() }).strict();
+const rangeSchema = z.object({ min: z.number(), max: z.number().optional() }).strict();
 
 /** A supplier product; its fields are documented on CommercialPremix. */
 const commercialPremixSchema = z
   .object({
-    manufacturer: z.enum(["Chengdu Sustar Feed", "CJ (Tianjin) Feed"]),
+    manufacturer: z.enum(["AECI Animal Health", "Chengdu Sustar Feed", "CJ (Tianjin) Feed"]),
     sku: z.string(),
     species: z.enum(["pig", "broiler", "layer"]),
     application: z.string(),
