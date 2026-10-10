@@ -1,70 +1,91 @@
 /**
- * Research-reference premix, NOT a FeedSport manufactured/commercial product.
- * Source: Yang et al. (2019), Animals 9(12):1154, Table 2, VTM Premix 2.
- * https://doi.org/10.3390/ani9121154
+ * FeedSport WeanerPro — provisional on-pack label transcription only.
  *
- * Concentrations represent the study's *formulated targets*, not a guaranteed
- * analysis or certificate of analysis. The paper studied storage stability and
- * explicitly describes nutrient losses over time.
+ * Physical source: user-supplied photograph of "PIG WEANER" bag from
+ * Irvine's Africa Exports / AECI Animal Health (registration V1736,
+ * Act No. 36/1947; labelled manufacturer Chanka Fine Chemicals, SA Premix).
  *
- * Important: The published 40,000 mg/kg is CHOLINE CHLORIDE, not 40,000 mg/kg
- * of elemental choline. Do not map it to totalCholineMgKg without establishing
- * the chemical composition and conversion basis.
+ * The photo specifies 10 kg per 1 tonne of finished feed. The nutrient table
+ * includes two numerical columns WITHOUT legible unit/basis headings. Thus the
+ * printed numbers must NOT be interpreted as IU/kg, mg/kg or kg/tonne.
  *
- * This research record deliberately does NOT enter COMMERCIAL_PREMIXES or
- * automatic ingredient selection. Studio may expose it as an explicitly
- * labelled research-reference choice, never as a purchasable product.
- * It requires technical review before real feeding or manufacturing.
+ * This is an attribution/reference record, NOT a FeedSport-produced product
+ * or a verified premix nutrient matrix. It must not be offered for optimization
+ * until the manufacturer clarifies column definitions, measurement basis and
+ * identity of choline and other source compounds.
  */
 export const FEEDSPORT_RESEARCH_PIGLET_VTM = {
+  // Retain the existing ID to keep saved formulation references resolvable.
   id: "feedsport-research-piglet-vtm-1pct",
   name: "FeedSport WeanerPro",
   category: "research_reference",
   species: "pig",
-  application: "Weanling piglets only",
+  application: "Pig weaner; manufacturer label does not specify a live-weight band",
   source: {
-    title: "Effects of Choline Chloride, Copper Sulfate and Zinc Oxide on Long-Term Stabilization of Microencapsulated Vitamins in Premixes for Weanling Piglets",
-    authors: "Yang et al.",
-    year: 2019,
-    doi: "10.3390/ani9121154",
-    url: "https://pmc.ncbi.nlm.nih.gov/articles/PMC6941071/",
-    table: "Table 2 — VTM Premix 2",
+    title: "Pig Weaner — bag nutrient specification (photograph supplied by user)",
+    authors: "AECI Animal Health / Irvine's Africa Exports",
+    year: 2025,
+    doi: "",
+    // Internal transcript and provenance notes, NOT an original manufacturer PDF.
+    url: "https://github.com/k1muza/feedz/blob/main/src/lib/research-premixes.ts",
+    table: "PIG WEANER label; registration V1736, Act 36/1947",
   },
   inclusionPct: 1,
   inclusionKgPerTonne: 10,
-  valuesBasis: "formulated_study_target_not_supplier_guarantee",
+  valuesBasis: "printed_label_columns_units_and_basis_unconfirmed",
   allowedForCommercialFormulation: false,
-  vitamins: {
-    vitaminAIuKg: 1_350_000,
-    vitaminDIuKg: 300_000,
-    vitaminEIuKg: 3_000,
-    vitaminKMgKg: 300,
-    vitaminB1MgKg: 300,
-    riboflavinMgKg: 600,
-    vitaminB6MgKg: 300,
-    vitaminB12McgKg: 2_400,
-    niacinMgKg: 3_000,
-    pantothenicAcidMgKg: 1_800,
-    folicAcidMgKg: 12,
-    biotinMgKg: 3,
-  },
-  /** Compound declaration from the paper; not an elemental-choline guarantee. */
-  cholineChlorideMgKg: 40_000,
-  /** Reported trace-mineral amounts in mg/kg of research premix. */
-  traceMineralsPpm: {
-    copper: 500,
-    iodine: 14,
-    iron: 10_000,
-    manganese: 300,
-    selenium: 25,
-    zinc: 8_000,
+  /** NO values are credited to the optimizer until their units and basis are confirmed. */
+  vitamins: {},
+  traceMineralsPpm: {},
+  /** Literal on-pack first-column transcription. Unit, denominator and the
+   * second column's role have NOT been established; these are NOT engine data.
+   * Suspect/unclear rows are omitted rather than silently repaired.
+   */
+  photographedLabel: {
+    productName: "PIG WEANER",
+    distributor: "Irvine's Africa Exports",
+    brandOnLabel: "AECI Animal Health",
+    registration: "V1736 (Act No. 36/1947)",
+    declaredInclusion: "10Kgs Per 1 Tonne Of Final Feed",
+    leftColumnBasis: "unknown",
+    rightColumnBasis: "unknown",
+    declaredRows: [
+      { name: "Vitamin A", firstColumn: "5.000.000" },
+      { name: "Vitamin D3", firstColumn: "2.000.000" },
+      { name: "Vitamin E (DL)", firstColumn: "10.000" },
+      { name: "Vitamin B4 (Choline)", firstColumn: "0.0000" },
+      { name: "Vitamin B3 (Niacin)", firstColumn: "15.0000" },
+      { name: "Vitamin B2", firstColumn: "3.0000" },
+      { name: "Vitamin B6 (Pyridoxine)", firstColumn: "1.00" },
+      { name: "Vitamin B1", firstColumn: "1.5000" },
+      { name: "Vitamin K3", firstColumn: "0.3000" },
+      { name: "Vitamin H (D-Biotin)", firstColumn: "0.0000" },
+      { name: "Vitamin B12", firstColumn: "0.0150" },
+      { name: "Vitamin C (Ascorbic Acid)", firstColumn: "0.0000" },
+      { name: "Zinc (zinc oxide)", firstColumn: "30.000" },
+      { name: "Manganese (oxide)", firstColumn: "15.000" },
+      { name: "Iron (iron sulphate)", firstColumn: "25.0000" },
+      { name: "Copper (copper sulphate)", firstColumn: "1.0000" },
+      { name: "Magnesium (oxide)", firstColumn: "0.0000" },
+      { name: "Iodine", firstColumn: "0.3000" },
+      { name: "Sodium", firstColumn: "0.000" },
+      { name: "L-Threonine", firstColumn: "98.5%" },
+      { name: "Phytase", firstColumn: "10000" },
+    ],
+    missingOrAmbiguousRows: [
+      "Vitamin B9: numeric value unclear on the photograph",
+      "Magnesium/L-lysine area: row alignment and numeric meaning unclear",
+      "Second numeric column: may represent a different measure or ingredient grade; no headers visible",
+      "No unambiguous selenium, pantothenic acid, or vitamin activity basis could be established",
+    ],
   },
   limitations: [
-    "Research premix for weanling piglets, not a grower-finisher or sow premix.",
-    "Not for sale, not a supplier formulation, and not batch-verified.",
-    "Source quantities are nominal study formulations; vitamin retention declines during storage.",
-    "Choline chloride quantity must not be represented as measured elemental or total choline.",
-    "The study does not validate FeedSport's own manufacturing process or complete-feed recipe.",
+    "This is an AECI/Irvine's Pig Weaner bag label, not a formula developed or manufactured by FeedSport.",
+    "The label's two numerical columns and units cannot be unambiguously interpreted from the photograph.",
+    "A printed zero is not a verified absence of that nutrient; missing source values remain unknown.",
+    "The earlier Yang et al. (2019) research matrix has been removed; do not mix its values with this label.",
+    "Not selectable for formulation until the manufacturer supplies a complete as-fed specification with units and definitions.",
+    "Do not manufacture or feed using this provisional transcription.",
   ],
 } as const;
 
@@ -217,7 +238,8 @@ export function researchPremixCompatibleWithPhase(
   phaseId: string,
 ): boolean {
   if (premix.id === FEEDSPORT_RESEARCH_PIGLET_VTM.id) {
-    return programmeId.startsWith("nursery-pig");
+    // The photographed AECI label lacks a verified nutrient matrix and live-weight range.
+    return false;
   }
   if (!GROW_FINISH_PROGRAMME_PREFIXES.some((prefix) => programmeId.startsWith(prefix))) return false;
   if (premix.id === FEEDSPORT_GROWER_PRO.id) return /-63-91d-/.test(phaseId);
