@@ -28,7 +28,7 @@ describe("Manufacturer-backed commercial premix catalogue", () => {
     }
   });
 
-  test("retains the AECI V1736 bag-label guarantees at the labelled 10 kg/t dose", () => {
+  test("preserves all photographed AECI V1736 label rows without assuming per-kg guarantees", () => {
     const product = commercialPremixById("aeci-v1736-pig-weaner-premix");
     assert.ok(product);
     assert.equal(product.manufacturer, "AECI Animal Health");
@@ -37,31 +37,25 @@ describe("Manufacturer-backed commercial premix catalogue", () => {
     assert.equal(product.inclusionKgPerTonne, 10);
     assert.equal(commercialPremixCompatibleWithProgramme(product, "nursery-pig"), true);
     assert.equal(commercialPremixCompatibleWithProgramme(product, "grow-finish-pig"), false);
-    assert.deepEqual(product.guaranteedMinimumAsFed, {
-      sourceUrl: "https://www.aeciworld.net/animal-health.html",
-      vitamins: {
-        vitaminAIuKg: 5_000_000,
-        vitaminDIuKg: 2_000_000,
-        vitaminEIuKg: 10_000,
-        vitaminKMgKg: 300,
-        vitaminB1MgKg: 1_500,
-        riboflavinMgKg: 3_000,
-        vitaminB6MgKg: 1_000,
-        vitaminB12McgKg: 15_000,
-        niacinMgKg: 15_000,
-      },
-      traceMineralsPpm: {
-        zinc: 30_000,
-        iron: 25_000,
-        manganese: 15_000,
-        copper: 1_000,
-        iodine: 300,
-      },
-    });
-    const contributions = premixFinishedFeedContributions(product);
-    assert.equal(contributions.find((item) => item.nutrient === "Vitamin A")?.finishedFeedContribution, 50_000);
-    assert.equal(contributions.find((item) => item.nutrient === "Zinc")?.finishedFeedContribution, 300);
-    assert.equal(contributions.find((item) => item.nutrient === "Selenium"), undefined, "Selenium must remain unknown until supplier analysis is obtained.");
+    const printed = product.labelTranscription;
+    assert.ok(printed);
+    assert.equal(printed.rows.length, 24);
+    assert.equal(printed.firstColumnHeading, "not visible");
+    assert.equal(printed.secondColumnHeading, "not visible");
+    const get = (name: string) => printed.rows.find((row) => row.label === name);
+    assert.equal(get("VIT A")?.column1Raw, "5.000.000");
+    assert.equal(get("VIT B4 (CHLORIDE)")?.column2Raw, "500.000g");
+    assert.equal(get("VIT B9")?.column1Raw, "0000.1");
+    assert.equal(get("VIT H (D BIOTIN)")?.column2Raw, "0.2000g");
+    assert.equal(get("MAGNESIUM [as printed]")?.column1Raw, "78% L.LYSINE");
+    assert.equal(get("NSP ENZYME (GLUCANASE)")?.category, "additives");
+    assert.equal(get("PHYTASE")?.column1Raw, "10000");
+
+    assert.equal(product.guaranteedMinimumAsFed, undefined);
+    assert.equal(product.publishedGuarantees, undefined);
+    assert.equal(product.publishedAnalysis, undefined);
+    assert.deepEqual(premixFinishedFeedContributions(product), [],
+      "Unheaded label values must not be credited as finished-feed nutrients.");
   });
 
   test("selects the stage-specific commercial product, never one universal premix", () => {
