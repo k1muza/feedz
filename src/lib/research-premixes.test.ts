@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import { FEEDSPORT_RESEARCH_PIGLET_VTM as premix } from "./research-premixes";
 
-describe("FeedSport research piglet VTM reference", () => {
+describe("FeedSport MaxPro research reference", () => {
   test("matches Yang et al. Table 2 VTM Premix 2", () => {
     assert.equal(premix.source.doi, "10.3390/ani9121154");
     assert.equal(premix.source.table, "Table 2 — VTM Premix 2");
