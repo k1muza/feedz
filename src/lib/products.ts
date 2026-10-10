@@ -3,6 +3,7 @@ import 'server-only';
 import { cache } from 'react';
 import { productCategories as fallbackCategories, resolveFeedProductId, type FeedProductCatalogItem } from '@/data/feedProducts';
 import { enrichProduct, feedProducts as fallbackProducts } from '@/data/feedProductNutrition';
+import { PUBLIC_PREMIX_ID } from '@/lib/public-feed-premix';
 import type { FeedProduct } from '@/data/feedProducts';
 import type { ProductCategory } from '@/types';
 import { formatKg } from '@/lib/product-units';
@@ -61,12 +62,15 @@ function rowToCatalogItem(row: PublicProductRow): FeedProductCatalogItem {
 
 /** Public catalogue rows from Supabase, enriched with technical values from JSON. */
 export const getPublishedProducts = cache(async (): Promise<FeedProduct[]> => {
-  if (!isSupabaseConfigured) return fallbackProducts;
+  if (!isSupabaseConfigured) return fallbackProducts.filter((product) => product.id !== 'premix');
 
   const { data, error } = await createPublicClient()
     .from('products')
     .select('id, nutrition_ingredient_id, name, description, status, animals, grade_fallback, packaging, price, currency, pack_size_kg, stock, moq_kg, certifications, images, shipping, image_label, origin, product_categories!inner(name, slug)')
     .eq('active', true)
+    // Never publicly list the retired generic premix, even if its DB migration has not run.
+    .neq('id', 'premix')
+    .neq('nutrition_ingredient_id', PUBLIC_PREMIX_ID)
     .order('name');
 
   if (error) {
@@ -75,6 +79,8 @@ export const getPublishedProducts = cache(async (): Promise<FeedProduct[]> => {
   }
 
   return (data as unknown as PublicProductRow[]).flatMap((row) => {
+    // Defence in depth for stale database rows or future changes to the query.
+    if (row.id === 'premix' || row.nutrition_ingredient_id === PUBLIC_PREMIX_ID) return [];
     try {
       return [{
         ...enrichProduct(rowToCatalogItem(row)),
