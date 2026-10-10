@@ -30,7 +30,7 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(itemListJsonLd) }} />
-      <ProductsClient products={products} categories={categories} initialQuery={query.q || ''} initialAnimal={query.animal || 'all'} initialCategory={query.category || 'All'} />
+      <ProductsClient key={`${query.q || ''}|${query.animal || 'all'}|${query.category || 'All'}`} products={products} categories={categories} initialQuery={query.q || ''} initialAnimal={query.animal || 'all'} initialCategory={query.category || 'All'} />
     </>
   );
 }
