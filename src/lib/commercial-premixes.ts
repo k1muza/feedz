@@ -60,12 +60,29 @@ export type CommercialPremix = {
   /** Confirmed supplier quotation. Alibaba-derived planning defaults live in feed-ingredient-prices. */
   pricePerTonne: null;
   specificationUrl: string;
-  publishedAnalysis: {
+  publishedAnalysis?: {
     zincMgKg: { min: number; max?: number };
     copperMgKg: { min: number; max?: number };
     vitaminAIuKg: { min: number; max?: number };
   };
   note?: string;
+  /** Uninterpreted, unheaded label columns. Never used as formulation nutrients. */
+  labelTranscription?: {
+    source: string;
+    batch: string;
+    inclusionPrinted: string;
+    firstColumnHeading: string;
+    secondColumnHeading: string;
+    basis: string;
+    rows: readonly {
+      category: "vitamins" | "minerals" | "additives";
+      label: string;
+      column1Raw: string | null;
+      column2Raw: string | null;
+      uncertain?: boolean;
+    }[];
+    cautions: readonly string[];
+  };
   /** Data caveats recorded with the values, e.g. why a published figure isn't credited. */
   notes?: readonly string[];
 };
