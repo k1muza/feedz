@@ -320,7 +320,7 @@ export async function formulate(snap: Snapshot, ctx: EngineContext): Promise<For
   const active = Object.keys(snap.pool).filter((id) => snap.pool[id].role !== "excluded");
   const errs: Issue[] = [];
   const warns: Issue[] = [];
-  for (const message of studioPremixProblems(snap.pool, snap.programmeId)) {
+  for (const message of studioPremixProblems(snap.pool, snap.programmeId, snap.phaseId)) {
     errs.push({ title: "Invalid premix selection", body: message });
   }
   const realPremix = active.map(commercialPremixById).find((product) => product !== undefined);
