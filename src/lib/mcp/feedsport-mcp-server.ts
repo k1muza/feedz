@@ -47,7 +47,7 @@ Premix workflow: search_ingredients with category="vitamin_mineral_premix" and a
 
 Rules:
 - Never invent or adjust feed recipes, nutrient values, supplier prices or requirement figures; report FeedSport tool results as returned.
-- The theoretical premix public-premix-salt-additives and generic aliases such as "premix" are RETIRED. They will be rejected; do not send them.
+- Generic premix aliases such as "premix" are rejected; always name a manufacturer SKU.
 - Mature boars may use CJ Feed S174 (4% fixed inclusion), but ONLY with CJ's published ingredient ratios: maize 64.3%, wheat bran 12%, soybean meal 15.7%, fish meal 4%, S174 4%. Do not assign sow-only X913 or permit arbitrary changes to the supplier ratios. Growing entire/immunocastrated males use the grower/finisher premix GlyPro X912.
 - Commercial premix dosage is fixed at the manufacturer's published inclusion for the SKU. Never alter that dose or substitute a premix across species.
 - Supplier label minima are credited conservatively at the SKU's fixed dose, with their provenance, and count towards vitamin and trace-mineral targets. A nutrient the label does not declare remains unknown; it is never treated as zero or as a pass.

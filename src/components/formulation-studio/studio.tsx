@@ -11,8 +11,8 @@ import { isSupabaseConfigured, supabaseKey, supabaseUrl } from "@/lib/supabase/c
 import type { CatalogueIngredient, CatalogueNutrientId } from "@/lib/studio-catalogue";
 import type { StudioNutrientData } from "@/lib/studio-nutrients";
 import type { StudioProgrammeData } from "@/lib/studio-programmes";
-import { canAddStudioIngredient, selectStudioIngredient, poolWithPremixPrice, poolWithProgrammePremix, poolWithoutPremix } from "@/lib/studio-commercial-premix";
-import { commercialPremixById } from "@/lib/commercial-premixes";
+import { canAddStudioIngredient, selectStudioIngredient, poolWithCarriedPremixSelection, poolWithPremixPrice, poolWithPremixSelection, poolWithProgrammePremix, poolWithoutPremix } from "@/lib/studio-commercial-premix";
+import { commercialPremixById, commercialPremixCompatibleWithProgramme } from "@/lib/commercial-premixes";
 import {
   FORMULATION_VERDICT_LABELS,
   micronutrientAssessmentGroups,
@@ -248,8 +248,14 @@ interface State {
   advisoriesOpen: boolean;
   addOpen: boolean;
   addQ: string;
+  /** Category selected in the catalogue picker; null shows every category. */
+  addCategory: string | null;
   /** Catalogue ids ticked in the add-ingredient picker, in the order ticked. */
   addPick: string[];
+  /** Dedicated selector for replacing the formulation's commercial premix. */
+  premixOpen: boolean;
+  premixFilter: "matches" | "species" | "documented";
+  premixPick: string | null;
   mode: "optimised" | "manual";
   manual: Record<string, string>;
   manualCheck: (ManualCheck & { sig: string }) | null;
@@ -479,7 +485,7 @@ const guidedStart = (s: State, programmes: StudioProgrammeData): Partial<State> 
 
 // What entering a route does to the current state. `run` asks for a
 // formulation run; `redirect` replaces a URL that points at nothing.
-const AUTH_RESET: Partial<State> = { aErr: {}, aBusy: false, aGoogleBusy: false, aSent: null, drawer: null, advisoriesOpen: false, addOpen: false, rulesOpen: false };
+const AUTH_RESET: Partial<State> = { aErr: {}, aBusy: false, aGoogleBusy: false, aSent: null, drawer: null, advisoriesOpen: false, addOpen: false, premixOpen: false, rulesOpen: false };
 
 interface RouteContext {
   programmes: StudioProgrammeData;
@@ -613,6 +619,7 @@ const nutrientShortName = (check: { label: string }) => {
   const s = check.label.replace(/^(supplemented|total)\s+/i, "");
   return s.charAt(0).toUpperCase() + s.slice(1);
 };
+const shortName = (name: string) => name.split(" — ")[0];
 const lowerFirstName = (name: string) => name.replace(/^[A-Z](?![A-Z0-9])/, (c) => c.toLowerCase());
 const joinWords = (words: string[]) => (words.length < 2 ? words[0] ?? "" : words.slice(0, -1).join(", ") + " and " + words[words.length - 1]);
 const nutVal = (n: { unit: string; dp: number }, v: number) => (n.unit === "%" ? fmt(v, n.dp) + "%" : fmt(v, n.dp) + " " + n.unit);
@@ -646,7 +653,7 @@ function draftErr(d: Draft, fs: number) {
 }
 
 const INITIAL: State = {
-  w: 1400, screen: "home", step: 1, species: "swine", programmeId: DEFAULT_PROGRAMME, phaseId: "", setKey: "none", setupListId: null, pool: {}, goal: "least_cost", batch: 100, batchMode: "100", customBatch: "", unit: "t", docName: "Untitled formulation", docId: null, pendingDoc: null, pendingCmp: null, result: null, runSig: null, runSnap: null, running: false, runToken: 0, tab: "recipe", drawer: null, advisoriesOpen: false, addOpen: false, addQ: "", addPick: [], mode: "optimised", manual: {}, manualCheck: null, rulesOpen: false, history: [], sel: [], cmp: null, toast: null, dismissed: {}, savedSig: null, saving: false, exporting: false, suggestion: null, completionSuggestion: null, rescueTrials: null, recoveryUndo: null, ingQ: "", catQ: "", catSel: null, catPage: 1, catPageSize: CAT_DEFAULT_PAGE_SIZE, progSel: null, progPhase: null, progAllLimits: false, addTarget: "pool", auth: null, authNext: null, af: { email: "", password: "", name: "", org: "", role: "farmer" }, aShow: false, aErr: {}, aBusy: false, aGoogleBusy: false, aSent: null, myListSel: null, listRename: null, listCreate: null, sq: "", sOpen: false, sIdx: 0, uOpen: false, nOpen: false, featFilter: "all", cOpen: false, cTopic: "review", cPhone: "", cMsg: "", cAttach: true, cBusy: false, cSent: false, cErr: "",
+  w: 1400, screen: "home", step: 1, species: "swine", programmeId: DEFAULT_PROGRAMME, phaseId: "", setKey: "none", setupListId: null, pool: {}, goal: "least_cost", batch: 100, batchMode: "100", customBatch: "", unit: "t", docName: "Untitled formulation", docId: null, pendingDoc: null, pendingCmp: null, result: null, runSig: null, runSnap: null, running: false, runToken: 0, tab: "recipe", drawer: null, advisoriesOpen: false, addOpen: false, addQ: "", addCategory: null, addPick: [], premixOpen: false, premixFilter: "matches", premixPick: null, mode: "optimised", manual: {}, manualCheck: null, rulesOpen: false, history: [], sel: [], cmp: null, toast: null, dismissed: {}, savedSig: null, saving: false, exporting: false, suggestion: null, completionSuggestion: null, rescueTrials: null, recoveryUndo: null, ingQ: "", catQ: "", catSel: null, catPage: 1, catPageSize: CAT_DEFAULT_PAGE_SIZE, progSel: null, progPhase: null, progAllLimits: false, addTarget: "pool", auth: null, authNext: null, af: { email: "", password: "", name: "", org: "", role: "farmer" }, aShow: false, aErr: {}, aBusy: false, aGoogleBusy: false, aSent: null, myListSel: null, listRename: null, listCreate: null, sq: "", sOpen: false, sIdx: 0, uOpen: false, nOpen: false, featFilter: "all", cOpen: false, cTopic: "review", cPhone: "", cMsg: "", cAttach: true, cBusy: false, cSent: false, cErr: "",
 };
 
 const spinnerStyle = (track: string, head: string): CSSProperties => ({ width: 16, height: 16, borderRadius: "50%", border: "2px solid " + track, borderTopColor: head, display: "inline-block", animation: "fsspin .8s linear infinite", flex: "none" });
@@ -675,7 +682,7 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
 
   // Starting a run only bumps the token; the effect below solves whatever the
   // state is once that render lands, so a run always sees the latest settings.
-  const run = useCallback(() => update((s) => ({ running: true, runToken: s.runToken + 1, drawer: null, advisoriesOpen: false, rulesOpen: false })), [update]);
+  const run = useCallback(() => update((s) => ({ running: true, runToken: s.runToken + 1, drawer: null, advisoriesOpen: false, addOpen: false, premixOpen: false, rulesOpen: false })), [update]);
   useEffect(() => {
     if (!S.running) return;
     const token = S.runToken;
@@ -919,11 +926,12 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
   useEffect(() => {
     if (S.screen !== "setup" || S.step !== 2 || S.setKey !== "none" || !listsKnown) return;
     const list = myLists.lists[0] ?? null; // the default list comes first
-    if (list) update({ setKey: "list", setupListId: list.id, pool: poolWithProgrammePremix(poolFromList(list), S.programmeId), ingQ: "" });
+    if (list) update((s) => ({ setKey: "list", setupListId: list.id, pool: poolWithCarriedPremixSelection(poolFromList(list), s.pool, s.programmeId), ingQ: "" }));
     else
       update((s) => {
         const ready = s.suggestion?.status === "ready" && s.suggestion.key === s.programmeId + "|" + s.phaseId ? s.suggestion.ids : [];
-        return { setKey: "system", pool: poolWithProgrammePremix(Object.fromEntries(ready.map((id) => [id, { role: "available" as Role }])), s.programmeId), ingQ: "" };
+        const nextPool = Object.fromEntries(ready.map((id) => [id, { role: "available" as Role }]));
+        return { setKey: "system", pool: poolWithCarriedPremixSelection(nextPool, s.pool, s.programmeId), ingQ: "" };
       });
     // The step, the source still being unpicked and the lists arriving decide this.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -944,7 +952,8 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
           const ids = data.status === "suggested" && data.ingredientIds ? data.ingredientIds.filter((id) => catalogueById.has(id)) : [];
           const suggestion: Suggestion = { key: suggestionKey, status: data.status === "suggested" ? "ready" : "error", ids };
           // Already showing the suggested list? Refresh it for the new stage.
-          return s.setKey === "system" ? { suggestion, pool: poolWithProgrammePremix(Object.fromEntries(ids.map((id) => [id, { role: "available" as Role }])), s.programmeId) } : { suggestion };
+          const nextPool = Object.fromEntries(ids.map((id) => [id, { role: "available" as Role }]));
+          return s.setKey === "system" ? { suggestion, pool: poolWithCarriedPremixSelection(nextPool, s.pool, s.programmeId) } : { suggestion };
         }),
       )
       .catch(() => update((s) => (s.suggestion?.key === suggestionKey ? { suggestion: { key: suggestionKey, status: "error", ids: [] } } : {})));
@@ -1079,7 +1088,7 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
     const p = e.price != null && e.price !== "" ? (S.unit === "t" ? +e.price : +e.price / 1000) : null;
     const isF = e.role === "fixed";
     update({ advisoriesOpen: false });
-    update({ addOpen: false, drawer: { id, min: isF ? String(e.fixed) : e.role === "required" ? String(e.min ?? "") : "", max: isF ? String(e.fixed) : String(e.max ?? ""), price: p == null ? "" : String(+p.toFixed(4)), unit: S.unit } });
+    update({ addOpen: false, premixOpen: false, drawer: { id, min: isF ? String(e.fixed) : e.role === "required" ? String(e.min ?? "") : "", max: isF ? String(e.fixed) : String(e.max ?? ""), price: p == null ? "" : String(+p.toFixed(4)), unit: S.unit } });
   };
   const applyDraft = (rerun: boolean) => {
     const d = S.drawer;
@@ -1105,7 +1114,7 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
     const price = d.price === "" ? undefined : d.unit === "t" ? +d.price : +d.price * 1000;
     const product = commercialPremixById(d.id);
     if (product) {
-      // Price is editable but supplier dose / whole-recipe policy is not.
+      // Price is editable but the supplier dose is not.
       update((state) => {
         const included: Pool = { ...state.pool, [d.id]: { role: "fixed", fixed: product.inclusionPct } };
         return { pool: poolWithPremixPrice(included, d.id, state.programmeId, price), drawer: null };
@@ -1150,17 +1159,21 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
   const ingredientName = (id: string) => catalogueById.get(id)?.name ?? id;
   const addIng = (id: string) => {
     if (!canAddStudioIngredient(id, S.programmeId, S.pool)) {
-      flash(commercialPremixById(id) ? ingredientName(id) + " is not eligible for " + P.name + "." : "This ingredient is not allowed with the fixed manufacturer recipe.");
+      flash(commercialPremixById(id) ? ingredientName(id) + " is not eligible for " + P.name + " · " + PH.label + "." : "This ingredient is not allowed with the fixed manufacturer recipe.");
       return;
     }
     update((state) => ({ pool: selectStudioIngredient(state.pool, id, state.programmeId) }));
     flash(commercialPremixById(id)
-      ? ingredientName(id) + " selected as the fixed manufacturer premix"
+      ? ingredientName(id) + " selected at its fixed premix dose"
       : ingredientName(id) + " added as Available");
   };
   const toggleAddPick = (id: string) => { if (canAddStudioIngredient(id, S.programmeId, S.pool)) update((state) => ({ addPick: state.addPick.includes(id) ? state.addPick.filter((x) => x !== id) : [...state.addPick, id] })); };
   const addPicked = () => {
     const ids = S.addPick.filter((id) => canAddStudioIngredient(id, S.programmeId, S.pool));
+    if (ids.filter((id) => commercialPremixById(id)).length > 1) {
+      flash("Choose one premix at a time.");
+      return;
+    }
     if (ids.some((id) => commercialPremixById(id)?.manufacturerRecipe) && ids.length > 1) {
       flash("Select a manufacturer-restricted premix by itself; its recipe is fixed.");
       return;
@@ -1188,10 +1201,14 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
     if (!ids.length) return;
     update((state) => ({
       pool: ids.reduce((pool, id) =>
-        pool[id] ? pool : selectStudioIngredient(pool, id, state.programmeId), state.pool),
+        commercialPremixById(id) || !pool[id]
+          ? selectStudioIngredient(pool, id, state.programmeId)
+          : pool, state.pool),
     }));
     flash(
-      ids.length === 1
+      ids.length === 1 && commercialPremixById(ids[0])
+        ? ingredientName(ids[0]) + " replaced the current premix at its fixed dose"
+        : ids.length === 1
         ? ingredientName(ids[0]) + " added as Available"
         : ids.length + " recommended ingredients added as Available",
     );
@@ -1431,7 +1448,6 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
     return { programmeId: programme.id, phaseId: programme.phases[0].id,
       species: programme.species, pool: poolWithProgrammePremix(S.pool, programme.id), recoveryUndo: null };
   };
-
   // ---- setup ----
   // Step 2 lists the chosen ingredients by category: tick what you have, set
   // your price inline, open Limits for min/max/fixed. Searching also offers
@@ -1452,13 +1468,18 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
       const planning = g?.price?.usdPerTonne ?? null;
       const incomplete = !!g && !commercialPremixById(id) && g.expected.some((n) => g.nutrients[n] == null);
       const noPrice = !user && planning == null;
-      const isPremix = !!commercialPremixById(id);
+      const premix = commercialPremixById(id);
+      const isPremix = !!premix;
       return {
         id, cat: g?.category ?? "Other", name: g?.name ?? id,
         check: on ? "✓" : "", cbBg: on ? "#2f5a3f" : "#fff", cbBd: on ? "#2f5a3f" : "#b9b6ab", cbLabel: (on ? "Untick " : "Tick ") + (g?.name ?? id), deco: on ? "none" : "line-through", opacity: on ? "1" : "0.55",
-        hasNote: noPrice || incomplete,
-        note: noPrice ? isPremix ? "Supplier quote optional; displayed cost excludes this premix" : "No planning price — enter yours" : "Some nutrient data is missing — it may be set aside for this stage",
-        noteColor: noPrice ? "#a63d2a" : "#8a5f18",
+        hasNote: isPremix || noPrice || incomplete,
+        note: isPremix
+          ? premix.application + " · supplier dose " + premix.inclusionKgPerTonne + " kg/t"
+          : noPrice
+            ? "No planning price — enter yours"
+            : "Some nutrient data is missing — it may be set aside for this stage",
+        noteColor: isPremix ? "#8a5f18" : noPrice ? "#a63d2a" : "#8a5f18",
         price: user ? String(e.price) : "", pricePh: planning != null ? String(Math.round(planning)) : isPremix ? "Optional quote" : "Required", tag: user ? "YOURS" : planning != null ? "DEFAULT" : "", tagFg: user ? "#8a5f18" : "#8d8a80",
         onPrice: (ev: InputEvent) => {
           const value = ev.target.value;
@@ -1483,15 +1504,29 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
             }
             const pool = { ...s.pool, [id]: cur };
             // Re-ticking a premix restores its dose, or CJ's whole recipe.
-            return { pool: commercialPremixById(id) && canAddStudioIngredient(id, s.programmeId) ? selectStudioIngredient(pool, id, s.programmeId) : pool };
+            return { pool: commercialPremixById(id)
+              ? poolWithPremixSelection(pool, s.programmeId, id)
+              : pool };
           }),
         limits: limitTxt(e),
         open: () => openDrawer(id),
       };
     });
-  // Catalogue categories in the order a feed is usually built.
-  const CAT_ORDER = ["Cereal", "Protein meal", "By-product", "Oil and fat", "Mineral", "Amino acid", "Premix", "Other"];
-  const ingGroups = [...CAT_ORDER, ...new Set(ingRows.map((r) => r.cat).filter((c) => !CAT_ORDER.includes(c)))].map((cat) => ({ cat, rows: ingRows.filter((r) => r.cat === cat) })).filter((g) => g.rows.length);
+  // Keep the fixed premix visible before the basal ingredient groups.
+  const CAT_ORDER = ["Premix", "Cereal", "Protein meal", "By-product", "Oil and fat", "Mineral", "Amino acid", "Other"];
+  const ingGroups = [...CAT_ORDER, ...new Set(ingRows.map((r) => r.cat).filter((c) => !CAT_ORDER.includes(c)))].map((cat) => {
+    const rows = ingRows.filter((r) => r.cat === cat);
+    const count = rows.filter((row) => !!row.check).length;
+    return {
+      cat,
+      rows,
+      count,
+      action: cat === "Premix" ? "⇄ Switch premix" : "+ Add " + cat.toLowerCase(),
+      open: () => cat === "Premix"
+        ? update({ premixOpen: true, premixFilter: "matches", premixPick: null, addOpen: false })
+        : update({ addOpen: true, addQ: "", addCategory: cat, addPick: [], addTarget: "pool", premixOpen: false, advisoriesOpen: false }),
+    };
+  }).filter((g) => g.rows.length);
   const catMatches = iq
     ? catalogue
         .filter((g) => canAddStudioIngredient(g.id, S.programmeId, S.pool) && !S.pool[g.id] && matchesQuery(g, g.id))
@@ -1506,9 +1541,18 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
       ? S.completionSuggestion
       : null;
   const completionIds = completion?.status === "ready" ? completion.ids : [];
+  const alternativePremixIds = catalogue
+    .filter((ingredient) =>
+      !!commercialPremixById(ingredient.id) &&
+      canAddStudioIngredient(ingredient.id, S.programmeId, S.pool) &&
+      (!S.pool[ingredient.id] || S.pool[ingredient.id].role === "excluded"))
+    .map((ingredient) => ingredient.id);
   const completionAlternativeIds =
     completion?.status === "complete"
-      ? (suggestionReady?.ids ?? []).filter((id) => !S.pool[id]).slice(0, 6)
+      ? [...new Set([
+          ...alternativePremixIds,
+          ...(suggestionReady?.ids ?? []).filter((id) => !S.pool[id]).slice(0, 6),
+        ])]
       : [];
   const completionItemIds = completion?.status === "complete" ? completionAlternativeIds : completionIds;
   const completionPanel = {
@@ -1540,14 +1584,19 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
             ? "FeedSport found a feasible test mix using these ingredients and limits. Continue to choose the batch and goal, then formulate to calculate the optimal recipe. The optional alternatives below give the optimiser more choices; adding one does not guarantee it will be used."
             : completion.message ?? "FeedSport couldn’t verify additions for this list.",
     itemsTitle: completion?.status === "complete" && completionAlternativeIds.length ? "Other optional alternatives" : "",
-    items: completionItemIds.map((id) => ({
-      name: ingredientName(id),
-      modelPct:
-        completion?.status !== "complete" && completion?.projectedInclusionPct[id] != null
-          ? "test mix " + fmt(completion.projectedInclusionPct[id], completion.projectedInclusionPct[id] < 1 ? 2 : 1) + "%"
-          : catalogueById.get(id)?.category ?? "catalogue ingredient",
-      add: () => addCompletionIngredients([id]),
-    })),
+    items: completionItemIds.map((id) => {
+      const premix = commercialPremixById(id);
+      return {
+        name: ingredientName(id),
+        action: premix ? "Replace with" : "+",
+        modelPct: premix
+          ? `${premix.inclusionKgPerTonne} kg/t fixed`
+          : completion?.status !== "complete" && completion?.projectedInclusionPct[id] != null
+            ? "test mix " + fmt(completion.projectedInclusionPct[id], completion.projectedInclusionPct[id] < 1 ? 2 : 1) + "%"
+            : catalogueById.get(id)?.category ?? "catalogue ingredient",
+        add: () => addCompletionIngredients([id]),
+      };
+    }),
     hasItems: completionItemIds.length > 0,
     canAddAll: completionIds.length > 0,
     addAll: () => addCompletionIngredients(completionIds),
@@ -1580,7 +1629,7 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
   const setupProgrammes = programmes.programmes.filter((p) => p.species === S.species).map((p) => ({ id: p.id, name: p.name }));
   const stageOpts = P.phases.map((ph) => {
     const on = ph.id === PH.id;
-    return { label: ph.label, range: ph.label.includes(ph.weightRange) ? "Table " + ph.sourceTable : ph.weightRange, disabled: false, cursor: "pointer", bs: "solid", bd: "#d0cdc3", ring: on ? "inset 0 0 0 1px #2f5a3f" : "none", bg: on ? "#eef3ee" : "#fff", pick: () => update({ phaseId: ph.id, recoveryUndo: null }) };
+    return { label: ph.label, range: ph.label.includes(ph.weightRange) ? "Table " + ph.sourceTable : ph.weightRange, disabled: false, cursor: "pointer", bs: "solid", bd: "#d0cdc3", ring: on ? "inset 0 0 0 1px #2f5a3f" : "none", bg: on ? "#eef3ee" : "#fff", pick: () => update((state) => ({ phaseId: ph.id, pool: poolWithCarriedPremixSelection(state.pool, state.pool, state.programmeId), recoveryUndo: null })) };
   });
   const setupList = myLists.lists.find((l) => l.id === S.setupListId) ?? myLists.lists[0] ?? null;
   const setOpts = [
@@ -1588,17 +1637,17 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
       k: "list" as const,
       label: "My list",
       sub: setupList ? "Your list “" + setupList.label + "” with your prices. Only these are used." : myLists.status === "ready" ? "You don’t have a list yet. Make one under My ingredients." : "Loading your lists…",
-      pool: () => poolWithProgrammePremix(poolFromList(setupList), S.programmeId),
+      pool: () => poolFromList(setupList),
     },
     {
       k: "system" as const,
       label: "FeedSport suggestion list",
       sub: suggestionReady ? suggestionReady.ids.length + " catalogue ingredients with complete data that can meet " + PH.label + ", at planning prices." : S.suggestion?.status === "error" ? "FeedSport couldn’t put a list together for this stage." : "Finding ingredients that can meet this stage…",
-      pool: (): Pool => poolWithProgrammePremix(Object.fromEntries((suggestionReady?.ids ?? []).map((id) => [id, { role: "available" as Role }])), S.programmeId),
+      pool: (): Pool => Object.fromEntries((suggestionReady?.ids ?? []).map((id) => [id, { role: "available" as Role }])),
     },
   ].map((o) => {
     const on = S.setKey === o.k;
-    return { label: o.label, sub: o.sub, segBg: on ? "#fff" : "transparent", segSh: on ? "0 1px 2px rgba(0,0,0,.1)" : "none", segW: on ? "600" : "500", pick: () => update({ setKey: o.k, pool: poolWithProgrammePremix(o.pool(), S.programmeId), ingQ: "", ...(o.k === "list" && setupList ? { setupListId: setupList.id } : {}) }) };
+    return { label: o.label, sub: o.sub, segBg: on ? "#fff" : "transparent", segSh: on ? "0 1px 2px rgba(0,0,0,.1)" : "none", segW: on ? "600" : "500", pick: () => update((state) => ({ setKey: o.k, pool: poolWithCarriedPremixSelection(o.pool(), state.pool, state.programmeId), ingQ: "", ...(o.k === "list" && setupList ? { setupListId: setupList.id } : {}) })) };
   });
   const setNote =
     S.setKey === "system"
@@ -1742,7 +1791,7 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
           body: e.body,
           hasEdit: !!e.id || /minimums|maximums/.test(e.title) || !poolIds.length,
           editLabel: e.id ? "Edit " + ingredientName(e.id) : poolIds.length ? "Review ingredients" : "Add an ingredient",
-          edit: () => (e.id ? openDrawer(e.id) : poolIds.length ? openDrawer(poolIds.find((id) => S.pool[id].role === "fixed" || S.pool[id].role === "required") || poolIds[0]) : update({ addOpen: true, addQ: "", addPick: [], addTarget: "pool" })),
+          edit: () => (e.id ? openDrawer(e.id) : poolIds.length ? openDrawer(poolIds.find((id) => S.pool[id].role === "fixed" || S.pool[id].role === "required") || poolIds[0]) : update({ addOpen: true, addQ: "", addCategory: null, addPick: [], addTarget: "pool" })),
         }))
       : R?.status === "error"
         ? [{ title: "FeedSport couldn’t formulate this", body: R.message, hasEdit: false, editLabel: "", edit: () => {} }]
@@ -1759,7 +1808,8 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
           const short = R.shortfalls.map((f) => {
             const ratio = f.kind === "min" ? f.best / f.req : f.req / f.best;
             const n2 = nutVal(f, f.best) === nutVal(f, f.req) ? { ...f, dp: f.dp + 1 } : f;
-            return { key: f.id, name: f.name + (f.kind === "max" ? " (max)" : ""), best: nutVal(n2, f.best), req: (f.kind === "max" ? "max " : "") + nutVal(n2, f.req), w: Math.max(2, Math.min(100, ratio * 88)) + "%", m: "88%" };
+            // The unit is shown once, after the requirement: "3,130 / 3,200 kcal/kg".
+            return { key: f.id, name: f.name + (f.kind === "max" ? " (max)" : ""), best: n2.unit === "%" ? nutVal(n2, f.best) : fmt(f.best, n2.dp), req: (f.kind === "max" ? "max " : "") + nutVal(n2, f.req), w: Math.max(2, Math.min(100, ratio * 88)) + "%", m: "88%" };
           });
           const recoveryIds = completion?.status === "ready" ? completion.ids : [];
           // Every chip comes from the catalogue check, which tested the whole set
@@ -1771,14 +1821,14 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
             return {
               key: id,
               primary: i === 0,
-              label: ingredientName(id),
+              label: shortName(ingredientName(id)),
               fixes: fixesAll,
               delta: [projected != null ? "~" + fmt(projected, projected < 1 ? 2 : 1) + "%" : "", price != null ? priceTxt(price) : ""].filter(Boolean).join(" · "),
               title: "Tested with your current ingredients and limits" + (projected != null ? "; the test recipe used about " + fmt(projected, projected < 1 ? 2 : 1) + "%" : "") + ". Click to add it and re-formulate.",
               go: () => applyRecoveryIngredients([id]),
             };
           });
-          const sameFix = recoveryIds.map((id) => ({ key: id, primary: false, label: ingredientName(id), fixes: "same fix", delta: "", title: "The same addition fixes this requirement. Click to add it and re-formulate.", go: () => applyRecoveryIngredients([id]) }));
+          const sameFix = recoveryIds.map((id) => ({ key: id, primary: false, label: shortName(ingredientName(id)), fixes: "same fix", delta: "", title: "The same addition fixes this requirement. Click to add it and re-formulate.", go: () => applyRecoveryIngredients([id]) }));
           const loading = !!completionKey && (!completion || completion.status === "loading");
           const requirementCount = programmes.requirementFields.filter((_, i) => PH.requirements[i] != null).length;
           const others = Math.max(0, requirementCount - R.shortfalls.length);
@@ -1823,7 +1873,7 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
             figures: ["This batch · " + batchLabel, "Per kg", "Per 50 kg bag", "Per tonne"],
             body: "Each requirement can be met on its own, but not all together with these ingredients and limits.",
             possible: [] as string[],
-            browseIngredients: () => update({ addOpen: true, addQ: "", addPick: [], addTarget: "pool" }),
+            browseIngredients: () => update({ addOpen: true, addQ: "", addCategory: null, addPick: [], addTarget: "pool" }),
           };
         })()
       : null;
@@ -1873,9 +1923,129 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
   const d = S.drawer ? drawerVals(S, S.drawer, optimal, { update, applyDraft, removeDraft, engine, phase: PH }) : null;
   const q = S.addQ.trim().toLowerCase();
   const addList = S.addTarget === "set" ? currentList(S, myLists) : null;
-  const addResults = catalogue
-    .filter((g) => canAddStudioIngredient(g.id, S.programmeId, S.pool) && (addList ? !addList.items.some((it) => it.ingredientId === g.id) : !S.pool[g.id]) && (!q || [g.name, g.category, ...g.aliases].join(" ").toLowerCase().includes(q)))
-    .map((g) => ({ name: g.name, sub: g.category + " · " + (g.price ? "$" + fmt(g.price.usdPerTonne, 0) + "/t planning price" : "no planning price"), subColor: g.price ? "#64665c" : "#a63d2a", picked: S.addPick.includes(g.id), toggle: () => toggleAddPick(g.id) }));
+  const addCategories = CAT_ORDER.filter((category) => catalogue.some((ingredient) => ingredient.category === category));
+  const categoryPlural: Record<string, string> = {
+    Cereal: "cereals", "Protein meal": "protein meals", "By-product": "by-products",
+    "Oil and fat": "oils and fats", Premix: "premixes", Mineral: "minerals",
+    "Amino acid": "amino acids", Other: "ingredients",
+  };
+  const addTitle = S.addCategory ? "Add " + (categoryPlural[S.addCategory] ?? S.addCategory.toLowerCase()) : "Add ingredients";
+  const addInList = (id: string) => addList
+    ? addList.items.some((item) => item.ingredientId === id)
+    : !!S.pool[id];
+  const candidateCatalogue = catalogue.filter((ingredient) => {
+    if (ingredient.premix) {
+      const species = commercialPremixById(ingredient.id)?.species;
+      if ((S.species === "swine" && species !== "pig") || (S.species === "broiler" && species !== "broiler")) return false;
+    }
+    return !q || [ingredient.name, ingredient.category, ...ingredient.aliases].join(" ").toLowerCase().includes(q);
+  });
+  const addFilters = [
+    { key: null, label: "All", count: candidateCatalogue.length },
+    ...addCategories.map((category) => ({ key: category, label: category, count: candidateCatalogue.filter((ingredient) => ingredient.category === category).length })),
+  ].map((filter) => ({
+    ...filter,
+    active: S.addCategory === filter.key,
+    pick: () => update({ addCategory: filter.key }),
+  }));
+  const meKey: CatalogueNutrientId = S.species === "broiler" ? "mePoultry" : "mePig";
+  const phaseMeta = programmes.constraintMeta[S.species];
+  const addResults = candidateCatalogue
+    .filter((ingredient) => !S.addCategory || ingredient.category === S.addCategory)
+    .map((ingredient) => {
+      const existing = addInList(ingredient.id);
+      const missingIds = (ingredient.requirementMissing[S.species] ?? []).filter((id) => PH.constraintIds.includes(id));
+      const stageAllowed = canAddStudioIngredient(ingredient.id, S.programmeId, S.pool);
+      const disabled = existing || !stageAllowed || (!ingredient.premix && missingIds.length > 0);
+      const picked = !disabled && S.addPick.includes(ingredient.id);
+      const missing = missingIds[0] ? phaseMeta[missingIds[0]]?.label ?? missingIds[0] : "";
+      const note = existing
+        ? "Already in your list"
+        : !stageAllowed
+          ? ingredient.premix ? "Wrong stage for this programme" : "Not available with the fixed manufacturer recipe"
+          : missing
+            ? "Missing " + missing + " · can’t be used yet"
+            : picked
+              ? "Selected to add"
+              : ingredient.premix?.application ?? "Catalogue nutrient profile";
+      return {
+        id: ingredient.id,
+        name: ingredient.name,
+        note,
+        noteColor: existing ? "#8d8a80" : disabled ? "#b2412e" : picked ? "#2f7a4a" : "#64665c",
+        noteMark: disabled && !existing ? "■" : picked ? "●" : "",
+        picked,
+        existing,
+        disabled,
+        me: ingredient.nutrients[meKey] == null ? "—" : fmt(ingredient.nutrients[meKey]!, 0),
+        cp: ingredient.nutrients.cp == null ? "—" : fmt(ingredient.nutrients.cp, 1) + "%",
+        price: ingredient.price ? fmt(ingredient.price.usdPerTonne, 0) : "—",
+        toggle: () => { if (!disabled) toggleAddPick(ingredient.id); },
+      };
+    })
+    .sort((a, b) => Number(b.picked) - Number(a.picked) || Number(a.disabled) - Number(b.disabled) || Number(a.existing) - Number(b.existing) || a.name.localeCompare(b.name));
+  const addFooter = S.addCategory === "Premix"
+    ? "Premixes are added at their fixed supplier dose. Choose only one product for a formulation."
+    : "Added as “Any amount” at catalogue prices. The optimiser decides how much.";
+
+  const currentPremixId = poolIds.find((id) => S.pool[id].role !== "excluded" && !!commercialPremixById(id)) ?? null;
+  const currentPremix = currentPremixId ? commercialPremixById(currentPremixId) ?? null : null;
+  const speciesPremixes = catalogue.filter((ingredient) => {
+    const product = commercialPremixById(ingredient.id);
+    return !!product && (S.species === "swine" ? product.species === "pig" : product.species === "broiler");
+  });
+  const matchingPremixes = speciesPremixes.filter((ingredient) => {
+    const product = commercialPremixById(ingredient.id)!;
+    return commercialPremixCompatibleWithProgramme(product, S.programmeId);
+  });
+  const documentedPremixes = speciesPremixes.filter((ingredient) => {
+    const product = commercialPremixById(ingredient.id)!;
+    return !!(product.verifiedAsFedMicronutrients || product.guaranteedMinimumAsFed);
+  });
+  const premixFilterOpts = [
+    { key: "matches" as const, label: "Matches " + PH.label.toLowerCase(), count: matchingPremixes.length },
+    { key: "species" as const, label: "All " + (S.species === "swine" ? "pig" : "broiler") + " premixes", count: speciesPremixes.length },
+    { key: "documented" as const, label: "Documented profile only", count: documentedPremixes.length },
+  ].map((filter) => ({ ...filter, active: S.premixFilter === filter.key, pick: () => update({ premixFilter: filter.key }) }));
+  const premixSource = S.premixFilter === "matches" ? matchingPremixes : S.premixFilter === "documented" ? documentedPremixes : speciesPremixes;
+  const premixRows = premixSource
+    .filter((ingredient) => ingredient.id !== currentPremixId)
+    .map((ingredient) => {
+      const product = commercialPremixById(ingredient.id)!;
+      const allowed = commercialPremixCompatibleWithProgramme(product, S.programmeId);
+      const selected = S.premixPick === ingredient.id;
+      const documented = !!(product.verifiedAsFedMicronutrients || product.guaranteedMinimumAsFed);
+      return {
+        id: ingredient.id,
+        name: ingredient.name,
+        selected,
+        disabled: !allowed,
+        application: product.application,
+        detail: "Dose " + product.inclusionKgPerTonne + " kg/t" + (documented ? " · Full vitamin and trace-mineral profile" : " · Limited documented profile"),
+        detailColor: documented ? "#2f7a4a" : "#8a5f18",
+        warning: product.verifiedAsFedAminoAcids ? "" : "No SID amino-acid analysis",
+        dose: fmt(product.inclusionPct, product.inclusionPct < 1 ? 1 : 0) + "%",
+        price: ingredient.price ? "$" + fmt(ingredient.price.usdPerTonne, 0) : "Quote",
+        pick: () => { if (allowed) update({ premixPick: ingredient.id }); },
+      };
+    });
+  const pickedPremix = S.premixPick ? commercialPremixById(S.premixPick) ?? null : null;
+  const applyPremixChoice = (rerun: boolean) => {
+    if (!pickedPremix) return;
+    update((state) => ({
+      pool: poolWithPremixSelection(state.pool, state.programmeId, pickedPremix.id),
+      premixOpen: false,
+      premixPick: null,
+    }));
+    flash(pickedPremix.name + " selected at its fixed supplier dose");
+    if (rerun && S.screen === "workspace") run();
+  };
+  const premixCurrent = currentPremix ? {
+    name: currentPremix.name,
+    detail: currentPremix.application + " · fixed " + fmt(currentPremix.inclusionPct, currentPremix.inclusionPct < 1 ? 1 : 0) + "%",
+    status: commercialPremixCompatibleWithProgramme(currentPremix, S.programmeId) ? "For this stage" : "Wrong stage",
+    statusColor: commercialPremixCompatibleWithProgramme(currentPremix, S.programmeId) ? "#2f7a4a" : "#a06310",
+  } : null;
   const rules = programmes.requirementFields.flatMap((f, i) => {
     const value = PH.requirements[i];
     if (value == null) return [];
@@ -1901,9 +2071,25 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
     exportDisabled, exportColor: exportDisabled ? "#8d8a80" : "#222420", exportLabel: S.exporting ? "Opening PDF…" : "Export PDF", exportTitle: !optimal ? "Formulate a valid recipe first" : optimal.costExcludesPremix ? "Enter the supplier premix quote before exporting a full-cost report" : stale ? "Re-formulate first" : manualOff ? "Resolve the manual recipe validity issues" : "Open recipe and nutrient report as PDF", doExport: () => void exportPdf(),
     leftW: wide ? "300px" : "100%", programmeId: P.id, progList: programmes.programmes.map((p) => ({ id: p.id, name: p.name })),
     onProgramme: (e: InputEvent) => update(programmeChoice(e.target.value)),
-    phaseList: P.phases.map((ph) => ({ id: ph.id, name: ph.label })), phaseId: PH.id, onPhase: (e: InputEvent) => update({ phaseId: e.target.value, recoveryUndo: null }),
+    phaseList: P.phases.map((ph) => ({ id: ph.id, name: ph.label })), phaseId: PH.id, onPhase: (e: InputEvent) => {
+      const phaseId = e.target.value;
+      update((state) => ({ phaseId, pool: poolWithCarriedPremixSelection(state.pool, state.pool, state.programmeId), recoveryUndo: null }));
+    },
     overrideText: PH.weightRange,
-    openAdd: () => update({ addOpen: true, addQ: "", addPick: [], addTarget: "pool", advisoriesOpen: false }), closeAdd: () => update({ addOpen: false }), addOpen: S.addOpen, addQ: S.addQ, onAddQ: (e: InputEvent) => update({ addQ: e.target.value }), addResults, addEmpty: addResults.length === 0, addPickN: S.addPick.length, addPicked, clearAddPick: () => update({ addPick: [] }), addCta: S.addPick.length ? "Add " + S.addPick.length + " ingredient" + (S.addPick.length === 1 ? "" : "s") : "Add ingredients",
+    openAdd: () => update({ addOpen: true, addQ: "", addCategory: null, addPick: [], addTarget: "pool", premixOpen: false, advisoriesOpen: false }),
+    closeAdd: () => update({ addOpen: false, addPick: [] }), addOpen: S.addOpen, addQ: S.addQ,
+    onAddQ: (e: InputEvent) => update({ addQ: e.target.value }), addTitle, addFilters, addResults,
+    addCategoryLabel: S.addCategory ?? "Ingredient", addFooter, addEmpty: addResults.length === 0,
+    addPickN: S.addPick.length, addPicked, clearAddPick: () => update({ addPick: [] }),
+    addCta: S.addPick.length ? "Add " + S.addPick.length + " " + (S.addCategory ? (categoryPlural[S.addCategory] ?? "ingredient" + (S.addPick.length === 1 ? "" : "s")) : "ingredient" + (S.addPick.length === 1 ? "" : "s")) : "Add ingredients",
+    premixOpen: S.premixOpen, closePremix: () => update({ premixOpen: false, premixPick: null }),
+    premixCurrent, premixFilterOpts, premixRows, premixEmpty: premixRows.length === 0,
+    premixPicked: !!pickedPremix,
+    premixFooter: pickedPremix
+      ? (currentPremix ? currentPremix.sku + " is removed and " : "") + pickedPremix.sku + " is fixed at its supplier dose. Your other ingredients and limits stay as they are."
+      : "Choose the product whose documented application matches this feeding stage.",
+    switchPremix: () => applyPremixChoice(false), switchPremixAndRun: () => applyPremixChoice(true),
+    showPremixRun: S.screen === "workspace", premixPrimaryLabel: S.screen === "workspace" ? "Switch only" : "Switch premix",
     poolRows: poolIds.map((id) => {
       const e = S.pool[id];
       return { name: ingredientName(id), short: !isEligible(id) ? "Set aside" : e.role === "available" && !e.max ? "—" : roleShort(e), chip: CHIP[e.role], nameColor: e.role === "excluded" || !isEligible(id) ? "#8d8a80" : "#222420", roleColor: e.role === "fixed" ? "#222420" : e.role === "excluded" || !isEligible(id) ? "#8d8a80" : "#2f5a3f", open: () => openDrawer(id) };
@@ -1924,7 +2110,7 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
     advisoriesOpen: S.advisoriesOpen && (!!opt?.advisories.length || docAdvice.length > 0),
     advisoriesLabel: advisoryCount((opt?.advisories.length ?? 0) + docAdvice.length),
     openAdvisories: () => {
-      update({ advisoriesOpen: true, drawer: null, addOpen: false, rulesOpen: false });
+      update({ advisoriesOpen: true, drawer: null, addOpen: false, premixOpen: false, rulesOpen: false });
       if (doc) formulations.markAdviceRead(doc.advice.map((a) => a.id));
     },
     closeAdvisories: () => update({ advisoriesOpen: false }),
@@ -2104,7 +2290,8 @@ function optimalVals(
     .map((trial, i) => ({
       key: trial.id,
       primary: i === 0,
-      label: trial.name + (trial.displaced ? " for " + lowerFirst(trial.displaced) : ""),
+      // Product names carry a description after " — "; the chip keeps the name.
+      label: shortName(trial.name) + (trial.displaced ? " for " + lowerFirst(shortName(trial.displaced)) : ""),
       fixes: trial.resolves.length < 2 ? "" : trial.resolves.length === unresolvedChecks.length ? "fixes all " + trial.resolves.length : "fixes " + trial.resolves.length,
       delta: trial.deltaT == null ? "" : signedCost(trial.deltaT),
       title: (trial.verified ? "Re-formulated with " + trial.name + ": every nutrient verified." : "Re-formulated with " + trial.name + ": resolves " + trial.resolves.length + " of " + unresolvedChecks.length + " unresolved nutrient" + (unresolvedChecks.length === 1 ? "" : "s") + ".") + " Click to apply and re-formulate.",
@@ -2446,7 +2633,7 @@ function drawerVals(S: State, D: Draft, R: OptimalResult | null, ctx: { update: 
   const { engine, phase } = ctx;
   const g = engine.catalogue.get(D.id);
   const isListRule = !!D.listId;
-  const commercialProduct = commercialPremixById(D.id);
+  const studioProduct = commercialPremixById(D.id);
   const listRole = D.listRole ?? "available";
   const fs = isListRule ? 100 : fsLimit(engine, phase, D.id),
     guide = isListRule ? undefined : guideline(engine, phase, D.id);
@@ -2527,7 +2714,7 @@ function drawerVals(S: State, D: Draft, R: OptimalResult | null, ctx: { update: 
     lockLabel: inR ? "Lock at " + pctTxt(inR.pct) + "%" : "",
     lock: () => inR && upd({ min: String(+inR.pct.toFixed(2)), max: String(+inR.pct.toFixed(2)) }),
     nowLabel: inR ? pctTxt(inR.pct) + " now" : "",
-    showHint: isListRule || !!commercialProduct || +D.min > 0,
+    showHint: isListRule || !!studioProduct || +D.min > 0,
     profileShown: profileAll.filter((p) => p.shown),
     profileAll,
     hiddenCount: hidden,
@@ -2551,14 +2738,14 @@ function drawerVals(S: State, D: Draft, R: OptimalResult | null, ctx: { update: 
         ...(role === "fixed" || role === "excluded" ? { max: "" } : {}),
       }),
     })),
-    showLimits: !commercialProduct && (!isListRule || listRole !== "excluded"),
+    showLimits: !studioProduct && (!isListRule || listRole !== "excluded"),
     limitsTitle: isListRule ? "Reusable inclusion rule" : "Inclusion limits · hard",
-    showMin: !commercialProduct && (!isListRule || listRole === "required" || listRole === "fixed"),
-    showMax: !commercialProduct && (!isListRule || listRole === "available" || listRole === "required"),
+    showMin: !studioProduct && (!isListRule || listRole === "required" || listRole === "fixed"),
+    showMax: !studioProduct && (!isListRule || listRole === "available" || listRole === "required"),
     minLabel: isListRule && listRole === "fixed" ? "Fixed %" : "Minimum %",
     maxLabel: "Maximum %",
-    limitHint: commercialProduct
-      ? `Manufacturer-published dose: ${commercialProduct.inclusionKgPerTonne} kg/t (${commercialProduct.inclusionPct}%). Use a compatible alternative to change product; this dosage is not editable.`
+    limitHint: studioProduct
+      ? `Manufacturer-published dose: ${studioProduct.inclusionKgPerTonne} kg/t (${studioProduct.inclusionPct}%). Use a compatible alternative to change product; this dosage is not editable.`
       : lockHint,
     min: D.min, max: D.max, maxPh: fs < 100 ? "Limit " + fs : "No limit", onMin: (e: InputEvent) => upd({ min: e.target.value }), onMax: (e: InputEvent) => upd({ max: e.target.value }),
     zl: px(effLo), zw: Math.max(0, ((Math.min(effHi, scale) - effLo) / scale) * 100) + "%", fx: px(Math.min(fs, scale)), hasUserMax: userMax != null, ux: px(userMax || 0), userMaxTxt: (userMax || 0) + "%", hasGuide: guide != null, gx: px(guide || 0), guideTxt: (guide || 0) + "%", fsTxt: isListRule ? "Per-stage" : fs < 100 ? fs + "%" : "No", inRecipe: !!inR, cx: px(inR ? inR.pct : 0), scaleMax: fmt(scale, 0) + "%",
@@ -2571,7 +2758,7 @@ function drawerVals(S: State, D: Draft, R: OptimalResult | null, ctx: { update: 
     ).map(([k, label]) => ({ label, bg: D.unit === k ? "#fff" : "transparent", pick: () => D.unit !== k && upd({ unit: k, price: D.price === "" ? "" : String(+(k === "t" ? +D.price * 1000 : +D.price / 1000).toFixed(4)) }) })),
     tag: D.price !== "" ? "YOUR PRICE" : defP == null ? "NO PRICE" : "DEFAULT", tagBg: D.price !== "" ? "#faecd0" : defP == null ? "#f7e4df" : "#f3f0e8", tagFg: D.price !== "" ? "#5c4012" : defP == null ? "#7a2a1c" : "#45473f",
     priceConv: curPrice == null
-      ? commercialProduct ? "Quote optional for solving · cost excludes this product" : "Least cost needs a price"
+      ? studioProduct ? "Quote optional for solving · cost excludes this premix" : "Least cost needs a price"
       : D.unit === "t" ? "$" + fmt(curPrice / 1000, 3) + "/kg" + (D.price === "" ? " · type your price to override" : "") : "$" + fmt(curPrice, 0) + "/t" + (D.price === "" ? " · type your price to override" : ""),
     canReset: D.price !== "" && defP != null, resetLabel: defP == null ? "" : "Reset to $" + fmt(D.unit === "t" ? defP : defP / 1000, D.unit === "t" ? 0 : 3) + " planning price", resetPrice: () => upd({ price: "" }),
     hasWhy: !!why, whyTitle, why,
@@ -2830,7 +3017,7 @@ function libraryVals(
         limits: catSel.limits.map((l) => ({ name: l.stage, limit: "max " + l.maxPct + "%", guide: l.practicalPct != null ? "guideline " + l.practicalPct + "%" : "" })),
         noLimits: catSel.limits.length === 0,
         sets:
-          !canAddStudioIngredient(catSel.id, S.programmeId) || myLists.status !== "ready"
+          !canAddStudioIngredient(catSel.id, S.programmeId, S.pool) || myLists.status !== "ready"
             ? []
             : lists.length
               ? lists.map((l) => {
@@ -2883,7 +3070,7 @@ function libraryVals(
       update({ myListSel: null, listRename: null });
       flash("Deleted “" + name + "”. Saved formulations keep their own copy.");
     },
-    addToSet: () => update({ addOpen: true, addQ: "", addPick: [], addTarget: "set" }),
+    addToSet: () => update({ addOpen: true, addQ: "", addCategory: null, addPick: [], addTarget: "set" }),
     formulateWithSet: () => cur && ctx.formulateWithList(cur),
     progGroups: (
       [
@@ -2997,7 +3184,7 @@ function topBarVals(
   };
   const nav = (patch: Partial<State>) => () => {
     close();
-    update({ drawer: null, addOpen: false, rulesOpen: false, advisoriesOpen: false, ...patch });
+    update({ drawer: null, addOpen: false, premixOpen: false, rulesOpen: false, advisoriesOpen: false, ...patch });
   };
   const all: { group: string; icon: SearchIcon; label: string; sub: string; go: () => void; hay: string; lab: string }[] = [];
   const add = (group: string, icon: SearchIcon, label: string, sub: string, go: () => void, extra = "") => all.push({ group, icon, label, sub, go, hay: (label + " " + sub + " " + extra).toLowerCase(), lab: label.toLowerCase() });

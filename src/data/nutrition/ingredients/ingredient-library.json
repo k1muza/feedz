@@ -26,7 +26,8 @@
     "Missing Brazilian source values remain missing. PigFlow only treats narrowly defined nutrient families as structural zero by ingredient category.",
     "Ingredients without a defensible Brazilian Tables identity were removed from the canonical formulation library rather than silently retaining another database.",
     "Ingredient identity and provenance are stored once; species-specific nutrient values live under nutrition.swine and nutrition.poultry.",
-    "Table 1.01 coverage: all 102 feedstuffs, with swine and poultry profiles populated wherever the source publishes species-specific values."
+    "Table 1.01 coverage: all 102 feedstuffs, with swine and poultry profiles populated wherever the source publishes species-specific values.",
+    "Vitamin-mineral premixes are manufacturer products stored as ingredients with a `premix` block (product, dose, eligibility and declared values) instead of species nutrition profiles. They are added to a formulation only when selected."
   ],
   "ingredients": [
     {
@@ -23947,6 +23948,781 @@
             "notes": []
           }
         }
+      }
+    },
+    {
+      "id": "aeci-v1736-pig-weaner-premix",
+      "name": "AECI V1736 — Pig Weaner premix",
+      "aliases": [
+        "AECI Pig Weaner",
+        "V1736",
+        "Irving's Africa Exports Pig Weaner"
+      ],
+      "category": "vitamin_mineral_premix",
+      "provenance": {
+        "source": {
+          "publisher": "AECI Animal Health",
+          "title": "AECI V1736 Pig Weaner — manufacturer bag label, batch 25254-07.2024",
+          "url": "https://www.aeciworld.net/animal-health.html",
+          "basis": "as-fed",
+          "priority": "supplier",
+          "note": "Nutrient specifications and dose were transcribed from the user-supplied new-premix.jpg bag-label photograph; the linked AECI page confirms the manufacturer but is not a product-specific datasheet."
+        },
+        "nutrientSources": {},
+        "notes": [
+          "Manufacturer bag-label values are unverified nutrient specifications, not a batch certificate of analysis."
+        ],
+        "verificationStatus": "manufacturer_unverified",
+        "profileBasis": "as-fed"
+      },
+      "premix": {
+        "manufacturer": "AECI Animal Health",
+        "sku": "V1736",
+        "species": "pig",
+        "application": "Weaner pigs",
+        "eligibleProgrammePrefixes": [
+          "nursery-pig"
+        ],
+        "inclusionPct": 1,
+        "inclusionKgPerTonne": 10,
+        "inclusionInstructions": "Use 10 kg per tonne of final feed. Do not feed undiluted; mix thoroughly with the basal ingredients.",
+        "verificationStatus": "unverified",
+        "formulationCompatibility": "unconfirmed",
+        "pricePerTonne": null,
+        "specificationUrl": "https://www.aeciworld.net/animal-health.html",
+        "publishedAnalysis": {
+          "zincMgKg": {
+            "min": 30000
+          },
+          "copperMgKg": {
+            "min": 1000
+          },
+          "vitaminAIuKg": {
+            "min": 5000000
+          }
+        },
+        "publishedGuarantees": [
+          {
+            "nutrient": "Vitamin A",
+            "unit": "IU/kg",
+            "min": 5000000
+          },
+          {
+            "nutrient": "Vitamin D3",
+            "unit": "IU/kg",
+            "min": 2000000
+          },
+          {
+            "nutrient": "Vitamin E (DL)",
+            "unit": "IU/kg",
+            "min": 10000
+          },
+          {
+            "nutrient": "Vitamin B3 (niacin)",
+            "unit": "g/kg",
+            "min": 15
+          },
+          {
+            "nutrient": "Vitamin B2 (riboflavin)",
+            "unit": "g/kg",
+            "min": 3
+          },
+          {
+            "nutrient": "Vitamin B6 (pyridoxine)",
+            "unit": "g/kg",
+            "min": 1
+          },
+          {
+            "nutrient": "Vitamin B1",
+            "unit": "g/kg",
+            "min": 1.5
+          },
+          {
+            "nutrient": "Vitamin K3",
+            "unit": "g/kg",
+            "min": 0.3
+          },
+          {
+            "nutrient": "Vitamin B12",
+            "unit": "g/kg",
+            "min": 0.015
+          },
+          {
+            "nutrient": "Zinc",
+            "unit": "g/kg",
+            "min": 30
+          },
+          {
+            "nutrient": "Manganese",
+            "unit": "g/kg",
+            "min": 15
+          },
+          {
+            "nutrient": "Iron",
+            "unit": "g/kg",
+            "min": 25
+          },
+          {
+            "nutrient": "Copper",
+            "unit": "g/kg",
+            "min": 1
+          },
+          {
+            "nutrient": "Iodine",
+            "unit": "g/kg",
+            "min": 0.3
+          }
+        ],
+        "guaranteedMinimumAsFed": {
+          "sourceUrl": "https://www.aeciworld.net/animal-health.html",
+          "vitamins": {
+            "vitaminAIuKg": 5000000,
+            "vitaminDIuKg": 2000000,
+            "vitaminEIuKg": 10000,
+            "vitaminKMgKg": 300,
+            "vitaminB1MgKg": 1500,
+            "riboflavinMgKg": 3000,
+            "vitaminB6MgKg": 1000,
+            "vitaminB12McgKg": 15000,
+            "niacinMgKg": 15000
+          },
+          "traceMineralsPpm": {
+            "zinc": 30000,
+            "iron": 25000,
+            "manganese": 15000,
+            "copper": 1000,
+            "iodine": 300
+          }
+        },
+        "note": "Registration V1736 under Act 36 of 1947. The photographed label specifies 10 kg/t and a 20 kg pack (2 x 10 kg). No supplier price was provided.",
+        "notes": [
+          "The official AECI page confirms the manufacturer and premix business but does not publish a V1736 product specification; retain manufacturer-unverified status until a product datasheet or batch certificate is obtained.",
+          "The label's zero declarations and the unclear Vitamin B9/formulation-column entries are not treated as analytical structural zeros. Folic acid and digestible amino-acid values remain unknown.",
+          "Selenium content is unknown: a Brazilian Tables supplementation target or an unidentified selenium-source inclusion cannot establish a manufacturer-guaranteed elemental selenium concentration. Do not credit selenium until the supplier specifies its elemental concentration and units.",
+          "Vitamin and mineral figures are transcribed from the label's nutrient-specification column and treated conservatively as label guarantees, not exact analytical concentrations."
+        ]
+      }
+    },
+    {
+      "id": "cj-s174-boar-premix",
+      "name": "CJ Feed S174 — Breeding boar premix",
+      "aliases": [
+        "S174",
+        "CJ (Tianjin) Feed"
+      ],
+      "category": "vitamin_mineral_premix",
+      "provenance": {
+        "source": {
+          "publisher": "CJ (Tianjin) Feed",
+          "title": "CJ Feed S174 — Breeding boar premix — manufacturer product specification",
+          "url": "https://www.cjfeedcn.com/swine-feed/boar-premix-feed.html",
+          "basis": "as-fed",
+          "priority": "supplier"
+        },
+        "nutrientSources": {},
+        "notes": [],
+        "verificationStatus": "manufacturer_unverified",
+        "profileBasis": "as-fed"
+      },
+      "premix": {
+        "manufacturer": "CJ (Tianjin) Feed",
+        "sku": "S174",
+        "species": "pig",
+        "application": "Mature breeding boars",
+        "defaultForEligibleProgrammes": true,
+        "eligibleProgrammePrefixes": [
+          "mature-boar"
+        ],
+        "inclusionPct": 4,
+        "inclusionKgPerTonne": 40,
+        "inclusionInstructions": "Use only in CJ's published five-ingredient boar ration at 40 kg/t. Do not feed undiluted or change the published ratios without CJ technical approval.",
+        "verificationStatus": "unverified",
+        "formulationCompatibility": "manufacturer_recipe_only",
+        "pricePerTonne": null,
+        "specificationUrl": "https://www.cjfeedcn.com/swine-feed/boar-premix-feed.html",
+        "publishedAnalysis": {
+          "zincMgKg": {
+            "min": 350,
+            "max": 1800
+          },
+          "copperMgKg": {
+            "min": 50,
+            "max": 625
+          },
+          "vitaminAIuKg": {
+            "min": 32500,
+            "max": 300000
+          }
+        },
+        "publishedGuarantees": [
+          {
+            "nutrient": "Vitamin A",
+            "unit": "IU/kg",
+            "min": 32500,
+            "max": 300000
+          },
+          {
+            "nutrient": "Vitamin D3",
+            "unit": "IU/kg",
+            "min": 3750,
+            "max": 125000
+          },
+          {
+            "nutrient": "Vitamin E",
+            "unit": "IU/kg",
+            "min": 800
+          },
+          {
+            "nutrient": "Vitamin B2",
+            "unit": "mg/kg",
+            "min": 85
+          },
+          {
+            "nutrient": "Copper",
+            "unit": "mg/kg",
+            "min": 50,
+            "max": 625
+          },
+          {
+            "nutrient": "Iron",
+            "unit": "mg/kg",
+            "min": 100,
+            "max": 5000
+          },
+          {
+            "nutrient": "Zinc",
+            "unit": "mg/kg",
+            "min": 350,
+            "max": 1800
+          },
+          {
+            "nutrient": "Manganese",
+            "unit": "mg/kg",
+            "min": 50,
+            "max": 3750
+          },
+          {
+            "nutrient": "Selenium",
+            "unit": "mg/kg",
+            "min": 5,
+            "max": 12
+          },
+          {
+            "nutrient": "Iodine",
+            "unit": "mg/kg",
+            "min": 3,
+            "max": 250
+          },
+          {
+            "nutrient": "Phosphorus",
+            "unit": "%",
+            "min": 2
+          },
+          {
+            "nutrient": "Lysine",
+            "unit": "%",
+            "min": 4
+          },
+          {
+            "nutrient": "Sodium chloride",
+            "unit": "%",
+            "min": 5,
+            "max": 15
+          },
+          {
+            "nutrient": "Moisture",
+            "unit": "%",
+            "max": 10
+          }
+        ],
+        "guaranteedMinimumAsFed": {
+          "sourceUrl": "https://www.cjfeedcn.com/swine-feed/boar-premix-feed.html",
+          "vitamins": {
+            "vitaminAIuKg": 32500,
+            "vitaminDIuKg": 3750,
+            "vitaminEIuKg": 800,
+            "riboflavinMgKg": 85
+          },
+          "traceMineralsPpm": {
+            "copper": 50,
+            "iron": 100,
+            "zinc": 350,
+            "manganese": 50,
+            "selenium": 5,
+            "iodine": 3
+          }
+        },
+        "manufacturerRecipe": [
+          {
+            "ingredientId": "corn-yellow-dent",
+            "percent": 64.3
+          },
+          {
+            "ingredientId": "wheat-bran",
+            "percent": 12
+          },
+          {
+            "ingredientId": "soybean-meal-solvent-extracted",
+            "percent": 15.7
+          },
+          {
+            "ingredientId": "fish-meal-54",
+            "percent": 4
+          },
+          {
+            "ingredientId": "cj-s174-boar-premix",
+            "percent": 4
+          }
+        ],
+        "note": "Manufacturer lists premix model S174 but calls the 4% component ST174A in its recommended ration. Confirm the labels, exact nutrient guarantees and prices with CJ. Supplier directs users to its fixed formula or technical department for customised ratios.",
+        "notes": [
+          "publishedAnalysis and publishedGuarantees are the manufacturer's ranges, not verified input concentrations; they are never used as a manufactured nutrient matrix."
+        ]
+      }
+    },
+    {
+      "id": "sustar-glypro-x911",
+      "name": "Sustar GlyPro X911 — Piglet vitamin-mineral premix",
+      "aliases": [
+        "GlyPro X911",
+        "Chengdu Sustar Feed"
+      ],
+      "category": "vitamin_mineral_premix",
+      "provenance": {
+        "source": {
+          "publisher": "Chengdu Sustar Feed",
+          "title": "Sustar GlyPro X911 — Piglet vitamin-mineral premix — manufacturer product specification",
+          "url": "https://www.sustarfeed.com/glypro-x911-0-2-vitamin%EF%BC%86mineral-premix-for-piglets-oemodm-custom-pig-premix-manufacturer-direct-supply-premix-for-piglets-promoting-growth-of-pig-prestarter-animal-feed-additives-product/",
+          "basis": "as-fed",
+          "priority": "supplier"
+        },
+        "nutrientSources": {},
+        "notes": [],
+        "verificationStatus": "manufacturer_unverified",
+        "profileBasis": "as-fed"
+      },
+      "premix": {
+        "manufacturer": "Chengdu Sustar Feed",
+        "sku": "GlyPro X911",
+        "species": "pig",
+        "application": "Piglets, approximately 5–25 kg",
+        "defaultForEligibleProgrammes": true,
+        "eligibleProgrammePrefixes": [
+          "nursery-pig"
+        ],
+        "inclusionPct": 0.2,
+        "inclusionKgPerTonne": 2,
+        "inclusionInstructions": "Use 2 kg per tonne of complete feed. Do not feed undiluted; mix thoroughly with the basal ingredients.",
+        "verificationStatus": "unverified",
+        "formulationCompatibility": "unconfirmed",
+        "pricePerTonne": null,
+        "specificationUrl": "https://www.sustarfeed.com/glypro-x911-0-2-vitamin%EF%BC%86mineral-premix-for-piglets-oemodm-custom-pig-premix-manufacturer-direct-supply-premix-for-piglets-promoting-growth-of-pig-prestarter-animal-feed-additives-product/",
+        "publishedGuarantees": [
+          {
+            "nutrient": "Vitamin E",
+            "unit": "g/kg",
+            "min": 180,
+            "max": 230
+          }
+        ],
+        "publishedAnalysis": {
+          "zincMgKg": {
+            "min": 30000,
+            "max": 50000
+          },
+          "copperMgKg": {
+            "min": 40000,
+            "max": 70000
+          },
+          "vitaminAIuKg": {
+            "min": 28000000,
+            "max": 34000000
+          }
+        },
+        "guaranteedMinimumAsFed": {
+          "sourceUrl": "https://www.sustarfeed.com/glypro-x911-0-2-vitamin%EF%BC%86mineral-premix-for-piglets-oemodm-custom-pig-premix-manufacturer-direct-supply-premix-for-piglets-promoting-growth-of-pig-prestarter-animal-feed-additives-product/",
+          "vitamins": {
+            "vitaminAIuKg": 28000000,
+            "vitaminDIuKg": 8000000,
+            "vitaminKMgKg": 9000,
+            "vitaminB1MgKg": 9000,
+            "riboflavinMgKg": 22000,
+            "vitaminB6MgKg": 12000,
+            "vitaminB12McgKg": 110000,
+            "pantothenicAcidMgKg": 45000,
+            "niacinMgKg": 80000,
+            "folicAcidMgKg": 4000,
+            "biotinMgKg": 300
+          },
+          "traceMineralsPpm": {
+            "copper": 40000,
+            "iron": 50000,
+            "manganese": 15000,
+            "zinc": 30000,
+            "iodine": 200,
+            "selenium": 100
+          }
+        },
+        "notes": [
+          "Vitamin E is published by mass (g/kg). It is not credited as IU until the vitamin form and activity are confirmed. Choline is not declared."
+        ]
+      }
+    },
+    {
+      "id": "sustar-glypro-x912",
+      "name": "Sustar GlyPro X912 — Grower-finisher pig premix",
+      "aliases": [
+        "GlyPro X912",
+        "Chengdu Sustar Feed"
+      ],
+      "category": "vitamin_mineral_premix",
+      "provenance": {
+        "source": {
+          "publisher": "Chengdu Sustar Feed",
+          "title": "Sustar GlyPro X912 — Grower-finisher pig premix — manufacturer product specification",
+          "url": "https://www.sustarfeed.com/vitamin-mineral-premix-for-finishing-pig-sustar-glypro-x912-0-2-product/",
+          "basis": "as-fed",
+          "priority": "supplier"
+        },
+        "nutrientSources": {},
+        "notes": [],
+        "verificationStatus": "manufacturer_unverified",
+        "profileBasis": "as-fed"
+      },
+      "premix": {
+        "manufacturer": "Chengdu Sustar Feed",
+        "sku": "GlyPro X912",
+        "species": "pig",
+        "application": "Growing and finishing pigs over 25 kg",
+        "defaultForEligibleProgrammes": true,
+        "eligibleProgrammePrefixes": [
+          "grow-finish-pig",
+          "growing-barrows",
+          "growing-entire-immunocastrated-males",
+          "developing-gilt"
+        ],
+        "inclusionPct": 0.2,
+        "inclusionKgPerTonne": 2,
+        "inclusionInstructions": "Use 2 kg per tonne of complete feed. Do not feed undiluted; mix thoroughly with the basal ingredients.",
+        "verificationStatus": "unverified",
+        "formulationCompatibility": "unconfirmed",
+        "pricePerTonne": null,
+        "specificationUrl": "https://www.sustarfeed.com/vitamin-mineral-premix-for-finishing-pig-sustar-glypro-x912-0-2-product/",
+        "publishedGuarantees": [
+          {
+            "nutrient": "Vitamin E",
+            "unit": "g/kg",
+            "min": 60,
+            "max": 80
+          }
+        ],
+        "publishedAnalysis": {
+          "zincMgKg": {
+            "min": 40000,
+            "max": 70000
+          },
+          "copperMgKg": {
+            "min": 13000,
+            "max": 17000
+          },
+          "vitaminAIuKg": {
+            "min": 28000000,
+            "max": 34000000
+          }
+        },
+        "guaranteedMinimumAsFed": {
+          "sourceUrl": "https://www.sustarfeed.com/vitamin-mineral-premix-for-finishing-pig-sustar-glypro-x912-0-2-product/",
+          "vitamins": {
+            "vitaminAIuKg": 28000000,
+            "vitaminDIuKg": 8000000,
+            "vitaminKMgKg": 9000,
+            "vitaminB1MgKg": 9000,
+            "riboflavinMgKg": 20000,
+            "vitaminB6MgKg": 8000,
+            "vitaminB12McgKg": 70000,
+            "pantothenicAcidMgKg": 45000,
+            "niacinMgKg": 80000,
+            "folicAcidMgKg": 4000,
+            "biotinMgKg": 300
+          },
+          "traceMineralsPpm": {
+            "copper": 13000,
+            "iron": 70000,
+            "manganese": 30000,
+            "zinc": 40000,
+            "iodine": 500,
+            "selenium": 150
+          }
+        },
+        "note": "Product page identifies X912 but the nutrient table heading says X911; supplier confirmation required.",
+        "notes": [
+          "Vitamin E is published by mass (g/kg). It is not credited as IU until the vitamin form and activity are confirmed. Choline is not declared."
+        ]
+      }
+    },
+    {
+      "id": "sustar-glypro-x913",
+      "name": "Sustar GlyPro X913 — Sow vitamin-mineral premix",
+      "aliases": [
+        "GlyPro X913",
+        "Chengdu Sustar Feed"
+      ],
+      "category": "vitamin_mineral_premix",
+      "provenance": {
+        "source": {
+          "publisher": "Chengdu Sustar Feed",
+          "title": "Sustar GlyPro X913 — Sow vitamin-mineral premix — manufacturer product specification",
+          "url": "https://www.sustarfeed.com/vitamin-mineral-premix-for-sows-sustar-glypro-x913-0-2-product/",
+          "basis": "as-fed",
+          "priority": "supplier"
+        },
+        "nutrientSources": {},
+        "notes": [],
+        "verificationStatus": "manufacturer_unverified",
+        "profileBasis": "as-fed"
+      },
+      "premix": {
+        "manufacturer": "Chengdu Sustar Feed",
+        "sku": "GlyPro X913",
+        "species": "pig",
+        "application": "Breeding, gestating and lactating sows",
+        "defaultForEligibleProgrammes": true,
+        "eligibleProgrammePrefixes": [
+          "gestating-gilt-sow",
+          "lactating-gilt-sow"
+        ],
+        "inclusionPct": 0.2,
+        "inclusionKgPerTonne": 2,
+        "inclusionInstructions": "Use 2 kg per tonne of complete feed. Do not feed undiluted; mix thoroughly with the basal ingredients.",
+        "verificationStatus": "unverified",
+        "formulationCompatibility": "unconfirmed",
+        "pricePerTonne": null,
+        "specificationUrl": "https://www.sustarfeed.com/vitamin-mineral-premix-for-sows-sustar-glypro-x913-0-2-product/",
+        "publishedGuarantees": [
+          {
+            "nutrient": "Vitamin E",
+            "unit": "g/kg",
+            "min": 230,
+            "max": 270
+          }
+        ],
+        "publishedAnalysis": {
+          "zincMgKg": {
+            "min": 60000,
+            "max": 100000
+          },
+          "copperMgKg": {
+            "min": 7000,
+            "max": 8000
+          },
+          "vitaminAIuKg": {
+            "min": 33000000,
+            "max": 36000000
+          }
+        },
+        "guaranteedMinimumAsFed": {
+          "sourceUrl": "https://www.sustarfeed.com/vitamin-mineral-premix-for-sows-sustar-glypro-x913-0-2-product/",
+          "vitamins": {
+            "vitaminAIuKg": 33000000,
+            "vitaminDIuKg": 6800000,
+            "vitaminKMgKg": 5000,
+            "vitaminB1MgKg": 4000,
+            "riboflavinMgKg": 18000,
+            "vitaminB6MgKg": 8000,
+            "vitaminB12McgKg": 63000,
+            "pantothenicAcidMgKg": 50000,
+            "niacinMgKg": 90000,
+            "folicAcidMgKg": 9000,
+            "biotinMgKg": 1200
+          },
+          "traceMineralsPpm": {
+            "copper": 7000,
+            "iron": 90000,
+            "manganese": 30000,
+            "zinc": 60000,
+            "iodine": 200,
+            "selenium": 150
+          }
+        },
+        "notes": [
+          "Vitamin E is published by mass (g/kg). It is not credited as IU until the vitamin form and activity are confirmed. Choline is not declared."
+        ]
+      }
+    },
+    {
+      "id": "sustar-glypro-x812",
+      "name": "Sustar GlyPro X812 — Broiler vitamin-mineral premix",
+      "aliases": [
+        "GlyPro X812",
+        "Chengdu Sustar Feed"
+      ],
+      "category": "vitamin_mineral_premix",
+      "provenance": {
+        "source": {
+          "publisher": "Chengdu Sustar Feed",
+          "title": "Sustar GlyPro X812 — Broiler vitamin-mineral premix — manufacturer product specification",
+          "url": "https://www.sustarfeed.com/vitamin-mineral-premix-for-broiler-sustar-glypro-0-1-product/",
+          "basis": "as-fed",
+          "priority": "supplier"
+        },
+        "nutrientSources": {},
+        "notes": [],
+        "verificationStatus": "manufacturer_unverified",
+        "profileBasis": "as-fed"
+      },
+      "premix": {
+        "manufacturer": "Chengdu Sustar Feed",
+        "sku": "GlyPro X812",
+        "species": "broiler",
+        "application": "Broiler chickens",
+        "defaultForEligibleProgrammes": true,
+        "eligibleProgrammePrefixes": [
+          "broiler-"
+        ],
+        "inclusionPct": 0.1,
+        "inclusionKgPerTonne": 1,
+        "inclusionInstructions": "Use 1 kg per tonne of complete feed. Do not feed undiluted; mix thoroughly with the basal ingredients.",
+        "verificationStatus": "unverified",
+        "formulationCompatibility": "unconfirmed",
+        "pricePerTonne": null,
+        "specificationUrl": "https://www.sustarfeed.com/vitamin-mineral-premix-for-broiler-sustar-glypro-0-1-product/",
+        "publishedGuarantees": [
+          {
+            "nutrient": "Vitamin E",
+            "unit": "g/kg",
+            "min": 80,
+            "max": 120
+          }
+        ],
+        "publishedAnalysis": {
+          "zincMgKg": {
+            "min": 75000,
+            "max": 100000
+          },
+          "copperMgKg": {
+            "min": 8000,
+            "max": 11000
+          },
+          "vitaminAIuKg": {
+            "min": 30000000,
+            "max": 35000000
+          }
+        },
+        "guaranteedMinimumAsFed": {
+          "sourceUrl": "https://www.sustarfeed.com/vitamin-mineral-premix-for-broiler-sustar-glypro-0-1-product/",
+          "vitamins": {
+            "vitaminAIuKg": 30000000,
+            "vitaminDIuKg": 9000000,
+            "vitaminKMgKg": 13000,
+            "vitaminB1MgKg": 9000,
+            "riboflavinMgKg": 25000,
+            "vitaminB6MgKg": 18000,
+            "vitaminB12McgKg": 90000,
+            "pantothenicAcidMgKg": 50000,
+            "niacinMgKg": 180000,
+            "folicAcidMgKg": 3000,
+            "biotinMgKg": 450
+          },
+          "traceMineralsPpm": {
+            "copper": 8000,
+            "iron": 25000,
+            "manganese": 90000,
+            "zinc": 75000,
+            "iodine": 900,
+            "selenium": 250
+          }
+        },
+        "notes": [
+          "Vitamin E is published by mass (g/kg). It is not credited as IU until the vitamin form and activity are confirmed. Choline is not declared."
+        ]
+      }
+    },
+    {
+      "id": "sustar-glypro-x811",
+      "name": "Sustar GlyPro X811 — Layer vitamin-mineral premix",
+      "aliases": [
+        "GlyPro X811",
+        "Chengdu Sustar Feed"
+      ],
+      "category": "vitamin_mineral_premix",
+      "provenance": {
+        "source": {
+          "publisher": "Chengdu Sustar Feed",
+          "title": "Sustar GlyPro X811 — Layer vitamin-mineral premix — manufacturer product specification",
+          "url": "https://www.sustarfeed.com/glypro-x811-0-1-vitamin%EF%BC%86mineral-premix-for-layer-premix-for-layer-animal-feed-additives-poultry-feed-additives-premix-for-laying-hens-vitamin-mineral-premix-feed-additives-product/",
+          "basis": "as-fed",
+          "priority": "supplier"
+        },
+        "nutrientSources": {},
+        "notes": [],
+        "verificationStatus": "manufacturer_unverified",
+        "profileBasis": "as-fed"
+      },
+      "premix": {
+        "manufacturer": "Chengdu Sustar Feed",
+        "sku": "GlyPro X811",
+        "species": "layer",
+        "application": "Laying hens",
+        "defaultForEligibleProgrammes": true,
+        "eligibleProgrammePrefixes": [
+          "layer-"
+        ],
+        "inclusionPct": 0.1,
+        "inclusionKgPerTonne": 1,
+        "inclusionInstructions": "Use 1 kg per tonne of complete feed. Do not feed undiluted; mix thoroughly with the basal ingredients.",
+        "verificationStatus": "unverified",
+        "formulationCompatibility": "unconfirmed",
+        "pricePerTonne": null,
+        "specificationUrl": "https://www.sustarfeed.com/glypro-x811-0-1-vitamin%EF%BC%86mineral-premix-for-layer-premix-for-layer-animal-feed-additives-poultry-feed-additives-premix-for-laying-hens-vitamin-mineral-premix-feed-additives-product/",
+        "publishedGuarantees": [
+          {
+            "nutrient": "Vitamin E",
+            "unit": "g/kg",
+            "min": 100,
+            "max": 120
+          }
+        ],
+        "publishedAnalysis": {
+          "zincMgKg": {
+            "min": 60000,
+            "max": 85000
+          },
+          "copperMgKg": {
+            "min": 6800,
+            "max": 8000
+          },
+          "vitaminAIuKg": {
+            "min": 39000000,
+            "max": 42000000
+          }
+        },
+        "guaranteedMinimumAsFed": {
+          "sourceUrl": "https://www.sustarfeed.com/glypro-x811-0-1-vitamin%EF%BC%86mineral-premix-for-layer-premix-for-layer-animal-feed-additives-poultry-feed-additives-premix-for-laying-hens-vitamin-mineral-premix-feed-additives-product/",
+          "vitamins": {
+            "vitaminAIuKg": 39000000,
+            "vitaminDIuKg": 14000000,
+            "vitaminKMgKg": 12000,
+            "vitaminB1MgKg": 7000,
+            "riboflavinMgKg": 23000,
+            "vitaminB6MgKg": 12000,
+            "vitaminB12McgKg": 80000,
+            "pantothenicAcidMgKg": 45000,
+            "niacinMgKg": 110000,
+            "folicAcidMgKg": 3000,
+            "biotinMgKg": 500
+          },
+          "traceMineralsPpm": {
+            "copper": 6800,
+            "iron": 45000,
+            "manganese": 75000,
+            "zinc": 60000,
+            "iodine": 900,
+            "selenium": 200
+          }
+        },
+        "notes": [
+          "Vitamin E is published by mass (g/kg). It is not credited as IU until the vitamin form and activity are confirmed. Choline is not declared."
+        ]
       }
     }
   ]

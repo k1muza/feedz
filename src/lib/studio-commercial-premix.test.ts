@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { canAddStudioIngredient, selectStudioIngredient, studioPremixProblems, poolWithProgrammePremix, poolWithPremixPrice, poolWithoutPremix } from "./studio-commercial-premix";
+import { canAddStudioIngredient, selectStudioIngredient, studioPremixProblems, poolWithCarriedPremixSelection, poolWithProgrammePremix, poolWithPremixPrice, poolWithPremixSelection, poolWithoutPremix } from "./studio-commercial-premix";
 
 test("Studio replaces premix by animal class without inheriting old SKU or price", () => {
   const grower = poolWithProgrammePremix({ "corn-yellow-dent": { role: "available" } }, "grow-finish-pig");
@@ -57,6 +57,8 @@ test("leaving CJ's boar programme clears all former manufacturer locks and offer
 test("premixes are first-class selectable ingredients, with species/programme eligibility", () => {
   assert.equal(canAddStudioIngredient("sustar-glypro-x912", "grow-finish-pig"), true);
   assert.equal(canAddStudioIngredient("sustar-glypro-x911", "grow-finish-pig"), false);
+  assert.equal(canAddStudioIngredient("aeci-v1736-pig-weaner-premix", "nursery-pig"), true);
+  assert.equal(canAddStudioIngredient("aeci-v1736-pig-weaner-premix", "grow-finish-pig"), false);
   assert.equal(canAddStudioIngredient("sustar-glypro-x812", "grow-finish-pig"), false);
   assert.equal(canAddStudioIngredient("cj-s174-boar-premix", "mature-boar"), true);
   assert.equal(canAddStudioIngredient("sustar-glypro-x812", "broiler-standard"), true);
@@ -74,6 +76,40 @@ test("choosing an eligible premix sets manufacturer dose without discarding cere
   assert.equal(choice["sustar-glypro-x912"].fixed, 0.2);
   assert.equal(choice["corn-yellow-dent"].price, 265);
   assert.deepEqual(studioPremixProblems(choice, "grow-finish-pig"), []);
+});
+
+test("Studio's explicit premix selector can choose an eligible product or no premix", () => {
+  const base = { "corn-yellow-dent": { role: "available" as const, price: 265 } };
+  const chosen = poolWithPremixSelection(base, "grow-finish-pig", "sustar-glypro-x912");
+  assert.equal(chosen["sustar-glypro-x912"]?.fixed, 0.2);
+  assert.equal(chosen["corn-yellow-dent"]?.price, 265);
+
+  const none = poolWithPremixSelection(chosen, "grow-finish-pig", null);
+  assert.equal(none["sustar-glypro-x912"], undefined);
+  assert.equal(none["corn-yellow-dent"]?.price, 265);
+  assert.throws(
+    () => poolWithPremixSelection(base, "grow-finish-pig", "sustar-glypro-x812"),
+    /not eligible/,
+  );
+
+  const aeci = poolWithPremixSelection(base, "nursery-pig", "aeci-v1736-pig-weaner-premix");
+  assert.equal(aeci["aeci-v1736-pig-weaner-premix"]?.fixed, 1);
+  assert.equal(aeci["sustar-glypro-x911"], undefined);
+
+  const replacementIngredients = { "wheat-bran": { role: "available" as const } };
+  const carried = poolWithCarriedPremixSelection(replacementIngredients, chosen, "grow-finish-pig");
+  assert.equal(carried["sustar-glypro-x912"]?.fixed, 0.2);
+  assert.equal(carried["wheat-bran"]?.role, "available");
+  const carriedNone = poolWithCarriedPremixSelection(replacementIngredients, none, "grow-finish-pig");
+  assert.equal(carriedNone["sustar-glypro-x912"], undefined);
+});
+
+test("choosing no premix unlocks a manufacturer-restricted recipe", () => {
+  const boar = poolWithProgrammePremix({}, "mature-boar");
+  const none = poolWithPremixSelection(boar, "mature-boar", null);
+  assert.equal(none["cj-s174-boar-premix"], undefined);
+  assert.equal(none["corn-yellow-dent"]?.role, "available");
+  assert.equal(none["limestone-ground"]?.role, "available");
 });
 
 test("bad saved premix choices stop in Studio before reaching HTTP 400", () => {

@@ -64,6 +64,37 @@ export function poolWithProgrammePremix(pool: Pool, programmeId: string, preferr
   };
 }
 
+/** Applies the farmer's explicit premix choice from Studio. Unlike
+ * poolWithProgrammePremix, null means "no premix" and must not fall back to
+ * the programme default.
+ */
+export function poolWithPremixSelection(pool: Pool, programmeId: string, premixId: string | null): Pool {
+  if (premixId) {
+    const product = commercialPremixById(premixId);
+    if (!product || !commercialPremixCompatibleWithProgramme(product, programmeId)) {
+      throw new Error(`Premix ${premixId} is not eligible for ${programmeId}.`);
+    }
+    return poolWithProgrammePremix(pool, programmeId, premixId);
+  }
+
+  const unlocked = unlockedAfterManufacturerRecipe(pool);
+  return Object.fromEntries(Object.entries(unlocked).filter(([id]) => !commercialPremixById(id)));
+}
+
+/** Replaces the basal ingredient source while carrying the premix choice made
+ * in Studio's separate selector. This also preserves an explicit no-premix
+ * choice while an asynchronous suggestion list arrives.
+ */
+export function poolWithCarriedPremixSelection(nextPool: Pool, currentPool: Pool, programmeId: string): Pool {
+  const selected = Object.entries(currentPool)
+    .find(([id, row]) => {
+      if (row.role === "excluded") return false;
+      const commercial = commercialPremixById(id);
+      return !!commercial && commercialPremixCompatibleWithProgramme(commercial, programmeId);
+    });
+  return poolWithPremixSelection(nextPool, programmeId, selected?.[0] ?? null);
+}
+
 /** Takes a premix out of the formulation: deleted, or kept as an unticked row.
  * Leaving a manufacturer recipe also unlocks its basal ingredients, which
  * would otherwise stay fixed at shares nothing else can complete.
@@ -104,7 +135,7 @@ export function canAddStudioIngredient(ingredientId: string, programmeId: string
 }
 
 export function selectStudioIngredient(pool: Pool, ingredientId: string, programmeId: string): Pool {
-  if (!canAddStudioIngredient(ingredientId, programmeId)) {
+  if (!canAddStudioIngredient(ingredientId, programmeId, pool)) {
     throw new Error(`Ingredient ${ingredientId} is not eligible for ${programmeId}.`);
   }
   if (commercialPremixById(ingredientId)) return poolWithProgrammePremix(pool, programmeId, ingredientId);
@@ -121,7 +152,7 @@ export function selectStudioIngredient(pool: Pool, ingredientId: string, program
 export function studioPremixProblems(pool: Pool, programmeId: string): string[] {
   const selected = Object.entries(pool).filter(([id, row]) =>
     commercialPremixById(id) && row.role !== "excluded");
-  if (selected.length > 1) return ["Only one commercial premix may be included in a formulation."];
+  if (selected.length > 1) return ["Only one premix may be included in a formulation."];
   if (selected.length === 0) return [];
   const [id, row] = selected[0];
   const product = commercialPremixById(id)!;

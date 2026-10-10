@@ -5,7 +5,7 @@ import { z } from "zod";
 
 import { ingredientDefaultPricePerKg } from "@/lib/feed-ingredient-prices";
 import { commercialPremixById } from "@/lib/commercial-premixes";
-import { ingredientLibraryForPhase, ingredientLibraryWithCommercialPremixes } from "@/lib/ingredient-nutrients";
+import { ingredientLibraryForPhase, ingredientLibraryWithCommercialPremixes, ingredientLibraryWithCustomPremixes } from "@/lib/ingredient-nutrients";
 import { getIngredientPrices } from "@/lib/ingredient-prices";
 import {
   suggestFormulationAdditions,
@@ -62,7 +62,10 @@ export async function POST(request: Request) {
     const options: FormulationIngredientOption[] = currentIngredients.flatMap(
       (ingredient) => {
         const pricePerKg =
-          ingredient.pricePerKg ?? planningPrice(ingredient.ingredientId);
+          ingredient.pricePerKg ??
+          (commercialPremixById(ingredient.ingredientId)
+            ? 0
+            : planningPrice(ingredient.ingredientId));
         return pricePerKg === undefined ? [] : [{ ...ingredient, pricePerKg }];
       },
     );
@@ -70,6 +73,7 @@ export async function POST(request: Request) {
       .filter(
         (ingredient) =>
           ingredient.pricePerKg === undefined &&
+          !commercialPremixById(ingredient.ingredientId) &&
           planningPrice(ingredient.ingredientId) === undefined,
       )
       .map((ingredient) => ingredient.ingredientId);

@@ -321,7 +321,7 @@ export async function formulate(snap: Snapshot, ctx: EngineContext): Promise<For
   const errs: Issue[] = [];
   const warns: Issue[] = [];
   for (const message of studioPremixProblems(snap.pool, snap.programmeId)) {
-    errs.push({ title: "Invalid commercial premix selection", body: message });
+    errs.push({ title: "Invalid premix selection", body: message });
   }
   const realPremix = active.map(commercialPremixById).find((product) => product !== undefined);
   if (realPremix) {

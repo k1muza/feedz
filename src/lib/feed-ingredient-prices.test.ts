@@ -4,6 +4,7 @@ import { describe, test } from "node:test";
 import {
   ingredientDefaultPlanningPricePerTonne,
   ingredientDefaultPrice,
+  ingredientDefaultPricePerKg,
 } from "./feed-ingredient-prices";
 
 const expectedPremixPlanningPrices: Record<string, number> = {
@@ -16,6 +17,15 @@ const expectedPremixPlanningPrices: Record<string, number> = {
 };
 
 describe("commercial premix planning prices", () => {
+  test("uses the user-provided AECI V1736 supplier price without a planning multiplier", () => {
+    const source = ingredientDefaultPrice("aeci-v1736-pig-weaner-premix");
+    assert.ok(source);
+    assert.equal(source.usdPerTonne, 2200);
+    assert.equal(source.planningMultiplier, undefined);
+    assert.equal(ingredientDefaultPlanningPricePerTonne(source.ingredientId), 2200);
+    assert.equal(ingredientDefaultPricePerKg(source.ingredientId), 2.2);
+  });
+
   test("uses Alibaba listing midpoints multiplied by two", () => {
     for (const [ingredientId, expected] of Object.entries(expectedPremixPlanningPrices)) {
       const source = ingredientDefaultPrice(ingredientId);

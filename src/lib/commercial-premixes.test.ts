@@ -8,23 +8,60 @@ import {
   assertManufacturerRecipe,
   commercialPremixCompatibleWithProgramme,
   commercialPremixForProgramme,
+  premixFinishedFeedContributions,
   publishedPremixAminoAcids,
   publishedMinimumTotalAminoAcidsInFeed,
 } from "./commercial-premixes";
 
 describe("Manufacturer-backed commercial premix catalogue", () => {
   test("all entries are identifiable and unverified, with no fabricated supplier quotes", () => {
-    assert.equal(COMMERCIAL_PREMIXES.length, 6);
+    assert.equal(COMMERCIAL_PREMIXES.length, 7);
     assert.equal(new Set(COMMERCIAL_PREMIXES.map((product) => product.id)).size, COMMERCIAL_PREMIXES.length);
     for (const product of COMMERCIAL_PREMIXES) {
-      assert.ok(["Chengdu Sustar Feed", "CJ (Tianjin) Feed"].includes(product.manufacturer));
+      assert.ok(["AECI Animal Health", "Chengdu Sustar Feed", "CJ (Tianjin) Feed"].includes(product.manufacturer));
       assert.equal(product.verificationStatus, "unverified");
       assert.ok(["unconfirmed", "manufacturer_recipe_only"].includes(product.formulationCompatibility));
       assert.equal(product.pricePerTonne, null);
-      assert.ok(product.specificationUrl.startsWith(product.sku === "S174" ? "https://www.cjfeedcn.com/" : "https://www.sustarfeed.com/"));
+      assert.ok(product.specificationUrl.startsWith("https://"));
       assert.ok(product.inclusionPct > 0 && product.inclusionKgPerTonne > 0);
       assert.deepEqual(commercialPremixById(product.id), product);
     }
+  });
+
+  test("retains the AECI V1736 bag-label guarantees at the labelled 10 kg/t dose", () => {
+    const product = commercialPremixById("aeci-v1736-pig-weaner-premix");
+    assert.ok(product);
+    assert.equal(product.manufacturer, "AECI Animal Health");
+    assert.equal(product.sku, "V1736");
+    assert.equal(product.inclusionPct, 1);
+    assert.equal(product.inclusionKgPerTonne, 10);
+    assert.equal(commercialPremixCompatibleWithProgramme(product, "nursery-pig"), true);
+    assert.equal(commercialPremixCompatibleWithProgramme(product, "grow-finish-pig"), false);
+    assert.deepEqual(product.guaranteedMinimumAsFed, {
+      sourceUrl: "https://www.aeciworld.net/animal-health.html",
+      vitamins: {
+        vitaminAIuKg: 5_000_000,
+        vitaminDIuKg: 2_000_000,
+        vitaminEIuKg: 10_000,
+        vitaminKMgKg: 300,
+        vitaminB1MgKg: 1_500,
+        riboflavinMgKg: 3_000,
+        vitaminB6MgKg: 1_000,
+        vitaminB12McgKg: 15_000,
+        niacinMgKg: 15_000,
+      },
+      traceMineralsPpm: {
+        zinc: 30_000,
+        iron: 25_000,
+        manganese: 15_000,
+        copper: 1_000,
+        iodine: 300,
+      },
+    });
+    const contributions = premixFinishedFeedContributions(product);
+    assert.equal(contributions.find((item) => item.nutrient === "Vitamin A")?.finishedFeedContribution, 50_000);
+    assert.equal(contributions.find((item) => item.nutrient === "Zinc")?.finishedFeedContribution, 300);
+    assert.equal(contributions.find((item) => item.nutrient === "Selenium"), undefined, "Selenium must remain unknown until supplier analysis is obtained.");
   });
 
   test("selects the stage-specific commercial product, never one universal premix", () => {

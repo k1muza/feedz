@@ -111,7 +111,6 @@ describe("canonical formulation assessment", () => {
       id: "documented-vitamin-premix",
       name: "Documented vitamin premix",
       category: "Premix",
-      nutrients: {},
       premix: { contributions: [
         { nutrient: "Vitamin E", finishedFeedContribution: 40 },
         { nutrient: "Total choline", finishedFeedContribution: 300 },

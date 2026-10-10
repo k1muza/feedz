@@ -4,7 +4,7 @@ import { z } from "zod";
 import { evaluateFormulation } from "@/lib/feed-optimizer";
 import { feedProgrammePhaseById } from "@/lib/feed-programmes";
 import { commercialPremixById } from "@/lib/commercial-premixes";
-import { ingredientLibraryForPhase, ingredientLibraryWithCommercialPremixes } from "@/lib/ingredient-nutrients";
+import { ingredientLibraryForPhase, ingredientLibraryWithCommercialPremixes, ingredientLibraryWithCustomPremixes } from "@/lib/ingredient-nutrients";
 import { buildFormulationAssessment } from "@/lib/formulation-assessment";
 
 export const runtime = "nodejs";
@@ -43,6 +43,7 @@ export async function POST(request: Request) {
       const premix = commercialPremixById(row.ingredientId);
       return premix ? [premix] : [];
     });
+    if (premixes.length > 1) throw new Error("Select only one premix for a formulation.");
     const library = ingredientLibraryWithCommercialPremixes(premixes, ingredientLibraryForPhase(phase));
     const formula = { ingredients };
     const evaluation = evaluateFormulation(

@@ -74,13 +74,25 @@ export const STUDIO_CSS =
   "@media (min-width:1000px){.fs-studio .fs-assessment-card.fs-has-explanation{grid-template-columns:auto minmax(0,1fr) minmax(320px,.72fr)!important}.fs-studio .fs-assessment-explanation{grid-column:3!important;grid-row:1 / 4;align-self:start!important}}" +
   // "Not ready to mix" rows: one line when there is room, stacked cells otherwise.
   ".fs-studio .fs-verify-row{display:grid;grid-template-columns:1fr;gap:8px}" +
-  "@media (min-width:1000px){.fs-studio .fs-verify-row{grid-template-columns:120px minmax(90px,.55fr) minmax(170px,.9fr) minmax(0,3fr) 44px;gap:14px}}" +
+  "@media (min-width:1000px){.fs-studio .fs-verify-row{grid-template-columns:120px minmax(90px,.55fr) minmax(190px,1fr) minmax(0,2.6fr) 44px;gap:14px}}" +
   // Validation panel: collapsed categories point their caret down.
   ".fs-studio details>summary::-webkit-details-marker{display:none}.fs-studio details:not([open]) .fs-caret{display:inline-block;transform:rotate(180deg)}" +
   // On short screens the sidebar scrolls, with a thin scrollbar in its own colours.
   ".fs-studio .fs-sidebar{overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:#45473f transparent}" +
   ".fs-studio .fs-sidebar::-webkit-scrollbar{width:8px}.fs-studio .fs-sidebar::-webkit-scrollbar-track{background:transparent}" +
   ".fs-studio .fs-sidebar::-webkit-scrollbar-thumb{background:#45473f;border-radius:8px;border:2px solid #222420}.fs-studio .fs-sidebar::-webkit-scrollbar-thumb:hover{background:#64665c}" +
+  // Ingredient selector and catalogue modal share exact column tracks.
+  ".fs-studio .fs-ingredient-grid{grid-template-columns:30px minmax(0,1fr) 205px 140px}" +
+  ".fs-studio .fs-add-grid{grid-template-columns:25px minmax(0,1fr) 70px 55px 62px}" +
+  "@media (max-width:720px){" +
+    ".fs-studio .fs-ingredient-grid{grid-template-columns:30px minmax(0,1fr)}" +
+    ".fs-studio .fs-ingredient-head>:nth-child(n+3){display:none}" +
+    ".fs-studio .fs-ingredient-grid>:nth-child(3),.fs-studio .fs-ingredient-grid>:nth-child(4){grid-column:2}" +
+    ".fs-studio .fs-add-grid{grid-template-columns:25px minmax(0,1fr) 62px}" +
+    ".fs-studio .fs-add-grid>:nth-child(3),.fs-studio .fs-add-grid>:nth-child(4){display:none}" +
+    ".fs-studio .fs-premix-row{grid-template-columns:25px minmax(0,1fr) 58px!important}" +
+    ".fs-studio .fs-premix-row>:nth-child(4){display:none}" +
+  "}" +
   "@keyframes fsspin{to{transform:rotate(360deg)}}" +
   "@keyframes fsin{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}" +
   Object.entries(HOVER)

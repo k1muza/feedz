@@ -7,7 +7,7 @@ export type IngredientPriceSourceScope =
 
 export type IngredientDefaultPrice = {
   ingredientId: string;
-  /** Public source price before any FeedSport planning adjustment. */
+  /** Source/reference price before any FeedSport planning adjustment. */
   usdPerTonne: number;
   market: string;
   asOf: string;
@@ -58,6 +58,16 @@ export function ingredientImportPriceMultiplier(
  * 4. Global benchmark only when no usable local/regional public price is available
  */
 export const INGREDIENT_DEFAULT_PRICES: readonly IngredientDefaultPrice[] = [
+  {
+    ingredientId: "aeci-v1736-pig-weaner-premix",
+    usdPerTonne: 2200,
+    market: "Zimbabwe supplier price",
+    asOf: "2026-10-10",
+    sourceScope: "zimbabwe",
+    sourceLabel: "User-provided supplier price — AECI V1736 Pig Weaner",
+    note:
+      "User-provided price of USD 2.20/kg, stored as USD 2,200/t with no planning multiplier.",
+  },
   {
     ingredientId: "cj-s174-boar-premix",
     usdPerTonne: 2550,

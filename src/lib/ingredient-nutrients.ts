@@ -146,6 +146,93 @@ const nutritionProfileSchema = z
   })
   .strict();
 
+/** Premix declarations use the engine's canonical vitamin keys; unknown keys are errors. */
+const premixVitaminsSchema = z
+  .object({
+    vitaminAIuKg: z.number().optional(),
+    vitaminDIuKg: z.number().optional(),
+    vitaminEIuKg: z.number().optional(),
+    vitaminKMgKg: z.number().optional(),
+    vitaminB1MgKg: z.number().optional(),
+    riboflavinMgKg: z.number().optional(),
+    vitaminB6MgKg: z.number().optional(),
+    vitaminB12McgKg: z.number().optional(),
+    pantothenicAcidMgKg: z.number().optional(),
+    niacinMgKg: z.number().optional(),
+    folicAcidMgKg: z.number().optional(),
+    biotinMgKg: z.number().optional(),
+    totalCholineMgKg: z.number().optional(),
+  })
+  .strict();
+
+const premixTraceMineralsSchema = z
+  .object({
+    zinc: z.number().optional(),
+    iron: z.number().optional(),
+    manganese: z.number().optional(),
+    copper: z.number().optional(),
+    iodine: z.number().optional(),
+    selenium: z.number().optional(),
+  })
+  .strict();
+
+const premixMicronutrientProfileSchema = z
+  .object({
+    sourceUrl: z.string().url(),
+    vitamins: premixVitaminsSchema,
+    traceMineralsPpm: premixTraceMineralsSchema,
+  })
+  .strict();
+
+const rangeSchema = z.object({ min: z.number(), max: z.number().optional() }).strict();
+
+/** A supplier product; its fields are documented on CommercialPremix. */
+const commercialPremixSchema = z
+  .object({
+    manufacturer: z.enum(["AECI Animal Health", "Chengdu Sustar Feed", "CJ (Tianjin) Feed"]),
+    sku: z.string(),
+    species: z.enum(["pig", "broiler", "layer"]),
+    application: z.string(),
+    eligibleProgrammePrefixes: z.array(z.string()),
+    defaultForEligibleProgrammes: z.boolean().optional(),
+    inclusionPct: z.number().positive(),
+    inclusionKgPerTonne: z.number().positive(),
+    inclusionInstructions: z.string(),
+    verificationStatus: z.enum(["unverified", "verified"]),
+    formulationCompatibility: z.enum(["unconfirmed", "manufacturer_recipe_only"]),
+    manufacturerRecipe: z.array(z.object({ ingredientId: z.string(), percent: z.number() }).strict()).optional(),
+    publishedGuarantees: z
+      .array(z.object({
+        nutrient: z.string(),
+        unit: z.enum(["IU/kg", "mg/kg", "g/kg", "%"]),
+        min: z.number().optional(),
+        max: z.number().optional(),
+      }).strict())
+      .optional(),
+    guaranteedMinimumAsFed: premixMicronutrientProfileSchema.optional(),
+    verifiedAsFedMicronutrients: premixMicronutrientProfileSchema.extend({ reference: z.string() }).strict().optional(),
+    verifiedAsFedAminoAcids: z
+      .object({
+        reference: z.string(),
+        sourceUrl: z.string().url(),
+        totalPct: z.record(z.string(), z.number()).optional(),
+        sidPct: z.record(z.string(), z.number()).optional(),
+      })
+      .strict()
+      .optional(),
+    pricePerTonne: z.null(),
+    specificationUrl: z.string().url(),
+    publishedAnalysis: z
+      .object({ zincMgKg: rangeSchema, copperMgKg: rangeSchema, vitaminAIuKg: rangeSchema })
+      .strict(),
+    note: z.string().optional(),
+    /** Data caveats that used to live as code comments beside the values. */
+    notes: z.array(z.string()).optional(),
+  })
+  .strict();
+
+export type CommercialPremixRecord = z.infer<typeof commercialPremixSchema>;
+
 const ingredientSourceSchema = z
   .object({
     id: z.string(),
@@ -167,9 +254,9 @@ const ingredientSourceSchema = z
         poultry: nutritionProfileSchema.optional(),
       })
       .strict()
-      .refine((nutrition) => nutrition.swine !== undefined || nutrition.poultry !== undefined, {
-        message: "Ingredient must define at least one species nutrition profile.",
-      }),
+      .default({}),
+    /** Present on vitamin-mineral premixes, which are added to a formulation only when selected. */
+    premix: commercialPremixSchema.optional(),
     provenance: z
       .object({
         sourceIngredientName: z.string().optional(),
@@ -184,7 +271,13 @@ const ingredientSourceSchema = z
       })
       .default({ nutrientSources: {}, notes: [] }),
   })
-  .strict();
+  .strict()
+  .refine((ingredient) => ingredient.premix !== undefined || ingredient.nutrition.swine !== undefined || ingredient.nutrition.poultry !== undefined, {
+    message: "Ingredient must define at least one species nutrition profile, or be a premix.",
+  })
+  .refine((ingredient) => ingredient.premix === undefined || ingredient.category === "vitamin_mineral_premix", {
+    message: "Only vitamin_mineral_premix ingredients may carry a premix block.",
+  });
 
 const ingredientLibrarySourceSchema = z
   .object({
@@ -265,6 +358,10 @@ export function loadIngredientLibrarySource(input: unknown): IngredientLibrarySo
 }
 
 export const INGREDIENT_LIBRARY_SOURCE = loadIngredientLibrarySource(ingredientLibraryJson);
+
+/** Premix records from the library, in file order; commercial-premixes builds on these. */
+export const PREMIX_RECORDS = INGREDIENT_LIBRARY_SOURCE.ingredients.flatMap((ingredient) =>
+  ingredient.premix ? [{ id: ingredient.id, name: ingredient.name, premix: ingredient.premix }] : []);
 
 function materializeIngredient(
   ingredient: IngredientSourceRecord,
@@ -352,6 +449,8 @@ export type CustomPremixProfile = {
   };
   /** Optional origin of user-provided analytical values; does not imply verification. */
   source?: NutrientValueSource;
+  /** Disclosure carried with a built-in or user-supplied unverified profile. */
+  notes?: string[];
 };
 
 export function ingredientLibraryWithCustomPremixes(
@@ -374,7 +473,7 @@ export function ingredientLibraryWithCustomPremixes(
       macroMinerals: {},
       traceMineralsPpm: premix.traceMineralsPpm,
       vitamins: premix.vitamins,
-      constraints: { notes: ["User-entered commercial premix profile."] },
+      constraints: { notes: premix.notes ?? ["User-entered commercial premix profile."] },
     });
 
     return {
@@ -387,7 +486,7 @@ export function ingredientLibraryWithCustomPremixes(
         ...(premix.source ? { source: nutrientSourceSchema.parse(premix.source) } : {}),
         verificationStatus: "user_supplied_unverified",
         profileBasis: "as-fed",
-        notes: [
+        notes: premix.notes ?? [
           "User-provided nutrient values; original datasheet not supplied. Never treat this as a published nutrient profile.",
         ],
       },
