@@ -6,6 +6,7 @@ import { assertUniqueIds } from "./nutrition-validation";
 import growingSwineJson from "@/data/nutrition/sources/brazilian-tables-2024/programmes/swine/growing.json";
 import breederSwineJson from "@/data/nutrition/sources/brazilian-tables-2024/programmes/swine/breeders.json";
 import swineSupplementationJson from "@/data/nutrition/sources/brazilian-tables-2024/programmes/swine/supplementation.json";
+import broilerSupplementationJson from "@/data/nutrition/sources/brazilian-tables-2024/programmes/poultry/broilers/supplementation.json";
 
 const rangeSchema = z.object({
   min: z.number().optional(),
@@ -64,6 +65,37 @@ const swineSupplementationSchema = z.object({
       inorganic: traceMineralSupplementationSchema,
       organic: traceMineralSupplementationSchema,
     }),
+  }),
+  notes: z.array(z.string()),
+});
+
+const broilerSupplementationSchema = z.object({
+  schemaVersion: z.literal(1),
+  id: z.literal("brazilian-2024-broiler-supplementation"),
+  sourceId: z.literal("brazilian-tables-2024"),
+  broilers: z.object({
+    vitaminSourceTable: z.literal("7.01"),
+    traceMineralSourceTable: z.literal("7.03"),
+    vitaminPrintedPage: z.literal(469),
+    traceMineralPrintedPage: z.literal(471),
+    /** Source basis for the per-kg-feed levels; kept so transcription can be cross-checked. */
+    perKgGain: z.object({
+      vitamins: vitaminSupplementationSchema,
+      inorganic: traceMineralSupplementationSchema,
+      organic: traceMineralSupplementationSchema,
+    }),
+    phases: z.array(
+      z.object({
+        ageDays: rangeSchema,
+        weightKg: rangeSchema,
+        weightGainGDay: z.number(),
+        feedIntakeGDay: z.number(),
+        ratio: z.number(),
+        vitamins: vitaminSupplementationSchema,
+        inorganic: traceMineralSupplementationSchema,
+        organic: traceMineralSupplementationSchema,
+      }),
+    ),
   }),
   notes: z.array(z.string()),
 });
@@ -251,6 +283,8 @@ export { BRAZILIAN_2024_SOURCE };
 
 export const BRAZILIAN_2024_SWINE_SUPPLEMENTATION =
   swineSupplementationSchema.parse(swineSupplementationJson);
+export const BRAZILIAN_2024_BROILER_SUPPLEMENTATION =
+  broilerSupplementationSchema.parse(broilerSupplementationJson);
 export const BRAZILIAN_2024_GROWING_SWINE = growingSwineSchema.parse(growingSwineJson);
 export const BRAZILIAN_2024_BREEDER_SWINE = breederSwineSchema.parse(breederSwineJson);
 

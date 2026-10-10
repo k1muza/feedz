@@ -57,10 +57,17 @@ The least-cost solver reports whether a recipe is feasible against its active
 hard constraints. Complete-feed validation is a separate assessment with four
 categories: energy/protein/amino acids, major minerals, vitamins, and trace
 minerals. Vitamins and trace minerals use supplemented targets separately from
-total-diet requirements where the source publishes supplementation guidance.
-Any missing target, missing ingredient value, or unverified premix profile keeps
-the category at `not_verified` and the complete-feed result at `incomplete`,
-even when the basal formulation is feasible.
+total-diet requirements where the source publishes supplementation guidance:
+Brazilian Tables 2024 Tables 7.01/7.03 (broilers, printed pp. 469/471),
+7.05/7.06 (growing swine, pp. 473/474) and 7.07 (breeders, p. 475), matched to
+phases by age band. Table 7.05 starts at weaning (21 days), so the 14–21 day
+nursery phase has no supplementation targets.
+
+Each category is `met`, `not_met`, or `no_target`. Premix label minima count
+towards micronutrient targets, and a nutrient that no ingredient declares counts
+as not supplied, so its category is `not_met`. A category with no loaded targets
+for the phase is `no_target`; it keeps the complete-feed result at `incomplete`,
+even when every assessed category is met.
 
 ## Interfaces
 

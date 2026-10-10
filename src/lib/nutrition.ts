@@ -3,6 +3,7 @@ import {
   BRAZILIAN_2024_GROWING_SWINE,
   BRAZILIAN_2024_SOURCE,
   BRAZILIAN_2024_SWINE_SUPPLEMENTATION,
+  BRAZILIAN_2024_BROILER_SUPPLEMENTATION,
 } from "./brazilian-nutrition";
 import {
   BRAZILIAN_2024_BROILER_HIGH_PERFORMANCE,
@@ -800,6 +801,30 @@ export const BRAZILIAN_2024_LACTATION_25C_NUTRITION: NutritionProgramme = {
 type BroilerProgramme = typeof BRAZILIAN_2024_BROILER_STANDARD_PERFORMANCE;
 type BroilerPhase = BroilerProgramme["phases"][number];
 
+/**
+ * Tables 7.01/7.03 publish broiler supplementation by age band; every broiler
+ * programme (including the 26 °C table) uses the same bands.
+ */
+function broilerSupplementationForPhase(
+  ageMin: number,
+  ageMax: number,
+): NutritionSupplementationTargets | undefined {
+  const source = BRAZILIAN_2024_BROILER_SUPPLEMENTATION.broilers;
+  const guidance = source.phases.find(
+    (candidate) => candidate.ageDays.min === ageMin && candidate.ageDays.max === ageMax,
+  );
+  if (!guidance) return undefined;
+  return {
+    sourceTables: [source.vitaminSourceTable, source.traceMineralSourceTable],
+    sourcePages: [source.vitaminPrintedPage, source.traceMineralPrintedPage],
+    vitamins: guidance.vitamins,
+    traceMinerals: {
+      inorganic: guidance.inorganic,
+      organic: guidance.organic,
+    },
+  };
+}
+
 function ratioToLysinePct(value: number, lysine: number): number {
   return Math.round((value / lysine) * 1000) / 10;
 }
@@ -834,6 +859,7 @@ function normalizeBroilerPhase(
     sourceWeightRange: `${sourceMinWeightKg}–${sourceMaxWeightKg} kg`,
     lookupMinWeightKg,
     lookupMaxWeightKg,
+    supplementation: broilerSupplementationForPhase(ageMinDays, ageMaxDays),
     requirements: {
       metabolizableEnergyKcalKg: phase.diet.metabolizableEnergyKcalKg,
       netEnergyKcalKg: phase.diet.netEnergyKcalKg,
