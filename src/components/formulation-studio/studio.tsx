@@ -710,7 +710,8 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
   const rescueIds = rescueBase
     ? formulationRescueIngredientCandidates(
         rescueBase.assessment,
-        catalogue.filter((g) => !S.pool[g.id] && canAddStudioIngredient(g.id, S.programmeId, S.pool, S.phaseId)),
+        catalogue.filter((g) => !S.pool[g.id] && canAddStudioIngredient(g.id, S.programmeId, S.pool, S.phaseId) &&
+          !(commercialPremixById(g.id) && commercialPremixSimulationOnlyForPhase(commercialPremixById(g.id)!, S.programmeId, S.phaseId))),
         S.species,
         RESCUE_TRIAL_LIMIT,
       ).map((c) => c.id)
@@ -1545,6 +1546,7 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
     .filter((ingredient) =>
       !!commercialPremixById(ingredient.id) &&
       canAddStudioIngredient(ingredient.id, S.programmeId, S.pool, S.phaseId) &&
+      !(commercialPremixById(ingredient.id) && commercialPremixSimulationOnlyForPhase(commercialPremixById(ingredient.id)!, S.programmeId, S.phaseId)) &&
       (!S.pool[ingredient.id] || S.pool[ingredient.id].role === "excluded"))
     .map((ingredient) => ingredient.id);
   const completionAlternativeIds =
@@ -1967,7 +1969,10 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
             ? "Missing " + missing + " · can’t be used yet"
             : picked
               ? "Selected to add"
-              : ingredient.premix?.application ?? "Catalogue nutrient profile";
+              : ingredient.premix && commercialPremixById(ingredient.id) &&
+                commercialPremixSimulationOnlyForPhase(commercialPremixById(ingredient.id)!, S.programmeId, S.phaseId)
+                ? "Simulation only — NOT approved for grower feeding"
+                : ingredient.premix?.application ?? "Catalogue nutrient profile";
       return {
         id: ingredient.id,
         name: ingredient.name,
@@ -2247,7 +2252,8 @@ function optimalVals(
     ? formulationRescueIngredientCandidates(
         assessment,
         [...engine.catalogue.values()].filter((ingredient) =>
-          !S.pool[ingredient.id] && canAddStudioIngredient(ingredient.id, S.programmeId, S.pool, S.phaseId)),
+          !S.pool[ingredient.id] && canAddStudioIngredient(ingredient.id, S.programmeId, S.pool, S.phaseId) &&
+          !(commercialPremixById(ingredient.id) && commercialPremixSimulationOnlyForPhase(commercialPremixById(ingredient.id)!, S.programmeId, S.phaseId))),
         S.species,
       ).map((ingredient) => ({
         ...ingredient,
