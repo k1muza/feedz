@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { FormEvent, useEffect, useState } from 'react';
+import { FormEvent, useEffect, useRef, useState } from 'react';
 import { Search, X } from 'lucide-react';
 
 const links = [
@@ -17,10 +17,18 @@ export default function NavBar() {
   const pathname = usePathname();
   const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const [quoteOpen, setQuoteOpen] = useState(false);
   const [query, setQuery] = useState('');
+  const mobileSearchInputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => setMenuOpen(false), [pathname]);
+  useEffect(() => {
+    setMenuOpen(false);
+    setMobileSearchOpen(false);
+  }, [pathname]);
+  useEffect(() => {
+    if (mobileSearchOpen) mobileSearchInputRef.current?.focus();
+  }, [mobileSearchOpen]);
   useEffect(() => {
     if (!quoteOpen) return;
     const close = (event: KeyboardEvent) => event.key === 'Escape' && setQuoteOpen(false);
@@ -30,7 +38,9 @@ export default function NavBar() {
 
   const submitSearch = (event: FormEvent) => {
     event.preventDefault();
-    if (query.trim()) router.push(`/products?q=${encodeURIComponent(query.trim())}`);
+    if (!query.trim()) return;
+    setMobileSearchOpen(false);
+    router.push(`/products?q=${encodeURIComponent(query.trim())}`);
   };
 
   const active = (href: string) => {
@@ -61,9 +71,38 @@ export default function NavBar() {
             <input value={query} onChange={(event) => setQuery(event.target.value)} aria-label="Search ingredients" placeholder="Search ingredients" className="h-[42px] w-full rounded-[4px] border border-[#d9d4c7] bg-[#fbfaf6] py-0 pl-[38px] pr-[14px] text-[14px] text-[#191b18] outline-none focus:border-[#1d3a2a]" />
           </form>
           <button onClick={() => setQuoteOpen(true)} className="hidden h-[42px] whitespace-nowrap rounded-[4px] border-0 bg-[#d99a2b] px-[18px] text-[15px] font-semibold text-[#191b18] hover:bg-[#c88a1e] sm:block">Get a quote</button>
-          <Link href="/products" aria-label="Search ingredients" className="grid h-11 w-11 place-items-center text-[#191b18] min-[1080px]:hidden"><Search className="h-5 w-5" /></Link>
-          <button onClick={() => setMenuOpen((value) => !value)} className="h-11 rounded-[4px] border-0 bg-[#191b18] px-[14px] text-[14px] font-semibold text-[#f3f0e8] min-[1080px]:hidden">{menuOpen ? 'Close' : 'Menu'}</button>
+          <button
+            type="button"
+            onClick={() => { setMenuOpen(false); setMobileSearchOpen((open) => !open); }}
+            aria-label={mobileSearchOpen ? 'Close ingredient search' : 'Search ingredients'}
+            aria-expanded={mobileSearchOpen}
+            aria-controls="mobile-ingredient-search"
+            className="grid h-11 w-11 shrink-0 place-items-center border-0 bg-transparent text-[#191b18] min-[1080px]:hidden"
+          >
+            {mobileSearchOpen ? <X className="h-5 w-5" /> : <Search className="h-5 w-5" />}
+          </button>
+          <button onClick={() => { setMobileSearchOpen(false); setMenuOpen((value) => !value); }} className="h-11 rounded-[4px] border-0 bg-[#191b18] px-[14px] text-[14px] font-semibold text-[#f3f0e8] min-[1080px]:hidden">{menuOpen ? 'Close' : 'Menu'}</button>
         </div>
+
+        {mobileSearchOpen && (
+          <form
+            id="mobile-ingredient-search"
+            role="search"
+            onSubmit={submitSearch}
+            className="flex items-center gap-2 border-t border-[#d9d4c7] bg-[#f3f0e8] px-4 py-3 min-[1080px]:hidden"
+          >
+            <input
+              ref={mobileSearchInputRef}
+              type="search"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              aria-label="Search feed ingredients"
+              placeholder="Search feed ingredients"
+              className="h-11 min-w-0 flex-1 rounded-[4px] border border-[#bdb7a9] bg-[#fbfaf6] px-3 text-[16px] text-[#191b18] outline-none focus:border-[#1d3a2a]"
+            />
+            <button type="submit" disabled={!query.trim()} className="h-11 rounded-[4px] border-0 bg-[#d99a2b] px-4 text-[15px] font-semibold text-[#191b18] disabled:opacity-50">Search</button>
+          </form>
+        )}
 
         {menuOpen && (
           <nav className="border-t border-[#d9d4c7] bg-[#f3f0e8] px-4 pb-5 pt-2 min-[1080px]:hidden" aria-label="Mobile navigation">
