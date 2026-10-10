@@ -831,12 +831,19 @@ function addSupplemented(
   share: number,
   value: number | undefined,
 ): void {
+  // Brazilian Tables supplementation guidance concerns nutrients intentionally
+  // added through premixes/mineral supplements, not those naturally present in
+  // maize, soybean meal or other basal feedstuffs. Basal contributions are still
+  // included in the separate total-diet nutrient calculations above.
+  if (ingredient.category !== "vitamin_mineral_premix" && ingredient.category !== "mineral") return;
   add(
     target,
     ingredient,
     share,
     value,
-    ingredient.category !== "vitamin_mineral_premix",
+    // Standalone mineral sources without a specified micronutrient are not
+    // assumed to contain it. Premixes with missing declarations stay unknown.
+    ingredient.category === "mineral",
   );
 }
 
