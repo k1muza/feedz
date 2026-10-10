@@ -30,11 +30,10 @@ export function ChatWidget() {
 
   return (
     <>
-      <nav aria-label="Quick actions" className="fixed bottom-0 left-0 right-0 z-50 grid grid-cols-[1fr_1fr_1.3fr_1fr] gap-1.5 border-t border-[#d9d4c7] bg-[#fbfaf6] px-2.5 pb-[calc(8px+env(safe-area-inset-bottom))] pt-2 min-[1080px]:hidden">
+      <nav aria-label="Quick actions" className="fixed bottom-0 left-0 right-0 z-50 grid grid-cols-[1fr_1fr_1.3fr] gap-1.5 border-t border-[#d9d4c7] bg-[#fbfaf6] px-2.5 pb-[calc(8px+env(safe-area-inset-bottom))] pt-2 min-[1080px]:hidden">
         <a href="tel:+263774684534" className="flex h-[52px] flex-col items-center justify-center gap-0.5 text-[13px] font-semibold text-[#191b18] no-underline"><i className="h-2 w-2 rounded-full bg-[#1d3a2a]" />Call</a>
         <a href="https://wa.me/263774684534" className="flex h-[52px] flex-col items-center justify-center gap-0.5 text-[13px] font-semibold text-[#191b18] no-underline"><i className="h-2 w-2 rounded-full bg-[#2e7d4f]" />WhatsApp</a>
         <a href="https://wa.me/263774684534?text=I%20would%20like%20a%20quote" className="flex h-[52px] items-center justify-center rounded-[4px] bg-[#d99a2b] text-[15px] font-bold text-[#191b18] no-underline">Get a quote</a>
-        <button onClick={() => setIsOpen((open) => !open)} className="flex h-[52px] flex-col items-center justify-center gap-0.5 border-0 bg-transparent text-[13px] font-semibold text-[#191b18]"><i className="h-2 w-2 rotate-45 bg-[#d99a2b]" />{isOpen ? 'Close' : 'Ask'}</button>
       </nav>
       <div className="fixed bottom-6 right-6 z-50 hidden min-[1080px]:block"><button onClick={() => setIsOpen((open) => !open)} className="flex h-[52px] items-center gap-2.5 rounded-full border-0 bg-[#1d3a2a] px-5 pl-4 text-[15px] font-semibold text-white shadow-[0_10px_30px_rgb(25_27_24/.25)]"><i className="h-2.5 w-2.5 rotate-45 bg-[#d99a2b]" />{isOpen ? 'Close chat' : 'Ask FeedSport'}</button></div>
 
