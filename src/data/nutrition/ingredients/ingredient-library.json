@@ -23966,11 +23966,11 @@
           "url": "https://www.aeciworld.net/animal-health.html",
           "basis": "as-fed",
           "priority": "supplier",
-          "note": "Nutrient specifications and dose were transcribed from the user-supplied new-premix.jpg bag-label photograph; the linked AECI page confirms the manufacturer but is not a product-specific datasheet."
+          "note": "User-supplied image of Irvine's Africa Exports AECI V1736 bag, batch 25254-07.2024; AECI site is not a product-specific datasheet. Nutrient columns are not safely normalizable from image."
         },
         "nutrientSources": {},
         "notes": [
-          "Manufacturer bag-label values are unverified nutrient specifications, not a batch certificate of analysis."
+          "Bag-label transcription only; both numeric column bases unknown. No nutrient quantities currently verified for direct formulation credit."
         ],
         "verificationStatus": "manufacturer_unverified",
         "profileBasis": "as-fed"
@@ -23990,117 +23990,190 @@
         "formulationCompatibility": "unconfirmed",
         "pricePerTonne": null,
         "specificationUrl": "https://www.aeciworld.net/animal-health.html",
-        "publishedAnalysis": {
-          "zincMgKg": {
-            "min": 30000
-          },
-          "copperMgKg": {
-            "min": 1000
-          },
-          "vitaminAIuKg": {
-            "min": 5000000
-          }
-        },
-        "publishedGuarantees": [
-          {
-            "nutrient": "Vitamin A",
-            "unit": "IU/kg",
-            "min": 5000000
-          },
-          {
-            "nutrient": "Vitamin D3",
-            "unit": "IU/kg",
-            "min": 2000000
-          },
-          {
-            "nutrient": "Vitamin E (DL)",
-            "unit": "IU/kg",
-            "min": 10000
-          },
-          {
-            "nutrient": "Vitamin B3 (niacin)",
-            "unit": "g/kg",
-            "min": 15
-          },
-          {
-            "nutrient": "Vitamin B2 (riboflavin)",
-            "unit": "g/kg",
-            "min": 3
-          },
-          {
-            "nutrient": "Vitamin B6 (pyridoxine)",
-            "unit": "g/kg",
-            "min": 1
-          },
-          {
-            "nutrient": "Vitamin B1",
-            "unit": "g/kg",
-            "min": 1.5
-          },
-          {
-            "nutrient": "Vitamin K3",
-            "unit": "g/kg",
-            "min": 0.3
-          },
-          {
-            "nutrient": "Vitamin B12",
-            "unit": "g/kg",
-            "min": 0.015
-          },
-          {
-            "nutrient": "Zinc",
-            "unit": "g/kg",
-            "min": 30
-          },
-          {
-            "nutrient": "Manganese",
-            "unit": "g/kg",
-            "min": 15
-          },
-          {
-            "nutrient": "Iron",
-            "unit": "g/kg",
-            "min": 25
-          },
-          {
-            "nutrient": "Copper",
-            "unit": "g/kg",
-            "min": 1
-          },
-          {
-            "nutrient": "Iodine",
-            "unit": "g/kg",
-            "min": 0.3
-          }
-        ],
-        "guaranteedMinimumAsFed": {
-          "sourceUrl": "https://www.aeciworld.net/animal-health.html",
-          "vitamins": {
-            "vitaminAIuKg": 5000000,
-            "vitaminDIuKg": 2000000,
-            "vitaminEIuKg": 10000,
-            "vitaminKMgKg": 300,
-            "vitaminB1MgKg": 1500,
-            "riboflavinMgKg": 3000,
-            "vitaminB6MgKg": 1000,
-            "vitaminB12McgKg": 15000,
-            "niacinMgKg": 15000
-          },
-          "traceMineralsPpm": {
-            "zinc": 30000,
-            "iron": 25000,
-            "manganese": 15000,
-            "copper": 1000,
-            "iodine": 300
-          }
-        },
         "note": "Registration V1736 under Act 36 of 1947. The photographed label specifies 10 kg/t and a 20 kg pack (2 x 10 kg). No supplier price was provided.",
         "notes": [
-          "The official AECI page confirms the manufacturer and premix business but does not publish a V1736 product specification; retain manufacturer-unverified status until a product datasheet or batch certificate is obtained.",
-          "The label's zero declarations and the unclear Vitamin B9/formulation-column entries are not treated as analytical structural zeros. Folic acid and digestible amino-acid values remain unknown.",
-          "Selenium content is unknown: a Brazilian Tables supplementation target or an unidentified selenium-source inclusion cannot establish a manufacturer-guaranteed elemental selenium concentration. Do not credit selenium until the supplier specifies its elemental concentration and units.",
-          "Vitamin and mineral figures are transcribed from the label's nutrient-specification column and treated conservatively as label guarantees, not exact analytical concentrations."
-        ]
+          "The bag states 10 kg premix per tonne finished feed; neither nutrient column has a legible unit/basis heading.",
+          "The full first/second-column label table is preserved in labelTranscription, including vitamins, trace minerals, lysine, threonine, enzymes and phytase.",
+          "No guaranteed as-fed nutrient contributions are credited until AECI confirms the actual nutrient composition per kg of premix.",
+          "The AECI website is general manufacturer context, not a product-specific technical datasheet."
+        ],
+        "labelTranscription": {
+          "source": "User-supplied photograph of Irvine's Africa Exports / AECI Pig Weaner V1736 bag",
+          "batch": "25254-07.2024",
+          "inclusionPrinted": "10Kgs Per 1 Tonne Of Final Feed",
+          "firstColumnHeading": "not visible",
+          "secondColumnHeading": "not visible",
+          "basis": "unknown; neither column can be normalized as per-kg premix concentration",
+          "rows": [
+            {
+              "category": "vitamins",
+              "label": "VIT A",
+              "column1Raw": "5.000.000",
+              "column2Raw": "14.5000 M IU",
+              "uncertain": true
+            },
+            {
+              "category": "vitamins",
+              "label": "VIT D3",
+              "column1Raw": "2.000.000",
+              "column2Raw": "400 M IU",
+              "uncertain": true
+            },
+            {
+              "category": "vitamins",
+              "label": "VIT E (DL)",
+              "column1Raw": "10.000",
+              "column2Raw": "30.40 M IU",
+              "uncertain": true
+            },
+            {
+              "category": "vitamins",
+              "label": "VIT B4 (CHLORIDE)",
+              "column1Raw": "0.0000",
+              "column2Raw": "500.000g",
+              "uncertain": true
+            },
+            {
+              "category": "vitamins",
+              "label": "VIT B3 (NIACIN)",
+              "column1Raw": "15.0000",
+              "column2Raw": "20.000g"
+            },
+            {
+              "category": "vitamins",
+              "label": "VIT B2",
+              "column1Raw": "3.0000",
+              "column2Raw": "5500g",
+              "uncertain": true
+            },
+            {
+              "category": "vitamins",
+              "label": "VIT B6 (PYRIDOXINE)",
+              "column1Raw": "1.00",
+              "column2Raw": "600g",
+              "uncertain": true
+            },
+            {
+              "category": "vitamins",
+              "label": "VIT B1",
+              "column1Raw": "1.5000g",
+              "column2Raw": "3.5000g",
+              "uncertain": true
+            },
+            {
+              "category": "vitamins",
+              "label": "VIT K3",
+              "column1Raw": "0.3000",
+              "column2Raw": "2.5000g"
+            },
+            {
+              "category": "vitamins",
+              "label": "VIT B9",
+              "column1Raw": "0000.1",
+              "column2Raw": "200g",
+              "uncertain": true
+            },
+            {
+              "category": "vitamins",
+              "label": "VIT H (D BIOTIN)",
+              "column1Raw": "0.0000",
+              "column2Raw": "0.2000g"
+            },
+            {
+              "category": "vitamins",
+              "label": "VIT B12",
+              "column1Raw": "0.0150",
+              "column2Raw": "0.2000g"
+            },
+            {
+              "category": "vitamins",
+              "label": "VIT C (ASCORBIC ACID)",
+              "column1Raw": "0.0000",
+              "column2Raw": "000g",
+              "uncertain": true
+            },
+            {
+              "category": "minerals",
+              "label": "ZINC (zinc oxide)",
+              "column1Raw": "30.000",
+              "column2Raw": "150.000g"
+            },
+            {
+              "category": "minerals",
+              "label": "MANGANESE (oxide)",
+              "column1Raw": "15.000",
+              "column2Raw": "150.000g",
+              "uncertain": true
+            },
+            {
+              "category": "minerals",
+              "label": "IRON (iron sulphate)",
+              "column1Raw": "25.0000",
+              "column2Raw": "1000g",
+              "uncertain": true
+            },
+            {
+              "category": "minerals",
+              "label": "COPPER (copper sulphate)",
+              "column1Raw": "1.0000",
+              "column2Raw": "20.000g"
+            },
+            {
+              "category": "minerals",
+              "label": "MAGNESIUM (OXIDE)",
+              "column1Raw": "0.0000",
+              "column2Raw": "4.5000g"
+            },
+            {
+              "category": "minerals",
+              "label": "IODINE",
+              "column1Raw": "0.3000",
+              "column2Raw": "2.000g"
+            },
+            {
+              "category": "minerals",
+              "label": "SODIUM",
+              "column1Raw": "0.000",
+              "column2Raw": "0.4000g"
+            },
+            {
+              "category": "minerals",
+              "label": "MAGNESIUM [as printed]",
+              "column1Raw": "78% L.LYSINE",
+              "column2Raw": "0000kg",
+              "uncertain": true
+            },
+            {
+              "category": "additives",
+              "label": "L-THREONINE",
+              "column1Raw": "98.5%",
+              "column2Raw": "0.000kg",
+              "uncertain": true
+            },
+            {
+              "category": "additives",
+              "label": "NSP ENZYME (GLUCANASE)",
+              "column1Raw": null,
+              "column2Raw": "0.0030kg",
+              "uncertain": true
+            },
+            {
+              "category": "additives",
+              "label": "PHYTASE",
+              "column1Raw": "10000",
+              "column2Raw": "0.0300kg",
+              "uncertain": true
+            }
+          ],
+          "cautions": [
+            "Unheaded columns; raw strings preserve punctuation and typography but some print is uncertain.",
+            "Choline row (VIT B4 CHLORIDE) has 0.0000 in first column and around 500.000g in second; do not equate with total choline.",
+            "Row labelled MAGNESIUM contains 78% L.LYSINE; likely table layout error; no confirmed lysine assay.",
+            "Phytase value 10000 has unspecified FTU/activity and basis.",
+            "Label neither states elemental selenium nor unambiguous pantothenic acid guarantee.",
+            "Do not use the raw columns as active nutrient contributions before official manufacturer confirmation."
+          ]
+        }
       }
     },
     {
