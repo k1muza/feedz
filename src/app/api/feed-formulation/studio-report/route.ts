@@ -8,6 +8,42 @@ import {
 
 export const runtime = "nodejs";
 
+const nutrientAssessmentSchema = z.object({
+  nutrientId: z.string(),
+  label: z.string(),
+  categoryId: z.enum(["energy-protein-amino-acids", "major-minerals", "vitamins", "trace-minerals"]),
+  status: z.enum(["met", "below_target", "above_limit", "unknown"]),
+  actual: z.number().finite().optional(),
+  requiredMin: z.number().finite().optional(),
+  allowedMax: z.number().finite().optional(),
+  unit: z.string(),
+  reason: z.string(),
+  missingIngredientIds: z.array(z.string()),
+  enforcedByOptimizer: z.boolean(),
+  targetSource: z.string(),
+});
+
+const assessmentSchema = z.object({
+  schemaVersion: z.literal(1),
+  optimizerFeasible: z.boolean(),
+  verdict: z.enum(["verified", "needs_verification", "infeasible"]),
+  nutrientChecks: z.array(nutrientAssessmentSchema),
+  categories: z.array(z.object({
+    id: z.enum(["energy-protein-amino-acids", "major-minerals", "vitamins", "trace-minerals"]),
+    label: z.string(),
+    status: z.enum(["met", "unmet", "unknown", "not_assessed"]),
+    checked: z.number().int().nonnegative(),
+    required: z.number().int().nonnegative(),
+    unmetNutrientIds: z.array(z.string()),
+    unknownNutrientIds: z.array(z.string()),
+    note: z.string(),
+  })),
+  consistencyErrors: z.array(z.string()),
+  summary: z.string(),
+  guidance: z.string(),
+  validationScope: z.string(),
+});
+
 const requestSchema = z.object({
   documentName: z.string().min(1).max(160),
   programmeName: z.string().min(1).max(200),
@@ -21,6 +57,7 @@ const requestSchema = z.object({
   costPerTonne: z.number().finite().nonnegative(),
   leastCostPerTonne: z.number().finite().nonnegative().optional(),
   preparedFor: z.string().max(240).optional(),
+  assessment: assessmentSchema,
   ingredients: z.array(
     z.object({
       name: z.string().min(1).max(240),

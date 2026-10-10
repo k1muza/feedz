@@ -2,6 +2,16 @@ import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 
 import { buildCompleteFeedValidation } from "./complete-feed-validation";
+import {
+  FORMULATION_VERDICT_LABELS,
+  buildInfeasibleFormulationAssessment,
+  isFormulationAssessment,
+  nutrientAssessmentStatus,
+} from "./formulation-assessment";
+import {
+  micronutrientAssessmentGroups,
+} from "./formulation-assessment-model";
+import { formulationRescueIngredientCandidates } from "./formulation-rescue-ingredients";
 import { commercialPremixById, premixFinishedFeedContributions } from "./commercial-premixes";
 import { formulationRequirements, type FormulationEvaluation } from "./feed-optimizer";
 import { feedProgrammePhaseById } from "./feed-programmes";
@@ -12,7 +22,7 @@ if (!phase) throw new Error("Grow-finish test phase unavailable");
 const premix = commercialPremixById("sustar-glypro-x912");
 if (!premix) throw new Error("X912 unavailable");
 
-describe("complete-feed validation", () => {
+describe("canonical formulation assessment", () => {
   test("calculates premix contribution in finished-feed units", () => {
     const rows = premixFinishedFeedContributions(premix);
     const vitaminA = rows.find((row) => row.nutrient === "Vitamin A");
@@ -64,17 +74,17 @@ describe("complete-feed validation", () => {
       library,
       evaluation,
     );
-    assert.equal(result.formulationFeasibility, "feasible");
+    assert.equal(result.optimizerFeasible, true);
     assert.deepEqual(result.categories.map(({ label, status }) => ({ label, status })), [
       { label: "Energy, protein and amino acids", status: "met" },
       { label: "Major minerals", status: "met" },
       { label: "Vitamins", status: "met" },
       { label: "Trace minerals", status: "met" },
     ]);
-    assert.equal(result.completeFeed, "complete");
+    assert.equal(result.verdict, "verified");
   });
 
-  test("counts nutrients no ingredient declares as not met", () => {
+  test("manufacturer-recommended X912 inclusion remains unknown where its label is silent", () => {
     const library = ingredientLibraryWithCommercialPremixes([premix], ingredientLibraryForPhase(phase));
     const result = buildCompleteFeedValidation(
       phase,
@@ -86,12 +96,59 @@ describe("complete-feed validation", () => {
       library,
     );
     const vitamins = result.categories.find((row) => row.id === "vitamins");
-    assert.equal(vitamins?.status, "not_met");
-    assert.ok(vitamins?.missingDataNutrientIds.includes("supplement-vitamin-e"));
-    assert.equal(result.completeFeed, "incomplete");
+    assert.equal(vitamins?.status, "unknown");
+    assert.deepEqual(vitamins?.unknownNutrientIds, ["supplement-vitamin-e", "supplement-choline"]);
+    assert.equal(result.nutrientChecks.find((row) => row.nutrientId === "supplement-vitamin-e")?.status, "unknown");
+    assert.match(result.nutrientChecks.find((row) => row.nutrientId === "supplement-vitamin-e")?.reason ?? "", /not treated as zero/i);
+    const micronutrients = micronutrientAssessmentGroups(result);
+    assert.equal(micronutrients.find((group) => group.id === "vitamins")?.checks.length, 13);
+    assert.equal(micronutrients.find((group) => group.id === "trace-minerals")?.checks.length, 6);
+    assert.deepEqual(
+      micronutrients.find((group) => group.id === "vitamins")?.checks.filter((check) => check.status === "unknown").map((check) => check.label),
+      ["Supplemented vitamin E", "Supplemented choline"],
+    );
+    const rescue = formulationRescueIngredientCandidates(result, [{
+      id: "documented-vitamin-premix",
+      name: "Documented vitamin premix",
+      category: "Premix",
+      nutrients: {},
+      premix: { contributions: [
+        { nutrient: "Vitamin E", finishedFeedContribution: 40 },
+        { nutrient: "Total choline", finishedFeedContribution: 300 },
+      ] },
+    }], "swine");
+    assert.deepEqual(rescue.map(({ id, name, category }) => ({ id, name, category })), [{
+      id: "documented-vitamin-premix",
+      name: "Documented vitamin premix",
+      category: "Premix",
+    }]);
+    assert.match(rescue[0].reason, /Supplemented vitamin E/);
+    assert.match(rescue[0].reason, /Supplemented choline/);
+    assert.equal(result.verdict, "needs_verification");
   });
 
-  test("shows categories without loaded targets as no_target and makes no complete-feed claim", () => {
+  test("retains the same verdict and label after a saved-result round trip", () => {
+    const library = ingredientLibraryWithCommercialPremixes([premix], ingredientLibraryForPhase(phase));
+    const assessment = buildCompleteFeedValidation(
+      phase,
+      "ME",
+      { ingredients: [
+        { ingredientId: "sorghum-grain", inclusionPct: 100 - premix.inclusionPct },
+        { ingredientId: premix.id, inclusionPct: premix.inclusionPct },
+      ] },
+      library,
+    );
+    const restored: unknown = JSON.parse(JSON.stringify(assessment));
+    assert.equal(isFormulationAssessment(restored), true);
+    if (!isFormulationAssessment(restored)) throw new Error("Saved assessment did not restore");
+    assert.equal(restored.verdict, assessment.verdict);
+    assert.equal(
+      FORMULATION_VERDICT_LABELS[restored.verdict],
+      "Nutritional verification required",
+    );
+  });
+
+  test("shows categories without loaded targets as not assessed and makes no verification claim", () => {
     const nursery = feedProgrammePhaseById("nursery-pig", "br2024-5-32-14-21d-4.4-6.2kg");
     assert.ok(nursery);
     const required = formulationRequirements(nursery, "ME", { includeSupplementationTargets: true, traceMineralBasis: "inorganic" });
@@ -108,10 +165,10 @@ describe("complete-feed validation", () => {
     assert.deepEqual(result.categories.map((row) => [row.id, row.status]), [
       ["energy-protein-amino-acids", "met"],
       ["major-minerals", "met"],
-      ["vitamins", "no_target"],
-      ["trace-minerals", "no_target"],
+      ["vitamins", "not_assessed"],
+      ["trace-minerals", "not_assessed"],
     ]);
-    assert.equal(result.completeFeed, "incomplete");
+    assert.equal(result.verdict, "needs_verification");
   });
 
   test("prefers an approved exact profile over label minima", () => {
@@ -154,6 +211,52 @@ describe("complete-feed validation", () => {
     );
     assert.equal(result.categories.find((row) => row.id === "vitamins")?.status, "met");
     assert.equal(result.categories.find((row) => row.id === "trace-minerals")?.status, "met");
-    assert.equal(result.completeFeed, "complete");
+    assert.equal(result.verdict, "verified");
+  });
+
+  test("reports a known vitamin deficiency separately from unknown data", () => {
+    const result = buildCompleteFeedValidation(
+      phase,
+      "ME",
+      { ingredients: [{ ingredientId: "sorghum-grain", inclusionPct: 100 }] },
+      ingredientLibraryForPhase(phase),
+    );
+    const vitaminE = result.nutrientChecks.find((row) => row.nutrientId === "supplement-vitamin-e");
+    assert.equal(vitaminE?.status, "below_target");
+    assert.equal(vitaminE?.actual, 0);
+    assert.equal(result.categories.find((row) => row.id === "vitamins")?.status, "unmet");
+    assert.equal(result.verdict, "needs_verification");
+  });
+
+  test("preserves the above-limit nutrient state", () => {
+    assert.equal(nutrientAssessmentStatus("max", 1.01, 1), "above_limit");
+    assert.equal(nutrientAssessmentStatus("max", 1, 1), "met");
+  });
+
+  test("represents optimizer infeasibility with the same verdict model", () => {
+    const result = buildInfeasibleFormulationAssessment("No exact recipe satisfies every hard constraint.", [{
+      constraintId: "sid-lysine", label: "SID lysine", unit: "%", relation: "min", bound: 0.9, actual: 0.7, shortfall: 0.2, excess: 0,
+    }]);
+    assert.equal(result.optimizerFeasible, false);
+    assert.equal(result.verdict, "infeasible");
+    assert.match(result.guidance, /reported constraint/i);
+  });
+
+  test("flags a failed hard constraint as an engine consistency error", () => {
+    const requirements = formulationRequirements(phase, "ME", { includeSupplementationTargets: true, traceMineralBasis: "inorganic" });
+    const hardId = formulationRequirements(phase, "ME")[0].id;
+    const evaluation = {
+      analysis: {} as FormulationEvaluation["analysis"],
+      nutrientProfile: requirements.map((row) => ({
+        id: row.id, label: row.label, unit: row.unit, relation: row.relation,
+        requirement: row.bound, actual: row.id === hardId ? row.bound * 0.5 : row.bound,
+        margin: row.id === hardId ? row.bound * -0.5 : 0, marginPct: row.id === hardId ? -50 : 0, binding: row.id !== hardId,
+      })),
+      incompleteRequirements: [],
+      unsupportedRequirements: [],
+    } satisfies FormulationEvaluation;
+    const result = buildCompleteFeedValidation(phase, "ME", { ingredients: [] }, ingredientLibraryForPhase(phase), evaluation, { checkOptimizerConsistency: true });
+    assert.ok(result.consistencyErrors.some((message) => message.includes(requirements[0].label)));
+    assert.equal(result.verdict, "needs_verification");
   });
 });

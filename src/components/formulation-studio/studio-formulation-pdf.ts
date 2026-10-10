@@ -11,6 +11,12 @@ import {
 } from "pdf-lib";
 
 import { siteConfig } from "@/lib/seo";
+import {
+  FORMULATION_VERDICT_LABELS,
+  micronutrientAssessmentGroups,
+  nutrientAssessmentStatusLabel,
+  type FormulationAssessment,
+} from "@/lib/formulation-assessment-model";
 
 export interface StudioFormulationPdfInput {
   documentName: string;
@@ -25,6 +31,7 @@ export interface StudioFormulationPdfInput {
   costPerTonne: number;
   leastCostPerTonne?: number;
   preparedFor?: string;
+  assessment: FormulationAssessment;
   ingredients: {
     name: string;
     setting: string;
@@ -266,6 +273,18 @@ export async function buildStudioFormulationPdf(
   if (input.preparedFor) drawRight(`Prepared for ${input.preparedFor}`, W - M, y, 7.5, regular, C.muted);
   y -= 26;
 
+  const assessmentColor = input.assessment.verdict === "verified" ? C.green : input.assessment.verdict === "infeasible" ? C.red : hex("#7a5414");
+  const assessmentBg = input.assessment.verdict === "verified" ? C.paleGreen : C.paleAmber;
+  const assessmentText = `${input.assessment.summary} ${input.assessment.guidance}`;
+  const assessmentLines = wrap(assessmentText, regular, 7.8, CW - 24);
+  const assessmentHeight = 38 + assessmentLines.length * 10;
+  page.drawRectangle({ x: M, y: y - assessmentHeight, width: CW, height: assessmentHeight, color: assessmentBg });
+  page.drawRectangle({ x: M, y: y - assessmentHeight, width: 4, height: assessmentHeight, color: assessmentColor });
+  draw("FORMULATION ASSESSMENT", M + 13, y - 15, 6.6, fonts.monoMedium, assessmentColor);
+  draw(FORMULATION_VERDICT_LABELS[input.assessment.verdict], M + 13, y - 30, 10.5, bold, assessmentColor);
+  assessmentLines.forEach((part, index) => draw(part, M + 13, y - 45 - index * 10, 7.8, regular, C.body));
+  y -= assessmentHeight + 18;
+
   const tileGap = 7;
   const tileWidth = (CW - tileGap * 3) / 4;
   const batchCost = (input.costPerTonne * input.batchKg) / 1000;
@@ -284,16 +303,6 @@ export async function buildStudioFormulationPdf(
     draw(value, x + 10, y - 35, fitted, bold);
   });
   y -= 68;
-
-  const disclaimer =
-    "Computer-generated formulation. Have a qualified animal nutritionist review and approve it before manufacture or feeding. Confirm current prices and ingredient analyses before production.";
-  const warningLines = wrap(disclaimer, regular, 7.6, CW - 22);
-  const warningHeight = warningLines.length * 10 + 31;
-  page.drawRectangle({ x: M, y: y - warningHeight, width: CW, height: warningHeight, color: C.paleAmber });
-  page.drawRectangle({ x: M, y: y - warningHeight, width: 4, height: warningHeight, color: C.amber });
-  draw("UNREVIEWED FORMULATION", M + 13, y - 16, 7.2, fonts.monoMedium, hex("#7a5414"));
-  warningLines.forEach((part, index) => draw(part, M + 13, y - 33 - index * 10, 7.6, fonts.semibold, C.body));
-  y -= warningHeight + 22;
 
   section("Recipe and batch sheet", `${money(input.costPerTonne)}/t`);
   const recipeColumns = [
@@ -386,6 +395,60 @@ export async function buildStudioFormulationPdf(
     line(y, C.rule, 0.35);
   });
   y -= 18;
+
+  micronutrientAssessmentGroups(input.assessment).forEach((group) => {
+    const label = group.category?.label ?? (group.id === "vitamins" ? "Vitamins" : "Trace minerals");
+    section(label, group.category ? `${group.category.checked}/${group.category.required} checked` : "not assessed");
+    if (!group.checks.length) {
+      paragraph(`No ${label.toLowerCase()} targets are loaded for this stage.`, C.muted);
+      return;
+    }
+    const sources = [...new Set(group.checks.map((check) => check.targetSource))];
+    sources.forEach((source) => paragraph(`Target source: ${source}`, C.muted));
+    const micronutrientHeader = () => {
+      page.drawRectangle({ x: M, y: y - 22, width: CW, height: 22, color: C.green });
+      draw("NUTRIENT", M + 5, y - 14, 6.2, mono, C.white);
+      drawRight("ACTUAL", M + 315, y - 14, 6.2, mono, C.white);
+      drawRight("TARGET", M + 415, y - 14, 6.2, mono, C.white);
+      drawRight("STATUS", W - M - 5, y - 14, 6.2, mono, C.white);
+      y -= 22;
+    };
+    micronutrientHeader();
+    group.checks.forEach((check, index) => {
+      const rowHeight = 22;
+      if (y - rowHeight < BOTTOM) {
+        pageHeader(true);
+        section(label, "continued");
+        micronutrientHeader();
+      }
+      if (index % 2) page.drawRectangle({ x: M, y: y - rowHeight, width: CW, height: rowHeight, color: C.pale });
+      const dp = check.unit === "%" ? 3 : Math.abs(check.actual ?? check.requiredMin ?? check.allowedMax ?? 0) >= 100 ? 0 : 2;
+      const amount = (value: number | undefined) => value == null ? "Unknown" : `${number(value, dp)} ${check.unit}`;
+      const target = check.requiredMin != null ? `min ${amount(check.requiredMin)}` : `max ${amount(check.allowedMax)}`;
+      const status = nutrientAssessmentStatusLabel(check.status).toUpperCase();
+      draw(fit(check.label, bold, 7.2, 185), M + 5, y - 14, 7.2, bold);
+      drawRight(fit(amount(check.actual), regular, 7, 90), M + 315, y - 14, 7, regular, C.body);
+      drawRight(fit(target, regular, 7, 94), M + 415, y - 14, 7, regular, C.body);
+      drawRight(status, W - M - 5, y - 14, 6.4, bold, check.status === "met" ? C.green : check.status === "unknown" ? hex("#7a5414") : C.red);
+      y -= rowHeight;
+      line(y, C.rule, 0.35);
+    });
+    y -= 18;
+  });
+
+  section("Nutritional assessment", FORMULATION_VERDICT_LABELS[input.assessment.verdict]);
+  const categoryStatus = (status: FormulationAssessment["categories"][number]["status"]) =>
+    status === "met" ? "VERIFIED" : status === "unmet" ? "DOES NOT MEET" : status === "unknown" ? "CANNOT VERIFY" : "NOT ASSESSED";
+  input.assessment.categories.forEach((category) => {
+    ensure(32);
+    draw(category.label, M + 5, y - 14, 7.5, bold);
+    drawRight(categoryStatus(category.status), W - M - 5, y - 14, 6.8, bold, category.status === "met" ? C.green : category.status === "unmet" ? C.red : hex("#7a5414"));
+    y -= 22;
+    line(y, C.rule, 0.35);
+  });
+  y -= 8;
+  const unresolved = input.assessment.nutrientChecks.filter((check) => check.status !== "met");
+  unresolved.forEach((check) => paragraph(`${check.label} — ${check.status === "unknown" ? "Cannot verify" : check.status === "below_target" ? "Below target" : "Above limit"}. ${check.reason} Target source: ${check.targetSource}`, check.status === "unknown" ? hex("#7a5414") : C.red));
 
   if (input.advisories.length || input.notes.length) {
     section("Advisories and notes");

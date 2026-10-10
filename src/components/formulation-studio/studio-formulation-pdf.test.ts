@@ -20,6 +20,30 @@ test("renders a branded Studio PDF from the displayed formulation", async () => 
     costPerTonne: 412.34,
     leastCostPerTonne: 412.34,
     preparedFor: "Tendai Moyo",
+    assessment: {
+      schemaVersion: 1,
+      optimizerFeasible: true,
+      verdict: "needs_verification",
+      nutrientChecks: [{
+        nutrientId: "supplement-vitamin-e", label: "Supplemented vitamin E", categoryId: "vitamins",
+        status: "unknown", requiredMin: 40, unit: "IU/kg",
+        reason: "The selected premix does not publish vitamin E.", missingIngredientIds: ["premix"],
+        enforcedByOptimizer: false, targetSource: "Brazilian Tables 2024, table 7.03",
+      }, {
+        nutrientId: "supplement-zinc", label: "Supplemented zinc", categoryId: "trace-minerals",
+        status: "met", actual: 80, requiredMin: 50, unit: "ppm",
+        reason: "Supplemented zinc meets the minimum target.", missingIngredientIds: [],
+        enforcedByOptimizer: false, targetSource: "Brazilian Tables 2024, table 7.03",
+      }],
+      categories: [
+        { id: "vitamins", label: "Vitamins", status: "unknown", checked: 12, required: 13, unmetNutrientIds: [], unknownNutrientIds: ["supplement-vitamin-e"], note: "One requirement cannot be verified." },
+        { id: "trace-minerals", label: "Trace minerals", status: "met", checked: 6, required: 6, unmetNutrientIds: [], unknownNutrientIds: [], note: "All applicable requirements are verified." },
+      ],
+      consistencyErrors: [],
+      summary: "The optimizer found a recipe, but vitamin E cannot be verified.",
+      guidance: "Obtain the manufacturer's nutrient specification, then reformulate.",
+      validationScope: "Modeled programme requirements.",
+    },
     ingredients: [
       { name: "Corn, Grain (Average)", setting: "Available", inclusionPct: 64.5, pricePerTonne: 310 },
       { name: "Soybean, Meal 48% CP", setting: "Max 30%", inclusionPct: 30, pricePerTonne: 565 },

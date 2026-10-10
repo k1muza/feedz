@@ -6,7 +6,7 @@ import {
   commercialPremixById,
   commercialPremixCompatibleWithProgramme,
 } from '@/lib/commercial-premixes';
-import { buildCompleteFeedValidation } from '@/lib/complete-feed-validation';
+import { buildFormulationAssessment } from '@/lib/formulation-assessment';
 import { ingredientDefaultPricePerKg } from '@/lib/feed-ingredient-prices';
 import { evaluateFormulation } from '@/lib/feed-optimizer';
 import { getIngredientPrices } from '@/lib/ingredient-prices';
@@ -110,7 +110,7 @@ export async function POST(request: Request) {
       library,
       { includeSupplementationTargets: true, traceMineralBasis: 'inorganic' },
     );
-    const validation = buildCompleteFeedValidation(phase, 'ME', formula, library, evaluation);
+    const assessment = buildFormulationAssessment(phase, 'ME', formula, library, evaluation);
     const ingredientPrices = await getIngredientPrices();
     // An unpriced ingredient makes the total unknown; it is never costed as zero.
     let costPerKg: number | null = 0;
@@ -134,7 +134,7 @@ export async function POST(request: Request) {
       premixPricePerKg,
       manufacturerRecipe: Boolean(premix.manufacturerRecipe),
       nutrientProfile: evaluation.nutrientProfile,
-      validation,
+      assessment,
       costPerKg,
       costIncreasePct,
       ingredientPrices,

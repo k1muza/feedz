@@ -10,10 +10,7 @@ import type {
   FormulationSolution,
   LeastCostFormulationResult,
 } from "@/lib/feed-optimizer";
-import type {
-  CompleteFeedValidation,
-  NutritionalValidationCategory,
-} from "@/lib/complete-feed-validation";
+import type { FormulationAssessment } from "@/lib/formulation-assessment-model";
 
 // The formulation studio's link to FeedSport's formulation engine
 // (/api/feed-formulation/optimize and /evaluate). It prices the ingredient
@@ -147,15 +144,15 @@ export interface OptimalResult {
   nRows: number;
   /** True when the cost is a lower bound excluding an unquoted premix. */
   costExcludesPremix: boolean;
-  /** Nutritional completeness, intentionally separate from solver feasibility. */
-  validation: CompleteFeedValidation;
+  /** Canonical feasibility and nutritional-verification result. */
+  assessment: FormulationAssessment;
 }
 
 export type FormulateResult =
   | { status: "manufacturer_recipe"; recipe: Array<{ id: string; name: string; pct: number }>;
-      costT: number | null; message: string; warns: Issue[] }
+      costT: number | null; message: string; warns: Issue[]; assessment: FormulationAssessment }
   | { status: "blocked"; errs: Issue[]; warns: Issue[] }
-  | { status: "infeasible"; warns: Issue[]; shortfalls: Shortfall[]; activeCount: number; setAside: string[] }
+  | { status: "infeasible"; warns: Issue[]; shortfalls: Shortfall[]; activeCount: number; setAside: string[]; assessment: FormulationAssessment }
   | { status: "error"; warns: Issue[]; message: string }
   | OptimalResult;
 
@@ -169,6 +166,8 @@ export interface Summary {
   adv?: number;
   fail?: number;
   unknown?: number;
+  /** Added in schema v1; older saved summaries are handled conservatively. */
+  assessment?: FormulationAssessment;
 }
 export interface SavedVersion {
   v: number;
@@ -264,31 +263,6 @@ const CONSTRAINT_NAMES: Record<string, string> = {
   "linoleic-acid": "linoleic acid",
 };
 const constraintName = (id: string) => CONSTRAINT_NAMES[id] ?? id.replace(/-/g, " ");
-
-function conservativeValidationFallback(nutrients: NutrientResult[]): CompleteFeedValidation {
-  const majorIds = new Set(["calcium", "sttd-phosphorus", "available-phosphorus", "sodium", "potassium", "chloride"]);
-  const category = (id: "energy-protein-amino-acids" | "major-minerals", label: string, ids: NutrientResult[]) => ({
-    id,
-    label,
-    status: ids.some((row) => row.status !== "met") ? "not_met" as const : "met" as const,
-    checked: ids.length,
-    required: ids.length,
-    failedNutrientIds: ids.filter((row) => row.status !== "met").map((row) => row.id),
-    missingDataNutrientIds: [],
-    note: ids.some((row) => row.status !== "met") ? "One or more checked requirements are not met." : "All checked requirements are met.",
-  });
-  const major = nutrients.filter((row) => majorIds.has(row.id));
-  const core = nutrients.filter((row) => !majorIds.has(row.id) && !row.id.startsWith("supplement-"));
-  return {
-    formulationFeasibility: "feasible",
-    categories: [
-      category("energy-protein-amino-acids", "Energy, protein and amino acids", core),
-      category("major-minerals", "Major minerals", major),
-    ],
-    completeFeed: "incomplete",
-    note: "Vitamin and trace-mineral targets were not assessed.",
-  };
-}
 
 export function bounds(ctx: EngineContext, phase: StudioPhase, id: string, e: PoolEntry) {
   const fsMax = fsLimit(ctx, phase, id);
@@ -409,6 +383,7 @@ export async function formulate(snap: Snapshot, ctx: EngineContext): Promise<For
     warning: string;
     cost_per_tonne: number | null;
     premix_analysis: { message: string };
+    assessment: FormulationAssessment;
     recipe: { ingredients: Array<{ ingredientId: string; inclusionPct: number }> };
   };
   for (;;) {
@@ -432,9 +407,11 @@ export async function formulate(snap: Snapshot, ctx: EngineContext): Promise<For
   }
 
   if (result.status === "manufacturer_recipe") {
+    if (!result.assessment) return { status: "error", warns, message: "The formulation service returned a manufacturer recipe without its nutritional assessment." };
     return {
       status: "manufacturer_recipe",
       warns,
+      assessment: result.assessment,
       recipe: result.recipe.ingredients.map((row) => ({
         id: row.ingredientId,
         name: nameOf(ctx, row.ingredientId),
@@ -446,12 +423,14 @@ export async function formulate(snap: Snapshot, ctx: EngineContext): Promise<For
   }
   if (result.status === "error") return { status: "error", warns, message: result.message };
   if (result.status === "infeasible") {
+    if (!result.assessment) return { status: "error", warns, message: "The formulation service returned an infeasible result without its assessment." };
     return {
       status: "infeasible",
       warns,
       activeCount: usable.length,
       setAside: active.filter((id) => !usable.includes(id)),
       shortfalls: result.diagnostics.map((d) => ({ id: d.constraintId, name: d.label, unit: d.unit, dp: nutrientDp(d.constraintId, d.unit), kind: d.relation, best: d.actual, req: d.bound })),
+      assessment: result.assessment,
     };
   }
 
@@ -478,6 +457,8 @@ export async function formulate(snap: Snapshot, ctx: EngineContext): Promise<For
       : { key, label, possible: false, note: none };
   };
   const nutrients = nutrientRows(profile);
+  const assessment = alt?.assessment ?? result.assessment;
+  if (!assessment) return { status: "error", warns, message: "The formulation service returned a recipe without its nutritional assessment." };
   return {
     status: "optimal",
     recipe,
@@ -501,7 +482,7 @@ export async function formulate(snap: Snapshot, ctx: EngineContext): Promise<For
     nVars: usable.length,
     nRows: nutrients.length,
     costExcludesPremix: missingPremixPrice,
-    validation: result.validation ?? conservativeValidationFallback(nutrients),
+    assessment,
   };
 }
 
@@ -512,7 +493,7 @@ export interface ManualCheck {
   incompleteRequirements: FormulationIncompleteRequirement[];
   advisories: Advisory[];
   cost: number;
-  validation: CompleteFeedValidation | null;
+  assessment: FormulationAssessment | null;
 }
 
 export interface ManualRecipeValidity {
@@ -578,9 +559,9 @@ export async function evaluateManual(snap: Snapshot, pct: Record<string, number>
   const { programme, phase } = phaseOf(ctx.programmes, snap.programmeId, snap.phaseId);
   const recipeValidity = validateManualRecipe(snap, pct, ctx);
   const cost = Object.keys(pct).reduce((t, id) => t + (Math.max(0, pct[id]) / 100) * (priceOf(id, snap.pool, ctx.catalogue) ?? 0), 0);
-  if (!recipeValidity.valid) return { recipeValidity, nutrientAdequacy: "not-checked", nutrients: [], incompleteRequirements: [], advisories: [], cost, validation: null };
+  if (!recipeValidity.valid) return { recipeValidity, nutrientAdequacy: "not-checked", nutrients: [], incompleteRequirements: [], advisories: [], cost, assessment: null };
 
-  const data = await post<{ status: string; nutrientProfile?: FormulationNutrientComparison[]; incompleteRequirements?: FormulationIncompleteRequirement[]; validation?: CompleteFeedValidation; message?: string }>("/api/feed-formulation/evaluate", {
+  const data = await post<{ status: string; nutrientProfile?: FormulationNutrientComparison[]; incompleteRequirements?: FormulationIncompleteRequirement[]; assessment?: FormulationAssessment; message?: string }>("/api/feed-formulation/evaluate", {
     programmeId: programme.id,
     phaseId: phase.id,
     energySystem: "ME",
@@ -597,6 +578,6 @@ export async function evaluateManual(snap: Snapshot, pct: Record<string, number>
     incompleteRequirements,
     advisories: advisoriesFor(ctx, phase, pct),
     cost,
-    validation: data.validation ?? conservativeValidationFallback(nutrients),
+    assessment: data.assessment ?? null,
   };
 }

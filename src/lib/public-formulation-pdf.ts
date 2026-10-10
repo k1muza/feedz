@@ -12,7 +12,12 @@ import {
 import type { FormulationNutrientComparison } from '@/lib/feed-optimizer';
 import type { FeedProgrammeDefinition } from '@/lib/feed-programmes';
 import type { CommercialPremix } from '@/lib/commercial-premixes';
-import type { CompleteFeedValidation } from '@/lib/complete-feed-validation';
+import {
+  FORMULATION_VERDICT_LABELS,
+  micronutrientAssessmentGroups,
+  nutrientAssessmentStatusLabel,
+  type FormulationAssessment,
+} from '@/lib/formulation-assessment-model';
 import {
   INGREDIENT_LIBRARY,
   ingredientLibraryForPhase,
@@ -85,7 +90,7 @@ export type PublicFormulationPdfInput = {
   /** True when the formula is the manufacturer's fixed recipe, not an optimised mix. */
   manufacturerRecipe: boolean;
   nutrientProfile: FormulationNutrientComparison[];
-  validation: CompleteFeedValidation;
+  assessment: FormulationAssessment;
   /** Null when an ingredient (usually the premix) has no price: never invent one. */
   costPerKg: number | null;
   costIncreasePct: number;
@@ -166,7 +171,6 @@ export async function renderPublicFormulationPdf(input: PublicFormulationPdfInpu
   const costLabel = input.costPerKg === null ? 'Unknown' : `$${(input.costPerKg * 1000).toFixed(2)}/t`;
   const ingredientMap = new Map(ingredientLibrary.ingredients.map((ingredient) => [ingredient.id, ingredient]));
   const totalInclusion = input.formula.ingredients.reduce((sum, ingredient) => sum + ingredient.inclusionPct, 0);
-  const passed = input.nutrientProfile.filter((nutrient) => nutrient.margin >= -1e-6).length;
   const generalNutrientProfile = input.nutrientProfile.filter((nutrient) => !nutrient.id.startsWith('supplement-'));
 
   let page: PDFPage = pdf.addPage([W, H]);
@@ -288,9 +292,7 @@ export async function renderPublicFormulationPdf(input: PublicFormulationPdfInpu
     y -= 31;
   }
   text(input.phase.sourceWeightRange, M, 11, 'regular', C.muted);
-  const badge = input.validation.completeFeed === 'complete'
-    ? 'All nutrition targets met'
-    : `${passed}/${input.nutrientProfile.length} constraints met`;
+  const badge = FORMULATION_VERDICT_LABELS[input.assessment.verdict];
   const badgeWidth = width(badge, 'semibold', 8) + 22;
   page.drawRectangle({ x: W - M - badgeWidth, y: y - 5, width: badgeWidth, height: 23, color: C.greenTint });
   textRight(badge, W - M - 11, 8, 'semibold', C.green, y + 2);
@@ -372,8 +374,8 @@ export async function renderPublicFormulationPdf(input: PublicFormulationPdfInpu
     { fontSize: 7.4 },
   );
 
-  sectionHeading('Nutritional completeness', input.validation.completeFeed === 'complete' ? 'All targets met' : 'Targets not met');
-  paragraph(input.validation.note, 8);
+  sectionHeading('Formulation assessment', FORMULATION_VERDICT_LABELS[input.assessment.verdict]);
+  paragraph(`${input.assessment.summary} ${input.assessment.guidance}`, 8);
   drawTable(
     [
       { label: 'Category', width: 170 },
@@ -381,14 +383,63 @@ export async function renderPublicFormulationPdf(input: PublicFormulationPdfInpu
       { label: 'Checked', width: 60, align: 'right' },
       { label: 'Note', width: 201 },
     ],
-    input.validation.categories.map((category) => [
+    input.assessment.categories.map((category) => [
       category.label,
-      category.status === 'met' ? 'Met' : category.status === 'not_met' ? 'Not met' : 'No target',
+      category.status === 'met' ? 'Verified' : category.status === 'unmet' ? 'Does not meet' : category.status === 'unknown' ? 'Cannot verify' : 'Not assessed',
       `${category.checked}/${category.required}`,
       category.note,
     ]),
     { fontSize: 7.4 },
   );
+  const unresolvedChecks = input.assessment.nutrientChecks.filter((check) => check.status !== 'met');
+  if (unresolvedChecks.length) {
+    sectionHeading('Unresolved nutrient checks', `${unresolvedChecks.length}`);
+    drawTable(
+      [
+        { label: 'Nutrient', width: 150 },
+        { label: 'Status', width: 82 },
+        { label: 'Reason and target source', width: 279 },
+      ],
+      unresolvedChecks.map((check) => [
+        check.label,
+        check.status === 'unknown' ? 'Cannot verify' : check.status === 'below_target' ? 'Below target' : 'Above limit',
+        `${check.reason} Target source: ${check.targetSource}`,
+      ]),
+      { fontSize: 7.2 },
+    );
+  }
+
+  micronutrientAssessmentGroups(input.assessment).forEach((group) => {
+    const label = group.category?.label ?? (group.id === 'vitamins' ? 'Vitamins' : 'Trace minerals');
+    sectionHeading(label, group.category ? `${group.category.checked}/${group.category.required} checked` : 'Not assessed');
+    if (!group.checks.length) {
+      paragraph(`No ${label.toLowerCase()} targets are loaded for this stage.`, 8, C.muted);
+      return;
+    }
+    const sources = [...new Set(group.checks.map((check) => check.targetSource))];
+    sources.forEach((source) => paragraph(`Target source: ${source}`, 7.5, C.muted));
+    drawTable(
+      [
+        { label: 'Nutrient', width: 151 },
+        { label: 'Actual', width: 95, align: 'right' },
+        { label: 'Target', width: 105, align: 'right' },
+        { label: 'Status', width: 100 },
+        { label: 'Scope', width: 60 },
+      ],
+      group.checks.map((check) => {
+        const dp = check.unit === '%' ? 3 : Math.abs(check.actual ?? check.requiredMin ?? check.allowedMax ?? 0) >= 100 ? 0 : 2;
+        const amount = (value: number | undefined) => value == null ? 'Unknown' : `${compactNumber(value, dp)} ${check.unit}`;
+        return [
+          check.label,
+          amount(check.actual),
+          check.requiredMin != null ? `min ${amount(check.requiredMin)}` : `max ${amount(check.allowedMax)}`,
+          nutrientAssessmentStatusLabel(check.status),
+          check.enforcedByOptimizer ? 'Hard' : 'Verify',
+        ];
+      }),
+      { fontSize: 7.2 },
+    );
+  });
 
   sectionHeading('Commercial premix', `${premix.inclusionPct}% inclusion · ${premix.inclusionKgPerTonne} kg/t`);
   drawTable(

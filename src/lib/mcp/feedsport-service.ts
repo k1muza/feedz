@@ -265,27 +265,38 @@ function requirementMap(
 
 /** Agent-facing, snake_case view of the web app's nutritional validation. */
 export function nutritionalValidationReport(validation: CompleteFeedValidation) {
-  const hasNotMet = validation.categories.some((category) => category.status === "not_met");
-  const overallStatus = validation.completeFeed === "complete"
-    ? "verified" as const
-    : hasNotMet
-      ? "targets_not_met" as const
-      : "not_assessed" as const;
   return {
-    overall_status: overallStatus,
-    formulation_feasibility: validation.formulationFeasibility,
-    complete_feed_claim: validation.completeFeed === "complete" ? "supported" as const : "not_supported" as const,
+    schema_version: validation.schemaVersion,
+    overall_status: validation.verdict,
+    optimizer_feasible: validation.optimizerFeasible,
+    complete_feed_claim: validation.verdict === "verified" ? "supported" as const : "not_supported" as const,
     categories: validation.categories.map((category) => ({
       id: snake(category.id),
       label: category.label,
       status: category.status,
       checked_requirements: category.checked,
       required_requirements: category.required,
-      failed_nutrients: category.failedNutrientIds.map(snake),
-      missing_data_nutrients: category.missingDataNutrientIds.map(snake),
+      failed_nutrients: category.unmetNutrientIds.map(snake),
+      missing_data_nutrients: category.unknownNutrientIds.map(snake),
       note: category.note,
     })),
-    note: validation.note,
+    nutrient_checks: validation.nutrientChecks.map((check) => ({
+      nutrient: snake(check.nutrientId),
+      label: check.label,
+      status: check.status,
+      actual: check.actual,
+      required_min: check.requiredMin,
+      allowed_max: check.allowedMax,
+      unit: check.unit,
+      reason: check.reason,
+      missing_data_for: check.missingIngredientIds,
+      enforced_by_optimizer: check.enforcedByOptimizer,
+      target_source: check.targetSource,
+    })),
+    consistency_errors: validation.consistencyErrors,
+    note: validation.summary,
+    guidance: validation.guidance,
+    validation_scope: validation.validationScope,
   };
 }
 

@@ -138,7 +138,7 @@ describe("MCP premix guidance", () => {
     };
     assert.match(find("formulate"), /BASAL ingredients only/);
     assert.match(find("formulate"), /nutritional_validation/);
-    assert.match(find("formulate"), /not_assessed/);
+    assert.match(find("formulate"), /needs_verification/);
     assert.match(find("formulate"), /fixed manufacturer inclusion dose/);
     assert.match(find("search_ingredients"), /Alibaba-derived planning prices/);
     assert.match(find("get_ingredient"), /manufacturer specification metadata/);

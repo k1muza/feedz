@@ -1,6 +1,7 @@
 import "server-only";
 
 import { FEED_PROGRAMMES } from "@/lib/feed-programmes";
+import { buildConstraintSpecs } from "@/lib/feed-optimizer";
 import { BRAZILIAN_INCLUSION_SOURCE, brazilianInclusionColumn, phaseInclusionRecommendation } from "@/lib/ingredient-inclusion-limits";
 import { INGREDIENT_LIBRARY } from "@/lib/ingredient-nutrients";
 import type { NutritionPhase, NutritionPhaseClass } from "@/lib/nutrition";
@@ -32,6 +33,8 @@ export interface StudioPhase {
   requirements: (number | null)[];
   /** Ingredient maxima the programme itself publishes, on top of Table 1.01. */
   programmeLimits: { name: string; maxPct: number }[];
+  /** Nutrient constraints the optimiser enforces for this phase (ME basis), in its order. */
+  constraintIds: string[];
 }
 
 export interface StudioProgramme {
@@ -58,6 +61,16 @@ export interface StudioProgrammeData {
   programmes: StudioProgramme[];
   limits: Record<string, StudioIngredientLimit[]>;
   limitsSource: string;
+  /** Label and unit of every optimiser constraint, per species (labels differ slightly). */
+  constraintMeta: Record<"swine" | "broiler", Record<string, { label: string; unit: string }>>;
+}
+
+/** Inclusion caps are constraints too, but not nutrients an ingredient supplies. */
+const NON_NUTRIENT_CONSTRAINTS = new Set(["l-lysine-hcl"]);
+
+/** The nutrient constraints the studio's optimiser run (ME basis) enforces for a phase. */
+export function studioNutrientConstraints(phase: NutritionPhase) {
+  return buildConstraintSpecs(phase, "ME").filter((spec) => !NON_NUTRIENT_CONSTRAINTS.has(spec.id));
 }
 
 const GROWING: NutritionPhaseClass[] = ["pre-starter", "starter", "grower", "finisher"];
@@ -145,12 +158,22 @@ export function getStudioProgrammes(): StudioProgrammeData {
           columnLabel: column ? (phase.species === "broiler" ? "broiler " + column : column) : null,
           requirements: REQUIREMENTS.map((field) => field.pick(phase) ?? null),
           programmeLimits: programmeLimitsOf(phase),
+          constraintIds: studioNutrientConstraints(phase).map((spec) => spec.id),
         };
       }),
     };
   });
 
+  const constraintMeta: StudioProgrammeData["constraintMeta"] = { swine: {}, broiler: {} };
+  for (const programme of FEED_PROGRAMMES.filter((item) => item.status === "loaded")) {
+    for (const phase of programme.phases) {
+      const meta = constraintMeta[phase.species === "broiler" ? "broiler" : "swine"];
+      for (const spec of studioNutrientConstraints(phase)) meta[spec.id] ??= { label: spec.label, unit: spec.unit };
+    }
+  }
+
   return {
+    constraintMeta,
     requirementFields: REQUIREMENTS.map(({ name, broilerName, unit, kind }) => ({ name, ...(broilerName ? { broilerName } : {}), unit, kind })),
     programmes,
     limits,

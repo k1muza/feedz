@@ -2,8 +2,8 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import { evaluateManual, formulate, validateManualRecipe, type EngineContext, type Snapshot } from "./engine";
-import type { NutritionalValidationCategory } from "@/lib/complete-feed-validation";
 import { poolWithProgrammePremix } from "@/lib/studio-commercial-premix";
+import { buildInfeasibleFormulationAssessment } from "@/lib/formulation-assessment";
 
 const context = {
   catalogue: new Map([
@@ -108,7 +108,11 @@ test("Studio can send a default fixed Sustar premix without inventing its purcha
     assert.equal(premix.minInclusionPct, 0.2);
     assert.equal(premix.maxInclusionPct, 0.2);
     assert.equal(premix.pricePerKg, 0, "LP-only neutral fixed cost, not supplier quote");
-    return new Response(JSON.stringify({ status: "infeasible", diagnostics: [] }), {
+    return new Response(JSON.stringify({
+      status: "infeasible",
+      diagnostics: [],
+      assessment: buildInfeasibleFormulationAssessment("No feasible recipe."),
+    }), {
       status: 200, headers: { "content-type": "application/json" },
     });
   };

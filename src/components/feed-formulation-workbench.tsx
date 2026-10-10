@@ -1340,7 +1340,7 @@ function ResultPanel({
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <CompleteFeedValidationPanel validation={result.validation} />
+          <CompleteFeedValidationPanel assessment={result.validation} />
           <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 p-4 text-sm leading-6">
             <strong>Manufacturer recipe.</strong> {result.warning}{" "}
             No GLPK optimisation was performed and no complete-feed pass is claimed.
@@ -1394,11 +1394,9 @@ function ResultPanel({
                 ? "CJ published boar ration (fixed proportions)"
                 : selectedRecipe.label}</CardTitle>
             <Badge variant="secondary">
-              {result.validation?.completeFeed === "complete"
-                ? "Nutritional requirements met"
-                : result.validation?.categories.some((category) => category.status === "not_met")
-                  ? "Formulation feasible · nutrition targets not met"
-                  : "Formulation feasible · loaded nutrition targets met"}
+              {result.assessment?.verdict === "verified"
+                ? "Nutritional requirements verified"
+                : "Nutritional verification required"}
             </Badge>
           </div>
           <CardDescription>
@@ -1415,7 +1413,7 @@ function ResultPanel({
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-5">
-          {result.validation ? <CompleteFeedValidationPanel validation={result.validation} /> : null}
+          {result.assessment ? <CompleteFeedValidationPanel assessment={result.assessment} /> : null}
           <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 px-4 py-3 text-sm leading-6 text-ink">
             <strong>{formulationBasis?.fixedPremix ? "Commercial premix:" : "Basal-only formulation:"}</strong>
             {formulationBasis?.fixedPremix
@@ -1557,35 +1555,34 @@ function ResultPanel({
 }
 
 function CompleteFeedValidationPanel({
-  validation,
+  assessment,
 }: {
-  validation: NonNullable<Extract<LeastCostFormulationResult, { status: "optimal" }>["validation"]>;
+  assessment: NonNullable<Extract<LeastCostFormulationResult, { status: "optimal" }>["assessment"]>;
 }) {
-  const label = (status: (typeof validation.categories)[number]["status"]) =>
-    status === "met" ? "Met" : status === "not_met" ? "Not met" : "No target";
-  const hasNotMet = validation.categories.some((category) => category.status === "not_met");
-  const overallLabel = validation.completeFeed === "complete"
-    ? "Overall · Targets met"
-    : hasNotMet
-      ? "Overall · Targets not met"
-      : "Overall · Loaded targets met";
+  const label = (status: (typeof assessment.categories)[number]["status"]) =>
+    status === "met" ? "Verified" : status === "unmet" ? "Does not meet" : status === "unknown" ? "Cannot verify" : "Not assessed";
+  const overallLabel = assessment.verdict === "verified"
+    ? "Nutritional requirements verified"
+    : assessment.verdict === "infeasible"
+      ? "Reformulation required"
+      : "Nutritional verification required";
   return (
     <div className="overflow-hidden rounded-lg border border-hairline">
       <div className="flex items-center justify-between gap-3 bg-raised/30 px-4 py-3 text-sm font-medium text-ink">
         <span>Nutritional validation</span>
-        <span className={validation.completeFeed === "complete" ? "text-emerald-700" : "text-amber-700"}>
+        <span className={assessment.verdict === "verified" ? "text-emerald-700" : "text-amber-700"}>
           {overallLabel}
         </span>
       </div>
-      {validation.categories.map((category) => (
+      {assessment.categories.map((category) => (
         <div key={category.id} title={category.note} className="grid grid-cols-[minmax(0,1fr)_8rem] gap-3 border-t border-hairline px-4 py-2.5 text-sm">
           <span>{category.label}</span>
-          <span className={category.status === "met" ? "font-medium text-emerald-700" : category.status === "not_met" ? "font-medium text-red-700" : "font-medium text-amber-700"}>
+          <span className={category.status === "met" ? "font-medium text-emerald-700" : category.status === "unmet" ? "font-medium text-red-700" : "font-medium text-amber-700"}>
             {label(category.status)}
           </span>
         </div>
       ))}
-      <div className="border-t border-hairline px-4 py-3 text-xs leading-5 text-ink-muted">{validation.note}</div>
+      <div className="border-t border-hairline px-4 py-3 text-xs leading-5 text-ink-muted">{assessment.summary} {assessment.guidance}</div>
     </div>
   );
 }

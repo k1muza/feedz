@@ -13,7 +13,10 @@ import {
 import { assertManufacturerRecipe, commercialPremixById, commercialPremixCompatibleWithProgramme, premixAnalysisForIds } from "@/lib/commercial-premixes";
 import { PUBLIC_PREMIX_ID } from "@/lib/public-feed-premix";
 import { buildManufacturerRecipeReport } from "@/lib/manufacturer-recipe";
-import { buildCompleteFeedValidation } from "@/lib/complete-feed-validation";
+import {
+  buildFormulationAssessment,
+  buildInfeasibleFormulationAssessment,
+} from "@/lib/formulation-assessment";
 
 const optionalNutrient = z.number().finite().nonnegative().optional();
 
@@ -139,7 +142,7 @@ export async function POST(request: Request) {
         manufacturer, phase, energySystem, library,
         new Map(ingredients.map((row) => [row.ingredientId, row.pricePerKg])),
       );
-      return NextResponse.json(report);
+      return NextResponse.json({ ...report, assessment: report.validation });
     }
 
     const result = await formulateLeastCostDiet(
@@ -156,12 +159,54 @@ export async function POST(request: Request) {
       },
     );
 
-    const validation = result.status === "optimal"
-      ? buildCompleteFeedValidation(phase, energySystem, result.solution.formula, library)
+    const assessment = result.status === "optimal"
+      ? buildFormulationAssessment(
+          phase,
+          energySystem,
+          result.solution.formula,
+          library,
+          undefined,
+          {
+            optimizerFeasible: true,
+            enforcedSettings: { includeSupplementationTargets, traceMineralBasis },
+            checkOptimizerConsistency: true,
+          },
+        )
+      : result.status === "infeasible"
+        ? buildInfeasibleFormulationAssessment(result.message, result.diagnostics)
+        : undefined;
+    const alternatives = result.status === "optimal"
+      ? result.alternatives.map((alternative) => ({
+          ...alternative,
+          assessment: buildFormulationAssessment(
+            phase,
+            energySystem,
+            alternative.solution.formula,
+            library,
+            undefined,
+            {
+              optimizerFeasible: true,
+              enforcedSettings: { includeSupplementationTargets, traceMineralBasis },
+              checkOptimizerConsistency: true,
+            },
+          ),
+        }))
       : undefined;
+    const consistencyErrors = [
+      ...(assessment?.consistencyErrors ?? []),
+      ...(alternatives?.flatMap((alternative) => alternative.assessment.consistencyErrors) ?? []),
+    ];
+    if (consistencyErrors.length) {
+      return NextResponse.json({
+        status: "error",
+        message: `Engine consistency error: ${consistencyErrors.join(" ")}`,
+        assessment,
+      }, { status: 500 });
+    }
     return NextResponse.json({
       ...result,
-      ...(validation ? { validation } : {}),
+      ...(alternatives ? { alternatives } : {}),
+      ...(assessment ? { assessment } : {}),
       premix_analysis: premixAnalysisForIds(ingredients.map((row) => row.ingredientId)),
     });
   } catch (error) {

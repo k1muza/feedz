@@ -13,6 +13,10 @@ import {
 import { getIngredientPrices } from "@/lib/ingredient-prices";
 import { ingredientDefaultPlanningPricePerTonne } from "@/lib/feed-ingredient-prices";
 import { COMMERCIAL_PREMIXES, premixFinishedFeedContributions } from "@/lib/commercial-premixes";
+import { analyzeDiet } from "@/lib/diet-formula";
+import { FEED_PROGRAMMES } from "@/lib/feed-programmes";
+import type { IngredientLibrary } from "@/lib/ingredient-nutrients";
+import { studioNutrientConstraints } from "@/lib/studio-programmes";
 
 // The ingredient catalogue shown in the formulation studio (/studio/catalogue):
 // Brazilian Tables 2024 composition from the checked-in library, priced with
@@ -57,6 +61,14 @@ export interface CatalogueIngredient {
     verificationStatus: "published_reference" | "manufacturer_unverified" | "manufacturer_verified" | "user_supplied_unverified";
     notes: string[];
   };
+  /**
+   * The ingredient's value for each nutrient requirement the optimiser
+   * enforces, per species, computed exactly as the optimiser does (the
+   * ingredient analysed as a 100% diet). Zeros are omitted.
+   */
+  requirementValues: Partial<Record<"swine" | "broiler", Record<string, number>>>;
+  /** Requirements the optimiser can't evaluate for this ingredient: missing data. */
+  requirementMissing: Partial<Record<"swine" | "broiler", string[]>>;
   /** Specific references override profile-level source for individual values. */
   nutrientSources: Partial<Record<CatalogueNutrientId, {publisher: string; title: string; url: string}>>;
 }
@@ -97,6 +109,37 @@ const STAGES: [string, (r: IngredientNutrientRecord["recommendedInclusionPct"]) 
   ["Broiler grower", (r) => r?.broilers?.grower],
 ];
 
+/** Every nutrient constraint any loaded phase of the species enforces, once each. */
+function speciesConstraints(species: "swine" | "broiler") {
+  const specs = new Map<string, ReturnType<typeof studioNutrientConstraints>[number]>();
+  for (const programme of FEED_PROGRAMMES.filter((item) => item.status === "loaded")) {
+    for (const phase of programme.phases) {
+      if ((phase.species === "broiler") !== (species === "broiler")) continue;
+      for (const spec of studioNutrientConstraints(phase)) if (!specs.has(spec.id)) specs.set(spec.id, spec);
+    }
+  }
+  return [...specs.values()];
+}
+
+/** Same coefficients as the optimiser's prepareIngredients. */
+function requirementProfile(id: string, library: IngredientLibrary, specs: ReturnType<typeof speciesConstraints>) {
+  if (!library.ingredients.some((ingredient) => ingredient.id === id)) return null;
+  let single: ReturnType<typeof analyzeDiet>;
+  try {
+    single = analyzeDiet({ ingredients: [{ ingredientId: id, inclusionPct: 100 }] }, [], library);
+  } catch {
+    return null;
+  }
+  const values: Record<string, number> = {};
+  const missing: string[] = [];
+  for (const spec of specs) {
+    const measure = spec.measure(single);
+    if (!measure.complete) missing.push(spec.id);
+    else if (Math.abs(measure.value) > 1e-9) values[spec.id] = +measure.value.toPrecision(6);
+  }
+  return { values, missing };
+}
+
 export async function getStudioCatalogue(): Promise<CatalogueIngredient[]> {
   const priceList = await getIngredientPrices();
   const prices = new Map(priceList.map((price) => [price.ingredientId, price]));
@@ -123,7 +166,11 @@ export async function getStudioCatalogue(): Promise<CatalogueIngredient[]> {
     na: "macroMinerals.sodiumPct",
     cf: "composition.crudeFibrePct",
   };
+  const swineSpecs = speciesConstraints("swine");
+  const broilerSpecs = speciesConstraints("broiler");
   return allRecords.map((ingredient): CatalogueIngredient => {
+    const swineProfile = requirementProfile(ingredient.id, swine, swineSpecs);
+    const broilerProfile = requirementProfile(ingredient.id, poultryRecords, broilerSpecs);
     const bird = poultry.get(ingredient.id);
     const pig = swine.ingredients.find((record) => record.id === ingredient.id);
     const profile = pig ?? bird ?? ingredient;
@@ -200,6 +247,14 @@ export async function getStudioCatalogue(): Promise<CatalogueIngredient[]> {
         notes: attribution.notes,
       },
       nutrientSources,
+      requirementValues: {
+        ...(swineProfile ? { swine: swineProfile.values } : {}),
+        ...(broilerProfile ? { broiler: broilerProfile.values } : {}),
+      },
+      requirementMissing: {
+        ...(swineProfile?.missing.length ? { swine: swineProfile.missing } : {}),
+        ...(broilerProfile?.missing.length ? { broiler: broilerProfile.missing } : {}),
+      },
     };
   });
 

@@ -18,7 +18,7 @@ import {
 import { describeMaxSource, effectiveInclusionLimits } from "./ingredient-inclusion-limits";
 import { resolveNutritionTargets, type EnergySystem } from "./nutrition-targets";
 import type { NutritionPhase } from "./nutrition";
-import type { CompleteFeedValidation } from "./complete-feed-validation";
+import type { FormulationAssessment } from "./formulation-assessment-model";
 
 export type FormulationIngredientOption = {
   ingredientId: string;
@@ -108,6 +108,7 @@ export type FormulationAlternative = {
   description: string;
   solution: FormulationSolution;
   nutrientProfile: FormulationNutrientComparison[];
+  assessment?: FormulationAssessment;
   costIncreasePct: number;
 };
 
@@ -125,7 +126,7 @@ export type LeastCostFormulationResult =
       ingredientOpportunityCostTolerancesPct: readonly number[];
       unsupportedRequirements: FormulationUnsupportedRequirement[];
       /** Separate from LP feasibility; API callers attach the full assessment. */
-      validation?: CompleteFeedValidation;
+      assessment?: FormulationAssessment;
     }
   | {
       status: "missing-data";
@@ -139,6 +140,7 @@ export type LeastCostFormulationResult =
       bestEffort?: FormulationSolution;
       unsupportedRequirements: FormulationUnsupportedRequirement[];
       message: string;
+      assessment?: FormulationAssessment;
     }
   | {
       status: "error";
