@@ -49,7 +49,6 @@ describe("FeedSport MCP automatic ingredient mode", () => {
     assert.equal(result.status, "optimal");
     assert.equal(result.formulation_basis.ingredient_mode, "automatic");
     assert.ok(result.formulation_basis.candidate_count > 1);
-    assert.ok(!result.formulation_basis.candidate_ingredients.includes("public-premix-salt-additives"));
     assert.equal(result.nutritional_validation.overall_status, "needs_verification");
     assert.equal(result.nutritional_validation.complete_feed_claim, "not_supported");
     assert.equal(result.nutritional_validation.categories.find((row) => row.id === "vitamins")?.status, "unmet");

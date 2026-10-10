@@ -50,7 +50,6 @@ import {
   feedRecipeReportFilename,
   type FeedRecipeReportInput,
 } from "@/lib/feed-formulation-report";
-import { PUBLIC_PREMIX_ID } from "@/lib/public-feed-premix";
 import { commercialPremixById, commercialPremixForProgramme } from "@/lib/commercial-premixes";
 import { mergeSuggestedIngredients, restoreIngredientPool } from "@/lib/ingredient-pool-transition";
 import type { ManufacturerRecipeReport } from "@/lib/manufacturer-recipe";
@@ -170,7 +169,7 @@ export function FeedFormulationWorkbench({
     firstProgramme;
   const initialRows: Omit<Row, "key">[] =
     initialFormulaSet?.setup?.rows.filter(
-      (row) => row.ingredientId !== PUBLIC_PREMIX_ID && !commercialPremixById(row.ingredientId),
+      (row) => !commercialPremixById(row.ingredientId),
     ).map((row) => ({
       ingredientId: row.ingredientId,
       price: row.price,
@@ -179,7 +178,7 @@ export function FeedFormulationWorkbench({
       lockedPct: row.lockedPct ?? "",
     })) ??
     initialFormulaSet?.ingredients
-      .filter((ingredient) => ingredient.ingredientId !== PUBLIC_PREMIX_ID && !commercialPremixById(ingredient.ingredientId))
+      .filter((ingredient) => !commercialPremixById(ingredient.ingredientId))
       .map((ingredient) => ({
         ingredientId: ingredient.ingredientId,
         price: String(ingredient.pricePerKg),
@@ -201,7 +200,6 @@ export function FeedFormulationWorkbench({
         }))
     : undefined;
   const legacySavedPremix = Boolean(initialFormulaSet) && (
-    initialFormulaSet!.ingredients.some((ingredient) => ingredient.ingredientId === PUBLIC_PREMIX_ID) ||
     (initialPremix
       ? initialFormulaSet!.setup?.fixedPremixName !== initialPremix.name
       : initialFormulaSet!.setup?.useFixedPremix === true)
@@ -316,7 +314,7 @@ export function FeedFormulationWorkbench({
 
   const availableToAdd = ingredients.filter(
     (ingredient) =>
-      ingredient.id !== PUBLIC_PREMIX_ID && !commercialPremixById(ingredient.id) &&
+      !commercialPremixById(ingredient.id) &&
       !rows.some((row) => row.ingredientId === ingredient.id),
   );
 
@@ -364,7 +362,7 @@ export function FeedFormulationWorkbench({
 
         const suggestedIds = payload.ingredientIds.filter(
           (ingredientId) =>
-            ingredientId !== PUBLIC_PREMIX_ID && !commercialPremixById(ingredientId) &&
+            !commercialPremixById(ingredientId) &&
             ingredients.some((ingredient) => ingredient.id === ingredientId),
         );
         setRows((current) =>
@@ -473,7 +471,7 @@ export function FeedFormulationWorkbench({
     let requestIngredients: FormulationIngredientOption[];
     try {
       requestIngredients = rows
-        .filter((row) => row.ingredientId !== PUBLIC_PREMIX_ID && !commercialPremixById(row.ingredientId))
+        .filter((row) => !commercialPremixById(row.ingredientId))
         .map((row) => {
         const pricePerKg = Number(row.price);
         if (!Number.isFinite(pricePerKg) || pricePerKg < 0 || row.price.trim() === "") {

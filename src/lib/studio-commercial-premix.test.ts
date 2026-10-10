@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { canAddStudioIngredient, selectStudioIngredient, studioPremixProblems, poolWithCarriedPremixSelection, poolWithProgrammePremix, poolWithPremixPrice, poolWithPremixSelection, poolWithStudioPremixSelection, poolWithoutPremix } from "./studio-commercial-premix";
+import { canAddStudioIngredient, selectStudioIngredient, studioPremixProblems, poolWithCarriedPremixSelection, poolWithProgrammePremix, poolWithPremixPrice, poolWithPremixSelection, poolWithoutPremix } from "./studio-commercial-premix";
 
 test("Studio replaces premix by animal class without inheriting old SKU or price", () => {
   const grower = poolWithProgrammePremix({ "corn-yellow-dent": { role: "available" } }, "grow-finish-pig");
@@ -104,36 +104,6 @@ test("choosing no premix unlocks a manufacturer-restricted recipe", () => {
   assert.equal(none["cj-s174-boar-premix"], undefined);
   assert.equal(none["corn-yellow-dent"]?.role, "available");
   assert.equal(none["limestone-ground"]?.role, "available");
-});
-
-test("Studio can select a phase-eligible research premix at its fixed study dose", () => {
-  const phase = "br2024-5-43-63-91d-26-47kg";
-  const chosen = poolWithStudioPremixSelection(
-    { "corn-yellow-dent": { role: "available", price: 265 } },
-    "grow-finish-pig",
-    phase,
-    "feedsport-growerpro-research-2023",
-  );
-  assert.equal(chosen["feedsport-growerpro-research-2023"]?.fixed, 0.4);
-  assert.equal(chosen["sustar-glypro-x912"], undefined);
-  assert.deepEqual(studioPremixProblems(chosen, "grow-finish-pig", phase), []);
-  assert.equal(canAddStudioIngredient("feedsport-growerpro-research-2023", "grow-finish-pig"), false, "research choices require a phase");
-  assert.equal(canAddStudioIngredient("feedsport-growerpro-research-2023", "grow-finish-pig", chosen, phase), true);
-  const selectedAsIngredient = selectStudioIngredient(
-    {
-      "corn-yellow-dent": { role: "available" },
-      "sustar-glypro-x912": { role: "fixed", fixed: 0.2 },
-    },
-    "feedsport-growerpro-research-2023",
-    "grow-finish-pig",
-    phase,
-  );
-  assert.equal(selectedAsIngredient["feedsport-growerpro-research-2023"]?.fixed, 0.4);
-  assert.equal(selectedAsIngredient["sustar-glypro-x912"], undefined, "an alternative replaces the current premix");
-  assert.throws(
-    () => poolWithStudioPremixSelection(chosen, "grow-finish-pig", "br2024-5-43-91-119d-47-74kg", "feedsport-growerpro-research-2023"),
-    /not eligible/,
-  );
 });
 
 test("bad saved premix choices stop in Studio before reaching HTTP 400", () => {

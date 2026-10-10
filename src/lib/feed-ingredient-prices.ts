@@ -59,46 +59,6 @@ export function ingredientImportPriceMultiplier(
  */
 export const INGREDIENT_DEFAULT_PRICES: readonly IngredientDefaultPrice[] = [
   {
-    ingredientId: "feedsport-research-piglet-vtm-1pct",
-    usdPerTonne: 2500,
-    market: "FeedSport internal planning, Zimbabwe",
-    asOf: "2026-10-10",
-    sourceScope: "zimbabwe",
-    sourceLabel: "FeedSport planning assumption — WeanerPro",
-    note:
-      "Internal planning default only, not a supplier quote or sale price. At the fixed 10 kg/t research dose this contributes USD 25/t of complete feed. Replace with the current production cost or quote when available.",
-  },
-  {
-    ingredientId: "feedsport-growerpro-research-2023",
-    usdPerTonne: 5000,
-    market: "FeedSport internal planning, Zimbabwe",
-    asOf: "2026-10-10",
-    sourceScope: "zimbabwe",
-    sourceLabel: "FeedSport planning assumption — GrowerPro",
-    note:
-      "Internal planning default only, not a supplier quote or sale price. At the fixed 4 kg/t research dose this contributes USD 20/t of complete feed. Replace with the current production cost or quote when available.",
-  },
-  {
-    ingredientId: "feedsport-finisherpro-phase1-research-2023",
-    usdPerTonne: 5000,
-    market: "FeedSport internal planning, Zimbabwe",
-    asOf: "2026-10-10",
-    sourceScope: "zimbabwe",
-    sourceLabel: "FeedSport planning assumption — FinisherPro Phase 1",
-    note:
-      "Internal planning default only, not a supplier quote or sale price. At the fixed 3.5 kg/t research dose this contributes USD 17.50/t of complete feed. Replace with the current production cost or quote when available.",
-  },
-  {
-    ingredientId: "feedsport-finisherpro-phase2-research-2023",
-    usdPerTonne: 5000,
-    market: "FeedSport internal planning, Zimbabwe",
-    asOf: "2026-10-10",
-    sourceScope: "zimbabwe",
-    sourceLabel: "FeedSport planning assumption — FinisherPro Phase 2",
-    note:
-      "Internal planning default only, not a supplier quote or sale price. At the fixed 4 kg/t research dose this contributes USD 20/t of complete feed. Replace with the current production cost or quote when available.",
-  },
-  {
     ingredientId: "cj-s174-boar-premix",
     usdPerTonne: 2550,
     market: "Alibaba China listing proxy",

@@ -112,7 +112,7 @@ describe("MCP premix guidance", () => {
     });
     const instructions = result?.instructions ?? "";
     assert.match(instructions, /Automatic mode does not include any premix/);
-    assert.match(instructions, /public-premix-salt-additives.*RETIRED/);
+    assert.match(instructions, /Generic premix aliases such as "premix" are rejected/);
     assert.match(instructions, /count towards vitamin and trace-mineral targets/i);
     assert.match(instructions, /nutritional_validation/);
     assert.match(instructions, /price_per_tonne/);

@@ -12,7 +12,6 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 import type { GoalKey, PoolEntry, Role, Snapshot, Summary } from "@/components/formulation-studio/engine";
 import { INGREDIENT_LIBRARY } from "@/lib/ingredient-nutrients";
-import { PUBLIC_PREMIX_ID } from "@/lib/public-feed-premix";
 
 import {
   FeedSportInputError,
@@ -234,18 +233,15 @@ export function snapshotToolInputs(snapshot: Snapshot): Required<Omit<FormulateI
     const constraint: IngredientConstraintInput = {};
     const price = num(entry.price);
     if (price !== undefined) constraint.price_per_tonne = price;
-    // The FeedSport premix is fixed by the engine and refuses request limits.
-    if (id !== PUBLIC_PREMIX_ID) {
-      if (entry.role === "fixed") {
-        const fixed = num(entry.fixed) ?? 0;
-        constraint.min_percent = fixed;
-        constraint.max_percent = fixed;
-      } else {
-        const min = entry.role === "required" ? num(entry.min) : undefined;
-        const max = num(entry.max);
-        if (min) constraint.min_percent = min;
-        if (max !== undefined) constraint.max_percent = max;
-      }
+    if (entry.role === "fixed") {
+      const fixed = num(entry.fixed) ?? 0;
+      constraint.min_percent = fixed;
+      constraint.max_percent = fixed;
+    } else {
+      const min = entry.role === "required" ? num(entry.min) : undefined;
+      const max = num(entry.max);
+      if (min) constraint.min_percent = min;
+      if (max !== undefined) constraint.max_percent = max;
     }
     if (Object.keys(constraint).length) constraints[id] = constraint;
   }

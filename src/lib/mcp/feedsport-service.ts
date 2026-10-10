@@ -50,7 +50,6 @@ import {
 } from "@/lib/ingredient-inclusion-limits";
 import type { EnergySystem } from "@/lib/nutrition-targets";
 import type { NutritionPhase, NutritionSpecies } from "@/lib/nutrition";
-import { PUBLIC_PREMIX_ID } from "@/lib/public-feed-premix";
 import { COMMERCIAL_PREMIXES, assertManufacturerRecipe, commercialPremixById, commercialPremixCompatibleWithProgramme, premixAnalysisForIds, type CommercialPremix } from "@/lib/commercial-premixes";
 import { buildManufacturerRecipeReport, ManufacturerRecipeValidationError } from "@/lib/manufacturer-recipe";
 import { buildCompleteFeedValidation, type CompleteFeedValidation } from "@/lib/complete-feed-validation";
@@ -620,7 +619,6 @@ export function getIngredient(
   programmeId?: string,
   library: IngredientLibrary = INGREDIENT_LIBRARY,
 ) {
-  if (id === PUBLIC_PREMIX_ID) throw new FeedSportInputError("The theoretical premix is retired. Choose a real manufacturer SKU.");
   const commercial = commercialPremixById(id);
   if (commercial) return {
     ...premixSummary(commercial, context),
@@ -701,7 +699,7 @@ function resolveIngredient(requested: string, library: IngredientLibrary): Resol
 
 export function resolveRequestedIngredient(requested: string, library: IngredientLibrary): string {
   const normalized = requested.trim().toLowerCase();
-  if (normalized === PUBLIC_PREMIX_ID || PREMIX_ALIASES.includes(normalized)) throw new FeedSportInputError("Generic premix retired; specify manufacturer SKU.");
+  if (PREMIX_ALIASES.includes(normalized)) throw new FeedSportInputError("Generic premix retired; specify manufacturer SKU.");
   const commercial = COMMERCIAL_PREMIXES.find((p) => [p.id, p.sku.toLowerCase(), p.name.toLowerCase()].includes(normalized));
   if (commercial) return commercial.id;
   return resolveIngredient(requested, library).id;

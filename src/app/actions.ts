@@ -29,7 +29,6 @@ import { isSupabaseConfigured, supabaseNotConfiguredError, supabaseUrl } from '@
 import { createPublicClient, getAdminClient } from '@/lib/supabase/server';
 import { sendInquiryNotification } from '@/lib/email';
 import { INGREDIENT_LIBRARY, type IngredientNutrientRecord } from '@/lib/ingredient-nutrients';
-import { PUBLIC_PREMIX_ID, PUBLIC_PREMIX_NAME } from '@/lib/public-feed-premix';
 import { siteConfig } from '@/lib/seo';
 
 const staticModeError = 'This operation is unavailable while FeedSport is running in static mode.';
@@ -243,8 +242,6 @@ export async function getNutritionIngredientOptions(): Promise<NutritionIngredie
       category: ingredient.category,
       sourceTable: ingredient.provenance.sourceTable,
     })),
-    // The formulation tool's phase-specific premix; it has no Brazilian Tables record.
-    { id: PUBLIC_PREMIX_ID, name: PUBLIC_PREMIX_NAME, category: 'vitamin_mineral_premix', sourceTable: 'Formulation premix' },
   ].sort((a, b) => a.name.localeCompare(b.name));
 }
 
@@ -316,7 +313,7 @@ export async function saveProduct(productData: unknown, productId?: string) {
   if ('error' in admin) return { success: false, errors: { _server: [admin.error] } };
 
   const values = validation.data;
-  if (values.nutritionIngredientId !== PUBLIC_PREMIX_ID && !INGREDIENT_LIBRARY.ingredients.some((ingredient) => ingredient.id === values.nutritionIngredientId)) {
+  if (!INGREDIENT_LIBRARY.ingredients.some((ingredient) => ingredient.id === values.nutritionIngredientId)) {
     return { success: false, errors: { nutritionIngredientId: ['Choose a valid ingredient from the JSON library.'] } };
   }
   const { data: category } = await admin.supabase.from('product_categories').select('id').eq('id', values.categoryId).maybeSingle();

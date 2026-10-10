@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import { evaluateManual, formulate, validateManualRecipe, type EngineContext, type Snapshot } from "./engine";
-import { poolWithProgrammePremix, poolWithStudioPremixSelection } from "@/lib/studio-commercial-premix";
+import { poolWithProgrammePremix } from "@/lib/studio-commercial-premix";
 import { buildInfeasibleFormulationAssessment } from "@/lib/formulation-assessment";
 
 const context = {
@@ -123,46 +123,6 @@ test("Studio can send a default fixed Sustar premix without inventing its purcha
     assert.equal(result.status, "infeasible", "Formulation must reach the solver, not block over premix price");
     assert.equal(calls, 1);
     assert.ok(result.warns.some((warning) => /excludes|excludes/i.test(warning.body)));
-  } finally { globalThis.fetch = originalFetch; }
-});
-
-test("Studio sends GrowerPro at the canonical research dose and discloses its status", async () => {
-  const originalFetch = globalThis.fetch;
-  const phaseId = "br2024-5-43-63-91d-26-47kg";
-  const pool = poolWithStudioPremixSelection(
-    { corn: { role: "available" } },
-    "grow-finish-pig",
-    phaseId,
-    "feedsport-growerpro-research-2023",
-  );
-  const ctx = {
-    catalogue: new Map([
-      ["corn", { id: "corn", name: "Corn", price: { usdPerTonne: 300 } }],
-      ["feedsport-growerpro-research-2023", { id: "feedsport-growerpro-research-2023", name: "FeedSport GrowerPro", price: null }],
-    ]),
-    programmes: {
-      requirementFields: [],
-      programmes: [{ id: "grow-finish-pig", name: "Grower", species: "swine", phases: [{ id: phaseId, label: "Grower", limitsKey: null }] }],
-      limits: {},
-    },
-  } as unknown as EngineContext;
-  globalThis.fetch = async (_url, init) => {
-    const request = JSON.parse(String(init?.body));
-    const premix = request.ingredients.find((row: { ingredientId: string }) => row.ingredientId === "feedsport-growerpro-research-2023");
-    assert.equal(premix.minInclusionPct, 0.4);
-    assert.equal(premix.maxInclusionPct, 0.4);
-    assert.equal(premix.pricePerKg, 0);
-    return new Response(JSON.stringify({
-      status: "infeasible",
-      diagnostics: [],
-      assessment: buildInfeasibleFormulationAssessment("No feasible recipe."),
-    }), { status: 200, headers: { "content-type": "application/json" } });
-  };
-  try {
-    const result = await formulate({ programmeId: "grow-finish-pig", phaseId, goal: "least_cost", batch: 100, pool }, ctx);
-    assert.equal(result.status, "infeasible");
-    assert.ok(result.warns.some((warning) => /research reference only/i.test(warning.title)));
-    assert.ok(result.warns.some((warning) => /not a manufactured product/i.test(warning.body)));
   } finally { globalThis.fetch = originalFetch; }
 });
 

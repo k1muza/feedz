@@ -12,7 +12,6 @@ import { evaluateFormulation } from '@/lib/feed-optimizer';
 import { getIngredientPrices } from '@/lib/ingredient-prices';
 import { feedProgrammeById, feedProgrammePhaseById } from '@/lib/feed-programmes';
 import { ingredientLibraryForPhase, ingredientLibraryWithCommercialPremixes } from '@/lib/ingredient-nutrients';
-import { PUBLIC_PREMIX_ID } from '@/lib/public-feed-premix';
 import { renderPublicFormulationPdf } from '@/lib/public-formulation-pdf';
 
 export const runtime = 'nodejs';
@@ -81,10 +80,6 @@ export async function POST(request: Request) {
   try {
     const total = formula.ingredients.reduce((sum, ingredient) => sum + ingredient.inclusionPct, 0);
     if (Math.abs(total - 100) > 0.02) throw new Error('The downloaded formulation must total 100%.');
-    if (formula.ingredients.some((ingredient) => ingredient.ingredientId === PUBLIC_PREMIX_ID)) {
-      throw new Error('The theoretical FeedSport premix has been retired. Select a real manufacturer product.');
-    }
-
     // Only a real manufacturer product, at its published dose, may appear in a report.
     const premix = commercialPremixById(premixId);
     if (!premix) throw new Error('Select a commercial premix before downloading the formula.');

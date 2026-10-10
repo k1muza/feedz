@@ -729,33 +729,6 @@ function Setup({ v }: V) {
                 <span style={sx(`flex:none;width:8px;height:8px;border-radius:${v.dataLine.r};transform:rotate(${v.dataLine.rot});background:${v.dataLine.bg}`)} />
                 {v.dataLine.text}
               </div>
-              {v.completionPanel.show && (
-                <div style={sx(`border:1px ${v.completionPanel.complete ? "solid #9fc2a7" : v.completionPanel.problem ? "solid #e9b9ad" : "dashed #b9b6ab"};background:${v.completionPanel.complete ? "#f4f8f4" : v.completionPanel.problem ? "#fff8f6" : "transparent"};border-radius:8px;padding:16px 18px;display:flex;flex-direction:column;gap:10px`)}>
-                  <div style={sx("display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap")}>
-                    <div style={sx("display:flex;align-items:center;gap:9px;font:600 14px/1.3 'IBM Plex Sans',sans-serif")}>
-                      {v.completionPanel.loading && <span style={sx("width:14px;height:14px;border-radius:50%;border:2px solid #d0cdc3;border-top-color:#2f5a3f;animation:fsspin .8s linear infinite;flex:none")} />}
-                      {v.completionPanel.complete && <span style={sx("width:16px;height:16px;border-radius:50%;background:#2f7a4a;color:#fff;font:600 11px/16px 'IBM Plex Sans',sans-serif;text-align:center;flex:none")}>✓</span>}
-                      {v.completionPanel.title}
-                    </div>
-                    {v.completionPanel.canAddAll && <button onClick={v.completionPanel.addAll} className={hv("green")} style={sx("border:0;background:#2f5a3f;color:#fff;font:600 12px/1 'IBM Plex Sans',sans-serif;padding:8px 11px;border-radius:6px")}>{v.completionPanel.actionLabel}</button>}
-                  </div>
-                  <div style={sx("font:400 12px/1.5 'IBM Plex Sans',sans-serif;color:#64665c;max-width:680px")}>{v.completionPanel.body}</div>
-                  {v.completionPanel.hasItems && (
-                    <div style={sx("display:flex;flex-direction:column;gap:8px")}>
-                      {v.completionPanel.itemsTitle && <div style={sx("font:500 11px/1 'IBM Plex Mono',monospace;color:#64665c;text-transform:uppercase;letter-spacing:0.05em")}>{v.completionPanel.itemsTitle}</div>}
-                      <div style={sx("display:flex;gap:8px;flex-wrap:wrap")}>
-                        {v.completionPanel.items.map((g) => (
-                          <button key={g.name} onClick={g.add} className={hv("chip")} style={sx("font:500 13px/1.15 'IBM Plex Sans',sans-serif;padding:8px 12px;border-radius:99px;border:1px solid #d0cdc3;background:#fff;color:#222420;display:flex;gap:7px;align-items:center")}>
-                            <span>{g.action} {g.name}</span>
-                            <span style={sx("font:400 10px/1 'IBM Plex Mono',monospace;color:#64665c")}>{g.modelPct}</span>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                  {(v.completionPanel.ready || v.completionPanel.complete) && <div style={sx("font:400 12px/1.4 'IBM Plex Sans',sans-serif;color:#64665c")}>Practical-inclusion guidance and missing nutrient data still apply. Suggestions are only added when you choose them and are rechecked after every change.</div>}
-                </div>
-              )}
             </>
           )}
           {v.step3 && (
@@ -811,6 +784,33 @@ function Setup({ v }: V) {
               <span>
                 Use <b style={sx("font-weight:600")}>Limits</b> to set a minimum, a maximum, or a fixed amount.
               </span>
+            </div>
+          )}
+          {v.step2 && v.completionPanel.show && (
+            <div style={sx(`border:1px ${v.completionPanel.complete ? "solid #9fc2a7" : v.completionPanel.problem ? "solid #e9b9ad" : "dashed #b9b6ab"};background:${v.completionPanel.complete ? "#f4f8f4" : v.completionPanel.problem ? "#fff8f6" : "transparent"};border-radius:8px;padding:16px 18px;display:flex;flex-direction:column;gap:10px`)}>
+              <div style={sx("display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap")}>
+                <div style={sx("display:flex;align-items:center;gap:9px;font:600 14px/1.3 'IBM Plex Sans',sans-serif")}>
+                  {v.completionPanel.loading && <span style={sx("width:14px;height:14px;border-radius:50%;border:2px solid #d0cdc3;border-top-color:#2f5a3f;animation:fsspin .8s linear infinite;flex:none")} />}
+                  {v.completionPanel.complete && <span style={sx("width:16px;height:16px;border-radius:50%;background:#2f7a4a;color:#fff;font:600 11px/16px 'IBM Plex Sans',sans-serif;text-align:center;flex:none")}>✓</span>}
+                  {v.completionPanel.title}
+                </div>
+                {v.completionPanel.canAddAll && <button onClick={v.completionPanel.addAll} className={hv("green")} style={sx("border:0;background:#2f5a3f;color:#fff;font:600 12px/1 'IBM Plex Sans',sans-serif;padding:8px 11px;border-radius:6px")}>{v.completionPanel.actionLabel}</button>}
+              </div>
+              <div style={sx("font:400 12px/1.5 'IBM Plex Sans',sans-serif;color:#64665c;max-width:680px")}>{v.completionPanel.body}</div>
+              {v.completionPanel.hasItems && (
+                <div style={sx("display:flex;flex-direction:column;gap:8px")}>
+                  {v.completionPanel.itemsTitle && <div style={sx("font:500 11px/1 'IBM Plex Mono',monospace;color:#64665c;text-transform:uppercase;letter-spacing:0.05em")}>{v.completionPanel.itemsTitle}</div>}
+                  <div style={sx("display:flex;gap:8px;flex-wrap:wrap")}>
+                    {v.completionPanel.items.map((g) => (
+                      <button key={g.name} onClick={g.add} className={hv("chip")} style={sx("font:500 13px/1.15 'IBM Plex Sans',sans-serif;padding:8px 12px;border-radius:99px;border:1px solid #d0cdc3;background:#fff;color:#222420;display:flex;gap:7px;align-items:center")}>
+                        <span>{g.action} {g.name}</span>
+                        <span style={sx("font:400 10px/1 'IBM Plex Mono',monospace;color:#64665c")}>{g.modelPct}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {(v.completionPanel.ready || v.completionPanel.complete) && <div style={sx("font:400 12px/1.4 'IBM Plex Sans',sans-serif;color:#64665c")}>Practical-inclusion guidance and missing nutrient data still apply. Suggestions are only added when you choose them and are rechecked after every change.</div>}
             </div>
           )}
           {v.step1 && <div style={sx("font:400 13px/1.55 'IBM Plex Sans',sans-serif;color:#45473f")}>Requirements load automatically. Nutritionists can review or override them later under Rules.</div>}
@@ -1176,16 +1176,16 @@ const VERIFY_COLS = "fs-verify-row";
 
 type ChipVals = { key: string; primary: boolean; label: string; fixes: string; delta: string; title: string; go: () => void };
 
-const CHIP = "display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:99px;font:600 12.5px/1.2 'IBM Plex Sans',sans-serif;text-align:left;white-space:nowrap";
+const CHIP = "display:inline-flex;align-items:center;gap:6px;max-width:100%;min-width:0;padding:5px 10px;border-radius:99px;font:600 12.5px/1.2 'IBM Plex Sans',sans-serif;text-align:left;white-space:nowrap";
 
 /** An ingredient that rescued the recipe in a background re-formulation; green is the cheapest. */
 function RescueChip({ chip }: { chip: ChipVals }) {
   const meta = [chip.fixes, chip.delta].filter(Boolean).join(" · ");
   return (
-    <button type="button" role="listitem" onClick={chip.go} title={chip.title} aria-label={`Add ${chip.label}${meta ? ", " + meta : ""}. ${chip.title}`} className={hv("chip")} style={sx(`${CHIP};border:1px solid ${chip.primary ? "#2f5a3f" : "#d0cdc3"};background:${chip.primary ? "#eef3ee" : "#fff"};color:#222420`)}>
-      <span aria-hidden style={sx("font-weight:700")}>+</span>
-      <span>{chip.label}</span>
-      {meta && <span style={sx("font-weight:400;color:#64665c")}>{meta}</span>}
+    <button type="button" role="listitem" onClick={chip.go} title={chip.label + (meta ? " · " + meta : "") + "\n" + chip.title} aria-label={`Add ${chip.label}${meta ? ", " + meta : ""}. ${chip.title}`} className={hv("chip")} style={sx(`${CHIP};border:1px solid ${chip.primary ? "#2f5a3f" : "#d0cdc3"};background:${chip.primary ? "#eef3ee" : "#fff"};color:#222420`)}>
+      <span aria-hidden style={sx("flex:none;font-weight:700")}>+</span>
+      <span style={sx("min-width:0;max-width:26ch;overflow:hidden;text-overflow:ellipsis")}>{chip.label}</span>
+      {meta && <span style={sx("flex:none;font-weight:400;color:#64665c")}>{meta}</span>}
     </button>
   );
 }
