@@ -1,111 +1,41 @@
-import { PREMIX_RECORDS } from "./ingredient-nutrients";
+import {
+  PREMIX_RECORDS,
+  type CommercialPremixRecord,
+  type IngredientNutritionProfile,
+  type IngredientSpecies,
+  type NutrientValueSource,
+} from "./ingredient-nutrients";
 import { feedProgrammePhaseById } from "./feed-programmes";
-import type { Vitamins } from "./nutrition";
 
 /**
- * Supplier-published products, not FeedSport-designed "ideal" premixes.
+ * A supplier-published product. Its nutrient composition is an ordinary
+ * ingredient nutrition profile (per kg of premix, as fed) in the canonical
+ * ingredient library, so the formulation engine credits it exactly like
+ * maize or soybean meal. This type adds what makes it a commercial product:
+ * manufacturer, SKU, species, stage eligibility and the fixed dose.
+ *
  * An online product page is NOT a batch COA, price quotation, or confirmation
  * that its manufacturer's recommended basal ration may be reformulated.
- *
- * Label minima are credited as conservative nutrient contributions; they are
- * not exact analytical matrices or batch COAs.
  * Never fabricate concentrations from programme requirements.
  */
-export type PremixMicronutrientProfile = {
-  sourceUrl: string;
-  vitamins: Partial<Vitamins>;
-  traceMineralsPpm: Partial<Record<"zinc" | "iron" | "manganese" | "copper" | "iodine" | "selenium", number>>;
-};
-
-export type CommercialPremix = {
+export type CommercialPremix = CommercialPremixRecord & {
   id: string;
-  manufacturer: "Trouw Nutrition" | "Chengdu Sustar Feed" | "CJ (Tianjin) Feed";
-  sku: string;
   name: string;
-  species: "pig" | "broiler" | "layer";
-  application: string;
-  /** Prefixes for which the supplier/product policy permits this product. */
-  eligibleProgrammePrefixes: readonly string[];
-  /** May be selected manually for a phase-specific exploratory formulation; not a manufacturer feeding recommendation. */
-  simulationOnlyPhases?: readonly { programmeId: string; phaseClass: "grower" }[];
-  /** Stage eligibility for an otherwise matching programme, when a phase is available. */
-  eligiblePhaseClasses?: readonly ("pre-starter" | "starter" | "grower" | "finisher")[];
-  /** One default supplier product per animal family; users may replace it. */
-  defaultForEligibleProgrammes?: boolean;
-  inclusionPct: number;
-  inclusionKgPerTonne: number;
-  /** The label instruction is part of the ingredient definition, not a UI default. */
-  inclusionInstructions: string;
-  verificationStatus: "unverified" | "verified";
-  formulationCompatibility: "unconfirmed" | "manufacturer_recipe_only";
-  /** Source-provided percentages. Never derive a commercial formula in the app. */
-  manufacturerRecipe?: readonly { ingredientId: string; percent: number }[];
-  /** Manufacturer-listed per-kg-of-premix ranges/minima, not batch-verified nutrient matrix entries. */
-  publishedGuarantees?: readonly { nutrient: string; unit: "IU/kg" | "mg/kg" | "g/kg" | "%"; min?: number; max?: number }[];
-  /**
-   * Conservative, as-fed label minima in the engine's canonical units. These
-   * values let FeedSport calculate the premix's contribution to the finished
-   * ration and count towards vitamin and trace-mineral targets.
-   */
-  guaranteedMinimumAsFed?: PremixMicronutrientProfile;
-  /** Back-calculated assumption from finished-feed nutrient targets, NOT a
-   * manufacturer's analysed or guaranteed premix concentration.
-   */
-  estimatedAsFedMicronutrients?: PremixMicronutrientProfile;
-  /** Approved exact analysis/COA values; preferred over label minima when present. */
-  verifiedAsFedMicronutrients?: PremixMicronutrientProfile & { reference: string };
-  /**
-   * Exact source-verified as-fed concentrations, NOT minimum guarantees.
-   * Populate SID only when the manufacturer supplies a digestible value or
-   * source-validated digestibility. Never derive SID from total lysine minima.
-   */
-  verifiedAsFedAminoAcids?: {
-    reference: string;
-    /** Required citation for every asserted exact nutrient concentration. */
-    sourceUrl: string;
-    totalPct?: Record<string, number>;
-    sidPct?: Record<string, number>;
-  };
-  /** Confirmed supplier quotation. Alibaba-derived planning defaults live in feed-ingredient-prices. */
-  pricePerTonne: null;
-  specificationUrl: string;
-  publishedAnalysis?: {
-    zincMgKg: { min: number; max?: number };
-    copperMgKg: { min: number; max?: number };
-    vitaminAIuKg: { min: number; max?: number };
-  };
-  note?: string;
-  /** User-confirmed minimum/maximum label transcription stored in the ingredient JSON.
-   * These recorded ranges are evidence of labelled values, not a per-kg
-   * as-fed matrix until the dosage/concentration basis has been established.
-   */
-  labelGuarantees?: {
-    source: string;
-    batch: string;
-    inclusionPrinted: string;
-    columns: { first: "minimum"; second: "maximum" };
-    confirmedByUser: boolean;
-    concentrationBasis: string;
-    rows: readonly {
-      category: "Vitamin" | "Mineral" | "Additive";
-      nutrient: string;
-      source_form: string;
-      min: string;
-      max: string;
-      unit: string;
-      note: string;
-    }[];
-    notes: readonly string[];
-  };
-  /** Data caveats recorded with the values, e.g. why a published figure isn't credited. */
-  notes?: readonly string[];
+  /** The species whose nutrition profile carries this premix's composition. */
+  nutritionSpecies: IngredientSpecies;
+  composition: IngredientNutritionProfile;
+  /** Product-level citation; nutrients may override it in `nutrientSources`. */
+  source: NutrientValueSource | undefined;
+  nutrientSources: Record<string, NutrientValueSource>;
 };
 
-/**
- * Supplier products live in the ingredient library JSON as premix
- * ingredients; this is the typed view of them, in file order.
- */
-export const COMMERCIAL_PREMIXES: readonly CommercialPremix[] = PREMIX_RECORDS.map(({ id, name, premix }) => ({ id, name, ...premix }));
+/** Supplier products from the ingredient library JSON, in file order. */
+export const COMMERCIAL_PREMIXES: readonly CommercialPremix[] = PREMIX_RECORDS.map(({ id, name, premix, nutrition, provenance }) => {
+  const nutritionSpecies: IngredientSpecies = premix.species === "pig" ? "swine" : "poultry";
+  const composition = nutrition[nutritionSpecies];
+  if (!composition) throw new Error(`Premix ${id} has no ${nutritionSpecies} nutrition profile.`);
+  return { id, name, ...premix, nutritionSpecies, composition, source: provenance.source, nutrientSources: provenance.nutrientSources };
+});
 
 export function commercialPremixById(id: string): CommercialPremix | undefined {
   return COMMERCIAL_PREMIXES.find((premix) => premix.id === id);
@@ -181,11 +111,123 @@ export function assertManufacturerRecipe(
   }
 }
 
+export type PremixNutrientGroup = "energy" | "protein" | "amino_acid" | "macro_mineral" | "trace_mineral" | "vitamin";
+
+/** One documented premix nutrient and what it adds to a tonne of finished feed. */
+export type PremixNutrientContribution = {
+  /** Path in the ingredient nutrition profile, e.g. `aminoAcids.sidPct.lysine`. */
+  path: string;
+  nutrient: string;
+  group: PremixNutrientGroup;
+  unit: string;
+  premixConcentration: number;
+  finishedFeedContribution: number;
+  /**
+   * False for a TOTAL amino acid or phosphorus value with no published SID or
+   * digestibility: it counts toward the total, never toward SID/digestible.
+   */
+  countsTowardDigestible: boolean;
+  /** The cited basis, e.g. "as-fed label minimum per kg premix". */
+  basis: string;
+};
+
+const AMINO_ACID_LABELS: Record<string, string> = {
+  lysine: "lysine",
+  methionine: "methionine",
+  cysteine: "cysteine",
+  methionineCysteine: "methionine + cysteine",
+  threonine: "threonine",
+  tryptophan: "tryptophan",
+  valine: "valine",
+  isoleucine: "isoleucine",
+  leucine: "leucine",
+  histidine: "histidine",
+  arginine: "arginine",
+};
+
+const MACRO_MINERALS: Record<string, string> = {
+  calciumPct: "Calcium",
+  totalPhosphorusPct: "Total phosphorus",
+  availablePhosphorusPct: "Available phosphorus",
+  sttdPhosphorusPct: "STTD phosphorus",
+  digestiblePhosphorusPct: "Digestible phosphorus",
+  sodiumPct: "Sodium",
+  chloridePct: "Chloride",
+  potassiumPct: "Potassium",
+  magnesiumPct: "Magnesium",
+};
+
+export const VITAMIN_FIELDS: Record<string, { label: string; unit: string }> = {
+  vitaminAIuKg: { label: "Vitamin A", unit: "IU/kg" },
+  vitaminDIuKg: { label: "Vitamin D3", unit: "IU/kg" },
+  vitaminEIuKg: { label: "Vitamin E", unit: "IU/kg" },
+  vitaminKMgKg: { label: "Vitamin K3", unit: "mg/kg" },
+  vitaminB1MgKg: { label: "Vitamin B1", unit: "mg/kg" },
+  riboflavinMgKg: { label: "Vitamin B2", unit: "mg/kg" },
+  vitaminB6MgKg: { label: "Vitamin B6", unit: "mg/kg" },
+  vitaminB12McgKg: { label: "Vitamin B12", unit: "mcg/kg" },
+  pantothenicAcidMgKg: { label: "Pantothenic acid", unit: "mg/kg" },
+  niacinMgKg: { label: "Niacin", unit: "mg/kg" },
+  folicAcidMgKg: { label: "Folic acid", unit: "mg/kg" },
+  biotinMgKg: { label: "Biotin", unit: "mg/kg" },
+  totalCholineMgKg: { label: "Choline", unit: "mg/kg" },
+};
+
+export const TRACE_MINERAL_FIELDS: Record<string, string> = {
+  zinc: "Zinc",
+  iron: "Iron",
+  manganese: "Manganese",
+  copper: "Copper",
+  iodine: "Iodine",
+  selenium: "Selenium",
+};
+
+/**
+ * Every documented nutrient in a premix's composition and its contribution to
+ * the finished feed at the given inclusion. Reporting only: the formulation
+ * engine reads the same profile through its single nutrient pipeline.
+ */
+export function premixNutrientContributions(
+  premix: CommercialPremix,
+  inclusionPct = premix.inclusionPct,
+): PremixNutrientContribution[] {
+  const share = inclusionPct / 100;
+  const profile = premix.composition;
+  const basisOf = (path: string) => premix.nutrientSources[path]?.basis ?? premix.source?.basis ?? "as-fed";
+  const rows: PremixNutrientContribution[] = [];
+  const push = (path: string, nutrient: string, group: PremixNutrientGroup, unit: string, value: number | undefined, countsTowardDigestible = true) => {
+    if (value === undefined) return;
+    rows.push({ path, nutrient, group, unit, premixConcentration: value, finishedFeedContribution: value * share, countsTowardDigestible, basis: basisOf(path) });
+  };
+  push("energy.metabolizableKcalKg", "Metabolizable energy", "energy", "kcal/kg", profile.energy.metabolizableKcalKg);
+  push("energy.netKcalKg", "Net energy", "energy", "kcal/kg", profile.energy.netKcalKg);
+  push("composition.crudeProteinPct", "Crude protein", "protein", "%", profile.composition.crudeProteinPct);
+  for (const [key, label] of Object.entries(AMINO_ACID_LABELS)) {
+    const sid = profile.aminoAcids.sidPct[key];
+    const total = profile.aminoAcids.totalPct[key];
+    const digestibility = profile.aminoAcids.sidDigestibilityPct[key];
+    if (sid !== undefined) push(`aminoAcids.sidPct.${key}`, "SID " + label, "amino_acid", "%", sid);
+    else if (total !== undefined && digestibility !== undefined) push(`aminoAcids.sidPct.${key}`, "SID " + label, "amino_acid", "%", total * digestibility / 100);
+    if (total !== undefined) push(`aminoAcids.totalPct.${key}`, "Total " + label, "amino_acid", "%", total, sid !== undefined || digestibility !== undefined);
+  }
+  const minerals = profile.macroMinerals as Record<string, number | undefined>;
+  const digestibleP = minerals.sttdPhosphorusPct ?? minerals.digestiblePhosphorusPct ?? minerals.availablePhosphorusPct;
+  for (const [key, label] of Object.entries(MACRO_MINERALS)) {
+    push(`macroMinerals.${key}`, label, "macro_mineral", "%", minerals[key], key !== "totalPhosphorusPct" || digestibleP !== undefined);
+  }
+  for (const [key, label] of Object.entries(TRACE_MINERAL_FIELDS)) {
+    push(`traceMineralsPpm.${key}`, label, "trace_mineral", "ppm", profile.traceMineralsPpm[key]);
+  }
+  for (const [key, meta] of Object.entries(VITAMIN_FIELDS)) {
+    push(`vitamins.${key}`, meta.label, "vitamin", meta.unit, (profile.vitamins as Record<string, number | undefined>)[key]);
+  }
+  return rows;
+}
+
 /** Present on all formulation responses, even when no commercial premix is used. */
 export type CommercialPremixAnalysis =
   | {
       status: "included";
-      reason: "commercial_premix_selected";
       product_id: string;
       message: string;
       manufacturer: string;
@@ -196,98 +238,33 @@ export type CommercialPremixAnalysis =
       inclusion_pct: number;
       inclusion_kg_per_tonne: number;
       inclusion_instructions: string;
-      nutrient_profile: {
-        status: "manufacturer_unverified" | "manufacturer_verified";
-        basis: "as-fed";
-        source_url: string;
-        contributions: PremixFinishedFeedContribution[];
-      } | null;
+      verification_status: CommercialPremix["verificationStatus"];
+      source_url: string;
+      /** Every documented nutrient, credited through the same pipeline as other ingredients. */
+      contributions: PremixNutrientContribution[];
+      /** Reference only, e.g. finished-feed specifications; never credited as composition. */
+      reference_notes: string[];
     }
   | {
       status: "not_included";
-      reason: "no_commercial_premix";
       product_id: null;
       message: string;
     };
-
-export type PremixFinishedFeedContribution = {
-  nutrient: string;
-  group: "vitamin" | "trace_mineral";
-  unit: "IU/kg" | "mg/kg" | "mcg/kg" | "ppm";
-  premixConcentration: number;
-  finishedFeedContribution: number;
-  basis: "minimum_guarantee" | "verified_analysis" | "estimated_from_complete_feed";
-};
-
-const VITAMIN_META: Partial<Record<keyof Vitamins, { label: string; unit: PremixFinishedFeedContribution["unit"] }>> = {
-  vitaminAIuKg: { label: "Vitamin A", unit: "IU/kg" },
-  vitaminDIuKg: { label: "Vitamin D3", unit: "IU/kg" },
-  vitaminEIuKg: { label: "Vitamin E", unit: "IU/kg" },
-  vitaminKMgKg: { label: "Vitamin K3", unit: "mg/kg" },
-  vitaminB1MgKg: { label: "Vitamin B1", unit: "mg/kg" },
-  riboflavinMgKg: { label: "Vitamin B2 (riboflavin)", unit: "mg/kg" },
-  vitaminB6MgKg: { label: "Vitamin B6", unit: "mg/kg" },
-  vitaminB12McgKg: { label: "Vitamin B12", unit: "mcg/kg" },
-  pantothenicAcidMgKg: { label: "Pantothenic acid", unit: "mg/kg" },
-  niacinMgKg: { label: "Niacin", unit: "mg/kg" },
-  folicAcidMgKg: { label: "Folic acid", unit: "mg/kg" },
-  biotinMgKg: { label: "Biotin", unit: "mg/kg" },
-  totalCholineMgKg: { label: "Total choline", unit: "mg/kg" },
-};
-
-export function premixFinishedFeedContributions(
-  premix: CommercialPremix,
-  inclusionPct = premix.inclusionPct,
-): PremixFinishedFeedContribution[] {
-  const profile = premix.verifiedAsFedMicronutrients ?? premix.guaranteedMinimumAsFed ?? premix.estimatedAsFedMicronutrients;
-  if (!profile) return [];
-  const basis = premix.verifiedAsFedMicronutrients
-    ? "verified_analysis" as const
-    : premix.guaranteedMinimumAsFed
-      ? "minimum_guarantee" as const
-      : "estimated_from_complete_feed" as const;
-  const share = inclusionPct / 100;
-  const vitamins = Object.entries(profile.vitamins).flatMap(([key, concentration]) => {
-    const meta = VITAMIN_META[key as keyof Vitamins];
-    if (!meta || concentration === undefined) return [];
-    return [{
-      nutrient: meta.label,
-      group: "vitamin" as const,
-      unit: meta.unit,
-      premixConcentration: concentration,
-      finishedFeedContribution: concentration * share,
-      basis,
-    }];
-  });
-  const trace = Object.entries(profile.traceMineralsPpm).flatMap(([key, concentration]) => {
-    if (concentration === undefined) return [];
-    return [{
-      nutrient: key.charAt(0).toUpperCase() + key.slice(1),
-      group: "trace_mineral" as const,
-      unit: "ppm" as const,
-      premixConcentration: concentration,
-      finishedFeedContribution: concentration * share,
-      basis,
-    }];
-  });
-  return [...vitamins, ...trace];
-}
 
 export function premixAnalysisForIds(ids: readonly string[]): CommercialPremixAnalysis {
   const selected = ids.map(commercialPremixById).find((item) => item !== undefined);
   if (!selected) return {
     status: "not_included",
-    reason: "no_commercial_premix",
     product_id: null,
     message: "No commercial premix was included.",
   };
+  const contributions = premixNutrientContributions(selected);
   return {
     status: "included",
-    reason: "commercial_premix_selected",
     product_id: selected.id,
-    message: selected.estimatedAsFedMicronutrients
-      ? `${selected.name} is included at ${selected.inclusionKgPerTonne} kg/t. The modelled vitamin and trace-mineral amounts are back-calculated from FINISHED-FEED targets, not manufacturer-certified premix contents. Results require verification before mixing.`
-      : `${selected.name} is included at its supplier dose of ${selected.inclusionKgPerTonne} kg/t. Its label-minimum contribution is credited towards vitamin and trace-mineral targets.`,
+    message: contributions.length
+      ? `${selected.name} is included at its manufacturer dose of ${selected.inclusionKgPerTonne} kg/t. Each of its ${contributions.length} documented nutrients is counted once, alongside every other ingredient. Nutrients it does not document are counted as 0 and labelled as an assumption.`
+      : `${selected.name} is included at its manufacturer dose of ${selected.inclusionKgPerTonne} kg/t. No premix composition is published, so none of its nutrients is credited; each is labelled as undocumented.`,
     manufacturer: selected.manufacturer,
     sku: selected.sku,
     permitted_species: selected.species,
@@ -296,58 +273,13 @@ export function premixAnalysisForIds(ids: readonly string[]): CommercialPremixAn
     inclusion_pct: selected.inclusionPct,
     inclusion_kg_per_tonne: selected.inclusionKgPerTonne,
     inclusion_instructions: selected.inclusionInstructions,
-    nutrient_profile: selected.verifiedAsFedMicronutrients || selected.guaranteedMinimumAsFed || selected.estimatedAsFedMicronutrients ? {
-      status: selected.verifiedAsFedMicronutrients && selected.verificationStatus === "verified"
-        ? "manufacturer_verified"
-        : "manufacturer_unverified",
-      basis: "as-fed",
-      source_url: (selected.verifiedAsFedMicronutrients ?? selected.guaranteedMinimumAsFed ?? selected.estimatedAsFedMicronutrients)!.sourceUrl,
-      contributions: premixFinishedFeedContributions(selected),
-    } : null,
+    verification_status: selected.verificationStatus,
+    source_url: selected.specificationUrl,
+    contributions,
+    reference_notes: [
+      ...(selected.finishedFeedSpecification ? [selected.finishedFeedSpecification.concentrationBasis] : []),
+      ...(selected.note ? [selected.note] : []),
+      ...(selected.notes ?? []),
+    ],
   };
-}
-
-/**
- * Supplier label guarantees are NOT interchangeable with SID formulation
- * concentrations. Example: CJ S174 publishes lysine >= 4% on the premix
- * label, but no ileal digestibility; counting it as 4% SID lysine would
- * overstate the guaranteed digestible contribution.
- */
-export function publishedPremixAminoAcids(premix: CommercialPremix): Array<{
-  name: string;
-  basis: "total";
-  unit: "%";
-  minimumPct: number | null;
-  maximumPct: number | null;
-  usableAsSid: false;
-}> {
-  const aminoPattern = /\b(lysine|methionine|threonine|tryptophan|valine|isoleucine|leucine|arginine)\b/i;
-  return (premix.publishedGuarantees ?? [])
-    .filter((claim) => claim.unit === "%" && aminoPattern.test(claim.nutrient))
-    .map((claim) => ({
-      name: claim.nutrient,
-      basis: "total" as const,
-      unit: "%" as const,
-      minimumPct: claim.min ?? null,
-      maximumPct: claim.max ?? null,
-      usableAsSid: false as const,
-    }));
-}
-
-/** Conditional, supplier-label MINIMUM contribution to total (never SID) AA.
- * Assumes the labelled SKU matches the product actually supplied, an
- * outstanding verification issue for CJ S174 versus ST174A.
- */
-export function publishedMinimumTotalAminoAcidsInFeed(premix: CommercialPremix): Array<{
-  name: string;
-  minTotalFeedPct: number;
-  usableAsSid: false;
-}> {
-  return publishedPremixAminoAcids(premix)
-    .filter((claim) => claim.minimumPct !== null)
-    .map((claim) => ({
-      name: claim.name,
-      minTotalFeedPct: Math.round((claim.minimumPct! * premix.inclusionPct / 100) * 10000) / 10000,
-      usableAsSid: false as const,
-    }));
 }

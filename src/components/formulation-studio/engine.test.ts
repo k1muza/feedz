@@ -122,7 +122,7 @@ test("Studio can send a default fixed Caremix premix without inventing its purch
     }, ctx);
     assert.equal(result.status, "infeasible", "Formulation must reach the solver, not block over premix price");
     assert.equal(calls, 1);
-    assert.ok(result.warns.some((warning) => /excludes|excludes/i.test(warning.body)));
+    assert.ok(result.warns.some((warning) => /costs exclude it/i.test(warning.body)));
   } finally { globalThis.fetch = originalFetch; }
 });
 
@@ -141,5 +141,36 @@ test("Studio stops incompatible saved premixes before the network", async () => 
     assert.equal(result.status, "blocked");
     if (result.status === "blocked") assert.ok(result.errs.some((issue) => /not suitable/.test(issue.body)));
     assert.equal(calls, 0);
+  } finally { globalThis.fetch = originalFetch; }
+});
+
+test("premix advisories describe the least-cost recipe, never a different goal's recipe", async () => {
+  const originalFetch = globalThis.fetch;
+  const solution = (corn: number) => ({ formula: { ingredients: [{ ingredientId: "corn", inclusionPct: corn }, { ingredientId: "soy", inclusionPct: 100 - corn }] }, costPerKg: 0.4 });
+  const effect = { premixId: "premix", requirementIds: ["sid-lysine"], changes: [{ ingredientId: "soy", withPremixPct: 20, withoutContributionPct: 21 }], costPerTonneWithoutContribution: 410 };
+  globalThis.fetch = async () => new Response(JSON.stringify({
+    status: "optimal",
+    solution: solution(80),
+    nutrientProfile: [],
+    alternatives: [{ id: "simple", label: "Simpler", description: "", solution: solution(75), nutrientProfile: [], costIncreasePct: 1, assessment: buildInfeasibleFormulationAssessment("x") }],
+    ingredientOpportunities: [],
+    assessment: buildInfeasibleFormulationAssessment("x"),
+    premixComparison: null,
+    premixEffect: effect,
+  }), { status: 200, headers: { "content-type": "application/json" } });
+  try {
+    const pool = { corn: { role: "available" as const }, soy: { role: "available" as const } };
+    const leastCost = await formulate({ programmeId: "programme", phaseId: "phase", goal: "least_cost", batch: 100, pool }, context);
+    assert.equal(leastCost.status, "optimal");
+    if (leastCost.status === "optimal") {
+      assert.deepEqual(leastCost.premixEffect, effect);
+      assert.equal(leastCost.premixComparedOnLeastCost, false);
+    }
+    const simpler = await formulate({ programmeId: "programme", phaseId: "phase", goal: "simpler", batch: 100, pool }, context);
+    assert.equal(simpler.status, "optimal");
+    if (simpler.status === "optimal") {
+      assert.equal(simpler.premixEffect, null, "least-cost savings notes must not annotate the simpler recipe");
+      assert.equal(simpler.premixComparedOnLeastCost, true, "the comparison is labelled as least-cost based");
+    }
   } finally { globalThis.fetch = originalFetch; }
 });

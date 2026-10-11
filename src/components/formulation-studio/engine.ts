@@ -1,5 +1,5 @@
 import type { CatalogueIngredient } from "@/lib/studio-catalogue";
-import { commercialPremixById, publishedPremixAminoAcids, publishedMinimumTotalAminoAcidsInFeed } from "@/lib/commercial-premixes";
+import { commercialPremixById } from "@/lib/commercial-premixes";
 import { studioPremixProblems } from "@/lib/studio-commercial-premix";
 import type { IngredientListItem } from "@/lib/ingredient-lists";
 import type { StudioPhase, StudioProgramme, StudioProgrammeData } from "@/lib/studio-programmes";
@@ -10,7 +10,7 @@ import type {
   FormulationSolution,
   LeastCostFormulationResult,
 } from "@/lib/feed-optimizer";
-import type { FormulationAssessment } from "@/lib/formulation-assessment-model";
+import type { FormulationAssessment, PremixComparison, PremixRecipeEffect } from "@/lib/formulation-assessment-model";
 
 // The formulation studio's link to FeedSport's formulation engine
 // (/api/feed-formulation/optimize and /evaluate). It prices the ingredient
@@ -144,15 +144,25 @@ export interface OptimalResult {
   nRows: number;
   /** True when the cost is a lower bound excluding an unquoted premix. */
   costExcludesPremix: boolean;
-  /** Canonical feasibility and nutritional-verification result. */
+  /** Hard requirements, Chapter 7 advisories and premix documentation. */
   assessment: FormulationAssessment;
+  /** Premix advisory: every eligible alternative re-run in place of the selected premix. */
+  premixComparison: PremixComparison | null;
+  /** How the premix's documented nutrients changed the rest of the recipe.
+   * Only for the least-cost recipe it was computed on; null otherwise. */
+  premixEffect: PremixRecipeEffect | null;
+  /** The premix comparison re-runs least cost. True when another goal's recipe
+   * is on screen, so the advisory must say what it was compared on. */
+  premixComparedOnLeastCost: boolean;
 }
 
 export type FormulateResult =
   | { status: "manufacturer_recipe"; recipe: Array<{ id: string; name: string; pct: number }>;
       costT: number | null; message: string; warns: Issue[]; assessment: FormulationAssessment }
   | { status: "blocked"; errs: Issue[]; warns: Issue[] }
-  | { status: "infeasible"; warns: Issue[]; shortfalls: Shortfall[]; activeCount: number; setAside: string[]; assessment: FormulationAssessment }
+  | { status: "infeasible"; warns: Issue[]; shortfalls: Shortfall[]; activeCount: number; setAside: string[]; assessment: FormulationAssessment;
+      /** The optimizer's closest recipe; shown for diagnosis, never to be mixed. */
+      closest: Array<{ id: string; pct: number }>; costT: number | null; costExcludesPremix: boolean; premixComparison: PremixComparison | null }
   | { status: "error"; warns: Issue[]; message: string }
   | OptimalResult;
 
@@ -166,8 +176,8 @@ export interface Summary {
   adv?: number;
   fail?: number;
   unknown?: number;
-  /** Added in schema v1; older saved summaries are handled conservatively. */
-  assessment?: FormulationAssessment;
+  /** Schema 2. Older versions carry a schema-1 assessment and are never re-scored. */
+  assessment?: FormulationAssessment | { schemaVersion: 1 };
 }
 export interface SavedVersion {
   v: number;
@@ -304,6 +314,7 @@ function advisoriesFor(ctx: EngineContext, phase: StudioPhase, pct: Record<strin
   });
 }
 
+const pctList = (solution: FormulationSolution) => solution.formula.ingredients.filter((i) => i.inclusionPct > 1e-6).map((i) => ({ id: i.ingredientId, pct: i.inclusionPct })).sort((a, b) => b.pct - a.pct);
 const pctMap = (solution: FormulationSolution) => Object.fromEntries(solution.formula.ingredients.filter((i) => i.inclusionPct > 1e-6).map((i) => [i.ingredientId, i.inclusionPct]));
 
 async function post<T>(path: string, body: unknown): Promise<T> {
@@ -324,29 +335,14 @@ export async function formulate(snap: Snapshot, ctx: EngineContext): Promise<For
     errs.push({ title: "Invalid premix selection", body: message });
   }
   const realPremix = active.map(commercialPremixById).find((product) => product !== undefined);
-  if (realPremix) {
-    const guarantees = publishedPremixAminoAcids(realPremix);
-    const lowerBounds = publishedMinimumTotalAminoAcidsInFeed(realPremix);
-    const aminoNote = guarantees.length
-      ? " Published label guarantees: " + guarantees.map((claim) =>
-          `${claim.name} ${claim.minimumPct === null ? "" : "≥ " + claim.minimumPct + "%"} TOTAL in premix`,
-        ).join(", ") + ". Conditional total amino-acid contributions at this inclusion: " +
-        lowerBounds.map((claim) => `${claim.name} ≥${claim.minTotalFeedPct}% of finished feed`).join(", ") +
-        ". These are NOT SID values; no SID contribution is credited without digestibility data."
-      : " This manufacturer has not published an SID amino-acid analysis for this SKU.";
-    warns.push({
-      id: realPremix.id,
-      title: `${realPremix.name} — supplier dose`,
-      body: `Included at the supplier's published dose of ${realPremix.inclusionKgPerTonne} kg/tonne.${aminoNote} ${realPremix.specificationUrl}`,
-    });
-  } else {
-    warns.push({ title: "No commercial premix selected", body: "Basal nutrient formulation alone does not validate vitamin and trace-mineral supplementation." });
+  if (!realPremix) {
+    warns.push({ title: "No commercial premix selected", body: "The recipe is formulated without vitamin and trace-mineral supplementation. Chapter 7 recommendations are compared under Advisories." });
   }
 
   const missingPremixPrice = !!realPremix && priceOf(realPremix.id, snap.pool, ctx.catalogue) === null;
   if (missingPremixPrice) warns.push({
     title: "Partial ingredient cost — supplier quotation required",
-    body: `The displayed cost EXCLUDES ${realPremix!.name} at ${realPremix!.inclusionKgPerTonne} kg/tonne. FeedSport treats that fixed-price term as 0 ONLY inside the optimisation objective to find the cheapest basal mix. It is NOT a free product or an actual total-feed price. Enter your quote to see full costs.`,
+    body: `${realPremix!.name} has no price, so costs exclude it. At ${realPremix!.inclusionKgPerTonne} kg/t it could add a lot. Enter your price to see the full cost.`,
   });
   if (!active.length) errs.push({ title: "Add at least one ingredient", body: "There is nothing for FeedSport to mix yet." });
   for (const id of active) {
@@ -378,12 +374,13 @@ export async function formulate(snap: Snapshot, ctx: EngineContext): Promise<For
   // Ingredients missing a value this phase needs are set aside and the rest re-solved,
   // rather than stopping the whole formulation.
   let usable = active;
-  let result: LeastCostFormulationResult | {
+  let result: (LeastCostFormulationResult & { premixComparison?: PremixComparison | null; premixEffect?: PremixRecipeEffect | null }) | {
     status: "manufacturer_recipe";
     warning: string;
     cost_per_tonne: number | null;
     premix_analysis: { message: string };
     assessment: FormulationAssessment;
+    premixComparison?: undefined;
     recipe: { ingredients: Array<{ ingredientId: string; inclusionPct: number }> };
   };
   for (;;) {
@@ -393,7 +390,7 @@ export async function formulate(snap: Snapshot, ctx: EngineContext): Promise<For
     });
     if (!ingredients.length) return { status: "blocked", errs: [{ title: "None of these ingredients has the data this stage needs", body: "Add ingredients with complete nutrient values from the catalogue." }], warns };
     try {
-      result = await post<typeof result>("/api/feed-formulation/optimize", { programmeId: programme.id, phaseId: phase.id, energySystem: "ME", ingredients });
+      result = await post<typeof result>("/api/feed-formulation/optimize", { programmeId: programme.id, phaseId: phase.id, energySystem: "ME", ingredients, unpricedIngredientIds: missingPremixPrice ? [realPremix!.id] : [] });
     } catch (error) {
       return { status: "error", warns, message: error instanceof Error ? error.message : String(error) };
     }
@@ -431,6 +428,10 @@ export async function formulate(snap: Snapshot, ctx: EngineContext): Promise<For
       setAside: active.filter((id) => !usable.includes(id)),
       shortfalls: result.diagnostics.map((d) => ({ id: d.constraintId, name: d.label, unit: d.unit, dp: nutrientDp(d.constraintId, d.unit), kind: d.relation, best: d.actual, req: d.bound })),
       assessment: result.assessment,
+      closest: result.bestEffort ? pctList(result.bestEffort) : [],
+      costT: result.bestEffort ? result.bestEffort.costPerKg * 1000 : null,
+      costExcludesPremix: missingPremixPrice,
+      premixComparison: result.premixComparison ?? null,
     };
   }
 
@@ -483,6 +484,11 @@ export async function formulate(snap: Snapshot, ctx: EngineContext): Promise<For
     nRows: nutrients.length,
     costExcludesPremix: missingPremixPrice,
     assessment,
+    premixComparison: result.premixComparison ?? null,
+    // Both advisories describe the least-cost recipe. Never attach its effect
+    // notes to a simpler, lower-soy or lower-import recipe.
+    premixEffect: alt ? null : result.premixEffect ?? null,
+    premixComparedOnLeastCost: !!alt,
   };
 }
 

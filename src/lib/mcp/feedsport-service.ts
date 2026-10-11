@@ -17,19 +17,17 @@ import {
   buildConstraintSpecs,
   collectMissingData,
   evaluateFormulation,
-  formulateLeastCostDiet,
   formulationRequirements,
   prepareIngredients,
   type FormulationIngredientOption,
   type FormulationNutrientComparison,
-  type FormulationSettings,
   type FormulationSolution,
 } from "@/lib/feed-optimizer";
 import { FEED_PROGRAMMES, feedProgrammeById, type FeedProgrammeDefinition } from "@/lib/feed-programmes";
 import {
   INGREDIENT_LIBRARY,
   ingredientLibraryForPhase,
-  ingredientLibraryWithCommercialPremixes,
+  ingredientLibraryForSpecies,
   ingredientProfileAttribution,
   sidAminoAcidPct,
   sttdPhosphorusPctOf,
@@ -52,7 +50,15 @@ import type { EnergySystem } from "@/lib/nutrition-targets";
 import type { NutritionPhase, NutritionSpecies } from "@/lib/nutrition";
 import { COMMERCIAL_PREMIXES, assertManufacturerRecipe, commercialPremixById, commercialPremixCompatibleWithProgramme, premixAnalysisForIds, type CommercialPremix } from "@/lib/commercial-premixes";
 import { buildManufacturerRecipeReport, ManufacturerRecipeValidationError } from "@/lib/manufacturer-recipe";
-import { buildCompleteFeedValidation, type CompleteFeedValidation } from "@/lib/complete-feed-validation";
+import {
+  buildFormulationAssessment,
+  formulateAndAssess,
+  supplementationGuidance,
+  type FormulationAssessment,
+  type PremixComparison,
+  type PremixRecipeEffect,
+} from "@/lib/formulation-assessment";
+import { ingredientDefaultPricePerKg } from "@/lib/feed-ingredient-prices";
 import { round, snake } from "@/lib/feed-number-format";
 export { round, snake } from "@/lib/feed-number-format";
 
@@ -262,40 +268,93 @@ function requirementMap(
   );
 }
 
-/** Agent-facing, snake_case view of the web app's nutritional validation. */
-export function nutritionalValidationReport(validation: CompleteFeedValidation) {
+/**
+ * Agent-facing, snake_case view of the same assessment Studio shows: hard
+ * requirements decide the result; Chapter 7 supplementation and premix
+ * documentation are advisories and never make a feed "deficient".
+ */
+export function nutritionalValidationReport(assessment: FormulationAssessment) {
   return {
-    schema_version: validation.schemaVersion,
-    overall_status: validation.verdict,
-    optimizer_feasible: validation.optimizerFeasible,
-    complete_feed_claim: validation.verdict === "verified" ? "supported" as const : "not_supported" as const,
-    categories: validation.categories.map((category) => ({
-      id: snake(category.id),
-      label: category.label,
-      status: category.status,
-      checked_requirements: category.checked,
-      required_requirements: category.required,
-      failed_nutrients: category.unmetNutrientIds.map(snake),
-      missing_data_nutrients: category.unknownNutrientIds.map(snake),
-      note: category.note,
-    })),
-    nutrient_checks: validation.nutrientChecks.map((check) => ({
-      nutrient: snake(check.nutrientId),
+    schema_version: assessment.schemaVersion,
+    overall_status: assessment.verdict,
+    headline: assessment.headline,
+    optimizer_feasible: assessment.optimizerFeasible,
+    hard_requirements: assessment.requirements.map((check) => ({
+      nutrient: snake(check.id),
       label: check.label,
       status: check.status,
-      actual: check.actual,
-      required_min: check.requiredMin,
-      allowed_max: check.allowedMax,
+      relation: check.relation,
+      requirement: round(check.bound),
+      actual: round(check.actual),
       unit: check.unit,
-      reason: check.reason,
-      missing_data_for: check.missingIngredientIds,
-      enforced_by_optimizer: check.enforcedByOptimizer,
-      target_source: check.targetSource,
+      limiting: check.limiting,
+      data_status: check.data,
+      ...(check.assumedZeroIngredientIds.length ? { assumed_zero_for: check.assumedZeroIngredientIds } : {}),
+      ...(check.totalOnlyIngredientIds.length ? { total_only_for: check.totalOnlyIngredientIds } : {}),
+      ...(check.missingIngredientIds.length ? { missing_data_for: check.missingIngredientIds } : {}),
     })),
-    consistency_errors: validation.consistencyErrors,
-    note: validation.summary,
-    guidance: validation.guidance,
-    validation_scope: validation.validationScope,
+    advisories: {
+      supplementation: assessment.supplementation
+        ? {
+            note: "Brazilian Tables Chapter 7 recommendations. Advisory only; a difference does not make the feed deficient.",
+            source: assessment.supplementation.source,
+            comparisons: assessment.supplementation.rows.map((row) => ({
+              nutrient: snake(row.id),
+              label: row.label,
+              unit: row.unit,
+              recipe: round(row.actual),
+              recommended: round(row.recommended),
+              percent_of_recommendation: row.pctOfRecommendation === null ? null : round(row.pctOfRecommendation, 1),
+              status: row.status,
+              data_status: row.data,
+            })),
+          }
+        : null,
+      premix_documentation_gaps: assessment.documentationGaps.map((gap) => ({
+        ingredient: gap.ingredientId,
+        nutrient: snake(gap.nutrientId),
+        label: gap.label,
+        reason: gap.reason,
+      })),
+    },
+    consistency_errors: assessment.consistencyErrors,
+    note: assessment.summary,
+    validation_scope: assessment.scope,
+  };
+}
+
+export function premixComparisonReport(comparison: PremixComparison | null, effect: PremixRecipeEffect | null, comparedOnLeastCost = false) {
+  return {
+    premix_effect: effect && {
+      premix: effect.premixId,
+      contributes_to: effect.requirementIds.map(snake),
+      changes: effect.changes.map((change) => ({
+        ingredient: change.ingredientId,
+        with_premix_percent: round(change.withPremixPct, 4),
+        without_premix_contribution_percent: round(change.withoutContributionPct, 4),
+      })),
+      cost_per_tonne_without_premix_contribution: effect.costPerTonneWithoutContribution === null ? null : round(effect.costPerTonneWithoutContribution, 2),
+    },
+    premix_advisory: comparison && {
+      note: "Each option is a least-cost re-run: the selected premix is replaced (never stacked), the alternative is fixed at its manufacturer dose and the rest is re-optimised." +
+        (comparedOnLeastCost ? " The returned recipe uses a different objective, so these options are compared on least-cost recipes, not on the returned recipe." : ""),
+      compared_on: "least_cost" as const,
+      current_premix: comparison.currentPremixId,
+      suggested_replacement: comparison.suggestedPremixId,
+      reasons: comparison.reasons,
+      options: comparison.options.map((option) => ({
+        premix: option.premixId,
+        current: option.current,
+        status: option.status,
+        inclusion_kg_per_tonne: option.inclusionKgPerTonne,
+        cost_per_tonne: option.costPerTonne === null ? null : round(option.costPerTonne, 2),
+        cost_excludes_unpriced_premix: option.costExcludesPremix,
+        hard_requirements_met: `${option.requirementsMet} of ${option.requirementsTotal}`,
+        ingredient_count: option.recipe.length,
+        documentation_gaps: option.documentationGapLabels,
+        chapter7_at_recommendation: `${option.supplementationAt} of ${option.supplementationTotal}`,
+      })),
+    },
   };
 }
 
@@ -306,12 +365,7 @@ export function getProgramme(id: string, energySystem: EnergySystem = "ME") {
   const resolved = resolvePhase(id);
   const { programme, phase } = resolved;
   const base = formulationRequirements(phase, energySystem);
-  const premix = phase.supplementation
-    ? formulationRequirements(phase, energySystem, {
-        includeSupplementationTargets: true,
-        traceMineralBasis: "inorganic",
-      }).filter((requirement) => requirement.id.startsWith("supplement-"))
-    : [];
+  const premix = supplementationGuidance(phase);
   const advisory = Object.fromEntries(
     Object.entries(phase.requirements.practical).filter(
       ([key, value]) => value !== undefined && !ENFORCED_PRACTICAL_KEYS.has(key),
@@ -327,10 +381,10 @@ export function getProgramme(id: string, energySystem: EnergySystem = "ME") {
     requirements: requirementMap(base),
     ...(premix.length > 0
       ? {
-          supplementation_requirements: {
-            applies_when: "Evaluated separately from basal formulation feasibility and reported under nutritional_validation.",
+          supplementation_recommendations: {
+            applies_when: "Advisory only. Compared with the recipe under nutritional_validation.advisories; never a hard requirement.",
             source_tables: phase.supplementation?.sourceTables,
-            requirements: requirementMap(premix),
+            recommendations: Object.fromEntries(premix.map((spec) => [snake(spec.id), { label: spec.label, recommended: round(spec.recommended!), unit: spec.unit }])),
           },
         }
       : {}),
@@ -406,35 +460,25 @@ function premixSummary(premix: CommercialPremix, context: FeedSportServiceContex
     manufacturer: premix.manufacturer, sku: premix.sku,
     application: premix.application,
     nutrition_profile_source: {
-      source: {
-        publisher: premix.manufacturer,
-        title: premix.name + " — supplier product specification",
-        year: null,
-        url: premix.specificationUrl,
-        basis: "as-fed",
-      },
+      source: premix.source ?? null,
       sourcePage: null,
       sourceTable: null,
-      species: (premix.species === "pig" ? "swine" : "poultry") as "swine" | "poultry",
-      nutrientSources: {},
-      verificationStatus: profile.status === "included" && profile.nutrient_profile?.status === "manufacturer_verified"
-        ? "manufacturer_verified"
-        : "manufacturer_unverified",
-      notes: ["Supplier label minima are credited conservatively at the fixed dose."],
+      species: premix.nutritionSpecies,
+      nutrientSources: premix.nutrientSources,
+      verificationStatus: premix.verificationStatus === "verified" ? "manufacturer_verified" : "manufacturer_unverified",
+      notes: ["Documented values are credited at the fixed dose, through the same nutrient pipeline as every other ingredient. Undocumented values count as 0 and are labelled as assumptions."],
     },
-    verification_status: profile.status === "included" && profile.nutrient_profile?.status === "manufacturer_verified"
-      ? "manufacturer_verified"
-      : "manufacturer_unverified",
+    verification_status: premix.verificationStatus === "verified" ? "manufacturer_verified" : "manufacturer_unverified",
     permitted_species: premix.species,
     permitted_programme_prefixes: premix.eligibleProgrammePrefixes,
     formulation_compatibility: premix.formulationCompatibility,
     ...(premix.manufacturerRecipe ? { manufacturer_recipe: premix.manufacturerRecipe } : {}),
     specification_url: premix.specificationUrl,
-    published_analysis: premix.publishedAnalysis,
     ...(premix.publishedGuarantees ? { published_guarantees: premix.publishedGuarantees } : {}),
     ...(premix.note ? { note: premix.note } : {}),
     inclusion_instructions: premix.inclusionInstructions,
-    micronutrient_profile: profile.status === "included" ? profile.nutrient_profile : null,
+    nutrient_contributions: profile.status === "included" ? profile.contributions : [],
+    reference_notes: profile.status === "included" ? profile.reference_notes : [],
     default_constraints: { min_inclusion_percent: premix.inclusionPct, max_inclusion_percent: premix.inclusionPct },
   };
 }
@@ -619,23 +663,22 @@ export function getIngredient(
   programmeId?: string,
   library: IngredientLibrary = INGREDIENT_LIBRARY,
 ) {
+  // A commercial premix is an ordinary ingredient of its species library, so it
+  // is serialized exactly like maize: the same nutrient values the optimizer uses.
   const commercial = commercialPremixById(id);
-  if (commercial) return {
-    ...premixSummary(commercial, context),
-    nutrients: null,
-    source: commercial.specificationUrl,
-    source_url: commercial.specificationUrl,
-    note: "Supplier label minima contribute to finished-feed calculations at the fixed inclusion dose. Until the profile is verified, those contributions cannot support a verified nutritional claim.",
-  };
-
-  const ingredient = resolveIngredient(id, library).record;
+  const ingredient = commercial
+    ? ingredientLibraryForSpecies(commercial.nutritionSpecies).ingredients.find((record) => record.id === commercial.id)!
+    : resolveIngredient(id, library).record;
   const provenance = ingredient.provenance;
   return {
+    ...(commercial ? premixSummary(commercial, context) : {}),
     ...ingredientSummary(ingredient, context),
+    ...(commercial ? { default_constraints: { min_inclusion_percent: commercial.inclusionPct, max_inclusion_percent: commercial.inclusionPct } } : {}),
     nutrients: ingredientNutrients(ingredient),
     nutrient_basis: library.basis.nutrientComposition,
-    missing_values_note:
-      "Only published values are listed. Missing values are never assumed; FeedSport treats them as unknown.",
+    missing_values_note: commercial
+      ? "Values are per kg of premix, as fed, as documented by the manufacturer (label minima unless stated). Values the manufacturer does not document are not listed; in a formulation they count as 0 and are labelled assumed_zero. Total amino acids are never counted as SID."
+      : "Only published values are listed. Missing values are never assumed; FeedSport treats them as unknown.",
     ...(ingredient.constraints.notes.length > 0 ? { constraint_notes: ingredient.constraints.notes } : {}),
     source: provenance.source?.title ??
       (provenance.verificationStatus === "user_supplied_unverified"
@@ -643,8 +686,9 @@ export function getIngredient(
         : library.source.title),
     source_url: provenance.source?.url ??
       (provenance.verificationStatus === "user_supplied_unverified" ? null : library.source.url),
-    // Verification of supplier and user profiles is an admin task, not reported here.
-    ...(provenance.verificationStatus?.includes("unverified") ? {} : { verification_status: provenance.verificationStatus ?? "published_reference" }),
+    // Verification of supplier and user profiles is an admin task, not reported
+    // here; a commercial premix keeps its manufacturer status from premixSummary.
+    ...(commercial || provenance.verificationStatus?.includes("unverified") ? {} : { verification_status: provenance.verificationStatus ?? "published_reference" }),
     source_table: provenance.sourceTable,
     source_page: provenance.sourcePage,
     ...(Object.keys(provenance.nutrientSources).length > 0
@@ -879,7 +923,6 @@ const SUPPLYING_INGREDIENTS: Array<{ match: (id: string) => boolean; category: s
   { match: (id) => id === "sodium" || id === "chloride", category: "mineral", examples: ["sodium-chloride"] },
   { match: (id) => id === "linoleic-acid", category: "oil_fat", examples: ["soybean-degummed-oil", "corn-oil"] },
   { match: (id) => id === "neutral-detergent-fibre", category: "byproduct", examples: ["wheat-bran", "soybean-hulls"] },
-  { match: (id) => id.startsWith("supplement-"), category: "vitamin_mineral_premix", examples: [] },
 ];
 
 function missingIngredientHints(constraintIds: readonly string[], selected: ReadonlySet<string>) {
@@ -919,7 +962,6 @@ type PreparedRequest = {
   resolved: ResolvedPhase;
   energySystem: EnergySystem;
   library: IngredientLibrary;
-  settings: FormulationSettings;
   includesPremix: boolean;
   ingredientIds: string[];
   resolvedNames: Array<{ requested: string; ingredient: string }>;
@@ -945,18 +987,14 @@ function prepareRequest(
   const selectedPremixes = ingredientIds.flatMap((id) => {
     const premix = commercialPremixById(id);
     if (!premix) return [];
-    if (!commercialPremixCompatibleWithProgramme(premix, programmeId, resolved.phase.id)) throw new FeedSportInputError(`${premix.name} is not assigned to ${programmeId}.`);
+    if (!commercialPremixCompatibleWithProgramme(premix, resolved.programme.id, resolved.phase.id)) throw new FeedSportInputError(`${premix.name} is not assigned to ${programmeId}.`);
     return [premix];
   });
   if (selectedPremixes.length > 1) throw new FeedSportInputError("Use one commercial premix at a time.");
   const includesPremix = selectedPremixes.length > 0;
-  const speciesLibrary = ingredientLibraryForPhase(resolved.phase);
   return {
     resolved, energySystem,
-    library: ingredientLibraryWithCommercialPremixes(selectedPremixes, speciesLibrary),
-    // Keep basal LP feasibility separate. The completed recipe is evaluated
-    // against the full micronutrient target set before it is returned.
-    settings: { includeSupplementationTargets: false, traceMineralBasis: "inorganic" },
+    library: ingredientLibraryForPhase(resolved.phase),
     includesPremix,
     ingredientIds,
     resolvedNames,
@@ -967,14 +1005,14 @@ function formulationNotes(request: PreparedRequest): string[] {
   const notes: string[] = [];
   if (request.includesPremix) {
     notes.push(
-      "Commercial premix included at the manufacturer's fixed dosage. Its nutrient contribution is included in nutritional_validation using the profile's stated verification basis.",
+      "Commercial premix included at the manufacturer's fixed dosage. Every nutrient it documents (amino acids, minerals, vitamins and more) counts toward the formulation exactly once, like any other ingredient. Total amino acids are never counted as SID.",
     );
     if (request.ingredientIds.some((id) => commercialPremixById(id)?.manufacturerRecipe)) {
       notes.push("CJ S174 is limited to its published manufacturer recipe. This is not manufacturer approval of independent ingredient substitutions.");
     }
   } else {
     notes.push(
-      "No commercial premix included: nutritional_validation reports vitamin and trace-mineral verification separately from basal formulation feasibility.",
+      "No commercial premix included. Chapter 7 vitamin and trace-mineral supplementation is reported as an advisory under nutritional_validation.advisories.",
     );
   }
   return notes;
@@ -1069,7 +1107,6 @@ export function buildScenario(
     energySystem: request.energySystem,
     options,
     library,
-    settings: request.settings,
   };
 
   return {
@@ -1103,12 +1140,7 @@ function automaticIngredientIds(
   const resolved = resolvePhase(input.programme_id);
   const energySystem = input.energy_system ?? "ME";
   const speciesLibrary = ingredientLibraryForPhase(resolved.phase);
-  // No synthetic premix is injected in automatic mode.
   const library = speciesLibrary;
-  const settings: FormulationSettings = {
-    includeSupplementationTargets: false,
-    traceMineralBasis: "inorganic",
-  };
 
   const constraintById = new Map<string, IngredientConstraintInput>();
   for (const [key, value] of Object.entries(input.constraints ?? {})) {
@@ -1120,6 +1152,8 @@ function automaticIngredientIds(
   }
 
   const options: FormulationIngredientOption[] = library.ingredients.flatMap((ingredient) => {
+    // No commercial premix is injected in automatic mode; one is chosen deliberately.
+    if (ingredient.category === "vitamin_mineral_premix") return [];
     const requestConstraint = constraintById.get(ingredient.id);
     const price = priceRecord(
       ingredient.id,
@@ -1136,11 +1170,7 @@ function automaticIngredientIds(
     }];
   });
 
-  const constraints = buildConstraintSpecs(
-    resolved.phase,
-    energySystem,
-    settings,
-  );
+  const constraints = buildConstraintSpecs(resolved.phase, energySystem);
   const prepared = prepareIngredients(
     options,
     constraints,
@@ -1236,19 +1266,29 @@ export async function formulate(input: FormulateInput, context: FeedSportService
       incomplete_requirements: report.incomplete_requirements,
       checked_shortfalls: report.checked_shortfalls,
       unsupported_requirements: report.unsupported_requirements,
-      nutritional_validation: nutritionalValidationReport(report.validation),
+      nutritional_validation: nutritionalValidationReport(report.assessment),
       notes: [...notes, report.warning],
       ...common,
     };
   }
 
-  const result = await formulateLeastCostDiet(
-    resolved.phase,
-    request.energySystem,
+  // The same entry point as the optimize API and Studio, so all three report
+  // identical requirements, advisories and premix comparisons.
+  const assessed = await formulateAndAssess({
+    phase: resolved.phase,
+    energySystem: request.energySystem,
+    programmeId: resolved.programme.id,
     options,
     library,
-    request.settings,
-  );
+    priceForPremix: (id) => {
+      const price = priceRecord(id, undefined, context);
+      return price ? price.price_per_tonne / 1000 : ingredientDefaultPricePerKg(id);
+    },
+  });
+  const { result } = assessed;
+  if (assessed.assessment?.consistencyErrors.length) {
+    return { status: "error" as const, message: `Engine consistency error: ${assessed.assessment.consistencyErrors.join(" ")}`, ...common };
+  }
 
   if (result.status === "error") {
     return { status: "error" as const, message: result.message, ...common };
@@ -1295,6 +1335,8 @@ export async function formulate(input: FormulateInput, context: FeedSportService
       ),
       inclusion_limits: inclusionLimits,
       unsupported_requirements: result.unsupportedRequirements,
+      ...(assessed.assessment ? { nutritional_validation: nutritionalValidationReport(assessed.assessment) } : {}),
+      ...premixComparisonReport(assessed.premixComparison, null),
       notes,
       ...common,
     };
@@ -1317,12 +1359,9 @@ export async function formulate(input: FormulateInput, context: FeedSportService
 
   const used = new Set(chosen.solution.formula.ingredients.map((row) => row.ingredientId));
   const advisories = practicalAdvisories(chosen.solution.formula, resolved.phase);
-  const validation = buildCompleteFeedValidation(
-    resolved.phase,
-    request.energySystem,
-    chosen.solution.formula,
-    library,
-  );
+  const validation = (alternative
+    ? assessed.alternatives?.find((candidate) => candidate.id === alternative.id)?.assessment
+    : assessed.assessment) ?? buildFormulationAssessment(resolved.phase, request.energySystem, chosen.solution.formula, library);
   return {
     status: "optimal" as const,
     objective,
@@ -1343,6 +1382,9 @@ export async function formulate(input: FormulateInput, context: FeedSportService
     ...(advisories.length > 0 ? { above_practical_inclusion: advisories } : {}),
     unsupported_requirements: result.unsupportedRequirements,
     nutritional_validation: nutritionalValidationReport(validation),
+    // The effect and comparison were computed on the least-cost recipe: never
+    // attach the effect to an alternative objective's recipe.
+    ...premixComparisonReport(assessed.premixComparison, alternative ? null : assessed.premixEffect, !!alternative),
     notes: [
       ...notes,
       ...(common.formulation_basis.ingredient_mode === "automatic"
@@ -1434,15 +1476,15 @@ export function analyseFormulation(input: AnalyseInput, context: FeedSportServic
       premix_analysis: report.premix_analysis,
       checked_shortfalls: report.checked_shortfalls,
       unsupported_requirements: report.unsupported_requirements,
-      nutritional_validation: nutritionalValidationReport(report.validation),
+      nutritional_validation: nutritionalValidationReport(report.assessment),
       notes: [...formulationNotes(request), report.warning],
       programme: programmeHeader(resolved),
       data_sources: dataSources(resolved, library, ingredientIds, prices, request.energySystem, request.includesPremix),
     };
   }
 
-  const evaluation = evaluateFormulation(resolved.phase, request.energySystem, formula, library, request.settings);
-  const validation = buildCompleteFeedValidation(resolved.phase, request.energySystem, formula, library);
+  const evaluation = evaluateFormulation(resolved.phase, request.energySystem, formula, library);
+  const validation = buildFormulationAssessment(resolved.phase, request.energySystem, formula, library);
   const comparison = comparisonRows(evaluation.nutrientProfile);
   const deficiencies = comparison.filter((row) => row.relation === "min" && !row.passes);
   const excesses = comparison.filter((row) => row.relation === "max" && !row.passes);

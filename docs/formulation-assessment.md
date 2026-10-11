@@ -1,76 +1,100 @@
 # Formulation assessment model
 
-## Root cause investigated on 10 October 2026
+FeedSport judges a recipe with three vocabularies that never mix.
 
-The reproduced Grow-Finish Pig result was internally consistent but presented
-with inconsistent meanings of “success.” The calculation path was:
+| Vocabulary | Values | Decides feasibility? |
+| --- | --- | --- |
+| Hard requirement status | Met / Not met | Yes. The only red in the product. |
+| Data status, on every value | Published / Assumed 0 / Missing | No. Says how much the value can be trusted. |
+| Advisories | Chapter 7 comparison, premix documentation, premix alternatives, practical guidelines | No. Optional, amber, never block. |
 
-1. The selected programme phase loads basal nutrient requirements from the
-   Brazilian Tables programme data and separate vitamin/trace-mineral
-   supplementation targets from the programme's supplementation tables.
-2. Studio calls the optimizer in its default basal mode. Energy, protein,
-   amino acids, major minerals and applicable practical constraints are hard LP
-   constraints. Supplemental vitamin and trace-mineral targets are deliberately
-   not added to that LP when `includeSupplementationTargets` is false.
-3. After an optimal recipe is found, the API evaluates the finished recipe
-   again with supplementation targets enabled.
-4. Diet analysis tracks a value and its completeness separately. An omitted
-   premix nutrient is marked unknown with the ingredient ID; it is not replaced
-   by zero. Non-premix ingredients are structural zeroes for *supplemented*
-   micronutrients because those targets measure deliberate supplementation,
-   not natural total-diet content.
-5. The previous category reducer combined known target failures and missing
-   data into the single status `not_met`.
-6. The previous workspace rendered basal optimizer feasibility and the broader
-   category result as equal-status badges. This produced the contradictory
-   green “Feasible” and red “Vitamins — Not met” messages.
-7. Saved Studio summaries discarded the broader validation and set every
-   optimized result's failure count to zero. Their independent renderer then
-   labeled those versions “Meets all.”
-8. Workspace, saved lists, comparisons and PDFs each derived wording from
-   different fields.
+## Hard requirements
 
-### Why Sustar GlyPro X912 cannot be fully verified
+Hard requirements are exactly the constraints the optimizer enforces
+(`formulationRequirements`):
 
-X912 is fixed at its manufacturer-published dose of 0.2% (2 kg/t). Its loaded
-manufacturer minimum-guarantee profile declares vitamins A, D, K, B1, B2, B6,
-B12, pantothenic acid, niacin, folic acid and biotin. It does **not** declare
-vitamin E or total choline. The product page also identifies X912 while its
-nutrient-table heading says X911, so supplier confirmation is already required.
+- energy (ME or NE), crude and digestible protein;
+- SID amino acids;
+- calcium, digestible/available phosphorus, sodium, chloride, potassium and
+  other modelled minerals;
+- practical constraints the programme publishes as limits (NDF minimum,
+  L-lysine HCl maximum);
+- per-ingredient inclusion limits (enforced as variable bounds); and
+- the manufacturer's premix dose, reported as the `premix-dose` requirement.
 
-At 0.2%, the declared minima can be credited conservatively. Vitamin E and
-choline remain unknown. Recommended inclusion proves the amount used, not the
-composition the manufacturer has not published. Therefore the correct result
-is `needs_verification`, with those two checks marked `unknown`; it is neither a
-confirmed deficiency nor a verified complete-feed result.
+A minimum is met when the known contributions reach it. Missing values can
+only add, so a known subtotal at the minimum is met even with a gap; below it,
+the requirement is not met and its data status says why it cannot be confirmed.
+
+## Supplementation advisories (Brazilian Tables Chapter 7)
+
+`supplementationGuidance(phase)` holds the Chapter 7 vitamin and
+trace-mineral recommendations (inorganic trace-mineral basis). They are never
+LP constraints and never decide the verdict. Each is compared with the
+*supplemented* amount (premixes and mineral sources only, not maize or soybean
+meal) as `at_recommendation`, `below_recommendation` (shown as "% of
+recommendation") or `no_data` when the selected premix does not document it.
+
+## Commercial premixes are ingredients
+
+A premix's documented composition is an ordinary species nutrition profile in
+`ingredient-library.json`, so `analyzeDiet` and the optimizer credit it through
+the same pipeline as every other ingredient: each documented nutrient once, at
+its inclusion. A premix that documents SID lysine reduces the crystalline
+lysine the optimizer adds. A premix value that is published only as a total
+(e.g. CJ S174's total lysine) counts toward total amino acids, never toward SID.
+
+A value a premix does not document is counted as 0, which is conservative for
+a minimum, and labelled `assumed_zero` with the premix ID. It is never shown
+as published. A value missing from an ordinary ingredient stays `missing`; the
+optimizer sets that ingredient aside instead of guessing.
 
 ## Canonical model
 
-`src/lib/formulation-assessment.ts` is the single assessment builder, while
-`src/lib/formulation-assessment-model.ts` contains its browser-safe schema and
-labels. Together they are the canonical assessment source. It records:
+`src/lib/formulation-assessment-model.ts` (browser-safe schema) and
+`src/lib/formulation-assessment.ts` (builder) are the single source used by
+the optimize and evaluate APIs, Studio, the public formulator, MCP, saved
+versions and both PDFs. `formulateAndAssess` is the one formulation entry
+point for the optimize API, Studio and MCP. A `FormulationAssessment`
+(schema 2) records:
 
-- whether the optimizer found a feasible recipe;
-- one of `verified`, `needs_verification` or `infeasible`;
-- every applicable nutrient as `met`, `below_target`, `above_limit` or
-  `unknown`;
-- category states `met`, `unmet`, `unknown` or `not_assessed`;
-- missing ingredient IDs, target source, plain-language reason and corrective
-  guidance; and
-- post-solve failures of optimizer-enforced constraints as consistency errors.
+- `verdict`: `meets_requirements`, `fails_requirements` or `infeasible`
+  (the closest recipe is assessed and must not be mixed);
+- `headline`: "Meets all 20 hard requirements" or "Doesn't meet 1 hard
+  requirement". It never says "verified" or "ready to manufacture";
+- every hard requirement with its status, limiting flag, data status and the
+  contribution of every ingredient (premix included);
+- the Chapter 7 comparison;
+- `documentationGaps`: premix values that are total-only or not documented,
+  shown as one concise line; and
+- `consistencyErrors`: post-solve failures of optimizer-enforced bounds. The
+  optimize API rejects a primary recipe with any; optional alternatives with
+  one are dropped without pardoning the primary.
 
-An optimized recipe is `verified` only when every applicable check in the
-declared scope is supported by sufficient data and passes. A feasible recipe
-with a known failure, missing data or an unassessed category is
-`needs_verification`. An optimizer failure is `infeasible`.
+The optimizer also checks every GLPK optimum against its own rows and
+re-solves without presolve when one is violated, because GLPK's presolver can
+report OPTIMAL for an infeasible basket.
 
-The assessment is returned by formulation APIs, stored inside new saved-version
-summaries and consumed by Studio workspace, saved lists, history, comparison
-and PDFs. Older saved summaries are left unchanged and shown conservatively as
-“Verification unavailable” until reopened and recalculated; their recipes and
-historical calculation inputs are not modified.
+## Premix advisory and replacement
 
-The declared scope covers modeled programme energy, protein, amino-acid and
-major-mineral requirements plus loaded vitamin and trace-mineral
-supplementation targets. It does not verify ingredient quality, weighing,
-mixing, storage or animal-specific health conditions.
+`comparePremixes` re-runs the formulation once per other stage-eligible
+premix. Each run removes the selected premix, inserts the alternative at its
+manufacturer dose and re-optimises everything else with the same ingredients,
+limits and prices. Two premixes are never kept together.
+Manufacturer-recipe-only products are not compared because they fix the whole
+recipe. An alternative without a price is costed without it and marked
+`costExcludesPremix`.
+
+`suggestPremixReplacement` suggests an alternative only when its re-run meets
+every hard requirement and shows a concrete improvement: fewer documentation
+gaps, more Chapter 7 recommendations reached, a hard requirement the current
+premix's recipe misses, or a lower cost. Higher concentrations alone never
+count. `premixRecipeEffect` re-runs the recipe without the premix's macro
+contributions to explain, for example, "0.07% less L-lysine HCl because the
+premix supplies SID lysine".
+
+## Saved formulations
+
+New saved versions store the schema-2 assessment. Versions saved with the
+schema-1 model (`verified` / `needs_verification`) are never re-scored: they
+show "Premix data updated · re-formulate" until the user re-runs them.

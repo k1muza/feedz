@@ -6,10 +6,11 @@ import { useMemo, useState } from 'react';
 import { analyzeDiet, type AnalyzedNutrient, type DietFormula } from '@/lib/diet-formula';
 import { ingredientDefaultPrice, ingredientDefaultPricePerKg, type IngredientDefaultPrice } from '@/lib/feed-ingredient-prices';
 import type { IngredientPackSize } from '@/lib/ingredient-pack-sizes';
-import type { FormulationAlternativeKind, FormulationIngredientSuggestionResult, LeastCostFormulationResult } from '@/lib/feed-optimizer';
+import type { FormulationAlternative, FormulationAlternativeKind, FormulationIngredientSuggestionResult, LeastCostFormulationResult } from '@/lib/feed-optimizer';
 import { feedProgrammeById, feedProgrammePhaseById } from '@/lib/feed-programmes';
-import { INGREDIENT_LIBRARY, ingredientLibraryForPhase, ingredientLibraryWithCommercialPremixes } from '@/lib/ingredient-nutrients';
-import { commercialPremixForProgramme, eligibleCommercialPremixes, publishedPremixAminoAcids, publishedMinimumTotalAminoAcidsInFeed } from '@/lib/commercial-premixes';
+import { INGREDIENT_LIBRARY, ingredientLibraryForPhase } from '@/lib/ingredient-nutrients';
+import { commercialPremixForProgramme, eligibleCommercialPremixes, premixNutrientContributions } from '@/lib/commercial-premixes';
+import { documentationGapLine, supplementationCounts, type FormulationAssessment, type PremixComparison } from '@/lib/formulation-assessment-model';
 import { initialFeedMix } from '@/lib/public-formulation-defaults';
 import { FEED_PROGRAMMES } from '@/lib/feed-programmes';
 import { resolveNutritionTargets } from '@/lib/nutrition-targets';
@@ -70,6 +71,14 @@ type DownloadableFormulation = {
   costIncreasePct: number;
 };
 
+type AssessedResult = {
+  assessment: FormulationAssessment;
+  premixComparison: PremixComparison | null;
+};
+
+const compactNumber = (value: number, maximumFractionDigits = 3) =>
+  value.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits });
+
 export default function FormulationsClient({ ingredientPrices, ingredientPackSizes }: { ingredientPrices: IngredientDefaultPrice[]; ingredientPackSizes: IngredientPackSize[] }) {
   const [inclusions, setInclusions] = useState<Inclusion>(() => initialFeedMix(defaults, "sorghum", commercialPremixForProgramme(programmeChoices[0].id)?.inclusionPct ?? 0));
   const [visibleIngredientIds, setVisibleIngredientIds] = useState<IngredientId[]>(defaultVisibleIngredientIds);
@@ -80,6 +89,7 @@ export default function FormulationsClient({ ingredientPrices, ingredientPackSiz
   const [formulationPriority, setFormulationPriority] = useState<FormulationPriority>('simple');
   const [formulationNote, setFormulationNote] = useState<string | null>(null);
   const [downloadableFormulation, setDownloadableFormulation] = useState<DownloadableFormulation | null>(null);
+  const [assessed, setAssessed] = useState<AssessedResult | null>(null);
   const [downloadingPdf, setDownloadingPdf] = useState(false);
   const [downloadError, setDownloadError] = useState<string | null>(null);
   const [quoteDialogOpen, setQuoteDialogOpen] = useState(false);
@@ -115,7 +125,7 @@ export default function FormulationsClient({ ingredientPrices, ingredientPackSiz
     const energyTarget = phase.requirements.metabolizableEnergyKcalKg;
     if (energyTarget === undefined) throw new Error(`Missing energy target for ${phaseId}.`);
 
-    const publicIngredientLibrary = ingredientLibraryWithCommercialPremixes(selectedPremix ? [selectedPremix] : [], ingredientLibraryForPhase(phase));
+    const publicIngredientLibrary = ingredientLibraryForPhase(phase);
     const scale = total > 0 ? 100 / total : 0;
     const formulaIngredients = total > 0
       ? [
@@ -160,7 +170,7 @@ export default function FormulationsClient({ ingredientPrices, ingredientPackSiz
       const position = (number: number) => Math.max(0, Math.min(100, (number - chartMinimum) / (chartMaximum - chartMinimum) * 100));
       const displayTolerance = .5 * 10 ** -definition.decimals;
       const belowTarget = value + displayTolerance < minimum;
-      const status = !definition.measure.complete ? 'Incomplete' : belowTarget ? 'Below' : 'Meets';
+      const status = !definition.measure.complete ? 'Missing' : belowTarget ? 'Not met' : 'Met';
       const formatted = (number: number) => definition.decimals === 0 ? Math.round(number).toLocaleString('en-US') : number.toFixed(definition.decimals);
       return [{
         ...definition,
@@ -170,12 +180,20 @@ export default function FormulationsClient({ ingredientPrices, ingredientPackSiz
         marker: position(value),
         bandStart: position(minimum),
         bandWidth: 100 - position(minimum),
-        delta: !definition.measure.complete ? 'Source data incomplete' : belowTarget ? `${formatted(minimum - value)} under` : 'Target met',
+        delta: !definition.measure.complete ? 'Missing data' : belowTarget ? `${formatted(minimum - value)} under` : 'Requirement met',
       }];
     });
   }, [extraInclusions, inclusions, phaseId, programmeId, total, selectedPremix]);
 
-  const within = analysis.filter((item) => item.status === 'Meets').length;
+  const within = analysis.filter((item) => item.status === 'Met').length;
+  const premixContributions = selectedPremix ? premixNutrientContributions(selectedPremix) : [];
+  const failedRequirements = assessed?.assessment.requirements.filter((check) => check.status === 'not_met') ?? [];
+  const assessmentFails = !!assessed && (assessed.assessment.verdict !== 'meets_requirements' || failedRequirements.length > 0);
+  const gapLine = assessed ? documentationGapLine(assessed.assessment) : null;
+  const chapter7 = assessed ? supplementationCounts(assessed.assessment) : null;
+  const suggestedPremix = assessed?.premixComparison?.suggestedPremixId
+    ? assessed.premixComparison.options.find((option) => option.premixId === assessed.premixComparison!.suggestedPremixId)
+    : undefined;
   const ingredientByEngineId = new Map(INGREDIENT_LIBRARY.ingredients.map((ingredient) => [ingredient.id, ingredient]));
   const mix = [
     ...rows.filter((row) => inclusions[row.id] > 0).map((row) => ({ name: row.name, value: inclusions[row.id], colour: colours[row.id] })),
@@ -195,6 +213,11 @@ export default function FormulationsClient({ ingredientPrices, ingredientPackSiz
     ...(selectedPremix ? [{ ingredientId: selectedPremix.id, name: selectedPremix.name, inclusionPct: selectedPremix.inclusionPct }] : []),
   ];
 
+
+  function clearResult() {
+    setDownloadableFormulation(null);
+    setAssessed(null);
+  }
 
   function changeProgramme(nextProgrammeId: string) {
     const nextProgramme = programmeChoices.find((choice) => choice.id === nextProgrammeId) ?? programmeChoices[0];
@@ -220,7 +243,7 @@ export default function FormulationsClient({ ingredientPrices, ingredientPackSiz
     }
     setFormulationNote(null);
     setBalanceError(null);
-    setDownloadableFormulation(null);
+    clearResult();
     }
 
   function changePremix(nextProductId: string) {
@@ -243,7 +266,7 @@ export default function FormulationsClient({ ingredientPrices, ingredientPackSiz
     }
     setFormulationNote(null);
     setBalanceError(null);
-    setDownloadableFormulation(null);
+    clearResult();
   }
 
   function changePhase(nextPhaseId: string) {
@@ -257,11 +280,11 @@ export default function FormulationsClient({ ingredientPrices, ingredientPackSiz
     setPhaseId(nextPhaseId);
     setFormulationNote(null);
     setBalanceError(null);
-    setDownloadableFormulation(null);
+    clearResult();
     }
 
   function markFormulaEdited() {
-    setDownloadableFormulation(null);
+    clearResult();
       setFormulationNote('Ingredient amounts changed. Select “Optimize this recipe” to validate the mix and enable the formula download.');
   }
 
@@ -269,7 +292,7 @@ export default function FormulationsClient({ ingredientPrices, ingredientPackSiz
     if (!selectedPhase || !selectedPremix) return;
     setBalancing(true);
     setBalanceError(null);
-    setDownloadableFormulation(null);
+    clearResult();
     setFormulationNote(null);
     try {
       if (premixPrice !== undefined && (!Number.isFinite(premixPrice) || premixPrice < 0)) {
@@ -333,14 +356,21 @@ export default function FormulationsClient({ ingredientPrices, ingredientPackSiz
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
           programmeId, phaseId, energySystem: 'ME',
-          includeSupplementationTargets: false,
-          traceMineralBasis: 'inorganic',
           ingredients: pricedIngredients,
+          // A placeholder 0 is not a price: the cost is disclosed as partial.
+          unpricedIngredientIds: costIncomplete ? [selectedPremix.id] : [],
         }),
       });
-      const result = await response.json() as (LeastCostFormulationResult & { message?: string }) | {
+      type AssessedAlternative = FormulationAlternative & { assessment?: FormulationAssessment };
+      const result = await response.json() as (LeastCostFormulationResult & {
+        message?: string;
+        assessment?: FormulationAssessment;
+        alternatives?: AssessedAlternative[];
+        premixComparison?: PremixComparison | null;
+      }) | {
         status: 'manufacturer_recipe'; recipe: DietFormula; warning: string;
         cost_per_kg: number | null;
+        assessment?: FormulationAssessment;
       };
       if (!response.ok) {
         throw new Error('message' in result && result.message ? result.message : 'Could not calculate this feed.');
@@ -354,14 +384,15 @@ export default function FormulationsClient({ ingredientPrices, ingredientPackSiz
         setExtraVisibleIngredientIds(extras.map((row) => row.ingredientId));
         setExtraInclusions(Object.fromEntries(extras.map((row) => [row.ingredientId, row.inclusionPct])));
         setDownloadableFormulation({ formula: result.recipe, priority: 'least-cost', costIncreasePct: 0 });
-        setFormulationNote(`Manufacturer's original recipe, not independently optimised. ${costIncomplete ? 'Total cost UNKNOWN until a supplier premix quote is entered. ' : ''}${result.warning}`);
+        setAssessed(result.assessment ? { assessment: result.assessment, premixComparison: null } : null);
+        setFormulationNote(`Manufacturer's original recipe, not independently optimised. ${costIncomplete ? `Cost excludes ${selectedPremix.name}; enter a price for the full cost. ` : ''}${result.warning}`);
         return;
       }
       if (result.status !== 'optimal') {
         throw new Error('message' in result && result.message ? result.message : 'No formula could be found for this phase.');
       }
       const alternative = formulationPriority === 'least-cost'
-        ? undefined : result.alternatives.find((item) => item.id === formulationPriority);
+        ? undefined : (result.alternatives as AssessedAlternative[]).find((item) => item.id === formulationPriority);
       const chosen = alternative?.solution ?? result.solution;
       const amounts = new Map(chosen.formula.ingredients.map((row) => [row.ingredientId, row.inclusionPct]));
       setInclusions(Object.fromEntries(rows.map((row) => [row.id, amounts.get(row.engineId) ?? 0])) as Inclusion);
@@ -372,7 +403,9 @@ export default function FormulationsClient({ ingredientPrices, ingredientPackSiz
       setExtraVisibleIngredientIds(extraIds);
       setExtraInclusions(Object.fromEntries(extraIds.map((id) => [id, amounts.get(id) ?? 0])));
       setDownloadableFormulation({ formula: chosen.formula, priority: alternative?.id ?? 'least-cost', costIncreasePct: alternative?.costIncreasePct ?? 0 });
-      setFormulationNote((costIncomplete ? "Cost estimate EXCLUDES unquoted premix; total feed cost is unknown. " : "") + (alternative
+      const chosenAssessment = alternative ? alternative.assessment : result.assessment;
+      setAssessed(chosenAssessment ? { assessment: chosenAssessment, premixComparison: result.premixComparison ?? null } : null);
+      setFormulationNote((costIncomplete ? `Cost excludes ${selectedPremix.name}; enter a price for the full cost. ` : "") + (alternative
         ? `${alternative.label} applied · ${alternative.costIncreasePct.toFixed(2)}% above least cost.`
         : 'Nutrient optimisation completed.'));
     } catch (error) {
@@ -437,7 +470,7 @@ export default function FormulationsClient({ ingredientPrices, ingredientPackSiz
         <div className="grid gap-4 md:grid-cols-3">
           <label className="flex flex-col gap-2"><span className="text-[13px] font-semibold text-[#4f524b]">Production track</span><select value={programmeId} onChange={(event) => changeProgramme(event.target.value)} className="h-12 rounded-[4px] border border-[#bdb7a9] bg-white px-3 text-[15px] font-semibold text-[#191b18]">{programmeChoices.map((choice) => <option key={choice.id} value={choice.id}>{choice.label}</option>)}</select></label>
           <label className="flex flex-col gap-2"><span className="text-[13px] font-semibold text-[#4f524b]">Feeding phase</span><select value={selectedPhase?.id ?? ''} onChange={(event) => changePhase(event.target.value)} className="h-12 rounded-[4px] border border-[#bdb7a9] bg-white px-3 text-[15px] font-semibold text-[#191b18]">{selectedProgramme.programme.phases.map((phase) => <option key={phase.id} value={phase.id}>{phase.label.charAt(0).toUpperCase() + phase.label.slice(1)}</option>)}</select></label>
-          <label className="flex flex-col gap-2"><span className="text-[13px] font-semibold text-[#4f524b]">Formulation priority</span><select value={formulationPriority} onChange={(event) => { setFormulationPriority(event.target.value as FormulationPriority); setFormulationNote(null); setDownloadableFormulation(null); }} className="h-12 rounded-[4px] border border-[#bdb7a9] bg-white px-3 text-[15px] font-semibold text-[#191b18]">{priorityChoices.map((priority) => <option key={priority.id} value={priority.id}>{priority.label}</option>)}</select></label>
+          <label className="flex flex-col gap-2"><span className="text-[13px] font-semibold text-[#4f524b]">Formulation priority</span><select value={formulationPriority} onChange={(event) => { setFormulationPriority(event.target.value as FormulationPriority); setFormulationNote(null); clearResult(); }} className="h-12 rounded-[4px] border border-[#bdb7a9] bg-white px-3 text-[15px] font-semibold text-[#191b18]">{priorityChoices.map((priority) => <option key={priority.id} value={priority.id}>{priority.label}</option>)}</select></label>
         </div>
         <details className="mt-4">
           <summary className="inline cursor-pointer list-none text-[13px] font-semibold text-[#191b18] underline underline-offset-4 [&::-webkit-details-marker]:hidden">
@@ -460,15 +493,22 @@ export default function FormulationsClient({ ingredientPrices, ingredientPackSiz
                   <p className="my-1 text-[13px] text-[#4f524b]">
                     Published inclusion: {selectedPremix.inclusionKgPerTonne} kg/t ({selectedPremix.inclusionPct}%). {selectedPremix.application}.
                   </p>
-                  {publishedPremixAminoAcids(selectedPremix).map((claim) => (
-                    <p key={claim.name} className="my-1 text-[13px] text-[#6d4b12]">
-                      Manufacturer amino-acid guarantee: {claim.name} total
-                      {claim.minimumPct !== null ? ` ≥${claim.minimumPct}%` : ""} in premix.
-                      At this supplier-published inclusion rate, its conditional minimum contribution to finished feed is
-                      {" "}{publishedMinimumTotalAminoAcidsInFeed(selectedPremix).find((item) => item.name === claim.name)?.minTotalFeedPct ?? 0}%
-                      total {claim.name.toLowerCase()}. Confirm the supplier SKU and guarantee; this is not SID and is not credited to SID requirements.
-                    </p>
-                  ))}
+                  {premixContributions.length ? (
+                    <div className="my-2 text-[13px] text-[#4f524b]">
+                      <p className="m-0 font-semibold text-[#191b18]">What this premix adds per kg of feed at {selectedPremix.inclusionKgPerTonne} kg/t</p>
+                      <ul className="m-0 mt-1 grid list-none gap-x-4 gap-y-0.5 p-0 sm:grid-cols-2">
+                        {premixContributions.map((row) => (
+                          <li key={row.path}>
+                            {row.nutrient}: <span className="tabular-nums">{compactNumber(row.finishedFeedContribution, 4)} {row.unit}</span>
+                            {!row.countsTowardDigestible ? <span className="text-[#6d4b12]"> · total only, not counted toward SID</span> : null}
+                          </li>
+                        ))}
+                      </ul>
+                      <p className="m-0 mt-1 text-[12px]">Counted like any other ingredient. Nutrients the manufacturer does not document are counted as 0 (assumed, not published).</p>
+                    </div>
+                  ) : (
+                    <p className="my-1 text-[13px] text-[#6d4b12]">The manufacturer has not published this premix&apos;s composition, so none of its nutrients is credited (each is assumed 0).</p>
+                  )}
                   {selectedPremix.manufacturerRecipe ? (
                     <p className="my-1 text-[13px] font-semibold text-[#84511a]">
                       Fixed manufacturer recipe: published ingredient proportions are locked. No substitutions.
@@ -483,7 +523,7 @@ export default function FormulationsClient({ ingredientPrices, ingredientPackSiz
                     placeholder="Price per kg" value={premixPriceInput}
                     onChange={(event) => {
                       setPremixPrices((current) => ({ ...current, [selectedPremix.id]: event.target.value }));
-                      setDownloadableFormulation(null);
+                      clearResult();
                       setFormulationNote(null);
                     }}
                     className="h-11 w-full rounded-[4px] border border-[#bdb7a9] bg-white px-3 text-[14px] font-semibold"
@@ -524,7 +564,49 @@ export default function FormulationsClient({ ingredientPrices, ingredientPackSiz
           <div className="flex items-center justify-between gap-3 border-b border-[#191b18] py-4"><div><p className="fs-label m-0 text-[#4f524b]">Step 3 · Review the result</p><h2 className="mb-0 mt-1 text-[19px] font-bold">Core requirements</h2></div><span className={`rounded-[3px] px-2.5 py-1 text-[13px] font-bold ${within === analysis.length ? 'bg-[#e3eadf] text-[#1f5c38]' : 'bg-[#f6e0d9] text-[#8f3420]'}`}>{within} of {analysis.length} met</span></div>
           <div className="mb-2 mt-4 flex h-7 overflow-hidden rounded-[3px]">{mix.map((item) => <div key={item.name} title={item.name} style={{ width: `${item.value / mixTotal * 100}%`, background: item.colour }}/>)}</div>
           <div className="mb-1 flex flex-wrap gap-x-3.5 gap-y-1 text-[12px] text-[#4f524b]">{mix.map((item) => <span key={item.name} className="inline-flex items-center gap-1.5"><i className="h-2 w-2 rounded-[2px]" style={{ background: item.colour }}/>{item.name}</span>)}</div>
-          {analysis.map((item) => <div key={item.id} className="grid gap-2 border-b border-[#ece8de] py-3.5"><div className="flex items-baseline justify-between gap-3"><span className="text-[15px] font-semibold">{item.label}</span><span className="flex items-baseline gap-2.5"><span className="text-[22px] font-semibold tabular-nums">{item.value}<small className="ml-1 text-[12px] font-normal text-[#4f524b]">{item.unit}</small></span><span className={`min-w-14 rounded-[3px] px-2 py-[3px] text-center text-[12px] font-bold ${item.status === 'Meets' ? 'bg-[#e3eadf] text-[#1f5c38]' : item.status === 'Below' ? 'bg-[#f6e0d9] text-[#8f3420]' : 'bg-[#f5e7cc] text-[#7a5414]'}`}>{item.status}</span></span></div><div className="relative h-2 rounded-[4px] bg-[#e7e2d6]"><i className="absolute inset-y-0 rounded-[2px] bg-[#b9cdb5]" style={{ left: `${item.bandStart}%`, width: `${item.bandWidth}%` }}/><i className={`absolute -bottom-1 -top-1 w-1 -translate-x-1/2 rounded-[2px] ${item.status === 'Meets' ? 'bg-[#2e7d4f]' : item.status === 'Below' ? 'bg-[#b5452c]' : 'bg-[#b7791f]'}`} style={{ left: `${item.marker}%` }}/></div><div className="fs-mono flex justify-between gap-3 text-[11px] text-[#4f524b]"><span>Target {item.range} {item.unit}</span><span>{item.delta}</span></div></div>)}
+          {analysis.map((item) => <div key={item.id} className="grid gap-2 border-b border-[#ece8de] py-3.5"><div className="flex items-baseline justify-between gap-3"><span className="text-[15px] font-semibold">{item.label}</span><span className="flex items-baseline gap-2.5"><span className="text-[22px] font-semibold tabular-nums">{item.value}<small className="ml-1 text-[12px] font-normal text-[#4f524b]">{item.unit}</small></span><span className={`min-w-14 rounded-[3px] px-2 py-[3px] text-center text-[12px] font-bold ${item.status === 'Met' ? 'bg-[#e3eadf] text-[#1f5c38]' : item.status === 'Not met' ? 'bg-[#f6e0d9] text-[#8f3420]' : 'bg-[#f5e7cc] text-[#7a5414]'}`}>{item.status}</span></span></div><div className="relative h-2 rounded-[4px] bg-[#e7e2d6]"><i className="absolute inset-y-0 rounded-[2px] bg-[#b9cdb5]" style={{ left: `${item.bandStart}%`, width: `${item.bandWidth}%` }}/><i className={`absolute -bottom-1 -top-1 w-1 -translate-x-1/2 rounded-[2px] ${item.status === 'Met' ? 'bg-[#2e7d4f]' : item.status === 'Not met' ? 'bg-[#b5452c]' : 'bg-[#b7791f]'}`} style={{ left: `${item.marker}%` }}/></div><div className="fs-mono flex justify-between gap-3 text-[11px] text-[#4f524b]"><span>Requirement {item.range} {item.unit}</span><span>{item.delta}</span></div></div>)}
+          {assessed ? (
+            <div className="mt-4 grid gap-2.5" aria-live="polite">
+              <div className={`rounded-[4px] border px-3.5 py-3 ${assessmentFails ? 'border-[#e3b4a8] bg-[#f6e0d9]' : 'border-[#b9cdb5] bg-[#e3eadf]'}`}>
+                <p className="fs-label m-0 text-[#4f524b]">Optimised recipe · all hard requirements</p>
+                <p className={`mb-0 mt-1 text-[16px] font-bold ${assessmentFails ? 'text-[#8f3420]' : 'text-[#1f5c38]'}`}>{assessed.assessment.headline}</p>
+                {failedRequirements.length ? (
+                  <ul className="m-0 mt-1.5 list-none p-0 text-[13px] leading-5 text-[#8f3420]">
+                    {failedRequirements.map((check) => (
+                      <li key={check.id}>Not met: {check.label} {compactNumber(check.actual)} {check.unit} ({check.relation === 'min' ? 'min' : check.relation === 'max' ? 'max' : 'required'} {compactNumber(check.bound)} {check.unit})</li>
+                    ))}
+                  </ul>
+                ) : null}
+              </div>
+              {gapLine || (chapter7 && chapter7.total) || suggestedPremix ? (
+                <div className="grid gap-1.5 rounded-[4px] border border-[#f0c97f] bg-[#fdf6e8] px-3.5 py-3 text-[13px] leading-5 text-[#6d4b12]">
+                  <p className="fs-label m-0 text-[#7a5414]">Advisories · optional, never block the recipe</p>
+                  {gapLine ? <p className="m-0">{gapLine}</p> : null}
+                  {chapter7 && chapter7.total ? (
+                    <details>
+                      <summary className="cursor-pointer">Chapter 7 vitamins and trace minerals: {chapter7.at} of {chapter7.total} at recommendation (recommendations, not requirements)</summary>
+                      <ul className="m-0 mt-1 list-none p-0">
+                        {assessed.assessment.supplementation!.rows.map((row) => (
+                          <li key={row.id} className="flex justify-between gap-3">
+                            <span>{row.label}</span>
+                            <span className="tabular-nums">{row.status === 'no_data' ? 'No data' : row.pctOfRecommendation === null ? '—' : `${Math.round(row.pctOfRecommendation)}% of recommendation`}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </details>
+                  ) : null}
+                  {suggestedPremix && assessed.premixComparison ? (
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <p className="m-0">Replace premix with {suggestedPremix.name}: the re-run with your ingredients and limits shows {assessed.premixComparison.reasons.join('; ')}.</p>
+                      {premixChoices.some((product) => product.id === suggestedPremix.premixId) ? (
+                        <button type="button" onClick={() => changePremix(suggestedPremix.premixId)} className="h-8 rounded-[4px] border border-[#7a5414] px-3 text-[13px] font-semibold text-[#6d4b12]">Replace premix</button>
+                      ) : null}
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
+            </div>
+          ) : null}
           <div className="mt-4 rounded-[4px] bg-[#f3f0e8] p-3 text-[12px] leading-5 text-[#4f524b]"><b className="text-[#191b18]">What this check covers:</b> energy, protein, two key SID amino-acid measures, calcium and available phosphorus. The selected named premix uses its published dose.</div>
           <p className="fs-mono mb-0 mt-3.5 text-[11px] leading-[1.6] text-[#4f524b]">Calculated with the same source-backed ingredient matrix and phase requirements as FeedSport&apos;s formulation engine.</p>
         </section>

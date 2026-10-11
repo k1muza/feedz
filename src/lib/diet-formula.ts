@@ -1,4 +1,3 @@
-import { commercialPremixById } from "./commercial-premixes";
 import {
   INGREDIENT_LIBRARY,
   sidAminoAcidPct,
@@ -6,8 +5,6 @@ import {
   type IngredientLibrary,
   type IngredientNutrientRecord,
 } from "./ingredient-nutrients";
-import { resolveNutritionTargets, type EnergySystem } from "./nutrition-targets";
-import type { NutritionPhase } from "./nutrition";
 
 export type DietIngredient = {
   ingredientId: string;
@@ -23,6 +20,19 @@ export type DietFormula = {
   ingredients: readonly DietIngredient[];
 };
 
+/**
+ * One nutrient of a diet, summed over every ingredient through the same
+ * pipeline. A commercial premix is an ingredient like any other: each value
+ * it documents is added once, at its inclusion.
+ *
+ * Three data states are kept apart:
+ * - a published value (including a published or structural zero);
+ * - `assumedZeroIngredientIds`: a premix that does not document the nutrient.
+ *   It is counted as 0, which is conservative for a minimum requirement, and
+ *   the assumption is reported. It is never presented as a verified value.
+ * - `missingIngredientIds`: an ordinary ingredient with no value. The total is
+ *   then incomplete and the optimizer will not use the ingredient.
+ */
 export type AnalyzedNutrient = {
   /**
    * Sum of contributions we can calculate. Do not interpret this as the diet's
@@ -31,6 +41,13 @@ export type AnalyzedNutrient = {
   value: number;
   complete: boolean;
   missingIngredientIds: string[];
+  assumedZeroIngredientIds: string[];
+  /**
+   * Premixes that publish only a TOTAL value (e.g. total lysine or total
+   * phosphorus) for a digestible measure. They are also in
+   * `assumedZeroIngredientIds`: total is never equated with SID.
+   */
+  totalOnlyIngredientIds: string[];
 };
 
 export type DietAnalysis = {
@@ -57,6 +74,13 @@ export type DietAnalysis = {
     histidine: AnalyzedNutrient;
     phenylalanineTyrosine: AnalyzedNutrient;
   };
+  /** Reporting only; requirements are expressed as SID. */
+  totalAminoAcidsPct: {
+    lysine: AnalyzedNutrient;
+    methionineCysteine: AnalyzedNutrient;
+    threonine: AnalyzedNutrient;
+    tryptophan: AnalyzedNutrient;
+  };
   minerals: {
     calciumPct: AnalyzedNutrient;
     totalPhosphorusPct: AnalyzedNutrient;
@@ -66,58 +90,17 @@ export type DietAnalysis = {
     chloridePct: AnalyzedNutrient;
     potassiumPct: AnalyzedNutrient;
   };
-  traceMineralsPpm: {
-    zinc: AnalyzedNutrient;
-    iron: AnalyzedNutrient;
-    manganese: AnalyzedNutrient;
-    copper: AnalyzedNutrient;
-    iodine: AnalyzedNutrient;
-    selenium: AnalyzedNutrient;
-  };
-  vitamins: {
-    vitaminAIuKg: AnalyzedNutrient;
-    vitaminDIuKg: AnalyzedNutrient;
-    vitaminEIuKg: AnalyzedNutrient;
-    vitaminKMgKg: AnalyzedNutrient;
-    vitaminB1MgKg: AnalyzedNutrient;
-    riboflavinMgKg: AnalyzedNutrient;
-    vitaminB6MgKg: AnalyzedNutrient;
-    vitaminB12McgKg: AnalyzedNutrient;
-    pantothenicAcidMgKg: AnalyzedNutrient;
-    niacinMgKg: AnalyzedNutrient;
-    folicAcidMgKg: AnalyzedNutrient;
-    biotinMgKg: AnalyzedNutrient;
-    totalCholineMgKg: AnalyzedNutrient;
-  };
+  traceMineralsPpm: Record<TraceMineral, AnalyzedNutrient>;
+  vitamins: Record<VitaminKey, AnalyzedNutrient>;
   /**
-   * Deliberately supplemented micronutrients only. Natural ingredient
-   * concentrations are excluded because Brazilian Tables Chapter 7 publishes
-   * supplementation guidance rather than total-diet requirements.
+   * Deliberately supplemented micronutrients only (premixes and mineral
+   * sources). Brazilian Tables Chapter 7 publishes supplementation guidance
+   * rather than total-diet requirements, so natural ingredient concentrations
+   * are excluded here; they remain in the total-diet values above.
    */
   supplementation: {
-    traceMineralsPpm: {
-      zinc: AnalyzedNutrient;
-      iron: AnalyzedNutrient;
-      manganese: AnalyzedNutrient;
-      copper: AnalyzedNutrient;
-      iodine: AnalyzedNutrient;
-      selenium: AnalyzedNutrient;
-    };
-    vitamins: {
-      vitaminAIuKg: AnalyzedNutrient;
-      vitaminDIuKg: AnalyzedNutrient;
-      vitaminEIuKg: AnalyzedNutrient;
-      vitaminKMgKg: AnalyzedNutrient;
-      vitaminB1MgKg: AnalyzedNutrient;
-      riboflavinMgKg: AnalyzedNutrient;
-      vitaminB6MgKg: AnalyzedNutrient;
-      vitaminB12McgKg: AnalyzedNutrient;
-      pantothenicAcidMgKg: AnalyzedNutrient;
-      niacinMgKg: AnalyzedNutrient;
-      folicAcidMgKg: AnalyzedNutrient;
-      biotinMgKg: AnalyzedNutrient;
-      totalCholineMgKg: AnalyzedNutrient;
-    };
+    traceMineralsPpm: Record<TraceMineral, AnalyzedNutrient>;
+    vitamins: Record<VitaminKey, AnalyzedNutrient>;
   };
   soybeanMealPct: number;
   lLysineHclPct: number;
@@ -125,38 +108,32 @@ export type DietAnalysis = {
   missingPriceIngredientIds: string[];
 };
 
-export type DietConstraintStatus = "pass" | "fail" | "incomplete";
+const TRACE_MINERALS = ["zinc", "iron", "manganese", "copper", "iodine", "selenium"] as const;
+type TraceMineral = (typeof TRACE_MINERALS)[number];
 
-export type DietConstraintCheck = {
-  id: string;
-  label: string;
-  actual: number | null;
-  knownSubtotal?: number;
-  bound: number | { min: number; max: number };
-  relation: "min" | "max" | "range";
-  status: DietConstraintStatus;
-  passes: boolean | null;
-  unit: string;
-  missingIngredientIds: string[];
-};
-
-export type DietEvaluationStatus = "valid" | "invalid" | "incomplete";
-
-export type DietPhaseEvaluation = {
-  phaseId: string;
-  energySystem: EnergySystem;
-  energyKcalKg: number | null;
-  analysis: DietAnalysis;
-  checks: DietConstraintCheck[];
-  status: DietEvaluationStatus;
-  /** Backward-compatible convenience: true only when every required check is known and passes. */
-  passes: boolean;
-  unsupportedConstraints: string[];
-};
+const VITAMIN_KEYS = [
+  "vitaminAIuKg",
+  "vitaminDIuKg",
+  "vitaminEIuKg",
+  "vitaminKMgKg",
+  "vitaminB1MgKg",
+  "riboflavinMgKg",
+  "vitaminB6MgKg",
+  "vitaminB12McgKg",
+  "pantothenicAcidMgKg",
+  "niacinMgKg",
+  "folicAcidMgKg",
+  "biotinMgKg",
+  "totalCholineMgKg",
+] as const;
+type VitaminKey = (typeof VITAMIN_KEYS)[number];
 
 function measure(): AnalyzedNutrient {
-  return { value: 0, complete: true, missingIngredientIds: [] };
+  return { value: 0, complete: true, missingIngredientIds: [], assumedZeroIngredientIds: [], totalOnlyIngredientIds: [] };
 }
+
+const measures = <K extends string>(keys: readonly K[]) =>
+  Object.fromEntries(keys.map((key) => [key, measure()])) as Record<K, AnalyzedNutrient>;
 
 export function analyzeDiet(
   formula: DietFormula,
@@ -174,85 +151,17 @@ export function analyzeDiet(
 
   const result: DietAnalysis = {
     inclusionPct: total,
-    energy: {
-      digestibleKcalKg: measure(),
-      metabolizableKcalKg: measure(),
-      netKcalKg: measure(),
-    },
+    energy: { digestibleKcalKg: measure(), metabolizableKcalKg: measure(), netKcalKg: measure() },
     crudeProteinPct: measure(),
     digestibleProteinPct: measure(),
     neutralDetergentFibrePct: measure(),
-    fattyAcids: {
-      linoleicAcidPct: measure(),
-    },
-    sidAminoAcidsPct: {
-      lysine: measure(),
-      methionineCysteine: measure(),
-      threonine: measure(),
-      tryptophan: measure(),
-      valine: measure(),
-      isoleucine: measure(),
-      leucine: measure(),
-      histidine: measure(),
-      phenylalanineTyrosine: measure(),
-    },
-    minerals: {
-      calciumPct: measure(),
-      totalPhosphorusPct: measure(),
-      availablePhosphorusPct: measure(),
-      sttdPhosphorusPct: measure(),
-      sodiumPct: measure(),
-      chloridePct: measure(),
-      potassiumPct: measure(),
-    },
-    traceMineralsPpm: {
-      zinc: measure(),
-      iron: measure(),
-      manganese: measure(),
-      copper: measure(),
-      iodine: measure(),
-      selenium: measure(),
-    },
-    vitamins: {
-      vitaminAIuKg: measure(),
-      vitaminDIuKg: measure(),
-      vitaminEIuKg: measure(),
-      vitaminKMgKg: measure(),
-      vitaminB1MgKg: measure(),
-      riboflavinMgKg: measure(),
-      vitaminB6MgKg: measure(),
-      vitaminB12McgKg: measure(),
-      pantothenicAcidMgKg: measure(),
-      niacinMgKg: measure(),
-      folicAcidMgKg: measure(),
-      biotinMgKg: measure(),
-      totalCholineMgKg: measure(),
-    },
-    supplementation: {
-      traceMineralsPpm: {
-        zinc: measure(),
-        iron: measure(),
-        manganese: measure(),
-        copper: measure(),
-        iodine: measure(),
-        selenium: measure(),
-      },
-      vitamins: {
-        vitaminAIuKg: measure(),
-        vitaminDIuKg: measure(),
-        vitaminEIuKg: measure(),
-        vitaminKMgKg: measure(),
-        vitaminB1MgKg: measure(),
-        riboflavinMgKg: measure(),
-        vitaminB6MgKg: measure(),
-        vitaminB12McgKg: measure(),
-        pantothenicAcidMgKg: measure(),
-        niacinMgKg: measure(),
-        folicAcidMgKg: measure(),
-        biotinMgKg: measure(),
-        totalCholineMgKg: measure(),
-      },
-    },
+    fattyAcids: { linoleicAcidPct: measure() },
+    sidAminoAcidsPct: measures(["lysine", "methionineCysteine", "threonine", "tryptophan", "valine", "isoleucine", "leucine", "histidine", "phenylalanineTyrosine"]),
+    totalAminoAcidsPct: measures(["lysine", "methionineCysteine", "threonine", "tryptophan"]),
+    minerals: measures(["calciumPct", "totalPhosphorusPct", "availablePhosphorusPct", "sttdPhosphorusPct", "sodiumPct", "chloridePct", "potassiumPct"]),
+    traceMineralsPpm: measures(TRACE_MINERALS),
+    vitamins: measures(VITAMIN_KEYS),
+    supplementation: { traceMineralsPpm: measures(TRACE_MINERALS), vitamins: measures(VITAMIN_KEYS) },
     soybeanMealPct: 0,
     lLysineHclPct: 0,
     missingPriceIngredientIds,
@@ -268,181 +177,51 @@ export function analyzeDiet(
     if (!ingredient) throw new Error(`Unknown ingredient: ${row.ingredientId}.`);
 
     const share = row.inclusionPct / 100;
+    const add = (target: AnalyzedNutrient, value: number | undefined, family: NutrientFamily) =>
+      addValue(target, ingredient, share, value, family);
 
-    add(
-      result.energy.digestibleKcalKg,
-      ingredient,
-      share,
-      ingredient.energy.digestibleKcalKg,
-      structuralZero(ingredient, "energy"),
-    );
-    add(
-      result.energy.metabolizableKcalKg,
-      ingredient,
-      share,
-      ingredient.energy.metabolizableKcalKg,
-      structuralZero(ingredient, "energy"),
-    );
-    add(
-      result.energy.netKcalKg,
-      ingredient,
-      share,
-      ingredient.energy.netKcalKg,
-      structuralZero(ingredient, "energy"),
-    );
-    add(
-      result.crudeProteinPct,
-      ingredient,
-      share,
-      ingredient.composition.crudeProteinPct,
-      structuralZero(ingredient, "crudeProtein"),
-    );
-    add(
-      result.digestibleProteinPct,
-      ingredient,
-      share,
-      ingredient.composition.digestibleProteinPct,
-      structuralZero(ingredient, "digestibleProtein"),
-    );
-    add(
-      result.neutralDetergentFibrePct,
-      ingredient,
-      share,
-      ingredient.composition.neutralDetergentFibrePct,
-      structuralZero(ingredient, "fibre"),
-    );
-    add(
-      result.fattyAcids.linoleicAcidPct,
-      ingredient,
-      share,
-      ingredient.composition.linoleicAcidPct,
-      structuralZero(ingredient, "fattyAcid"),
-    );
+    add(result.energy.digestibleKcalKg, ingredient.energy.digestibleKcalKg, "energy");
+    add(result.energy.metabolizableKcalKg, ingredient.energy.metabolizableKcalKg, "energy");
+    add(result.energy.netKcalKg, ingredient.energy.netKcalKg, "energy");
+    add(result.crudeProteinPct, ingredient.composition.crudeProteinPct, "protein");
+    add(result.digestibleProteinPct, ingredient.composition.digestibleProteinPct, "protein");
+    add(result.neutralDetergentFibrePct, ingredient.composition.neutralDetergentFibrePct, "fibre");
+    add(result.fattyAcids.linoleicAcidPct, ingredient.composition.linoleicAcidPct, "fattyAcid");
 
-    addSid(result.sidAminoAcidsPct.lysine, ingredient, share, ["lysine"]);
-    addSid(
-      result.sidAminoAcidsPct.methionineCysteine,
-      ingredient,
-      share,
-      ["methionine", "cysteine"],
-      "methionineCysteine",
-    );
-    addSid(result.sidAminoAcidsPct.threonine, ingredient, share, ["threonine"]);
-    addSid(result.sidAminoAcidsPct.tryptophan, ingredient, share, ["tryptophan"]);
-    addSid(result.sidAminoAcidsPct.valine, ingredient, share, ["valine"]);
-    addSid(result.sidAminoAcidsPct.isoleucine, ingredient, share, ["isoleucine"]);
-    addSid(result.sidAminoAcidsPct.leucine, ingredient, share, ["leucine"]);
-    addSid(result.sidAminoAcidsPct.histidine, ingredient, share, ["histidine"]);
-    addSid(
-      result.sidAminoAcidsPct.phenylalanineTyrosine,
-      ingredient,
-      share,
-      ["phenylalanine", "tyrosine"],
-      "phenylalanineTyrosine",
-    );
+    const sid = result.sidAminoAcidsPct;
+    addSid(sid.lysine, ingredient, share, ["lysine"]);
+    addSid(sid.methionineCysteine, ingredient, share, ["methionine", "cysteine"], "methionineCysteine");
+    addSid(sid.threonine, ingredient, share, ["threonine"]);
+    addSid(sid.tryptophan, ingredient, share, ["tryptophan"]);
+    addSid(sid.valine, ingredient, share, ["valine"]);
+    addSid(sid.isoleucine, ingredient, share, ["isoleucine"]);
+    addSid(sid.leucine, ingredient, share, ["leucine"]);
+    addSid(sid.histidine, ingredient, share, ["histidine"]);
+    addSid(sid.phenylalanineTyrosine, ingredient, share, ["phenylalanine", "tyrosine"], "phenylalanineTyrosine");
 
-    add(
-      result.minerals.calciumPct,
-      ingredient,
-      share,
-      ingredient.macroMinerals.calciumPct,
-      structuralZero(ingredient, "macroMineral"),
-    );
-    add(
-      result.minerals.totalPhosphorusPct,
-      ingredient,
-      share,
-      ingredient.macroMinerals.totalPhosphorusPct,
-      structuralZero(ingredient, "macroMineral"),
-    );
-    add(
-      result.minerals.availablePhosphorusPct,
-      ingredient,
-      share,
-      ingredient.macroMinerals.availablePhosphorusPct,
-      structuralZero(ingredient, "macroMineral"),
-    );
-    add(
-      result.minerals.sttdPhosphorusPct,
-      ingredient,
-      share,
-      sttdPhosphorusPctOf(ingredient),
-      structuralZero(ingredient, "macroMineral"),
-    );
-    add(
-      result.minerals.sodiumPct,
-      ingredient,
-      share,
-      ingredient.macroMinerals.sodiumPct,
-      structuralZero(ingredient, "macroMineral"),
-    );
-    add(
-      result.minerals.chloridePct,
-      ingredient,
-      share,
-      ingredient.macroMinerals.chloridePct,
-      structuralZero(ingredient, "macroMineral"),
-    );
-    add(
-      result.minerals.potassiumPct,
-      ingredient,
-      share,
-      ingredient.macroMinerals.potassiumPct,
-      structuralZero(ingredient, "macroMineral"),
-    );
+    const totalAa = result.totalAminoAcidsPct;
+    addTotalAminoAcid(totalAa.lysine, ingredient, share, ["lysine"]);
+    addTotalAminoAcid(totalAa.methionineCysteine, ingredient, share, ["methionine", "cysteine"], "methionineCysteine");
+    addTotalAminoAcid(totalAa.threonine, ingredient, share, ["threonine"]);
+    addTotalAminoAcid(totalAa.tryptophan, ingredient, share, ["tryptophan"]);
 
-    addTrace(result.traceMineralsPpm.zinc, ingredient, share, "zinc");
-    addTrace(result.traceMineralsPpm.iron, ingredient, share, "iron");
-    addTrace(result.traceMineralsPpm.manganese, ingredient, share, "manganese");
-    addTrace(result.traceMineralsPpm.copper, ingredient, share, "copper");
-    addTrace(result.traceMineralsPpm.iodine, ingredient, share, "iodine");
-    addTrace(result.traceMineralsPpm.selenium, ingredient, share, "selenium");
+    const minerals = ingredient.macroMinerals;
+    add(result.minerals.calciumPct, minerals.calciumPct, "macroMineral");
+    add(result.minerals.totalPhosphorusPct, minerals.totalPhosphorusPct, "macroMineral");
+    addDigestible(result.minerals.availablePhosphorusPct, ingredient, share, minerals.availablePhosphorusPct, minerals.totalPhosphorusPct);
+    addDigestible(result.minerals.sttdPhosphorusPct, ingredient, share, sttdPhosphorusPctOf(ingredient), minerals.totalPhosphorusPct);
+    add(result.minerals.sodiumPct, minerals.sodiumPct, "macroMineral");
+    add(result.minerals.chloridePct, minerals.chloridePct, "macroMineral");
+    add(result.minerals.potassiumPct, minerals.potassiumPct, "macroMineral");
 
-    const vitaminEntries = [
-      ["vitaminAIuKg", result.vitamins.vitaminAIuKg],
-      ["vitaminDIuKg", result.vitamins.vitaminDIuKg],
-      ["vitaminEIuKg", result.vitamins.vitaminEIuKg],
-      ["vitaminKMgKg", result.vitamins.vitaminKMgKg],
-      ["vitaminB1MgKg", result.vitamins.vitaminB1MgKg],
-      ["riboflavinMgKg", result.vitamins.riboflavinMgKg],
-      ["vitaminB6MgKg", result.vitamins.vitaminB6MgKg],
-      ["vitaminB12McgKg", result.vitamins.vitaminB12McgKg],
-      ["pantothenicAcidMgKg", result.vitamins.pantothenicAcidMgKg],
-      ["niacinMgKg", result.vitamins.niacinMgKg],
-      ["folicAcidMgKg", result.vitamins.folicAcidMgKg],
-      ["biotinMgKg", result.vitamins.biotinMgKg],
-      ["totalCholineMgKg", result.vitamins.totalCholineMgKg],
-    ] as const;
-    for (const [key, target] of vitaminEntries) {
-      add(
-        target,
-        ingredient,
-        share,
-        ingredient.vitamins[key],
-        structuralZero(ingredient, "vitamin"),
-      );
-      addSupplemented(
-        result.supplementation.vitamins[key],
-        ingredient,
-        share,
-        ingredient.vitamins[key],
-      );
+    for (const nutrient of TRACE_MINERALS) {
+      const value = ingredient.traceMineralsPpm[nutrient];
+      add(result.traceMineralsPpm[nutrient], value, "traceMineral");
+      addSupplemented(result.supplementation.traceMineralsPpm[nutrient], ingredient, share, value);
     }
-
-    for (const nutrient of [
-      "zinc",
-      "iron",
-      "manganese",
-      "copper",
-      "iodine",
-      "selenium",
-    ] as const) {
-      addSupplemented(
-        result.supplementation.traceMineralsPpm[nutrient],
-        ingredient,
-        share,
-        ingredient.traceMineralsPpm[nutrient],
-      );
+    for (const key of VITAMIN_KEYS) {
+      add(result.vitamins[key], ingredient.vitamins[key], "vitamin");
+      addSupplemented(result.supplementation.vitamins[key], ingredient, share, ingredient.vitamins[key]);
     }
 
     if (ingredient.id.startsWith("soybean-meal-")) result.soybeanMealPct += row.inclusionPct;
@@ -463,264 +242,9 @@ export function analyzeDiet(
   return result;
 }
 
-export function evaluateDietForPhase(
-  formula: DietFormula,
-  phase: NutritionPhase,
-  energySystem: EnergySystem,
-  prices: readonly IngredientPrice[] = [],
-  library: IngredientLibrary = INGREDIENT_LIBRARY,
-): DietPhaseEvaluation {
-  const analysis = analyzeDiet(formula, prices, library);
-  const energyMeasure =
-    energySystem === "ME"
-      ? analysis.energy.metabolizableKcalKg
-      : analysis.energy.netKcalKg;
-
-  const checks: DietConstraintCheck[] = [];
-  const unsupportedConstraints: string[] = [];
-
-  const selectedPublishedEnergy =
-    energySystem === "ME"
-      ? phase.requirements.metabolizableEnergyKcalKg
-      : phase.requirements.netEnergyKcalKg;
-
-  if (selectedPublishedEnergy !== undefined) {
-    checkMin(
-      checks,
-      `energy-${energySystem.toLowerCase()}`,
-      energySystem === "ME" ? "Metabolizable energy" : "Net energy",
-      energyMeasure,
-      selectedPublishedEnergy,
-      "kcal/kg",
-    );
-  }
-
-  const targets = resolveNutritionTargets(phase, {
-    system: energySystem,
-    kcalKg: selectedPublishedEnergy,
-  });
-
-  {
-    const aa = targets.aminoAcids;
-    checkMin(checks, "sid-lysine", "SID lysine", analysis.sidAminoAcidsPct.lysine, aa.sidLysinePct, "%");
-    checkMin(
-      checks,
-      "sid-met-cys",
-      "SID methionine + cysteine",
-      analysis.sidAminoAcidsPct.methionineCysteine,
-      aa.sidMethionineCysteinePct,
-      "%",
-    );
-    checkMin(checks, "sid-threonine", "SID threonine", analysis.sidAminoAcidsPct.threonine, aa.sidThreoninePct, "%");
-    checkMin(checks, "sid-tryptophan", "SID tryptophan", analysis.sidAminoAcidsPct.tryptophan, aa.sidTryptophanPct, "%");
-    checkMin(checks, "sid-valine", "SID valine", analysis.sidAminoAcidsPct.valine, aa.sidValinePct, "%");
-    checkMin(checks, "sid-isoleucine", "SID isoleucine", analysis.sidAminoAcidsPct.isoleucine, aa.sidIsoleucinePct, "%");
-    checkMin(checks, "sid-leucine", "SID leucine", analysis.sidAminoAcidsPct.leucine, aa.sidLeucinePct, "%");
-    checkMin(checks, "sid-histidine", "SID histidine", analysis.sidAminoAcidsPct.histidine, aa.sidHistidinePct, "%");
-    checkMin(
-      checks,
-      "sid-phe-tyr",
-      "SID phenylalanine + tyrosine",
-      analysis.sidAminoAcidsPct.phenylalanineTyrosine,
-      aa.sidPhenylalanineTyrosinePct,
-      "%",
-    );
-
-    if (targets.minerals.calciumPct !== undefined) {
-      checkMin(checks, "calcium", "Calcium", analysis.minerals.calciumPct, targets.minerals.calciumPct, "%");
-    }
-    if (targets.minerals.sttdPhosphorusPct !== undefined) {
-      checkMin(
-        checks,
-        "sttd-phosphorus",
-        "STTD phosphorus",
-        analysis.minerals.sttdPhosphorusPct,
-        targets.minerals.sttdPhosphorusPct,
-        "%",
-      );
-    }
-    if (targets.minerals.availablePhosphorusPct !== undefined) {
-      checkMin(
-        checks,
-        "available-phosphorus",
-        "Available phosphorus",
-        analysis.minerals.availablePhosphorusPct,
-        targets.minerals.availablePhosphorusPct,
-        "%",
-      );
-    }
-    checkMin(checks, "sodium", "Sodium", analysis.minerals.sodiumPct, targets.minerals.sodiumPct, "%");
-
-    if (targets.minerals.chloridePct !== undefined) {
-      checkMin(checks, "chloride", "Chloride", analysis.minerals.chloridePct, targets.minerals.chloridePct, "%");
-    }
-  }
-
-  if (targets.crudeProteinPct !== undefined) {
-    checkMin(
-      checks,
-      "crude-protein",
-      "Crude protein",
-      analysis.crudeProteinPct,
-      targets.crudeProteinPct,
-      "%",
-    );
-  }
-  if (targets.digestibleProteinPct !== undefined) {
-    checkMin(
-      checks,
-      "digestible-protein",
-      phase.species === "broiler" ? "Digestible protein" : "Digestible protein (swine SID)",
-      analysis.digestibleProteinPct,
-      targets.digestibleProteinPct,
-      "%",
-    );
-  }
-  if (targets.potassiumPct !== undefined) {
-    checkMin(
-      checks,
-      "potassium",
-      "Potassium",
-      analysis.minerals.potassiumPct,
-      targets.potassiumPct,
-      "%",
-    );
-  }
-  if (phase.requirements.linoleicAcidPct !== undefined) {
-    checkMin(
-      checks,
-      "linoleic-acid",
-      "Linoleic acid",
-      analysis.fattyAcids.linoleicAcidPct,
-      phase.requirements.linoleicAcidPct,
-      "%",
-    );
-  }
-
-  const trace = phase.requirements.traceMinerals;
-  if (trace) {
-    checkMin(checks, "zinc", "Zinc", analysis.traceMineralsPpm.zinc, trace.zincPpm, "ppm");
-    checkMin(checks, "iron", "Iron", analysis.traceMineralsPpm.iron, trace.ironPpm, "ppm");
-    checkMin(checks, "manganese", "Manganese", analysis.traceMineralsPpm.manganese, trace.manganesePpm, "ppm");
-    checkMin(checks, "copper", "Copper", analysis.traceMineralsPpm.copper, trace.copperPpm, "ppm");
-    checkMin(checks, "iodine", "Iodine", analysis.traceMineralsPpm.iodine, trace.iodinePpm, "ppm");
-    checkMin(checks, "selenium", "Selenium", analysis.traceMineralsPpm.selenium, trace.seleniumPpm, "ppm");
-  }
-
-  const vitamins = phase.requirements.vitamins;
-  if (vitamins) {
-    checkMin(checks, "vitamin-a", "Vitamin A", analysis.vitamins.vitaminAIuKg, vitamins.vitaminAIuKg, "IU/kg");
-    checkMin(checks, "vitamin-d", "Vitamin D", analysis.vitamins.vitaminDIuKg, vitamins.vitaminDIuKg, "IU/kg");
-    checkMin(checks, "vitamin-e", "Vitamin E", analysis.vitamins.vitaminEIuKg, vitamins.vitaminEIuKg, "IU/kg");
-    checkMin(checks, "vitamin-k", "Vitamin K", analysis.vitamins.vitaminKMgKg, vitamins.vitaminKMgKg, "mg/kg");
-    checkMin(checks, "niacin", "Niacin", analysis.vitamins.niacinMgKg, vitamins.niacinMgKg, "mg/kg");
-    checkMin(checks, "riboflavin", "Riboflavin", analysis.vitamins.riboflavinMgKg, vitamins.riboflavinMgKg, "mg/kg");
-    checkMin(
-      checks,
-      "pantothenic-acid",
-      "Pantothenic acid",
-      analysis.vitamins.pantothenicAcidMgKg,
-      vitamins.pantothenicAcidMgKg,
-      "mg/kg",
-    );
-    checkMin(
-      checks,
-      "vitamin-b12",
-      "Vitamin B12",
-      analysis.vitamins.vitaminB12McgKg,
-      vitamins.vitaminB12McgKg,
-      "mcg/kg",
-    );
-    if (vitamins.totalCholineMgKg !== undefined) {
-      checkMin(
-        checks,
-        "total-choline",
-        "Total choline",
-        analysis.vitamins.totalCholineMgKg,
-        vitamins.totalCholineMgKg,
-        "mg/kg",
-      );
-    }
-  }
-
-  const practical = phase.requirements.practical;
-  if (practical.soybeanMealMaxPct !== undefined) {
-    checkKnownMax(
-      checks,
-      "soybean-meal",
-      "Soybean meal inclusion",
-      analysis.soybeanMealPct,
-      practical.soybeanMealMaxPct,
-      "%",
-    );
-  }
-  if (practical.lLysineHclMaxPct !== undefined) {
-    checkKnownMax(
-      checks,
-      "l-lysine-hcl",
-      "L-lysine HCl inclusion",
-      analysis.lLysineHclPct,
-      practical.lLysineHclMaxPct,
-      "%",
-    );
-  }
-  if (practical.neutralDetergentFibreMinPct !== undefined) {
-    checkMin(
-      checks,
-      "neutral-detergent-fibre",
-      "Neutral detergent fibre",
-      analysis.neutralDetergentFibrePct,
-      practical.neutralDetergentFibreMinPct,
-      "%",
-    );
-  }
-  if (practical.calciumToTotalPhosphorusMinRatio !== undefined) {
-    unsupportedConstraints.push("calciumToTotalPhosphorusMinRatio");
-  }
-  if (practical.sidLysineToCrudeProteinMaxPct !== undefined) {
-    checkRatioMax(
-      checks,
-      "sid-lysine-cp",
-      "SID lysine : crude protein",
-      analysis.sidAminoAcidsPct.lysine,
-      analysis.crudeProteinPct,
-      practical.sidLysineToCrudeProteinMaxPct,
-    );
-  }
-
-  if (practical.highlyDigestibleProteinPct) {
-    unsupportedConstraints.push("highlyDigestibleProteinPct");
-  }
-  if (practical.highlyDigestibleCarbohydratePct !== undefined) {
-    unsupportedConstraints.push("highlyDigestibleCarbohydratePct");
-  }
-
-  const anyFail = checks.some((check) => check.status === "fail");
-  const anyIncomplete =
-    checks.some((check) => check.status === "incomplete") ||
-    unsupportedConstraints.length > 0;
-  const status: DietEvaluationStatus = anyFail
-    ? "invalid"
-    : anyIncomplete
-      ? "incomplete"
-      : "valid";
-
-  return {
-    phaseId: phase.id,
-    energySystem,
-    energyKcalKg: energyMeasure.complete ? energyMeasure.value : null,
-    analysis,
-    checks,
-    status,
-    passes: status === "valid",
-    unsupportedConstraints,
-  };
-}
-
 type NutrientFamily =
   | "energy"
-  | "crudeProtein"
-  | "digestibleProtein"
+  | "protein"
   | "fibre"
   | "fattyAcid"
   | "aminoAcid"
@@ -730,99 +254,53 @@ type NutrientFamily =
 
 /**
  * Some ingredient classes cannot materially contribute certain nutrient
- * families. A missing field in those cases is a structural zero, not unknown.
- *
- * This must stay deliberately narrower than "missing source value = zero".
- * Premix vitamin/mineral content, for example, is unknown until a supplier
- * specification is loaded.
+ * families (limestone has no energy; oil has no amino acids). A missing field
+ * in those cases is a true zero, not unknown. Premixes are deliberately NOT
+ * covered: what they contain is whatever their manufacturer documents.
  */
-/**
- * Legacy formulation assumption: simple Sustar and custom vitamin/mineral
- * premixes carry zero basal macronutrients. The manufacturer-specific compound
- * CJ S174 is NOT covered: its nutrient contributions remain UNKNOWN until COA.
- * This is a modeling assumption, not confirmation of manufacturer guarantees.
- */
-function premixWithBasalZeroAssumption(ingredient: IngredientNutrientRecord): boolean {
-  return ingredient.category === "vitamin_mineral_premix" &&
-    commercialPremixById(ingredient.id)?.formulationCompatibility !== "manufacturer_recipe_only";
-}
+const STRUCTURAL_ZERO: Record<NutrientFamily, readonly IngredientNutrientRecord["category"][]> = {
+  energy: ["mineral", "amino_acid"],
+  protein: ["mineral", "oil_fat"],
+  fibre: ["mineral", "oil_fat", "amino_acid"],
+  fattyAcid: ["mineral", "amino_acid"],
+  aminoAcid: ["mineral", "oil_fat", "amino_acid"],
+  macroMineral: ["oil_fat", "amino_acid", "mineral"],
+  traceMineral: ["oil_fat", "amino_acid", "mineral"],
+  vitamin: ["mineral", "amino_acid"],
+};
 
-function structuralZero(
-  ingredient: IngredientNutrientRecord,
-  family: NutrientFamily,
-): boolean {
-  switch (family) {
-    case "energy":
-      return (
-        ingredient.category === "mineral" ||
-        ingredient.category === "amino_acid" ||
-        premixWithBasalZeroAssumption(ingredient)
-      );
-    case "crudeProtein":
-      return (
-        ingredient.category === "mineral" ||
-        premixWithBasalZeroAssumption(ingredient) ||
-        ingredient.category === "oil_fat"
-      );
-    case "digestibleProtein":
-      return (
-        ingredient.category === "mineral" ||
-        premixWithBasalZeroAssumption(ingredient) ||
-        ingredient.category === "oil_fat"
-      );
-    case "fibre":
-      return (
-        ingredient.category === "mineral" ||
-        ingredient.category === "oil_fat" ||
-        ingredient.category === "amino_acid" ||
-        premixWithBasalZeroAssumption(ingredient)
-      );
-    case "fattyAcid":
-      return (
-        ingredient.category === "mineral" ||
-        ingredient.category === "amino_acid" ||
-        premixWithBasalZeroAssumption(ingredient)
-      );
-    case "aminoAcid":
-      return (
-        ingredient.category === "mineral" ||
-        ingredient.category === "oil_fat" ||
-        ingredient.category === "amino_acid" ||
-        premixWithBasalZeroAssumption(ingredient)
-      );
-    case "macroMineral":
-      return (
-        ingredient.category === "oil_fat" ||
-        premixWithBasalZeroAssumption(ingredient) ||
-        ingredient.category === "amino_acid" ||
-        ingredient.category === "mineral"
-      );
-    case "traceMineral":
-      return (
-        ingredient.category === "oil_fat" ||
-        ingredient.category === "amino_acid" ||
-        ingredient.category === "mineral"
-      );
-    case "vitamin":
-      return (
-        ingredient.category === "mineral" ||
-        ingredient.category === "amino_acid"
-      );
-  }
-}
+const isPremix = (ingredient: IngredientNutrientRecord) => ingredient.category === "vitamin_mineral_premix";
 
-function add(
+function addValue(
   target: AnalyzedNutrient,
   ingredient: IngredientNutrientRecord,
   share: number,
   value: number | undefined,
-  missingIsZero = false,
+  family: NutrientFamily,
 ): void {
-  if (value === undefined) {
-    if (!missingIsZero) markMissing(target, ingredient.id);
+  if (value !== undefined) target.value += share * value;
+  else if (STRUCTURAL_ZERO[family].includes(ingredient.category)) return;
+  else if (isPremix(ingredient)) markAssumedZero(target, ingredient.id);
+  else markMissing(target, ingredient.id);
+}
+
+/**
+ * A digestible measure (SID amino acid, STTD/available phosphorus). A premix
+ * that publishes only the TOTAL is credited 0 here and flagged total-only.
+ */
+function addDigestible(
+  target: AnalyzedNutrient,
+  ingredient: IngredientNutrientRecord,
+  share: number,
+  digestible: number | undefined,
+  total: number | undefined,
+): void {
+  if (digestible === undefined && total !== undefined && isPremix(ingredient)) {
+    markAssumedZero(target, ingredient.id);
+    if (!target.totalOnlyIngredientIds.includes(ingredient.id)) target.totalOnlyIngredientIds.push(ingredient.id);
     return;
   }
-  target.value += share * value;
+  addValue(target, ingredient, share, digestible, "macroMineral");
 }
 
 function addSupplemented(
@@ -833,18 +311,11 @@ function addSupplemented(
 ): void {
   // Brazilian Tables supplementation guidance concerns nutrients intentionally
   // added through premixes/mineral supplements, not those naturally present in
-  // maize, soybean meal or other basal feedstuffs. Basal contributions are still
-  // included in the separate total-diet nutrient calculations above.
-  if (ingredient.category !== "vitamin_mineral_premix" && ingredient.category !== "mineral") return;
-  add(
-    target,
-    ingredient,
-    share,
-    value,
-    // Standalone mineral sources without a specified micronutrient are not
-    // assumed to contain it. Premixes with missing declarations stay unknown.
-    ingredient.category === "mineral",
-  );
+  // maize, soybean meal or other basal feedstuffs.
+  if (!isPremix(ingredient) && ingredient.category !== "mineral") return;
+  // A mineral source with no listed micronutrient does not contain it.
+  if (value === undefined && ingredient.category === "mineral") return;
+  addValue(target, ingredient, share, value, "vitamin");
 }
 
 function addSid(
@@ -865,31 +336,55 @@ function addSid(
   let subtotal = 0;
   for (const aminoAcid of aminoAcids) {
     const value = sidAminoAcidPct(ingredient, aminoAcid);
+    if (value !== undefined) {
+      subtotal += value;
+      continue;
+    }
+    if (STRUCTURAL_ZERO.aminoAcid.includes(ingredient.category)) continue;
+    if (!isPremix(ingredient)) {
+      markMissing(target, ingredient.id);
+      return;
+    }
+    // Total is not SID: a published total without SID or a source-backed
+    // digestibility coefficient is counted as 0 toward SID, and flagged.
+    const hasTotal = ingredient.aminoAcids.totalPct[aminoAcid] !== undefined ||
+      (combinedKey !== undefined && ingredient.aminoAcids.totalPct[combinedKey] !== undefined);
+    markAssumedZero(target, ingredient.id);
+    if (hasTotal && !target.totalOnlyIngredientIds.includes(ingredient.id)) target.totalOnlyIngredientIds.push(ingredient.id);
+  }
+  target.value += share * subtotal;
+}
+
+/**
+ * Total amino acid. Crystalline amino acids are listed in the Brazilian Tables
+ * by their SID content; total is at least that, so SID is used as the
+ * (conservative) total when no total is published for a free amino acid.
+ */
+function addTotalAminoAcid(
+  target: AnalyzedNutrient,
+  ingredient: IngredientNutrientRecord,
+  share: number,
+  aminoAcids: readonly string[],
+  combinedKey?: string,
+): void {
+  const totalOf = (key: string) => ingredient.aminoAcids.totalPct[key] ??
+    (ingredient.category === "amino_acid" ? ingredient.aminoAcids.sidPct[key] ?? 0 : undefined);
+  const combined = combinedKey ? totalOf(combinedKey) : undefined;
+  if (combined !== undefined && combined !== 0) {
+    target.value += share * combined;
+    return;
+  }
+  let subtotal = 0;
+  for (const aminoAcid of aminoAcids) {
+    const value = totalOf(aminoAcid);
     if (value === undefined) {
-      if (!structuralZero(ingredient, "aminoAcid")) {
-        markMissing(target, ingredient.id);
-        return;
-      }
+      addValue(target, ingredient, share, undefined, "aminoAcid");
+      if (!target.complete && target.missingIngredientIds.includes(ingredient.id)) return;
       continue;
     }
     subtotal += value;
   }
   target.value += share * subtotal;
-}
-
-function addTrace(
-  target: AnalyzedNutrient,
-  ingredient: IngredientNutrientRecord,
-  share: number,
-  nutrient: string,
-): void {
-  add(
-    target,
-    ingredient,
-    share,
-    ingredient.traceMineralsPpm[nutrient],
-    structuralZero(ingredient, "traceMineral"),
-  );
 }
 
 function markMissing(target: AnalyzedNutrient, ingredientId: string): void {
@@ -899,180 +394,8 @@ function markMissing(target: AnalyzedNutrient, ingredientId: string): void {
   }
 }
 
-function checkMin(
-  checks: DietConstraintCheck[],
-  id: string,
-  label: string,
-  actual: AnalyzedNutrient,
-  bound: number,
-  unit: string,
-): void {
-  if (!actual.complete) {
-    checks.push(incompleteCheck(id, label, actual, bound, "min", unit));
-    return;
+function markAssumedZero(target: AnalyzedNutrient, ingredientId: string): void {
+  if (!target.assumedZeroIngredientIds.includes(ingredientId)) {
+    target.assumedZeroIngredientIds.push(ingredientId);
   }
-  const passes = actual.value >= bound;
-  checks.push({
-    id,
-    label,
-    actual: actual.value,
-    bound,
-    relation: "min",
-    status: passes ? "pass" : "fail",
-    passes,
-    unit,
-    missingIngredientIds: [],
-  });
-}
-
-function checkKnownMax(
-  checks: DietConstraintCheck[],
-  id: string,
-  label: string,
-  actual: number,
-  bound: number,
-  unit: string,
-): void {
-  const passes = actual <= bound;
-  checks.push({
-    id,
-    label,
-    actual,
-    bound,
-    relation: "max",
-    status: passes ? "pass" : "fail",
-    passes,
-    unit,
-    missingIngredientIds: [],
-  });
-}
-
-function checkRange(
-  checks: DietConstraintCheck[],
-  id: string,
-  label: string,
-  actual: AnalyzedNutrient,
-  bound: { min: number; max: number },
-  unit: string,
-): void {
-  if (!actual.complete) {
-    checks.push(incompleteCheck(id, label, actual, bound, "range", unit));
-    return;
-  }
-  const passes = actual.value >= bound.min && actual.value <= bound.max;
-  checks.push({
-    id,
-    label,
-    actual: actual.value,
-    bound,
-    relation: "range",
-    status: passes ? "pass" : "fail",
-    passes,
-    unit,
-    missingIngredientIds: [],
-  });
-}
-
-function checkRatioRange(
-  checks: DietConstraintCheck[],
-  id: string,
-  label: string,
-  numerator: AnalyzedNutrient,
-  denominator: AnalyzedNutrient,
-  bound: { min: number; max: number },
-): void {
-  const missing = mergeMissing(numerator, denominator);
-  if (!numerator.complete || !denominator.complete || denominator.value <= 0) {
-    checks.push({
-      id,
-      label,
-      actual: null,
-      knownSubtotal: denominator.value > 0 ? numerator.value / denominator.value : undefined,
-      bound,
-      relation: "range",
-      status: "incomplete",
-      passes: null,
-      unit: "ratio",
-      missingIngredientIds: missing,
-    });
-    return;
-  }
-  const actual = numerator.value / denominator.value;
-  const passes = actual >= bound.min && actual <= bound.max;
-  checks.push({
-    id,
-    label,
-    actual,
-    bound,
-    relation: "range",
-    status: passes ? "pass" : "fail",
-    passes,
-    unit: "ratio",
-    missingIngredientIds: [],
-  });
-}
-
-function checkRatioMax(
-  checks: DietConstraintCheck[],
-  id: string,
-  label: string,
-  numerator: AnalyzedNutrient,
-  denominator: AnalyzedNutrient,
-  bound: number,
-): void {
-  const missing = mergeMissing(numerator, denominator);
-  if (!numerator.complete || !denominator.complete || denominator.value <= 0) {
-    checks.push({
-      id,
-      label,
-      actual: null,
-      knownSubtotal: denominator.value > 0 ? (numerator.value / denominator.value) * 100 : undefined,
-      bound,
-      relation: "max",
-      status: "incomplete",
-      passes: null,
-      unit: "%",
-      missingIngredientIds: missing,
-    });
-    return;
-  }
-  const actual = (numerator.value / denominator.value) * 100;
-  const passes = actual <= bound;
-  checks.push({
-    id,
-    label,
-    actual,
-    bound,
-    relation: "max",
-    status: passes ? "pass" : "fail",
-    passes,
-    unit: "%",
-    missingIngredientIds: [],
-  });
-}
-
-function incompleteCheck(
-  id: string,
-  label: string,
-  actual: AnalyzedNutrient,
-  bound: number | { min: number; max: number },
-  relation: "min" | "range",
-  unit: string,
-): DietConstraintCheck {
-  return {
-    id,
-    label,
-    actual: null,
-    knownSubtotal: actual.value,
-    bound,
-    relation,
-    status: "incomplete",
-    passes: null,
-    unit,
-    missingIngredientIds: actual.missingIngredientIds,
-  };
-}
-
-function mergeMissing(...values: AnalyzedNutrient[]): string[] {
-  return Array.from(new Set(values.flatMap((value) => value.missingIngredientIds)));
 }

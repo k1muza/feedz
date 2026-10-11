@@ -329,7 +329,7 @@ function addBasisSheet(
     ["Programme", basis.programmeName, "Phase", basis.phaseLabel],
     ["Energy basis", basis.energySystem, "Batch weight (kg)", basis.targetBatchKg],
     ["Solver mode", "Least-cost + alternatives", "Source table", basis.sourceTable ?? "—"],
-    ["Supplementation targets", basis.settings.includeSupplementationTargets ? "On" : "Off", "Generated", new Date(basis.generatedAt).toLocaleString("en-GB")],
+    ["Chapter 7 supplementation", "Compared as an advisory", "Generated", new Date(basis.generatedAt).toLocaleString("en-GB")],
   ];
   facts.forEach(([leftLabel, leftValue, rightLabel, rightValue], index) => {
     const row = 7 + index;
@@ -399,7 +399,7 @@ function addNutritionSheet(
   styleTitle(
     sheet,
     input.recipeLabel + " nutritional profile",
-    input.programmeName + " · " + input.phaseLabel + " · requirement or supplementation target versus calculated recipe concentration",
+    input.programmeName + " · " + input.phaseLabel + " · requirement versus calculated recipe concentration",
     "F",
   );
 

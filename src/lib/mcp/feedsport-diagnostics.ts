@@ -68,7 +68,6 @@ function labelLookup(built: Scenario): (constraintId: string) => string {
     formulationRequirements(
       built.scenario.phase,
       built.scenario.energySystem,
-      built.scenario.settings,
     ).map((requirement) => [requirement.id, requirement.label]),
   );
   return (constraintId) => labels.get(constraintId) ?? constraintId;
@@ -331,7 +330,7 @@ export async function diagnoseInfeasibilityTool(input: DiagnoseInput, context: F
       missing_data: report.incomplete_requirements,
       checked_shortfalls: report.checked_shortfalls,
       unsupported_requirements: report.unsupported_requirements,
-      nutritional_validation: nutritionalValidationReport(report.validation),
+      nutritional_validation: nutritionalValidationReport(report.assessment),
       fixes: [],
       notes: [
         ...built.notes,

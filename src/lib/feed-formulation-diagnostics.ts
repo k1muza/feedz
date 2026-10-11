@@ -25,7 +25,6 @@ import {
   type FormulationIngredientOption,
   type FormulationMissingData,
   type FormulationNutrientComparison,
-  type FormulationSettings,
   type FormulationSolution,
   type PreparedIngredient,
 } from "./feed-optimizer";
@@ -38,7 +37,6 @@ export type FormulationScenario = {
   energySystem: EnergySystem;
   options: readonly FormulationIngredientOption[];
   library: IngredientLibrary;
-  settings?: FormulationSettings;
 };
 
 type Model = {
@@ -69,7 +67,7 @@ const EPSILON = 1e-9;
 
 function buildModel(scenario: FormulationScenario, options = scenario.options): Model {
   validateOptions(options, scenario.library);
-  const constraints = buildConstraintSpecs(scenario.phase, scenario.energySystem, scenario.settings);
+  const constraints = buildConstraintSpecs(scenario.phase, scenario.energySystem);
   return {
     constraints,
     prepared: prepareIngredients(options, constraints, scenario.library, scenario.phase),
@@ -806,7 +804,6 @@ export async function compareFormulationStrategies(
       scenario.energySystem,
       scenario.options,
       scenario.library,
-      scenario.settings,
     );
 
     if (result.status === "optimal") {

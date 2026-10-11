@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { analyseFormulation, formulate, getIngredient, FeedSportInputError, type FeedSportServiceContext } from "./feedsport-service";
+import { analyseFormulation, formulate, getIngredient, ingredientNutrients, FeedSportInputError, type FeedSportServiceContext } from "./feedsport-service";
 import { INGREDIENT_LIBRARY, ingredientLibraryWithCustomPremixes } from "@/lib/ingredient-nutrients";
 import { INGREDIENT_DEFAULT_PRICES } from "@/lib/feed-ingredient-prices";
 import { diagnoseInfeasibilityTool } from "./feedsport-diagnostics";
@@ -16,11 +16,28 @@ describe("MCP nutrition profile provenance", () => {
     assert.equal((maize.nutrition_profile_source as { verificationStatus?: string }).verificationStatus, "published_reference");
     assert.ok(maize.nutrition_profile_source.source?.url);
     const commercial = getIngredient("sustar-glypro-x912", context);
-    assert.ok("micronutrient_profile" in commercial);
+    assert.ok("nutrient_contributions" in commercial);
     assert.equal(commercial.verification_status, "manufacturer_unverified");
     assert.equal(commercial.nutrition_profile_source.verificationStatus, "manufacturer_unverified");
-    assert.ok(commercial.micronutrient_profile?.contributions.length);
+    assert.ok(commercial.nutrient_contributions.length);
     assert.ok(commercial.nutrition_profile_source.source?.url?.startsWith("https://"));
+  });
+
+  it("serializes a premix's nutrient composition exactly like any ingredient, for both species", () => {
+    const pig = getIngredient("sustar-glypro-x912", context);
+    const record = INGREDIENT_LIBRARY.ingredients.find((item) => item.id === "sustar-glypro-x912")!;
+    assert.ok(pig.nutrients, "premix nutrients are not hidden");
+    assert.deepEqual(pig.nutrients, ingredientNutrients(record), "the same values the optimizer uses");
+    assert.ok(Object.keys(pig.nutrients).length >= 15);
+    assert.equal(pig.default_constraints.min_inclusion_percent, 0.2);
+    assert.equal(pig.default_constraints.max_inclusion_percent, 0.2);
+    assert.ok("inclusion_instructions" in pig && /2 kg per tonne/.test(pig.inclusion_instructions), "manufacturer metadata is kept");
+    assert.doesNotMatch(JSON.stringify(pig), /cannot support a verified nutritional claim/);
+    const cj = getIngredient("cj-s174-boar-premix", context);
+    assert.ok(cj.nutrients?.total_lysine, "total lysine is listed as total");
+    assert.ok(!Object.keys(cj.nutrients ?? {}).some((key) => key === "sid_lysine"), "never relabelled as SID");
+    const broiler = getIngredient("sustar-glypro-x812", context);
+    assert.ok(broiler.nutrients && Object.keys(broiler.nutrients).length > 0, "poultry premixes resolve from the poultry library");
   });
 
   it("does not claim the Brazilian Tables as source of an unsourced farmer premix", () => {
@@ -49,10 +66,14 @@ describe("FeedSport MCP automatic ingredient mode", () => {
     assert.equal(result.status, "optimal");
     assert.equal(result.formulation_basis.ingredient_mode, "automatic");
     assert.ok(result.formulation_basis.candidate_count > 1);
-    assert.equal(result.nutritional_validation.overall_status, "needs_verification");
-    assert.equal(result.nutritional_validation.complete_feed_claim, "not_supported");
-    assert.equal(result.nutritional_validation.categories.find((row) => row.id === "vitamins")?.status, "unmet");
-    assert.equal(result.nutritional_validation.categories.find((row) => row.id === "trace_minerals")?.status, "unmet");
+    // Hard requirements decide the result; without a premix, Chapter 7
+    // supplementation is reported as an advisory, never as a deficiency.
+    assert.equal(result.nutritional_validation.overall_status, "meets_requirements");
+    assert.match(result.nutritional_validation.headline, /^Meets all \d+ hard requirements$/);
+    assert.ok(result.nutritional_validation.hard_requirements.every((row) => row.status === "met"));
+    const chapter7 = result.nutritional_validation.advisories.supplementation?.comparisons ?? [];
+    assert.ok(chapter7.length > 0);
+    assert.ok(chapter7.every((row) => row.status !== "at_recommendation"));
     assert.equal(result.premix_analysis.status, "not_included");
 
     const analysis = analyseFormulation({
@@ -63,8 +84,8 @@ describe("FeedSport MCP automatic ingredient mode", () => {
         percentage: row.percentage,
       })),
     }, context);
-    assert.equal(analysis.nutritional_validation.overall_status, "needs_verification");
-    assert.equal(analysis.nutritional_validation.complete_feed_claim, "not_supported");
+    assert.equal(analysis.nutritional_validation.overall_status, result.nutritional_validation.overall_status);
+    assert.equal(analysis.nutritional_validation.headline, result.nutritional_validation.headline);
   });
 
   it("can optimise a nursery basal ration with real Sustar X911 without missing basal premix macros", async () => {
@@ -98,11 +119,12 @@ describe("FeedSport MCP automatic ingredient mode", () => {
     assert.notEqual(result.status, "missing_data", "Sustar's omitted basal-macro values must not block solving");
     assert.equal(result.status, "optimal");
     if (result.status === "optimal") {
-      assert.equal(result.nutritional_validation.overall_status, "needs_verification");
+      assert.equal(result.nutritional_validation.overall_status, "meets_requirements");
       assert.equal(result.premix_analysis.status, "included");
       assert.equal(result.premix_analysis.product_id, "sustar-glypro-x911");
-      assert.equal(result.premix_analysis.reason, "commercial_premix_selected");
-      assert.ok(result.premix_analysis.nutrient_profile?.contributions.length);
+      assert.ok(result.premix_analysis.status === "included" && result.premix_analysis.contributions.length);
+      // X911 documents no macro-nutrients: they are counted as 0 and labelled, not hidden.
+      assert.ok(result.nutritional_validation.hard_requirements.some((row) => row.data_status === "assumed_zero" && row.assumed_zero_for?.includes("sustar-glypro-x911")));
     }
   });
 
@@ -215,11 +237,10 @@ describe("CJ S174 manufacturer-only mature-boar workflow", () => {
     assert.deepEqual(result.ingredients.map((row) => [row.ingredient, row.percentage]),
       recipe.slice().sort((a,b) => b.percent - a.percent).map((row) => [row.ingredientId, row.percent]));
     assert.equal(result.cost_per_tonne, 376);
-    assert.equal(result.nutritional_validation.complete_feed_claim, "not_supported");
+    assert.doesNotMatch(result.nutritional_validation.headline, /ready|verified/i);
     assert.equal(result.premix_analysis.status, "included");
     assert.equal(result.premix_analysis.product_id, "cj-s174-boar-premix");
-    assert.ok(result.incomplete_requirements.length > 0, "Premix macro-nutrient values are missing and must stay unknown.");
-    assert.equal(result.premix_analysis.reason, "commercial_premix_selected");
+    assert.ok(result.incomplete_requirements.length > 0, "Fish meal's missing values must stay unknown.");
     assert.ok(!result.unsupported_requirements.includes("vitamin-trace-mineral-supplementation"),
       "Do not confuse the CJ premix with missing Brazilian phase guidance");
   });
@@ -250,7 +271,7 @@ describe("CJ S174 manufacturer-only mature-boar workflow", () => {
     if (result.status !== "manufacturer_recipe") throw new Error("Expected CJ manufacturer recipe");
     assert.equal(result.passes, false);
     assert.ok(result.incomplete_requirements.length > 0);
-    assert.equal(result.nutritional_validation.complete_feed_claim, "not_supported");
+    assert.doesNotMatch(result.nutritional_validation.headline, /ready|verified/i);
   });
 
   it("keeps diagnose_infeasibility available as a read-only explanation without suggesting substitutions", async () => {
@@ -259,8 +280,7 @@ describe("CJ S174 manufacturer-only mature-boar workflow", () => {
     if (result.status !== "manufacturer_recipe") throw new Error("Expected CJ diagnostic, not solver optimisation");
     assert.ok(result.missing_data.length > 0);
     assert.deepEqual(result.fixes, []);
-    assert.equal(result.premix_analysis.reason, "commercial_premix_selected");
-    assert.equal(result.nutritional_validation.complete_feed_claim, "not_supported");
+    assert.doesNotMatch(result.nutritional_validation.headline, /ready|verified/i);
     assert.ok(result.findings.some((finding) => finding.includes("cannot be checked")));
     assert.ok(result.missing_data.every((row) => typeof row.nutrient === "string" && !row.nutrient.includes("Pct")));
     assert.ok(result.checked_shortfalls.every((row) =>

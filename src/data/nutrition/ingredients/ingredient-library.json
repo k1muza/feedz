@@ -23963,10 +23963,39 @@
           "publisher": "CJ (Tianjin) Feed",
           "title": "CJ Feed S174 — Breeding boar premix — manufacturer product specification",
           "url": "https://www.cjfeedcn.com/swine-feed/boar-premix-feed.html",
-          "basis": "as-fed",
+          "basis": "as-fed label minimum per kg premix",
           "priority": "supplier"
         },
-        "nutrientSources": {},
+        "nutrientSources": {
+          "macroMinerals.totalPhosphorusPct": {
+            "publisher": "CJ (Tianjin) Feed",
+            "title": "CJ Feed S174 — Breeding boar premix — manufacturer product specification",
+            "url": "https://www.cjfeedcn.com/swine-feed/boar-premix-feed.html",
+            "priority": "supplier",
+            "basis": "as-fed label minimum per kg premix; TOTAL phosphorus, no digestibility published"
+          },
+          "aminoAcids.totalPct.lysine": {
+            "publisher": "CJ (Tianjin) Feed",
+            "title": "CJ Feed S174 — Breeding boar premix — manufacturer product specification",
+            "url": "https://www.cjfeedcn.com/swine-feed/boar-premix-feed.html",
+            "priority": "supplier",
+            "basis": "as-fed label minimum per kg premix; TOTAL lysine, no SID value or digestibility published"
+          },
+          "macroMinerals.sodiumPct": {
+            "publisher": "CJ (Tianjin) Feed",
+            "title": "CJ Feed S174 — Breeding boar premix — manufacturer product specification",
+            "url": "https://www.cjfeedcn.com/swine-feed/boar-premix-feed.html",
+            "priority": "supplier",
+            "basis": "derived from the labelled NaCl minimum of 5% by molar mass (Na = 39.34% of NaCl)"
+          },
+          "macroMinerals.chloridePct": {
+            "publisher": "CJ (Tianjin) Feed",
+            "title": "CJ Feed S174 — Breeding boar premix — manufacturer product specification",
+            "url": "https://www.cjfeedcn.com/swine-feed/boar-premix-feed.html",
+            "priority": "supplier",
+            "basis": "derived from the labelled NaCl minimum of 5% by molar mass (Cl = 60.66% of NaCl)"
+          }
+        },
         "notes": [],
         "verificationStatus": "manufacturer_unverified",
         "profileBasis": "as-fed"
@@ -23987,20 +24016,6 @@
         "formulationCompatibility": "manufacturer_recipe_only",
         "pricePerTonne": null,
         "specificationUrl": "https://www.cjfeedcn.com/swine-feed/boar-premix-feed.html",
-        "publishedAnalysis": {
-          "zincMgKg": {
-            "min": 350,
-            "max": 1800
-          },
-          "copperMgKg": {
-            "min": 50,
-            "max": 625
-          },
-          "vitaminAIuKg": {
-            "min": 32500,
-            "max": 300000
-          }
-        },
         "publishedGuarantees": [
           {
             "nutrient": "Vitamin A",
@@ -24082,23 +24097,6 @@
             "max": 10
           }
         ],
-        "guaranteedMinimumAsFed": {
-          "sourceUrl": "https://www.cjfeedcn.com/swine-feed/boar-premix-feed.html",
-          "vitamins": {
-            "vitaminAIuKg": 32500,
-            "vitaminDIuKg": 3750,
-            "vitaminEIuKg": 800,
-            "riboflavinMgKg": 85
-          },
-          "traceMineralsPpm": {
-            "copper": 50,
-            "iron": 100,
-            "zinc": 350,
-            "manganese": 50,
-            "selenium": 5,
-            "iodine": 3
-          }
-        },
         "manufacturerRecipe": [
           {
             "ingredientId": "corn-yellow-dent",
@@ -24123,8 +24121,45 @@
         ],
         "note": "Manufacturer lists premix model S174 but calls the 4% component ST174A in its recommended ration. Confirm the labels, exact nutrient guarantees and prices with CJ. Supplier directs users to its fixed formula or technical department for customised ratios.",
         "notes": [
-          "publishedAnalysis and publishedGuarantees are the manufacturer's ranges, not verified input concentrations; they are never used as a manufactured nutrient matrix."
+          "Lysine and phosphorus are published as TOTAL minima only; they count toward total lysine and total phosphorus, never toward SID lysine or digestible phosphorus."
         ]
+      },
+      "nutrition": {
+        "swine": {
+          "composition": {},
+          "energy": {},
+          "aminoAcids": {
+            "totalPct": {
+              "lysine": 4
+            },
+            "sidDigestibilityPct": {},
+            "sidPct": {}
+          },
+          "macroMinerals": {
+            "totalPhosphorusPct": 2,
+            "sodiumPct": 1.967,
+            "chloridePct": 3.033
+          },
+          "traceMineralsPpm": {
+            "copper": 50,
+            "iron": 100,
+            "zinc": 350,
+            "manganese": 50,
+            "selenium": 5,
+            "iodine": 3
+          },
+          "vitamins": {
+            "vitaminAIuKg": 32500,
+            "vitaminDIuKg": 3750,
+            "vitaminEIuKg": 800,
+            "riboflavinMgKg": 85
+          },
+          "constraints": {
+            "notes": [
+              "Manufacturer dose fixed at 4% (40 kg/t)."
+            ]
+          }
+        }
       }
     },
     {
@@ -24140,7 +24175,7 @@
           "publisher": "Chengdu Sustar Feed",
           "title": "Sustar GlyPro X911 — Piglet vitamin-mineral premix — manufacturer product specification",
           "url": "https://www.sustarfeed.com/glypro-x911-0-2-vitamin%EF%BC%86mineral-premix-for-piglets-oemodm-custom-pig-premix-manufacturer-direct-supply-premix-for-piglets-promoting-growth-of-pig-prestarter-animal-feed-additives-product/",
-          "basis": "as-fed",
+          "basis": "as-fed label minimum per kg premix",
           "priority": "supplier"
         },
         "nutrientSources": {},
@@ -24170,24 +24205,48 @@
             "unit": "g/kg",
             "min": 180,
             "max": 230
-          }
-        ],
-        "publishedAnalysis": {
-          "zincMgKg": {
+          },
+          {
+            "nutrient": "Zinc",
+            "unit": "mg/kg",
             "min": 30000,
             "max": 50000
           },
-          "copperMgKg": {
+          {
+            "nutrient": "Copper",
+            "unit": "mg/kg",
             "min": 40000,
             "max": 70000
           },
-          "vitaminAIuKg": {
+          {
+            "nutrient": "Vitamin A",
+            "unit": "IU/kg",
             "min": 28000000,
             "max": 34000000
           }
-        },
-        "guaranteedMinimumAsFed": {
-          "sourceUrl": "https://www.sustarfeed.com/glypro-x911-0-2-vitamin%EF%BC%86mineral-premix-for-piglets-oemodm-custom-pig-premix-manufacturer-direct-supply-premix-for-piglets-promoting-growth-of-pig-prestarter-animal-feed-additives-product/",
+        ],
+        "notes": [
+          "Vitamin E is published by mass (g/kg). It is not credited as IU until the vitamin form and activity are confirmed. Choline is not declared."
+        ]
+      },
+      "nutrition": {
+        "swine": {
+          "composition": {},
+          "energy": {},
+          "aminoAcids": {
+            "totalPct": {},
+            "sidDigestibilityPct": {},
+            "sidPct": {}
+          },
+          "macroMinerals": {},
+          "traceMineralsPpm": {
+            "copper": 40000,
+            "iron": 50000,
+            "manganese": 15000,
+            "zinc": 30000,
+            "iodine": 200,
+            "selenium": 100
+          },
           "vitamins": {
             "vitaminAIuKg": 28000000,
             "vitaminDIuKg": 8000000,
@@ -24201,18 +24260,12 @@
             "folicAcidMgKg": 4000,
             "biotinMgKg": 300
           },
-          "traceMineralsPpm": {
-            "copper": 40000,
-            "iron": 50000,
-            "manganese": 15000,
-            "zinc": 30000,
-            "iodine": 200,
-            "selenium": 100
+          "constraints": {
+            "notes": [
+              "Manufacturer dose fixed at 0.2% (2 kg/t)."
+            ]
           }
-        },
-        "notes": [
-          "Vitamin E is published by mass (g/kg). It is not credited as IU until the vitamin form and activity are confirmed. Choline is not declared."
-        ]
+        }
       }
     },
     {
@@ -24228,7 +24281,7 @@
           "publisher": "Chengdu Sustar Feed",
           "title": "Sustar GlyPro X912 — Grower-finisher pig premix — manufacturer product specification",
           "url": "https://www.sustarfeed.com/vitamin-mineral-premix-for-finishing-pig-sustar-glypro-x912-0-2-product/",
-          "basis": "as-fed",
+          "basis": "as-fed label minimum per kg premix",
           "priority": "supplier"
         },
         "nutrientSources": {},
@@ -24261,24 +24314,49 @@
             "unit": "g/kg",
             "min": 60,
             "max": 80
-          }
-        ],
-        "publishedAnalysis": {
-          "zincMgKg": {
+          },
+          {
+            "nutrient": "Zinc",
+            "unit": "mg/kg",
             "min": 40000,
             "max": 70000
           },
-          "copperMgKg": {
+          {
+            "nutrient": "Copper",
+            "unit": "mg/kg",
             "min": 13000,
             "max": 17000
           },
-          "vitaminAIuKg": {
+          {
+            "nutrient": "Vitamin A",
+            "unit": "IU/kg",
             "min": 28000000,
             "max": 34000000
           }
-        },
-        "guaranteedMinimumAsFed": {
-          "sourceUrl": "https://www.sustarfeed.com/vitamin-mineral-premix-for-finishing-pig-sustar-glypro-x912-0-2-product/",
+        ],
+        "note": "Product page identifies X912 but the nutrient table heading says X911; supplier confirmation required.",
+        "notes": [
+          "Vitamin E is published by mass (g/kg). It is not credited as IU until the vitamin form and activity are confirmed. Choline is not declared."
+        ]
+      },
+      "nutrition": {
+        "swine": {
+          "composition": {},
+          "energy": {},
+          "aminoAcids": {
+            "totalPct": {},
+            "sidDigestibilityPct": {},
+            "sidPct": {}
+          },
+          "macroMinerals": {},
+          "traceMineralsPpm": {
+            "copper": 13000,
+            "iron": 70000,
+            "manganese": 30000,
+            "zinc": 40000,
+            "iodine": 500,
+            "selenium": 150
+          },
           "vitamins": {
             "vitaminAIuKg": 28000000,
             "vitaminDIuKg": 8000000,
@@ -24292,19 +24370,12 @@
             "folicAcidMgKg": 4000,
             "biotinMgKg": 300
           },
-          "traceMineralsPpm": {
-            "copper": 13000,
-            "iron": 70000,
-            "manganese": 30000,
-            "zinc": 40000,
-            "iodine": 500,
-            "selenium": 150
+          "constraints": {
+            "notes": [
+              "Manufacturer dose fixed at 0.2% (2 kg/t)."
+            ]
           }
-        },
-        "note": "Product page identifies X912 but the nutrient table heading says X911; supplier confirmation required.",
-        "notes": [
-          "Vitamin E is published by mass (g/kg). It is not credited as IU until the vitamin form and activity are confirmed. Choline is not declared."
-        ]
+        }
       }
     },
     {
@@ -24320,7 +24391,7 @@
           "publisher": "Chengdu Sustar Feed",
           "title": "Sustar GlyPro X913 — Sow vitamin-mineral premix — manufacturer product specification",
           "url": "https://www.sustarfeed.com/vitamin-mineral-premix-for-sows-sustar-glypro-x913-0-2-product/",
-          "basis": "as-fed",
+          "basis": "as-fed label minimum per kg premix",
           "priority": "supplier"
         },
         "nutrientSources": {},
@@ -24351,24 +24422,48 @@
             "unit": "g/kg",
             "min": 230,
             "max": 270
-          }
-        ],
-        "publishedAnalysis": {
-          "zincMgKg": {
+          },
+          {
+            "nutrient": "Zinc",
+            "unit": "mg/kg",
             "min": 60000,
             "max": 100000
           },
-          "copperMgKg": {
+          {
+            "nutrient": "Copper",
+            "unit": "mg/kg",
             "min": 7000,
             "max": 8000
           },
-          "vitaminAIuKg": {
+          {
+            "nutrient": "Vitamin A",
+            "unit": "IU/kg",
             "min": 33000000,
             "max": 36000000
           }
-        },
-        "guaranteedMinimumAsFed": {
-          "sourceUrl": "https://www.sustarfeed.com/vitamin-mineral-premix-for-sows-sustar-glypro-x913-0-2-product/",
+        ],
+        "notes": [
+          "Vitamin E is published by mass (g/kg). It is not credited as IU until the vitamin form and activity are confirmed. Choline is not declared."
+        ]
+      },
+      "nutrition": {
+        "swine": {
+          "composition": {},
+          "energy": {},
+          "aminoAcids": {
+            "totalPct": {},
+            "sidDigestibilityPct": {},
+            "sidPct": {}
+          },
+          "macroMinerals": {},
+          "traceMineralsPpm": {
+            "copper": 7000,
+            "iron": 90000,
+            "manganese": 30000,
+            "zinc": 60000,
+            "iodine": 200,
+            "selenium": 150
+          },
           "vitamins": {
             "vitaminAIuKg": 33000000,
             "vitaminDIuKg": 6800000,
@@ -24382,18 +24477,12 @@
             "folicAcidMgKg": 9000,
             "biotinMgKg": 1200
           },
-          "traceMineralsPpm": {
-            "copper": 7000,
-            "iron": 90000,
-            "manganese": 30000,
-            "zinc": 60000,
-            "iodine": 200,
-            "selenium": 150
+          "constraints": {
+            "notes": [
+              "Manufacturer dose fixed at 0.2% (2 kg/t)."
+            ]
           }
-        },
-        "notes": [
-          "Vitamin E is published by mass (g/kg). It is not credited as IU until the vitamin form and activity are confirmed. Choline is not declared."
-        ]
+        }
       }
     },
     {
@@ -24409,7 +24498,7 @@
           "publisher": "Chengdu Sustar Feed",
           "title": "Sustar GlyPro X812 — Broiler vitamin-mineral premix — manufacturer product specification",
           "url": "https://www.sustarfeed.com/vitamin-mineral-premix-for-broiler-sustar-glypro-0-1-product/",
-          "basis": "as-fed",
+          "basis": "as-fed label minimum per kg premix",
           "priority": "supplier"
         },
         "nutrientSources": {},
@@ -24439,24 +24528,48 @@
             "unit": "g/kg",
             "min": 80,
             "max": 120
-          }
-        ],
-        "publishedAnalysis": {
-          "zincMgKg": {
+          },
+          {
+            "nutrient": "Zinc",
+            "unit": "mg/kg",
             "min": 75000,
             "max": 100000
           },
-          "copperMgKg": {
+          {
+            "nutrient": "Copper",
+            "unit": "mg/kg",
             "min": 8000,
             "max": 11000
           },
-          "vitaminAIuKg": {
+          {
+            "nutrient": "Vitamin A",
+            "unit": "IU/kg",
             "min": 30000000,
             "max": 35000000
           }
-        },
-        "guaranteedMinimumAsFed": {
-          "sourceUrl": "https://www.sustarfeed.com/vitamin-mineral-premix-for-broiler-sustar-glypro-0-1-product/",
+        ],
+        "notes": [
+          "Vitamin E is published by mass (g/kg). It is not credited as IU until the vitamin form and activity are confirmed. Choline is not declared."
+        ]
+      },
+      "nutrition": {
+        "poultry": {
+          "composition": {},
+          "energy": {},
+          "aminoAcids": {
+            "totalPct": {},
+            "sidDigestibilityPct": {},
+            "sidPct": {}
+          },
+          "macroMinerals": {},
+          "traceMineralsPpm": {
+            "copper": 8000,
+            "iron": 25000,
+            "manganese": 90000,
+            "zinc": 75000,
+            "iodine": 900,
+            "selenium": 250
+          },
           "vitamins": {
             "vitaminAIuKg": 30000000,
             "vitaminDIuKg": 9000000,
@@ -24470,18 +24583,12 @@
             "folicAcidMgKg": 3000,
             "biotinMgKg": 450
           },
-          "traceMineralsPpm": {
-            "copper": 8000,
-            "iron": 25000,
-            "manganese": 90000,
-            "zinc": 75000,
-            "iodine": 900,
-            "selenium": 250
+          "constraints": {
+            "notes": [
+              "Manufacturer dose fixed at 0.1% (1 kg/t)."
+            ]
           }
-        },
-        "notes": [
-          "Vitamin E is published by mass (g/kg). It is not credited as IU until the vitamin form and activity are confirmed. Choline is not declared."
-        ]
+        }
       }
     },
     {
@@ -24497,7 +24604,7 @@
           "publisher": "Chengdu Sustar Feed",
           "title": "Sustar GlyPro X811 — Layer vitamin-mineral premix — manufacturer product specification",
           "url": "https://www.sustarfeed.com/glypro-x811-0-1-vitamin%EF%BC%86mineral-premix-for-layer-premix-for-layer-animal-feed-additives-poultry-feed-additives-premix-for-laying-hens-vitamin-mineral-premix-feed-additives-product/",
-          "basis": "as-fed",
+          "basis": "as-fed label minimum per kg premix",
           "priority": "supplier"
         },
         "nutrientSources": {},
@@ -24527,24 +24634,48 @@
             "unit": "g/kg",
             "min": 100,
             "max": 120
-          }
-        ],
-        "publishedAnalysis": {
-          "zincMgKg": {
+          },
+          {
+            "nutrient": "Zinc",
+            "unit": "mg/kg",
             "min": 60000,
             "max": 85000
           },
-          "copperMgKg": {
+          {
+            "nutrient": "Copper",
+            "unit": "mg/kg",
             "min": 6800,
             "max": 8000
           },
-          "vitaminAIuKg": {
+          {
+            "nutrient": "Vitamin A",
+            "unit": "IU/kg",
             "min": 39000000,
             "max": 42000000
           }
-        },
-        "guaranteedMinimumAsFed": {
-          "sourceUrl": "https://www.sustarfeed.com/glypro-x811-0-1-vitamin%EF%BC%86mineral-premix-for-layer-premix-for-layer-animal-feed-additives-poultry-feed-additives-premix-for-laying-hens-vitamin-mineral-premix-feed-additives-product/",
+        ],
+        "notes": [
+          "Vitamin E is published by mass (g/kg). It is not credited as IU until the vitamin form and activity are confirmed. Choline is not declared."
+        ]
+      },
+      "nutrition": {
+        "poultry": {
+          "composition": {},
+          "energy": {},
+          "aminoAcids": {
+            "totalPct": {},
+            "sidDigestibilityPct": {},
+            "sidPct": {}
+          },
+          "macroMinerals": {},
+          "traceMineralsPpm": {
+            "copper": 6800,
+            "iron": 45000,
+            "manganese": 75000,
+            "zinc": 60000,
+            "iodine": 900,
+            "selenium": 200
+          },
           "vitamins": {
             "vitaminAIuKg": 39000000,
             "vitaminDIuKg": 14000000,
@@ -24558,18 +24689,12 @@
             "folicAcidMgKg": 3000,
             "biotinMgKg": 500
           },
-          "traceMineralsPpm": {
-            "copper": 6800,
-            "iron": 45000,
-            "manganese": 75000,
-            "zinc": 60000,
-            "iodine": 900,
-            "selenium": 200
+          "constraints": {
+            "notes": [
+              "Manufacturer dose fixed at 0.1% (1 kg/t)."
+            ]
           }
-        },
-        "notes": [
-          "Vitamin E is published by mass (g/kg). It is not credited as IU until the vitamin form and activity are confirmed. Choline is not declared."
-        ]
+        }
       }
     },
     {
@@ -24579,18 +24704,15 @@
       "provenance": {
         "source": {
           "publisher": "Trouw Nutrition / Caremix",
-          "title": "Caremix Pig Grower Specification Range (user-supplied one-page PDF; finished-feed targets)",
+          "title": "Caremix Pig Grower Specification Range (user-supplied one-page PDF; finished-feed specification, reference only)",
           "url": "https://www.trouwnutrition.com/",
-          "basis": "per kg complete feed, modelled back to premix",
+          "basis": "per kg complete feed (reference only)",
           "priority": "supplier",
-          "note": "Manufacturer-branded target sheet was supplied by user, not a laboratory-tested premix composition. Values are estimates from stated complete-feed specs; model assumes entire amount supplied by premix and ignores basal sources."
+          "note": "Manufacturer-branded finished-feed specification supplied by the user. It is not a premix composition and is not credited as one."
         },
         "nutrientSources": {},
         "notes": [
-          "Back-calculated contribution models, not verified manufacturer premix assays.",
-          "Min/max inverted pairs sorted by numeric size as explicitly requested, with original values retained in each row note.",
-          "Some cells overlap or are misaligned in the PDF; anomalous iodine/selenium inputs are excluded.",
-          "Basal feed also contributes some nutrients; this entire-feed upper-bound attribution can overstate premix supplementation."
+          "No published premix composition: every premix nutrient is treated as undocumented (missing), never as a verified zero."
         ],
         "verificationStatus": "manufacturer_unverified",
         "profileBasis": "as-fed"
@@ -24615,32 +24737,12 @@
         "formulationCompatibility": "unconfirmed",
         "pricePerTonne": null,
         "specificationUrl": "https://www.trouwnutrition.com/",
-        "note": "Modelled from a supplier-branded finished-feed range; no per-kg premix analysis or live supplier quotation provided.",
-        "estimatedAsFedMicronutrients": {
-          "sourceUrl": "https://www.trouwnutrition.com/",
-          "vitamins": {
-            "vitaminAIuKg": 428571.428571,
-            "vitaminDIuKg": 53571.428571,
-            "vitaminEIuKg": 571.428571,
-            "vitaminKMgKg": 35.714286,
-            "vitaminB1MgKg": 35.714286,
-            "riboflavinMgKg": 142.857143,
-            "vitaminB6MgKg": 71.428571,
-            "niacinMgKg": 1071.428571,
-            "biotinMgKg": 5.357143,
-            "folicAcidMgKg": 35.714286,
-            "vitaminB12McgKg": 1250
-          },
-          "traceMineralsPpm": {
-            "copper": 4285.714286,
-            "iron": 89.285714,
-            "iodine": 35.714286,
-            "manganese": 714.285714,
-            "zinc": 21.428571,
-            "selenium": 3.571429
-          }
-        },
-        "labelGuarantees": {
+        "note": "Only a finished-feed specification range is published. No per-kg premix composition is available, so every premix nutrient is treated as undocumented.",
+        "notes": [
+          "The finished-feed specification is kept as manufacturer reference information; it is not converted into premix composition.",
+          "Dose fixed at 28 kg per tonne of feed."
+        ],
+        "finishedFeedSpecification": {
           "source": "User-supplied Caremix Swine Specifications Grower(1).pdf, page 1",
           "batch": "not provided",
           "inclusionPrinted": "28 kg premix per tonne of feed",
@@ -24649,7 +24751,7 @@
             "second": "maximum"
           },
           "confirmedByUser": true,
-          "concentrationBasis": "Specifications per kg of FINISHED FEED, not per kg of premix. Estimated premix profile is back-calculated by dividing each positive finished-feed minimum by the product inclusion fraction; this disregards basal ingredient contributions and must not be treated as an independently verified premix concentration.",
+          "concentrationBasis": "Specifications per kg of FINISHED FEED, not per kg of premix. Retained as manufacturer reference information only; FeedSport does not derive a premix composition from them.",
           "rows": [
             {
               "category": "Vitamin",
@@ -24930,12 +25032,26 @@
             "Overlapping/unusually large iodine and selenium entries are not credited for grower; unknowns remain.",
             "Missing/zero guarantees are not filled with assumptions; supplementary choline and calcium pantothenate require additional composition data."
           ]
-        },
-        "notes": [
-          "Estimated theoretical per-kg-premix profile from published per-kg-FINISHED-FEED requirements, assuming all declared levels came from the Maxipack.",
-          "Not a guaranteed minimum of the Maxipack; basal feed contribution can be nonzero, so projected values may overstate actual product micronutrients.",
-          "Dose fixed at 28 kg per tonne of feed."
-        ]
+        }
+      },
+      "nutrition": {
+        "swine": {
+          "composition": {},
+          "energy": {},
+          "aminoAcids": {
+            "totalPct": {},
+            "sidDigestibilityPct": {},
+            "sidPct": {}
+          },
+          "macroMinerals": {},
+          "traceMineralsPpm": {},
+          "vitamins": {},
+          "constraints": {
+            "notes": [
+              "Manufacturer dose fixed at 2.8% (28 kg/t)."
+            ]
+          }
+        }
       }
     },
     {
@@ -24945,18 +25061,15 @@
       "provenance": {
         "source": {
           "publisher": "Trouw Nutrition / Caremix",
-          "title": "Caremix Pig Grower Specification Range (user-supplied one-page PDF; finished-feed targets)",
+          "title": "Caremix Pig Grower Specification Range (user-supplied one-page PDF; finished-feed specification, reference only)",
           "url": "https://www.trouwnutrition.com/",
-          "basis": "per kg complete feed, modelled back to premix",
+          "basis": "per kg complete feed (reference only)",
           "priority": "supplier",
-          "note": "Manufacturer-branded target sheet was supplied by user, not a laboratory-tested premix composition. Values are estimates from stated complete-feed specs; model assumes entire amount supplied by premix and ignores basal sources."
+          "note": "Manufacturer-branded finished-feed specification supplied by the user. It is not a premix composition and is not credited as one."
         },
         "nutrientSources": {},
         "notes": [
-          "Back-calculated contribution models, not verified manufacturer premix assays.",
-          "Min/max inverted pairs sorted by numeric size as explicitly requested, with original values retained in each row note.",
-          "Some cells overlap or are misaligned in the PDF; anomalous iodine/selenium inputs are excluded.",
-          "Basal feed also contributes some nutrients; this entire-feed upper-bound attribution can overstate premix supplementation."
+          "No published premix composition: every premix nutrient is treated as undocumented (missing), never as a verified zero."
         ],
         "verificationStatus": "manufacturer_unverified",
         "profileBasis": "as-fed"
@@ -24983,30 +25096,12 @@
         "formulationCompatibility": "unconfirmed",
         "pricePerTonne": null,
         "specificationUrl": "https://www.trouwnutrition.com/",
-        "note": "Modelled from a supplier-branded finished-feed range; no per-kg premix analysis or live supplier quotation provided.",
-        "estimatedAsFedMicronutrients": {
-          "sourceUrl": "https://www.trouwnutrition.com/",
-          "vitamins": {
-            "vitaminAIuKg": 312500,
-            "vitaminDIuKg": 46875,
-            "vitaminEIuKg": 343.75,
-            "vitaminKMgKg": 31.25,
-            "vitaminB1MgKg": 31.25,
-            "riboflavinMgKg": 93.75,
-            "vitaminB6MgKg": 31.25,
-            "niacinMgKg": 625,
-            "biotinMgKg": 3.125,
-            "folicAcidMgKg": 15.625,
-            "vitaminB12McgKg": 937.5
-          },
-          "traceMineralsPpm": {
-            "copper": 2812.5,
-            "iron": 2812.5,
-            "manganese": 15.625,
-            "zinc": 625
-          }
-        },
-        "labelGuarantees": {
+        "note": "Only a finished-feed specification range is published. No per-kg premix composition is available, so every premix nutrient is treated as undocumented.",
+        "notes": [
+          "The finished-feed specification is kept as manufacturer reference information; it is not converted into premix composition.",
+          "Dose fixed at 32 kg per tonne of feed."
+        ],
+        "finishedFeedSpecification": {
           "source": "User-supplied Caremix Swine Specifications Grower(1).pdf, page 1",
           "batch": "not provided",
           "inclusionPrinted": "32 kg premix per tonne of feed",
@@ -25015,7 +25110,7 @@
             "second": "maximum"
           },
           "confirmedByUser": true,
-          "concentrationBasis": "Specifications per kg of FINISHED FEED, not per kg of premix. Estimated premix profile is back-calculated by dividing each positive finished-feed minimum by the product inclusion fraction; this disregards basal ingredient contributions and must not be treated as an independently verified premix concentration.",
+          "concentrationBasis": "Specifications per kg of FINISHED FEED, not per kg of premix. Retained as manufacturer reference information only; FeedSport does not derive a premix composition from them.",
           "rows": [
             {
               "category": "Vitamin",
@@ -25296,14 +25391,26 @@
             "Overlapping/unusually large iodine and selenium entries are not credited for grower; unknowns remain.",
             "Missing/zero guarantees are not filled with assumptions; supplementary choline and calcium pantothenate require additional composition data."
           ]
-        },
-        "notes": [
-          "Estimated theoretical per-kg-premix profile from published per-kg-FINISHED-FEED requirements, assuming all declared levels came from the Maxipack.",
-          "Not a guaranteed minimum of the Maxipack; basal feed contribution can be nonzero, so projected values may overstate actual product micronutrients.",
-          "Dose fixed at 32 kg per tonne of feed.",
-          "Excluded Iodine source misalignment.",
-          "Excluded Selenium source misalignment."
-        ]
+        }
+      },
+      "nutrition": {
+        "swine": {
+          "composition": {},
+          "energy": {},
+          "aminoAcids": {
+            "totalPct": {},
+            "sidDigestibilityPct": {},
+            "sidPct": {}
+          },
+          "macroMinerals": {},
+          "traceMineralsPpm": {},
+          "vitamins": {},
+          "constraints": {
+            "notes": [
+              "Manufacturer dose fixed at 3.2% (32 kg/t)."
+            ]
+          }
+        }
       }
     },
     {
@@ -25313,18 +25420,15 @@
       "provenance": {
         "source": {
           "publisher": "Trouw Nutrition / Caremix",
-          "title": "Caremix Pig Grower Specification Range (user-supplied one-page PDF; finished-feed targets)",
+          "title": "Caremix Pig Grower Specification Range (user-supplied one-page PDF; finished-feed specification, reference only)",
           "url": "https://www.trouwnutrition.com/",
-          "basis": "per kg complete feed, modelled back to premix",
+          "basis": "per kg complete feed (reference only)",
           "priority": "supplier",
-          "note": "Manufacturer-branded target sheet was supplied by user, not a laboratory-tested premix composition. Values are estimates from stated complete-feed specs; model assumes entire amount supplied by premix and ignores basal sources."
+          "note": "Manufacturer-branded finished-feed specification supplied by the user. It is not a premix composition and is not credited as one."
         },
         "nutrientSources": {},
         "notes": [
-          "Back-calculated contribution models, not verified manufacturer premix assays.",
-          "Min/max inverted pairs sorted by numeric size as explicitly requested, with original values retained in each row note.",
-          "Some cells overlap or are misaligned in the PDF; anomalous iodine/selenium inputs are excluded.",
-          "Basal feed also contributes some nutrients; this entire-feed upper-bound attribution can overstate premix supplementation."
+          "No published premix composition: every premix nutrient is treated as undocumented (missing), never as a verified zero."
         ],
         "verificationStatus": "manufacturer_unverified",
         "profileBasis": "as-fed"
@@ -25351,31 +25455,12 @@
         "formulationCompatibility": "unconfirmed",
         "pricePerTonne": null,
         "specificationUrl": "https://www.trouwnutrition.com/",
-        "note": "Modelled from a supplier-branded finished-feed range; no per-kg premix analysis or live supplier quotation provided.",
-        "estimatedAsFedMicronutrients": {
-          "sourceUrl": "https://www.trouwnutrition.com/",
-          "vitamins": {
-            "vitaminAIuKg": 230769.230769,
-            "vitaminDIuKg": 38461.538462,
-            "vitaminEIuKg": 423.076923,
-            "vitaminKMgKg": 38.461538,
-            "vitaminB1MgKg": 38.461538,
-            "riboflavinMgKg": 76.923077,
-            "vitaminB6MgKg": 38.461538,
-            "niacinMgKg": 384.615385,
-            "biotinMgKg": 3.076923,
-            "vitaminB12McgKg": 769.230769
-          },
-          "traceMineralsPpm": {
-            "copper": 3076.923077,
-            "iron": 57.692308,
-            "iodine": 19.230769,
-            "manganese": 769.230769,
-            "zinc": 15.384615,
-            "selenium": 3.846154
-          }
-        },
-        "labelGuarantees": {
+        "note": "Only a finished-feed specification range is published. No per-kg premix composition is available, so every premix nutrient is treated as undocumented.",
+        "notes": [
+          "The finished-feed specification is kept as manufacturer reference information; it is not converted into premix composition.",
+          "Dose fixed at 26 kg per tonne of feed."
+        ],
+        "finishedFeedSpecification": {
           "source": "User-supplied Caremix Swine Specifications Grower(1).pdf, page 1",
           "batch": "not provided",
           "inclusionPrinted": "26 kg premix per tonne of feed",
@@ -25384,7 +25469,7 @@
             "second": "maximum"
           },
           "confirmedByUser": true,
-          "concentrationBasis": "Specifications per kg of FINISHED FEED, not per kg of premix. Estimated premix profile is back-calculated by dividing each positive finished-feed minimum by the product inclusion fraction; this disregards basal ingredient contributions and must not be treated as an independently verified premix concentration.",
+          "concentrationBasis": "Specifications per kg of FINISHED FEED, not per kg of premix. Retained as manufacturer reference information only; FeedSport does not derive a premix composition from them.",
           "rows": [
             {
               "category": "Vitamin",
@@ -25665,13 +25750,26 @@
             "Overlapping/unusually large iodine and selenium entries are not credited for grower; unknowns remain.",
             "Missing/zero guarantees are not filled with assumptions; supplementary choline and calcium pantothenate require additional composition data."
           ]
-        },
-        "notes": [
-          "Estimated theoretical per-kg-premix profile from published per-kg-FINISHED-FEED requirements, assuming all declared levels came from the Maxipack.",
-          "Not a guaranteed minimum of the Maxipack; basal feed contribution can be nonzero, so projected values may overstate actual product micronutrients.",
-          "Dose fixed at 26 kg per tonne of feed.",
-          "Excluded Folic acid missing/zero."
-        ]
+        }
+      },
+      "nutrition": {
+        "swine": {
+          "composition": {},
+          "energy": {},
+          "aminoAcids": {
+            "totalPct": {},
+            "sidDigestibilityPct": {},
+            "sidPct": {}
+          },
+          "macroMinerals": {},
+          "traceMineralsPpm": {},
+          "vitamins": {},
+          "constraints": {
+            "notes": [
+              "Manufacturer dose fixed at 2.6% (26 kg/t)."
+            ]
+          }
+        }
       }
     }
   ]

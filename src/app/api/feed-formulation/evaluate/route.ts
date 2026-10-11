@@ -4,7 +4,7 @@ import { z } from "zod";
 import { evaluateFormulation } from "@/lib/feed-optimizer";
 import { feedProgrammePhaseById } from "@/lib/feed-programmes";
 import { commercialPremixById } from "@/lib/commercial-premixes";
-import { ingredientLibraryForPhase, ingredientLibraryWithCommercialPremixes, ingredientLibraryWithCustomPremixes } from "@/lib/ingredient-nutrients";
+import { ingredientLibraryForPhase } from "@/lib/ingredient-nutrients";
 import { buildFormulationAssessment } from "@/lib/formulation-assessment";
 
 export const runtime = "nodejs";
@@ -44,20 +44,14 @@ export async function POST(request: Request) {
       return premix ? [premix] : [];
     });
     if (premixes.length > 1) throw new Error("Select only one premix for a formulation.");
-    const library = ingredientLibraryWithCommercialPremixes(premixes, ingredientLibraryForPhase(phase));
+    const library = ingredientLibraryForPhase(phase);
     const formula = { ingredients };
-    const evaluation = evaluateFormulation(
-      phase,
-      energySystem,
-      formula,
-      library,
-      { includeSupplementationTargets: true, traceMineralBasis: "inorganic" },
-    );
+    const evaluation = evaluateFormulation(phase, energySystem, formula, library);
     return NextResponse.json({
       status: "evaluated",
       nutrientProfile: evaluation.nutrientProfile,
       incompleteRequirements: evaluation.incompleteRequirements,
-      assessment: buildFormulationAssessment(phase, energySystem, formula, library, evaluation),
+      assessment: buildFormulationAssessment(phase, energySystem, formula, library),
     });
   } catch (error) {
     return NextResponse.json({ status: "error", message: error instanceof Error ? error.message : String(error) }, { status: 400 });

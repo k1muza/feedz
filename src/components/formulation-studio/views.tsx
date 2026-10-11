@@ -1,5 +1,5 @@
 import { Trash2 } from "lucide-react";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 
 import { CAT_PAGE_SIZES, type ShellVals, type StudioVals } from "./studio";
 import { STUDIO_CSS, hv, sx } from "./sx";
@@ -846,7 +846,9 @@ function Workspace({ v }: V) {
           </div>
         </div>
         <div style={sx("display:flex;gap:10px;flex-wrap:wrap")}>
-          <button onClick={v.goList} style={sx("font:500 14px/1 'IBM Plex Sans',sans-serif;padding:11px 16px;border:1px solid #d0cdc3;border-radius:7px;background:#fff;color:#222420")}>Compare</button>
+          {v.headerCompare
+            ? <button onClick={v.headerCompare} style={sx("font:500 14px/1 'IBM Plex Sans',sans-serif;padding:11px 16px;border:1px solid #d0cdc3;border-radius:7px;background:#fff;color:#222420")}>Compare premixes</button>
+            : <button onClick={v.goList} style={sx("font:500 14px/1 'IBM Plex Sans',sans-serif;padding:11px 16px;border:1px solid #d0cdc3;border-radius:7px;background:#fff;color:#222420")}>Compare</button>}
           <button onClick={v.doExport} disabled={v.exportDisabled} title={v.exportTitle} style={sx(`font:500 14px/1 'IBM Plex Sans',sans-serif;padding:11px 16px;border:1px solid #d0cdc3;border-radius:7px;background:#fff;color:${v.exportColor}`)}>{v.exportLabel}</button>
           <button onClick={v.save} disabled={v.saveDisabled} title={v.saveTitle} style={sx(`font:600 14px/1 'IBM Plex Sans',sans-serif;padding:11px 20px;border:0;background:${v.saveBg};color:#fff;border-radius:7px`)}>Save</button>
         </div>
@@ -874,6 +876,18 @@ function Workspace({ v }: V) {
               <span style={sx(MONO_LABEL)}>2 · Ingredients · {v.poolCount}</span>
               <button onClick={v.openAdd} style={sx("border:0;background:transparent;font:600 13px/1 'IBM Plex Sans',sans-serif;color:#2f5a3f;padding:4px 0")}>+ Add</button>
             </div>
+            {v.premixPoolRow && (
+              <div style={sx("display:flex;align-items:center;gap:8px;padding:9px 10px;margin:0 -8px 4px;border-radius:7px;background:#f3f0e8")}>
+                <button onClick={v.premixPoolRow.open} style={sx("flex:1;min-width:0;border:0;background:transparent;padding:0;text-align:left;display:flex;flex-direction:column;gap:3px;color:#222420")}>
+                  <span style={sx("display:flex;align-items:center;gap:7px;font:600 14px/1.2 'IBM Plex Sans',sans-serif")}>
+                    <span style={sx("font:600 9px/1 'IBM Plex Mono',monospace;background:#222420;color:#fff;padding:3px 5px;border-radius:3px")}>PREMIX</span>
+                    <span style={sx("overflow:hidden;text-overflow:ellipsis;white-space:nowrap")}>{v.premixPoolRow.sku}</span>
+                  </span>
+                  <span style={sx("font:400 12px/1.3 'IBM Plex Sans',sans-serif;color:#64665c")}>{v.premixPoolRow.sub}</span>
+                </button>
+                <button onClick={v.premixPoolRow.replace} style={sx("flex:none;border:0;background:transparent;padding:4px 0;font:600 12px/1 'IBM Plex Sans',sans-serif;color:#2f5a3f")}>⇄ Replace</button>
+              </div>
+            )}
             {poolShown.map((c) => (
               <button key={c.name} onClick={c.open} className={hv("pool")} style={sx("border:0;background:transparent;display:flex;justify-content:space-between;align-items:center;gap:8px;padding:7px 8px;margin:0 -8px;border-radius:6px;font:400 14px/1.2 'IBM Plex Sans',sans-serif;color:#222420;text-align:left")}>
                 <span style={sx(`text-decoration:${c.chip.deco};color:${c.nameColor}`)}>{c.name}</span>
@@ -1168,14 +1182,10 @@ function Infeasible({ v, inf }: V & { inf: NonNullable<StudioVals["inf"]> }) {
   );
 }
 
-const RECIPE_COLS = "display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1.6fr) 0.6fr 0.9fr;gap:12px";
-
 function StatusGlyph({ shape, color, size = 9 }: { shape: string; color: string; size?: number }) {
   const base = `flex:none;display:inline-block;width:${size}px;height:${size}px;background:${color}`;
   return <span aria-hidden style={sx(shape === "triangle" ? `${base};width:${size + 2}px;clip-path:polygon(50% 0,100% 100%,0 100%)` : shape === "dot" ? `${base};border-radius:50%` : base)} />;
 }
-
-type VerificationVals = NonNullable<NonNullable<StudioVals["opt"]>["verification"]>;
 
 const VERIFY_COLS = "fs-verify-row";
 
@@ -1195,311 +1205,504 @@ function RescueChip({ chip }: { chip: ChipVals }) {
   );
 }
 
-function VerificationCard({ v, card, strip }: V & { card: VerificationVals; strip: NonNullable<StudioVals["opt"]>["strip"] }) {
-  const [hidden, setHidden] = useState(false);
-  const [why, setWhy] = useState<string | null>(null);
-  const link = "border:0;background:transparent;padding:0;font:500 13px/1.3 'IBM Plex Sans',sans-serif;color:#222420;text-decoration:underline;text-underline-offset:3px;cursor:pointer";
+type OptVals = NonNullable<StudioVals["opt"]>;
+
+const MONO_TAG = "font:500 10px/1 'IBM Plex Mono',monospace;letter-spacing:0.04em;text-transform:uppercase;padding:4px 6px;border-radius:4px;white-space:nowrap";
+
+/** Data status tag: Published / Assumed 0 / Missing. Never a requirement status. */
+function DataTag({ label, dashed }: { label: string; dashed?: boolean }) {
+  return <span style={sx(`${MONO_TAG};${dashed ? "border:1px dashed #b9b6ab;background:#fff;color:#45473f" : "border:1px solid transparent;background:#efece4;color:#45473f"}`)}>{label}</span>;
+}
+
+/** Amber diamond: advisory, optional, never blocks. */
+function Diamond({ size = 8 }: { size?: number }) {
+  return <span aria-hidden style={sx(`flex:none;display:inline-block;width:${size}px;height:${size}px;background:#c98a1e;transform:rotate(45deg)`)} />;
+}
+
+const ADV_LINK = "border:0;background:transparent;padding:0;font:600 13px/1.3 'IBM Plex Sans',sans-serif;color:#2f5a3f;text-decoration:underline;text-underline-offset:3px;cursor:pointer";
+const CARD = "background:#fff;border:1px solid #e2dfd6;border-radius:10px";
+const MONO_HEAD = "font:500 11px/1 'IBM Plex Mono',monospace;color:#64665c;text-transform:uppercase;letter-spacing:0.05em";
+
+function ResultHeadline({ s, showSolver }: { s: OptVals["summary"]; showSolver: boolean }) {
+  const { headline } = s;
+  const color = headline.state === "ok" ? "#1f3e2b" : headline.state === "fail" ? "#7a2a1c" : "#45473f";
   return (
-    <section role="status" aria-live="polite" aria-label={card.headline + ": " + card.counts} style={sx("background:#fff;border:1px solid #e2dfd6;border-radius:10px;overflow:hidden;color:#222420")}>
-      <div style={sx("display:flex;align-items:center;gap:8px 18px;padding:13px 18px;flex-wrap:wrap")}>
-        <span style={sx("flex:1 1 320px;min-width:0;display:flex;align-items:center;gap:10px;flex-wrap:wrap")}>
-          <StatusGlyph shape={card.mark.shape} color={card.mark.color} size={11} />
-          <h2 style={sx("font:600 16px/1.3 'IBM Plex Sans',sans-serif;margin:0")}>{card.headline}</h2>
-          <span style={sx("font:400 14px/1.3 'IBM Plex Sans',sans-serif;color:#45473f")}>{card.counts}</span>
+    <section role="status" aria-live="polite" aria-label={headline.text} style={sx(`${CARD};overflow:hidden;color:#222420`)}>
+      <div style={sx("display:flex;align-items:center;gap:8px 16px;padding:15px 18px;flex-wrap:wrap")}>
+        <span style={sx("flex:1 1 320px;min-width:0;display:flex;align-items:baseline;gap:10px;flex-wrap:wrap")}>
+          {headline.state === "ok" ? <StatusGlyph shape="dot" color="#2f7a4a" size={10} /> : headline.state === "fail" ? <StatusGlyph shape="square" color="#b2412e" size={10} /> : <StatusGlyph shape="dot" color="#d0cdc3" size={10} />}
+          <h2 style={sx(`font:600 17px/1.3 'IBM Plex Sans',sans-serif;margin:0;color:${color}`)}>{headline.text}</h2>
+          <span style={sx("font:400 14px/1.3 'IBM Plex Sans',sans-serif;color:#64665c")}>{headline.sub}</span>
         </span>
-        <span style={sx("display:flex;align-items:center;gap:12px;font:400 13px/1.3 'IBM Plex Sans',sans-serif;color:#45473f;flex-wrap:wrap")}>
-          {card.othersVerified && (
-            <span title={card.verified ? "Verified: " + card.verified : undefined} style={sx("display:flex;align-items:center;gap:7px;color:#2b6a42")}>
-              <StatusGlyph shape="dot" color="#2f7a4a" size={7} />
-              {card.othersVerified}
-            </span>
+        <span style={sx("display:flex;align-items:center;gap:12px;font:400 13px/1.3 'IBM Plex Sans',sans-serif;flex-wrap:wrap")}>
+          {s.metNote && (
+            <span style={sx("display:flex;align-items:center;gap:7px;color:#2b6a42")}><StatusGlyph shape="dot" color="#2f7a4a" size={7} />{s.metNote}</span>
           )}
-          {strip.hasAdv && (
-            <>
-              <span style={sx("width:1px;height:14px;background:#d0cdc3")} />
-              <button type="button" onClick={v.openAdvisories} aria-label={`Open ${strip.adv}`} style={sx("display:flex;align-items:center;gap:7px;color:#8a5f18;border:0;background:transparent;padding:0;font:500 13px/1.3 'IBM Plex Sans',sans-serif;text-decoration:underline;text-decoration-color:#d7ad62;text-underline-offset:3px;cursor:pointer")}>
-                <span style={sx("width:7px;height:7px;background:#c98a1e;transform:rotate(45deg)")} />
-                {strip.adv}
-              </button>
-            </>
+          {s.metNote && s.hasAdvisories && <span style={sx("width:1px;height:14px;background:#d0cdc3")} />}
+          {s.hasAdvisories && (
+            <button type="button" onClick={s.openAdvisories} style={sx("display:flex;align-items:center;gap:7px;color:#8a5f18;border:0;background:transparent;padding:0;font:600 13px/1.3 'IBM Plex Sans',sans-serif;text-decoration:underline;text-decoration-color:#d7ad62;text-underline-offset:3px;cursor:pointer")}>
+              <Diamond />{s.advisoriesLabel}
+            </button>
           )}
-          <span style={sx("width:1px;height:14px;background:#d0cdc3")} />
-          <button type="button" onClick={() => setHidden(!hidden)} aria-expanded={!hidden} title={card.meta} style={sx("border:0;background:transparent;padding:0;font:500 13px/1.3 'IBM Plex Sans',sans-serif;color:#45473f;display:flex;align-items:center;gap:6px")}>
-            {hidden ? "Show" : "Hide"}
-            <span aria-hidden style={sx(`font-size:8px;display:inline-block;transform:rotate(${hidden ? "180deg" : "0deg"})`)}>▲</span>
-          </button>
         </span>
       </div>
-      {!hidden && (
-        <>
-          <div role="table" aria-label="Unresolved nutrients">
-            {card.rows.map((row) => (
-              <div key={row.key} role="row" style={sx("border-top:1px solid #ece8df")}>
-                <div className={VERIFY_COLS} style={sx("padding:10px 18px;align-items:center;font:400 13px/1.4 'IBM Plex Sans',sans-serif")}>
-                  <span role="cell" style={sx(`display:flex;align-items:center;gap:8px;color:${row.status.color};font-weight:600`)}>
-                    <StatusGlyph shape={row.status.shape} color={row.status.bg} />
-                    {row.status.label}
-                  </span>
-                  <span role="cell" title={row.sub} style={sx("font:600 14px/1.3 'IBM Plex Sans',sans-serif")}>{row.name}</span>
-                  <span role="cell" style={sx("display:flex;align-items:center;flex-wrap:wrap;gap:4px 10px;color:#45473f;min-width:0")}>
-                    {row.known ? (
-                      <>
-                        <span><b style={sx("font-weight:600;color:#222420;font-size:14px")}>{row.actual}</b> / {row.limitShort}</span>
-                        <span title={row.bar.delta} style={sx("position:relative;flex:0 0 60px;height:5px;background:#f3f0e8;border-radius:3px")}>
-                          <span style={sx(`position:absolute;left:0;top:0;bottom:0;width:${row.bar.fill};background:#e7b3a6;border-radius:3px`)} />
-                          <span style={sx(`position:absolute;left:${row.bar.marker};top:-4px;width:2px;height:13px;background:#222420`)} />
-                        </span>
-                      </>
-                    ) : <span>{row.missingTxt}</span>}
-                  </span>
-                  <span role="cell" style={sx("display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-width:0")}>
-                    {row.chips.length > 0 && (
-                      <span role="list" aria-label={`Ingredients that fix ${row.name}`} style={sx("display:contents")}>
-                        {row.chips.map((chip) => <RescueChip key={chip.key} chip={chip} />)}
-                      </span>
-                    )}
-                    {row.fixLink && <button type="button" onClick={row.fixLink.go} className={hv("chip")} style={sx(`${CHIP};font-weight:500;border:1px dashed #b9b6ab;background:#fff;color:#45473f`)}>{row.fixLink.label}</button>}
-                    {row.fixNote && <span style={sx("font-size:12px;color:#64665c")}>{row.fixNote}</span>}
-                  </span>
-                  <span role="cell" style={sx("text-align:right")}>
-                    <button type="button" onClick={() => setWhy(why === row.key ? null : row.key)} aria-expanded={why === row.key} style={sx(link)}>Why?</button>
-                  </span>
-                </div>
-                {why === row.key && (
-                  <div style={sx("margin:0 18px 10px;padding:9px 12px;background:#faf8f3;border:1px solid #ece8df;border-radius:7px;font:400 13px/1.5 'IBM Plex Sans',sans-serif;color:#45473f")}>
-                    {row.why.pre}
-                    {row.why.strong && <b style={sx("font-weight:600;color:#222420")}>{row.why.strong}</b>}
-                    {row.why.post}
-                    {row.known && row.bar.delta && <span style={sx("color:#a63d2a")}> ({row.bar.delta}.)</span>}
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-          <div style={sx("display:flex;justify-content:space-between;align-items:center;gap:10px 18px;padding:10px 18px;border-top:1px solid #e2dfd6;background:#faf8f3;font:400 12px/1.45 'IBM Plex Sans',sans-serif;color:#64665c;flex-wrap:wrap")}>
-            <span>{card.checking ? "Re-formulating with ingredients that might fix this…" : "Tap a chip to add it and re-formulate · green = cheapest confirmed fix · catalogue prices"}</span>
-            <span style={sx("display:flex;align-items:center;gap:18px;flex-wrap:wrap")}>
-              <button type="button" onClick={card.askNutritionist} style={sx(link)}>Ask a nutritionist</button>
-              {card.applyGreen && (
-                <button type="button" onClick={card.applyGreen.go} title={card.applyGreen.title} style={sx("border:0;border-radius:6px;padding:9px 13px;background:#2f5a3f;color:#fff;font:600 13px/1 'IBM Plex Sans',sans-serif")}>{card.applyGreen.label}</button>
+      {s.failedRows.length > 0 && (
+        <div role="table" aria-label="Hard requirements not met">
+          {s.failedRows.map((row) => (
+            <div key={row.key} role="row" style={sx("display:flex;align-items:center;gap:10px 18px;padding:10px 18px;border-top:1px solid #ece8df;font:400 13px/1.4 'IBM Plex Sans',sans-serif;flex-wrap:wrap")}>
+              <span role="cell" style={sx("display:flex;align-items:center;gap:8px;color:#a63d2a;font-weight:600;width:84px")}><StatusGlyph shape="square" color="#b2412e" />Not met</span>
+              <span role="cell" style={sx("font:600 14px/1.3 'IBM Plex Sans',sans-serif;min-width:140px")}>{row.name}</span>
+              <span role="cell" style={sx("display:flex;align-items:center;gap:10px;color:#45473f")}>
+                <span><b style={sx("font-weight:600;color:#222420")}>{row.actual}</b> / {row.bound}</span>
+                <span style={sx("position:relative;width:60px;height:5px;background:#f3f0e8;border-radius:3px")}>
+                  <span style={sx(`position:absolute;left:0;top:0;bottom:0;width:${row.fill};background:#e7b3a6;border-radius:3px`)} />
+                  <span style={sx(`position:absolute;left:${row.marker};top:-4px;width:2px;height:13px;background:#222420`)} />
+                </span>
+                {row.data && <DataTag label={row.data.label} dashed={row.data.dashed} />}
+              </span>
+              {row.replace && (
+                <button role="cell" type="button" onClick={row.replace.go} title={row.replace.note} className={hv("chip")} style={sx(`${CHIP};border:1px solid #d0cdc3;background:#fff;color:#222420`)}>⇄ {row.replace.label}<span style={sx("font-weight:400;color:#64665c")}>{row.replace.note}</span></button>
               )}
-            </span>
-          </div>
-        </>
+            </div>
+          ))}
+        </div>
       )}
+      {s.documentation && (
+        <div style={sx("display:flex;align-items:center;gap:10px 14px;padding:11px 18px;border-top:1px solid #ece8df;background:#fcfbf8;font:400 13px/1.45 'IBM Plex Sans',sans-serif;color:#45473f;flex-wrap:wrap")}>
+          <DataTag label="Missing" dashed />
+          <span style={sx("flex:1 1 300px")}>{s.documentation}</span>
+          <button type="button" onClick={s.openAdvisories} style={sx(ADV_LINK + ";color:#222420")}>Details</button>
+        </div>
+      )}
+      {showSolver && s.solver && <div style={sx("padding:8px 18px;border-top:1px solid #ece8df;font:400 12px/1 'IBM Plex Mono',monospace;color:#64665c")}>{s.solver}</div>}
     </section>
   );
 }
 
-function Optimal({ v, opt }: V & { opt: NonNullable<StudioVals["opt"]> }) {
-  const { strip } = opt;
+const RECIPE_COLS2 = "display:grid;grid-template-columns:minmax(0,1.7fr) minmax(0,1.5fr) 0.55fr 0.6fr 0.75fr;gap:12px";
+
+function RecipeTable({ v, opt }: V & { opt: OptVals }) {
   return (
-    <div style={sx(`display:flex;flex-direction:column;gap:20px;opacity:${v.dimOpacity};transition:opacity .2s`)}>
-      {opt.verification ? (
-        <VerificationCard v={v} card={opt.verification} strip={strip} />
-      ) : (
-        <>
-          <section role="status" aria-live="polite" className={`fs-assessment-card${opt.verdict.rescueEmptyMessage ? " fs-has-explanation" : ""}`} style={sx(`display:grid;grid-template-columns:auto minmax(0,1fr);gap:14px 16px;padding:20px;background:${opt.verdict.bg};border:1px solid ${opt.verdict.border};border-radius:10px;color:${opt.verdict.color}`)}>
-            <span aria-hidden style={sx(`grid-row:1 / 4;display:flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;border:2px solid ${opt.verdict.color};font:600 15px/1 'IBM Plex Sans',sans-serif`)}>{opt.verdict.mark}</span>
-            <span style={sx("grid-column:2;font:500 11px/1 'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:0.06em")}>{opt.verdict.eyebrow}</span>
-            <h2 style={sx("grid-column:2;font:600 22px/1.2 'IBM Plex Sans',sans-serif;margin:0")}>{opt.verdict.title}</h2>
-            <div style={sx("grid-column:2;display:flex;flex-direction:column;gap:7px;font:400 14px/1.5 'IBM Plex Sans',sans-serif;color:#45473f;max-width:900px")}>
-              <span>{opt.verdict.summary}</span>
-              <span style={sx(`font-weight:600;color:${opt.verdict.color}`)}>Next step: {opt.verdict.guidance}</span>
-              {opt.verdict.rescueSuggestions.length > 0 && (
-                <div style={sx("display:flex;flex-direction:column;align-items:flex-start;gap:8px;margin-top:5px")}>
-                  <span style={sx("font:500 11px/1 'IBM Plex Mono',monospace;color:#64665c;text-transform:uppercase;letter-spacing:0.05em")}>Ingredients that may help</span>
-                  <span role="list" aria-label="Ingredients that may help resolve the assessment" style={sx("display:flex;gap:8px;flex-wrap:wrap")}>
-                    {opt.verdict.rescueSuggestions.map((suggestion) => (
-                      <button key={suggestion.id} type="button" role="listitem" onClick={suggestion.add} title={suggestion.reason} aria-label={`Add ${suggestion.name}. ${suggestion.reason}`} className={hv("chip")} style={sx("font:500 13px/1.15 'IBM Plex Sans',sans-serif;padding:8px 12px;border-radius:99px;border:1px solid #d0cdc3;background:#fff;color:#222420;display:flex;gap:7px;align-items:center")}>
-                        <span>+ {suggestion.name}</span>
-                        <span style={sx("font:400 10px/1 'IBM Plex Mono',monospace;color:#64665c")}>{suggestion.category}</span>
-                      </button>
-                    ))}
+    <div style={sx(`${CARD};overflow:hidden`)}>
+      <div style={sx("display:flex;justify-content:space-between;align-items:center;gap:10px;padding:14px 20px;flex-wrap:wrap")}>
+        <span style={sx("font:600 17px/1.2 'IBM Plex Sans',sans-serif")}>{opt.recipeTitle}</span>
+        <div style={sx("display:flex;align-items:center;gap:8px")}>
+          <div role="group" aria-label="Batch size" style={sx("display:flex;background:#f3f0e8;border-radius:7px;padding:3px")}>
+            {v.batchOpts.map((b) => (
+              <button key={b.label} onClick={b.pick} style={sx(`border:0;padding:8px 12px;border-radius:5px;background:${b.tabBg};font:${b.weight} 14px/1 'IBM Plex Sans',sans-serif;color:#222420`)}>{b.label}</button>
+            ))}
+          </div>
+          {v.batchCustom && <input type="number" min="1" value={v.customBatch} onChange={v.onCustomBatch} placeholder="kg" aria-label="Custom batch, kg" style={sx("width:80px;padding:7px 8px;border:1px solid #d0cdc3;border-radius:6px;font:500 13px/1 'IBM Plex Sans',sans-serif")} />}
+        </div>
+      </div>
+      {v.isManual && (
+        <div style={sx("padding:10px 20px;background:#222420;color:#faf8f3;font:400 13px/1.4 'IBM Plex Sans',sans-serif;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap")}>
+          <span><b style={sx("font-weight:600")}>Manual recipe.</b> FeedSport checks your amounts but won&apos;t change them.</span>
+          <button onClick={v.optimiseFromHere} style={sx("border:0;background:transparent;color:#e3aa45;font:600 13px/1 'IBM Plex Sans',sans-serif;padding:0")}>Back to optimised</button>
+        </div>
+      )}
+      <div style={sx("overflow-x:auto")}>
+        <div style={sx("min-width:560px")}>
+          <div style={sx(`${RECIPE_COLS2};padding:12px 20px;font:500 11px/1 'IBM Plex Mono',monospace;color:#45473f;text-transform:uppercase;letter-spacing:0.04em;background:#faf8f3;border-top:1px solid #e2dfd6`)}>
+            <span>Ingredient</span><span>Inclusion</span><span style={sx("text-align:right")}>kg</span><span style={sx("text-align:right")}>$ / t</span><span style={sx("text-align:right")}>Cost share</span>
+          </div>
+          {opt.rows.map((r) => (
+            <div key={r.name} title={r.setting + " · " + r.price + " (" + r.tag.toLowerCase() + " price)"} style={sx(`${RECIPE_COLS2};padding:12px 20px;border-top:1px solid #ece8df;font:400 14px/1.2 'IBM Plex Sans',sans-serif;align-items:center;background:${r.bg}`)}>
+              <button onClick={r.open} style={sx("border:0;background:transparent;padding:0;text-align:left;display:flex;flex-direction:column;gap:3px;color:#222420;min-width:0")}>
+                <span style={sx("display:flex;align-items:center;gap:8px;font:500 14px/1.25 'IBM Plex Sans',sans-serif")}>
+                  {r.isPremix && <span style={sx("font:600 9px/1 'IBM Plex Mono',monospace;background:#222420;color:#fff;padding:3px 5px;border-radius:3px")}>PREMIX</span>}
+                  {r.name}
+                  {r.adv && <Diamond />}
+                </span>
+                {r.sub && <span style={sx(`font:400 12px/1.35 'IBM Plex Sans',sans-serif;color:${r.isPremix ? "#64665c" : "#2b6a42"}`)}>{r.sub}</span>}
+              </button>
+              {v.isManual ? (
+                <input type="number" step="0.1" min="0" max="100" value={r.manual} onChange={r.onManual} aria-label={r.name + " inclusion, %"} style={sx("width:90px;padding:6px 8px;border:1px solid #d0cdc3;border-radius:6px;font:600 14px/1 'IBM Plex Sans',sans-serif;text-align:right")} />
+              ) : (
+                <span style={sx("display:flex;align-items:center;gap:10px")}>
+                  <span style={sx("width:52px;text-align:right;font-weight:600")}>{r.pctTxt}</span>
+                  {r.isPremix || r.fixed ? <span style={sx("font:500 10px/1 'IBM Plex Mono',monospace;color:#64665c")}>FIXED</span> : (
+                    <span style={sx("flex:1;max-width:110px;height:7px;background:#f3f0e8;border-radius:4px;overflow:hidden")}><span style={sx(`display:block;width:${r.barW};height:100%;background:${r.barC}`)} /></span>
+                  )}
+                </span>
+              )}
+              <span style={sx("text-align:right")}>{r.kg}</span>
+              <span style={sx("text-align:right")}>{r.priceT}</span>
+              <span style={sx("text-align:right")}>{r.shareTxt}</span>
+            </div>
+          ))}
+          <div style={sx(`${RECIPE_COLS2};padding:13px 20px;border-top:1px solid #d0cdc3;font:600 14px/1.2 'IBM Plex Sans',sans-serif;align-items:center;background:#faf8f3`)}>
+            <span>Total · {opt.rows.length} ingredients</span>
+            <span style={sx(`color:${opt.total.color}`)}>{opt.total.pct}</span>
+            <span style={sx("text-align:right")}>{opt.total.kg}</span>
+            <span style={sx("text-align:right")}>{opt.total.cost}</span>
+            <span />
+          </div>
+        </div>
+      </div>
+      {v.notManual && (
+        <div style={sx("padding:12px 20px;border-top:1px solid #ece8df;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;font:400 13px/1.45 'IBM Plex Sans',sans-serif;color:#64665c")}>
+          <span>{opt.hasUnused ? "Available but not used: " + opt.unusedText + "." : "Every available ingredient is used."}</span>
+          <button onClick={v.editManually} style={sx("border:0;background:transparent;padding:0;font:600 13px/1.45 'IBM Plex Sans',sans-serif;color:#2f5a3f")}>Adjust amounts manually</button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PremixCard({ opt }: { opt: OptVals }) {
+  const card = opt.premixCard;
+  if (!card) {
+    return (
+      <div style={sx(`${CARD};padding:16px 20px;display:flex;flex-direction:column;gap:10px`)}>
+        <span style={sx("font:600 15px/1.2 'IBM Plex Sans',sans-serif")}>No premix selected</span>
+        <span style={sx("font:400 13px/1.5 'IBM Plex Sans',sans-serif;color:#45473f")}>The recipe meets its hard requirements without vitamin and trace-mineral supplementation. Chapter 7 recommendations are compared under Advisories.</span>
+        {opt.noPremix && <button onClick={opt.noPremix.add} style={sx("align-self:flex-start;border:1px solid #2f5a3f;background:#fff;color:#2f5a3f;font:600 13px/1 'IBM Plex Sans',sans-serif;padding:9px 12px;border-radius:6px")}>Add premix</button>}
+      </div>
+    );
+  }
+  return (
+    <div style={sx(`${CARD};overflow:hidden`)}>
+      <div style={sx("display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 18px;border-bottom:1px solid #ece8df;flex-wrap:wrap")}>
+        <span style={sx("font:600 15px/1.2 'IBM Plex Sans',sans-serif")}>Selected premix</span>
+        <span style={sx("display:flex;gap:16px")}>
+          {card.canCompare && <button onClick={card.compare} style={sx(ADV_LINK)}>Compare</button>}
+          <button onClick={card.replace} style={sx(ADV_LINK)}>{card.replaceLabel}</button>
+        </span>
+      </div>
+      <div style={sx("padding:13px 18px;display:flex;flex-direction:column;gap:4px;border-bottom:1px solid #ece8df")}>
+        <span style={sx("font:600 14px/1.35 'IBM Plex Sans',sans-serif")}>{card.name}</span>
+        <span style={sx("font:400 12px/1.4 'IBM Plex Sans',sans-serif;color:#64665c")}>{card.meta} · <a href={card.url} target="_blank" rel="noopener" style={sx("color:#64665c")}>data sheet ↗</a></span>
+      </div>
+      <div style={sx(`padding:12px 18px 6px;${MONO_HEAD}`)}>Counted in the analysis · per kg of feed</div>
+      {card.rows.map((row) => (
+        <div key={row.key} style={sx("display:flex;align-items:center;gap:10px;padding:8px 18px;border-top:1px solid #f1eee7;font:400 13px/1.3 'IBM Plex Sans',sans-serif")}>
+          <span style={sx("flex:1;min-width:0")}>{row.name}{row.sub && <span style={sx("color:#8d8a80")}> · {row.sub}</span>}</span>
+          <span style={sx(`font-weight:600;color:${row.muted ? "#8d8a80" : "#222420"}`)}>{row.value}</span>
+          <span style={sx("width:92px;text-align:right")}><DataTag label={row.tag} dashed={row.dashed} /></span>
+        </div>
+      ))}
+      {card.notes.length > 0 && (
+        <div style={sx("padding:11px 18px;border-top:1px solid #ece8df;display:flex;flex-direction:column;gap:5px;font:400 12px/1.5 'IBM Plex Sans',sans-serif;color:#64665c")}>
+          {card.notes.map((note) => <span key={note}>{note}</span>)}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function NutrientAnalysis({ v, opt }: V & { opt: OptVals }) {
+  const [all, setAll] = useState(false);
+  const a = opt.analysis;
+  const rows = all ? a.rows : a.rows.slice(0, 6);
+  return (
+    <div style={sx("display:flex;flex-direction:column;gap:14px")}>
+      <div style={sx(`${CARD};overflow:hidden`)}>
+        <div style={sx("display:flex;gap:8px 14px;align-items:center;padding:12px 18px;flex-wrap:wrap;border-bottom:1px solid #e2dfd6")}>
+          <span style={sx(MONO_HEAD)}>Contribution by ingredient</span>
+          {a.legend.map((l) => (
+            <span key={l.key} style={sx("display:flex;align-items:center;gap:6px;font:400 12px/1 'IBM Plex Sans',sans-serif;color:#45473f")}><span style={sx(`width:10px;height:10px;background:${l.color}`)} />{l.label}</span>
+          ))}
+          <span style={sx("display:flex;align-items:center;gap:6px;font:400 12px/1 'IBM Plex Sans',sans-serif;color:#45473f")}><span style={sx("width:2px;height:11px;background:#b2412e")} />Requirement</span>
+        </div>
+        <div style={sx("overflow-x:auto")}>
+          <div style={sx("min-width:720px")}>
+            <div style={sx("display:grid;grid-template-columns:minmax(150px,1.2fr) 150px minmax(200px,2.4fr) 120px 130px;gap:14px;padding:10px 18px;background:#faf8f3;font:500 11px/1 'IBM Plex Mono',monospace;color:#64665c;text-transform:uppercase;letter-spacing:0.04em")}>
+              <span>Nutrient</span><span style={sx("text-align:right")}>Recipe / req.</span><span>Sources</span><span>Status</span><span>Data</span>
+            </div>
+            {rows.map((row) => (
+              <div key={row.key} style={sx("display:grid;grid-template-columns:minmax(150px,1.2fr) 150px minmax(200px,2.4fr) 120px 130px;gap:14px;padding:12px 18px;border-top:1px solid #ece8df;align-items:center;font:400 13px/1.3 'IBM Plex Sans',sans-serif")}>
+                <span style={sx("font-weight:600")}>{row.name}</span>
+                <span style={sx("text-align:right")}><b style={sx("font-weight:600")}>{row.value}</b> <span style={sx("color:#64665c")}>/ {row.bound}</span></span>
+                {row.note ? <span style={sx("color:#45473f")}>{row.note}</span> : (
+                  <span style={sx("position:relative;height:10px;background:#f3f0e8;border-radius:2px;display:flex;overflow:visible")}>
+                    {row.segments.map((seg) => <span key={seg.key} title={seg.title} style={sx(`flex:none;width:${seg.w};max-width:100%;height:100%;background:${seg.color}`)} />)}
+                    <span style={sx(`position:absolute;left:${row.marker};top:-3px;width:2px;height:16px;background:#b2412e`)} />
                   </span>
+                )}
+                <span style={sx(`display:flex;align-items:center;gap:7px;color:${row.met ? "#2b6a42" : "#a63d2a"};font-weight:${row.met ? 500 : 600}`)}>
+                  <StatusGlyph shape={row.met ? "dot" : "square"} color={row.met ? "#2f7a4a" : "#b2412e"} size={8} />{row.status}
+                </span>
+                <span><DataTag label={row.data.label} dashed={row.data.dashed} /></span>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div style={sx("display:flex;justify-content:space-between;gap:12px;padding:12px 18px;border-top:1px solid #ece8df;font:400 12px/1.5 'IBM Plex Sans',sans-serif;color:#64665c;flex-wrap:wrap")}>
+          <span>{all ? a.footnote : Math.min(6, a.total) + " of " + a.total + " hard requirements shown · " + a.footnote}</span>
+          {a.total > 6 && <button onClick={() => setAll(!all)} style={sx(ADV_LINK + ";color:#222420")}>{all ? "Show fewer" : "Show all " + a.total}</button>}
+        </div>
+      </div>
+      {a.supplementationNote && (
+        <div style={sx(`${CARD};display:flex;align-items:center;gap:12px;padding:13px 18px;font:400 13px/1.45 'IBM Plex Sans',sans-serif;color:#45473f;flex-wrap:wrap`)}>
+          <Diamond />
+          <span style={sx("flex:1 1 300px")}>{a.supplementationNote}</span>
+          <button onClick={v.openAdvisories} style={sx(ADV_LINK + ";color:#222420")}>Open comparison</button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function AdvisoriesTab({ opt }: { opt: OptVals }) {
+  const t = opt.advisoryTab;
+  const [allSupp, setAllSupp] = useState(false);
+  const toneColor = (tone: string) => (tone === "bad" ? "#a63d2a" : tone === "good" ? "#2b6a42" : tone === "warn" ? "#8a5f18" : "#222420");
+  const suppRows = t.supplementation ? (allSupp ? t.supplementation.rows : t.supplementation.rows.slice(0, 4)) : [];
+  return (
+    <div style={sx("display:flex;flex-direction:column;gap:14px")}>
+      {t.empty && <div style={sx(`${CARD};padding:16px 18px;font:400 14px/1.5 'IBM Plex Sans',sans-serif;color:#45473f`)}>No advisories for this recipe.</div>}
+      {t.premix?.show && (
+        <section style={sx(`${CARD};overflow:hidden`)}>
+          <div style={sx("display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid #ece8df")}>
+            <Diamond /><span style={sx(MONO_HEAD + ";color:#8a5f18")}>Premix advisory</span><span style={sx("font:600 15px/1.2 'IBM Plex Sans',sans-serif")}>{t.premix.title}</span>
+          </div>
+          <div style={sx("display:flex;flex-wrap:wrap")}>
+            <div style={sx("flex:1 1 320px;padding:16px 18px;display:flex;flex-direction:column;gap:12px")}>
+              <span style={sx("font:400 14px/1.55 'IBM Plex Sans',sans-serif;color:#33352f")}>{t.premix.body}</span>
+              <span style={sx("display:flex;align-items:center;gap:7px;font:500 12px/1.3 'IBM Plex Sans',sans-serif;color:#2b6a42")}><StatusGlyph shape="dot" color="#2f7a4a" size={6} />Re-run with your ingredients, limits and prices</span>
+              {t.premix.basis && <span style={sx("font:400 12px/1.45 'IBM Plex Sans',sans-serif;color:#8a5f18")}>{t.premix.basis}</span>}
+              <div style={sx("display:flex;gap:10px;align-items:center;flex-wrap:wrap")}>
+                <button onClick={t.premix.compare} style={sx("border:1px solid #2f5a3f;background:#fff;color:#2f5a3f;font:600 13px/1 'IBM Plex Sans',sans-serif;padding:10px 13px;border-radius:6px")}>Compare premixes</button>
+                <button onClick={t.premix.replace} style={sx("border:0;background:#2f5a3f;color:#fff;font:600 13px/1 'IBM Plex Sans',sans-serif;padding:11px 14px;border-radius:6px")}>{t.premix.replaceLabel}</button>
+                <button onClick={t.premix.dismiss} style={sx("border:0;background:transparent;color:#45473f;font:500 13px/1 'IBM Plex Sans',sans-serif;padding:10px 6px")}>Dismiss</button>
+              </div>
+            </div>
+            <div style={sx("flex:1 1 300px;padding:14px 18px;background:#faf8f3;border-left:1px solid #ece8df;display:flex;flex-direction:column")}>
+              <span style={sx(MONO_HEAD + ";padding-bottom:8px")}>Result of the re-run</span>
+              {t.premix.rows.map((row) => (
+                <div key={row.label} style={sx("display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-top:1px solid #ece8df;font:400 13px/1.35 'IBM Plex Sans',sans-serif")}>
+                  <span>{row.label}</span><span style={sx(`text-align:right;font-weight:600;color:${toneColor(row.tone)}`)}>{row.value}</span>
                 </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+      {t.noBetterPremix && (
+        <div style={sx(`${CARD};display:flex;align-items:center;gap:12px;padding:13px 18px;font:400 13px/1.45 'IBM Plex Sans',sans-serif;color:#45473f;flex-wrap:wrap`)}>
+          <span style={sx(MONO_HEAD)}>Premix</span><span style={sx("flex:1 1 300px")}>{t.noBetterPremix.text}</span>
+          <button onClick={t.noBetterPremix.compare} style={sx(ADV_LINK + ";color:#222420")}>Compare premixes</button>
+        </div>
+      )}
+      {t.supplementation && (
+        <section style={sx(`${CARD};overflow:hidden`)}>
+          <div style={sx("display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid #ece8df;flex-wrap:wrap")}>
+            <Diamond /><span style={sx(MONO_HEAD + ";color:#8a5f18")}>Supplementation</span><span style={sx("font:600 15px/1.2 'IBM Plex Sans',sans-serif")}>Compared with Brazilian Tables Chapter 7</span>
+            <span style={sx("margin-left:auto;font:400 12px/1.3 'IBM Plex Sans',sans-serif;color:#64665c")}>{t.supplementation.counts}</span>
+          </div>
+          <div style={sx("display:grid;grid-template-columns:minmax(150px,1.4fr) 90px 110px minmax(180px,1.6fr);gap:14px;padding:10px 18px;background:#faf8f3;font:500 11px/1 'IBM Plex Mono',monospace;color:#64665c;text-transform:uppercase;letter-spacing:0.04em")}>
+            <span>Nutrient</span><span style={sx("text-align:right")}>Recipe</span><span style={sx("text-align:right")}>Recommended</span><span>Comparison</span>
+          </div>
+          {suppRows.map((row) => (
+            <div key={row.key} style={sx("display:grid;grid-template-columns:minmax(150px,1.4fr) 90px 110px minmax(180px,1.6fr);gap:14px;padding:10px 18px;border-top:1px solid #ece8df;align-items:center;font:400 13px/1.3 'IBM Plex Sans',sans-serif")}>
+              <span>{row.name}</span>
+              <span style={sx("text-align:right;font-weight:600")}>{row.recipe}</span>
+              <span style={sx("text-align:right;color:#45473f")}>{row.recommended}</span>
+              <span style={sx(`display:flex;align-items:center;gap:8px;color:${row.status === "below_recommendation" ? "#8a5f18" : "#45473f"}`)}>
+                {row.status === "below_recommendation" && <Diamond />}
+                {row.status === "no_data" && <DataTag label="Missing" dashed />}
+                {row.text}
+              </span>
+            </div>
+          ))}
+          <div style={sx("display:flex;justify-content:space-between;gap:12px;padding:11px 18px;border-top:1px solid #ece8df;font:400 12px/1.5 'IBM Plex Sans',sans-serif;color:#64665c;flex-wrap:wrap")}>
+            <span>Recommendations, not requirements. A difference here doesn&apos;t make the feed deficient. {t.supplementation.source}.</span>
+            {t.supplementation.rows.length > 4 && <button onClick={() => setAllSupp(!allSupp)} style={sx(ADV_LINK + ";color:#222420")}>{allSupp ? "Show fewer" : "Show all " + t.supplementation.rows.length}</button>}
+          </div>
+        </section>
+      )}
+      {(t.guidelines.length > 0 || t.documentation) && (
+        <div style={sx("display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px")}>
+          {t.guidelines.map((g) => (
+            <div key={g.key} style={sx(`${CARD};padding:15px 18px;display:flex;flex-direction:column;gap:9px`)}>
+              <span style={sx("display:flex;align-items:center;gap:8px")}><Diamond /><span style={sx(MONO_HEAD + ";color:#8a5f18")}>Practical guideline</span></span>
+              <span style={sx("font:400 14px/1.5 'IBM Plex Sans',sans-serif;color:#222420")}>{g.text}</span>
+              {g.actionable && (
+                <span style={sx("display:flex;gap:16px;flex-wrap:wrap")}>
+                  <button onClick={g.cap} style={sx(ADV_LINK)}>{g.capLabel}</button>
+                  <button onClick={g.keep} style={sx("border:0;background:transparent;padding:0;font:500 13px/1.3 'IBM Plex Sans',sans-serif;color:#64665c")}>Keep</button>
+                </span>
               )}
             </div>
-            {opt.verdict.rescueEmptyMessage && (
-              <aside className="fs-assessment-explanation" style={sx("grid-column:2;display:flex;flex-direction:column;gap:6px;padding:13px 15px;background:#fff;border:1px solid #e2c6bd;border-radius:8px;align-self:start")}>
-                <span style={sx("font:500 11px/1 'IBM Plex Mono',monospace;color:#7a2a1c;text-transform:uppercase;letter-spacing:0.05em")}>No eligible catalogue match</span>
-                <span style={sx("font:400 12px/1.5 'IBM Plex Sans',sans-serif;color:#45473f")}>{opt.verdict.rescueEmptyMessage}</span>
-              </aside>
-            )}
-          </section>
-          <div style={sx("display:flex;align-items:center;gap:14px;padding:13px 18px;background:#fff;border:1px solid #e2dfd6;border-radius:10px;font:400 14px/1.3 'IBM Plex Sans',sans-serif;flex-wrap:wrap")}>
-            <span style={sx(`display:flex;align-items:center;gap:8px;font-weight:600;color:${strip.color}`)}>
-              <span style={sx(`width:9px;height:9px;border-radius:${strip.r};background:${strip.bg}`)} />
-              {strip.label}
-            </span>
-            {strip.hasAdv && (
-              <>
-                <span style={sx("width:1px;height:16px;background:#d0cdc3")} />
-                <button type="button" onClick={v.openAdvisories} aria-label={`Open ${strip.adv}`} style={sx("display:flex;align-items:center;gap:8px;color:#8a5f18;border:0;background:transparent;padding:2px 0;font:600 14px/1.3 'IBM Plex Sans',sans-serif;text-decoration:underline;text-decoration-color:#d7ad62;text-underline-offset:3px;cursor:pointer")}>
-                  <span style={sx("width:8px;height:8px;background:#c98a1e;transform:rotate(45deg)")} />
-                  {strip.adv}
-                </button>
-              </>
-            )}
-            <span style={sx("margin-left:auto;color:#64665c")}>{strip.goal}</span>
-            {v.showSolver && <span style={sx("font:400 12px/1 'IBM Plex Mono',monospace;color:#64665c")}>{strip.solver}</span>}
-          </div>
-        </>
+          ))}
+          {t.documentation && (
+            <div style={sx(`${CARD};padding:15px 18px;display:flex;flex-direction:column;gap:9px`)}>
+              <span style={sx("display:flex;align-items:center;gap:8px")}><DataTag label="Missing" dashed /><span style={sx(MONO_HEAD)}>Manufacturer documentation</span></span>
+              <span style={sx("font:400 14px/1.5 'IBM Plex Sans',sans-serif;color:#222420")}>{t.documentation.text}</span>
+              <span style={sx("display:flex;gap:16px;flex-wrap:wrap")}>
+                <a href={t.documentation.url} target="_blank" rel="noopener" style={sx(ADV_LINK)}>Supplier data sheet ↗</a>
+                <button onClick={t.documentation.ask} style={sx(ADV_LINK)}>Ask a nutritionist</button>
+              </span>
+            </div>
+          )}
+        </div>
       )}
+      {t.nutritionistNotes && (
+        <button onClick={t.nutritionistNotes.open} style={sx("display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:12px 16px;background:#eef3ee;border:1px solid #c5d8c8;border-radius:10px;font:600 14px/1.3 'IBM Plex Sans',sans-serif;color:#2f5a3f;cursor:pointer")}>
+          <span style={sx("flex:none;width:8px;height:8px;border-radius:50%;background:#2f5a3f")} />
+          <span style={sx("flex:1")}>{t.nutritionistNotes.label}</span>
+          <span style={sx("font-weight:500;text-decoration:underline;text-underline-offset:3px")}>View</span>
+        </button>
+      )}
+    </div>
+  );
+}
+
+function NotesTab({ v }: V) {
+  const { alerts, planningPrices } = v.notesTab;
+  return (
+    <div style={sx("display:flex;flex-direction:column;gap:14px")}>
+      {alerts.map((w, i) => (
+        <div key={i} style={sx(`display:flex;gap:10px;align-items:flex-start;padding:12px 14px;background:${w.bg};border:1px solid ${w.bd};border-radius:8px`)}>
+          <span style={sx(`flex:none;margin-top:5px;width:8px;height:8px;background:${w.dot};border-radius:${w.r};transform:rotate(${w.rot})`)} />
+          <div style={sx("flex:1;display:flex;flex-direction:column;gap:3px")}>
+            <span style={sx(`font:600 13px/1.35 'IBM Plex Sans',sans-serif;color:${w.fg}`)}>{w.title}</span>
+            <span style={sx("font:400 13px/1.45 'IBM Plex Sans',sans-serif;color:#45473f")}>{w.body}</span>
+          </div>
+          {w.hasEdit && <button onClick={w.edit} style={sx("flex:none;border:0;background:transparent;font:600 13px/1 'IBM Plex Sans',sans-serif;color:#2f5a3f;padding:4px 0")}>Edit</button>}
+        </div>
+      ))}
+      {planningPrices.length > 0 && (
+        <section style={sx(`${CARD};overflow:hidden`)}>
+          <div style={sx("display:flex;flex-direction:column;gap:4px;padding:14px 18px;border-bottom:1px solid #ece8df")}>
+            <span style={sx("font:600 15px/1.2 'IBM Plex Sans',sans-serif")}>Using FeedSport planning prices · {planningPrices.length}</span>
+            <span style={sx("font:400 13px/1.45 'IBM Plex Sans',sans-serif;color:#64665c")}>Your cost will differ if you pay more or less. Enter your own price to replace one.</span>
+          </div>
+          {planningPrices.map((w) => (
+            <div key={w.name} style={sx("display:flex;align-items:center;gap:12px;padding:10px 18px;border-top:1px solid #f1eee7;font:400 14px/1.3 'IBM Plex Sans',sans-serif")}>
+              <span style={sx("flex:1;min-width:0")}>{w.name}</span>
+              <span style={sx("font-weight:600")}>{w.price}</span>
+              <span style={sx("width:44px;text-align:right")}>{w.hasEdit && <button onClick={w.edit} style={sx(ADV_LINK)}>Edit</button>}</span>
+            </div>
+          ))}
+        </section>
+      )}
+      {!alerts.length && !planningPrices.length && <div style={sx(`${CARD};padding:16px 18px;font:400 14px/1.5 'IBM Plex Sans',sans-serif;color:#45473f`)}>Every ingredient uses your own price, and there are no data notes.</div>}
+    </div>
+  );
+}
+
+function ComparePremixes({ c }: { c: NonNullable<OptVals["compare"]> }) {
+  const cols = `minmax(150px,1fr) repeat(${c.columns.length},minmax(170px,1fr))`;
+  const cellBg = (suggested: boolean) => (suggested ? "background:#eef3ee" : "");
+  const Row = ({ label, cells, strong }: { label: string; cells: ReactNode[]; strong?: boolean }) => (
+    <div style={sx(`display:grid;grid-template-columns:${cols};border-top:1px solid #ece8df;font:400 13px/1.35 'IBM Plex Sans',sans-serif`)}>
+      <span style={sx(`padding:10px 16px;${strong ? "font-weight:600" : "color:#45473f"}`)}>{label}</span>
+      {cells.map((cell, i) => <span key={i} style={sx(`padding:10px 16px;border-left:1px solid #ece8df;${cellBg(c.columns[i].suggested)}`)}>{cell}</span>)}
+    </div>
+  );
+  const Section = ({ title }: { title: string }) => (
+    <div style={sx(`display:grid;grid-template-columns:${cols};border-top:1px solid #e2dfd6;font:600 13px/1.3 'IBM Plex Sans',sans-serif`)}>
+      <span style={sx("padding:11px 16px")}>{title}</span>
+      {c.columns.map((col) => <span key={col.key} style={sx(`border-left:1px solid #ece8df;${cellBg(col.suggested)}`)} />)}
+    </div>
+  );
+  return (
+    <>
+      <div onClick={c.close} style={sx("position:fixed;inset:0;background:rgba(34,36,32,.38);z-index:30")} />
+      <div role="dialog" aria-modal="true" aria-label="Compare premixes" style={sx("position:fixed;top:5vh;left:0;right:0;margin:0 auto;width:min(1080px,96vw);max-height:90vh;background:#fff;border-radius:14px;box-shadow:0 20px 60px rgba(0,0,0,.25);z-index:31;display:flex;flex-direction:column;overflow:hidden;animation:fsin .2s ease-out")}>
+        <div style={sx("display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:18px 20px")}>
+          <div style={sx("display:flex;flex-direction:column;gap:4px")}>
+            <span style={sx("font:600 19px/1.2 'IBM Plex Sans',sans-serif")}>Compare premixes</span>
+            <span style={sx("font:400 13px/1.4 'IBM Plex Sans',sans-serif;color:#64665c")}>{c.subtitle}</span>
+          </div>
+          <button onClick={c.close} aria-label="Close comparison" style={sx("border:0;background:transparent;color:#45473f;font:400 22px/1 'IBM Plex Sans',sans-serif;padding:0 2px")}>×</button>
+        </div>
+        <div style={sx("overflow:auto;flex:1;min-height:0")}>
+          <div style={sx("min-width:" + (170 * c.columns.length + 160) + "px")}>
+            <div style={sx(`display:grid;grid-template-columns:${cols};background:#faf8f3;border-top:1px solid #e2dfd6`)}>
+              <span />
+              {c.columns.map((col) => (
+                <span key={col.key} style={sx(`padding:12px 16px;border-left:1px solid #ece8df;display:flex;flex-direction:column;gap:5px;${col.suggested ? "background:#eef3ee;box-shadow:inset 0 3px 0 #2f5a3f" : ""}`)}>
+                  <span style={sx(MONO_HEAD + ";font-size:10px")}>{col.badge}</span>
+                  <span style={sx("font:600 14px/1.25 'IBM Plex Sans',sans-serif")}>{col.name}</span>
+                  <span style={sx("font:400 12px/1.3 'IBM Plex Sans',sans-serif;color:#64665c")}>{col.dose}</span>
+                </span>
+              ))}
+            </div>
+            <Section title="Hard requirements" />
+            <Row label="Result" cells={c.columns.map((col) => <span key={col.key} style={sx(`display:flex;align-items:center;gap:7px;font-weight:600;color:${col.resultOk ? "#2b6a42" : "#a63d2a"}`)}><StatusGlyph shape={col.resultOk ? "dot" : "square"} color={col.resultOk ? "#2f7a4a" : "#b2412e"} size={7} />{col.result}</span>)} />
+            <Section title="Cost" />
+            <Row label="Per tonne" cells={c.columns.map((col) => <span key={col.key}><b style={sx(`font-weight:600;color:${col.costTone === "warn" ? "#8a5f18" : "#222420"}`)}>{col.cost}</b> <span style={sx(`font-weight:600;color:${col.costTone === "bad" ? "#a63d2a" : col.costTone === "warn" ? "#8a5f18" : "#64665c"}`)}>{col.costNote}</span></span>)} />
+            <Section title="Recipe changes" />
+            {c.aminoLabels.map((label, i) => <Row key={label} label={label} cells={c.columns.map((col) => col.amino[i])} />)}
+            <Row label="Minerals" cells={c.columns.map((col) => col.minerals)} />
+            <Row label="Ingredients" cells={c.columns.map((col) => col.ingredients)} />
+            <Section title="Advisory comparison" />
+            <Row label="Chapter 7 at recommendation" cells={c.columns.map((col) => col.chapter7)} />
+            <Row label="Missing documentation" cells={c.columns.map((col) => <span key={col.key} style={sx(col.gaps === "None" ? "color:#2b6a42;font-weight:600" : "")}>{col.gaps}</span>)} />
+            <div style={sx(`display:grid;grid-template-columns:${cols};border-top:1px solid #e2dfd6;background:#faf8f3`)}>
+              <span />
+              {c.columns.map((col) => (
+                <span key={col.key} style={sx(`padding:12px 16px;border-left:1px solid #ece8df;${cellBg(col.suggested)}`)}>
+                  {col.current ? <span style={sx("font:500 13px/1 'IBM Plex Sans',sans-serif;color:#64665c")}>Selected</span> : col.canReplace ? (
+                    <button onClick={col.replace} style={sx(`border:${col.suggested ? "0" : "1px solid #2f5a3f"};background:${col.suggested ? "#2f5a3f" : "#fff"};color:${col.suggested ? "#fff" : "#2f5a3f"};font:600 13px/1 'IBM Plex Sans',sans-serif;padding:10px 13px;border-radius:6px`)}>Replace premix</button>
+                  ) : <span style={sx("font:400 12px/1.3 'IBM Plex Sans',sans-serif;color:#8d8a80")}>No recipe</span>}
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
+        <div style={sx("padding:12px 20px;border-top:1px solid #e2dfd6;font:400 12px/1.5 'IBM Plex Sans',sans-serif;color:#45473f")}>{c.footnote} None of these alternatives changes how requirements are judged.</div>
+      </div>
+    </>
+  );
+}
+
+function Optimal({ v, opt }: V & { opt: OptVals }) {
+  return (
+    <div style={sx(`display:flex;flex-direction:column;gap:18px;opacity:${v.dimOpacity};transition:opacity .2s`)}>
+      <ResultHeadline s={opt.summary} showSolver={v.showSolver} />
       <div style={sx("display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px")}>
         {opt.figures.map((f) => (
           <div key={f.label} style={sx(`background:${f.bg};border:1px solid #e2dfd6;border-radius:10px;padding:15px 18px;display:flex;flex-direction:column;gap:8px`)}>
             <span style={sx(`font:400 13px/1 'IBM Plex Sans',sans-serif;color:${f.sub}`)}>{f.label}</span>
-            <span style={sx(`font:600 26px/1 'IBM Plex Sans',sans-serif;letter-spacing:-0.01em;color:${f.fg}`)}>{f.value}</span>
+            <span style={sx(`font:600 24px/1 'IBM Plex Sans',sans-serif;letter-spacing:-0.01em;color:${f.fg}`)}>{f.value}</span>
           </div>
         ))}
       </div>
-      {opt.goalCostNote.show && <div style={sx("font:400 13px/1.5 'IBM Plex Sans',sans-serif;color:#45473f;margin-top:-8px")}>{opt.goalCostNote.text}</div>}
-      <div style={sx("display:flex;gap:24px;border-bottom:1px solid #e2dfd6;font:500 14px/1 'IBM Plex Sans',sans-serif;overflow-x:auto")}>
+      {opt.priceNote && (
+        <div style={sx("display:flex;align-items:center;gap:12px;padding:12px 16px;background:#fdf6e8;border:1px solid #f0c97f;border-radius:10px;font:400 13px/1.45 'IBM Plex Sans',sans-serif;color:#45473f;flex-wrap:wrap")}>
+          <Diamond /><span style={sx("flex:1 1 300px")}>{opt.priceNote.text}</span>
+          <button onClick={opt.priceNote.go} style={sx(ADV_LINK)}>Set price</button>
+        </div>
+      )}
+      {opt.goalCostNote.show && <div style={sx("font:400 13px/1.5 'IBM Plex Sans',sans-serif;color:#45473f;margin-top:-6px")}>{opt.goalCostNote.text}</div>}
+      <div role="tablist" style={sx("display:flex;gap:24px;border-bottom:1px solid #e2dfd6;font:500 14px/1 'IBM Plex Sans',sans-serif;overflow-x:auto")}>
         {v.tabs.map((t) => (
-          <button key={t.label} onClick={t.go} style={sx(`border:0;background:transparent;padding:0 0 12px;border-bottom:2px solid ${t.bd};color:${t.color};font:500 14px/1 'IBM Plex Sans',sans-serif;white-space:nowrap`)}>{t.label}</button>
+          <button key={t.label} role="tab" onClick={t.go} style={sx(`display:flex;align-items:center;gap:7px;border:0;background:transparent;padding:0 0 12px;border-bottom:2px solid ${t.bd};color:${t.color};font:${t.bd === "transparent" ? 500 : 600} 14px/1 'IBM Plex Sans',sans-serif;white-space:nowrap`)}>
+            {t.label}
+            {t.count > 0 && <span style={sx("font:600 11px/1 'IBM Plex Sans',sans-serif;background:#f6e7c8;color:#8a5f18;padding:3px 6px;border-radius:99px")}>{t.count}</span>}
+          </button>
         ))}
       </div>
 
       {v.tabRecipe && (
         <div style={sx("display:flex;flex-wrap:wrap;gap:18px;align-items:flex-start")}>
-          <div style={sx("flex:1 1 520px;min-width:0;display:flex;flex-direction:column;gap:14px")}>
-            <div style={sx("background:#fff;border:1px solid #e2dfd6;border-radius:10px;overflow:hidden")}>
-              <div style={sx("display:flex;justify-content:space-between;align-items:center;gap:10px;padding:14px 20px;flex-wrap:wrap")}>
-                <span style={sx("font:600 17px/1.2 'IBM Plex Sans',sans-serif")}>{opt.recipeTitle}</span>
-                <div style={sx("display:flex;align-items:center;gap:8px")}>
-                  <div role="group" aria-label="Batch size" style={sx("display:flex;background:#f3f0e8;border-radius:7px;padding:3px")}>
-                    {v.batchOpts.map((b) => (
-                      <button key={b.label} onClick={b.pick} style={sx(`border:0;padding:8px 12px;border-radius:5px;background:${b.tabBg};font:${b.weight} 14px/1 'IBM Plex Sans',sans-serif;color:#222420`)}>{b.label}</button>
-                    ))}
-                  </div>
-                  {v.batchCustom && <input type="number" min="1" value={v.customBatch} onChange={v.onCustomBatch} placeholder="kg" aria-label="Custom batch, kg" style={sx("width:80px;padding:7px 8px;border:1px solid #d0cdc3;border-radius:6px;font:500 13px/1 'IBM Plex Sans',sans-serif")} />}
-                </div>
-              </div>
-              {v.isManual && (
-                <div style={sx("padding:10px 20px;background:#222420;color:#faf8f3;font:400 13px/1.4 'IBM Plex Sans',sans-serif;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap")}>
-                  <span>
-                    <b style={sx("font-weight:600")}>Manual recipe.</b> FeedSport checks your amounts but won&apos;t change them.
-                  </span>
-                  <button onClick={v.optimiseFromHere} style={sx("border:0;background:transparent;color:#e3aa45;font:600 13px/1 'IBM Plex Sans',sans-serif;padding:0")}>Back to optimised</button>
-                </div>
-              )}
-              <div style={sx(`${RECIPE_COLS};padding:12px 20px;font:500 12px/1 'IBM Plex Mono',monospace;color:#45473f;text-transform:uppercase;letter-spacing:0.04em;background:#faf8f3;border-top:1px solid #e2dfd6`)}>
-                <span>Ingredient</span>
-                <span>Inclusion</span>
-                <span style={sx("text-align:right")}>kg</span>
-                <span style={sx("text-align:right")}>Cost share</span>
-              </div>
-              {opt.rows.map((r) => (
-                <div key={r.name} title={r.setting + " · " + r.price + " (" + r.tag.toLowerCase() + " price)"} style={sx(`${RECIPE_COLS};padding:14px 20px;border-top:1px solid #ece8df;font:400 15px/1.2 'IBM Plex Sans',sans-serif;align-items:center;background:${r.bg}`)}>
-                  <button onClick={r.open} style={sx("border:0;background:transparent;padding:0;text-align:left;font:500 15px/1.2 'IBM Plex Sans',sans-serif;color:#222420;display:flex;align-items:center;gap:8px")}>
-                    {r.name}
-                    {r.adv && <span style={sx("flex:none;width:8px;height:8px;background:#c98a1e;transform:rotate(45deg)")} />}
-                  </button>
-                  {v.isManual && <input type="number" step="0.1" min="0" max="100" value={r.manual} onChange={r.onManual} aria-label={r.name + " inclusion, %"} style={sx("width:90px;padding:6px 8px;border:1px solid #d0cdc3;border-radius:6px;font:600 14px/1 'IBM Plex Sans',sans-serif;text-align:right")} />}
-                  {v.notManual && (
-                    <span style={sx("display:flex;align-items:center;gap:12px")}>
-                      <span style={sx("width:58px;text-align:right;font-weight:600")}>{r.pctTxt}</span>
-                      <span style={sx("flex:1;max-width:130px;height:8px;background:#f3f0e8;border-radius:4px;overflow:hidden")}>
-                        <span style={sx(`display:block;width:${r.barW};height:100%;background:${r.barC}`)} />
-                      </span>
-                    </span>
-                  )}
-                  <span style={sx("text-align:right")}>{r.kg}</span>
-                  <span style={sx("text-align:right")}>{r.shareTxt}</span>
-                </div>
-              ))}
-              <div style={sx(`${RECIPE_COLS};padding:13px 20px;border-top:1px solid #d0cdc3;font:600 15px/1.2 'IBM Plex Sans',sans-serif;align-items:center;background:#faf8f3`)}>
-                <span>Total</span>
-                <span style={sx(`color:${opt.total.color}`)}>{opt.total.pct}</span>
-                <span style={sx("text-align:right")}>{opt.total.kg}</span>
-                <span style={sx("text-align:right")}>100%</span>
-              </div>
-              {v.notManual && (
-                <div style={sx("padding:12px 20px;border-top:1px solid #ece8df;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;font:400 13px/1.45 'IBM Plex Sans',sans-serif;color:#64665c")}>
-                  <span>{opt.hasUnused ? "Available but not used: " + opt.unusedText + "." : "Every available ingredient is used."}</span>
-                  <button onClick={v.editManually} style={sx("border:0;background:transparent;padding:0;font:600 13px/1.45 'IBM Plex Sans',sans-serif;color:#2f5a3f")}>Adjust amounts manually</button>
-                </div>
-              )}
-            </div>
+          <div style={sx("flex:1 1 540px;min-width:0;display:flex;flex-direction:column;gap:14px")}>
+            <RecipeTable v={v} opt={opt} />
             {v.manualOff && (
               <div style={sx("display:flex;gap:8px;align-items:flex-start;font:500 13px/1.45 'IBM Plex Sans',sans-serif;color:#a63d2a")}>
                 <span style={sx("flex:none;width:8px;height:8px;background:#b2412e;margin-top:5px")} />
                 <span>
-                  Recipe validity must pass before nutrition is evaluated, saved, or exported.
+                  The recipe must add to 100% within its limits before hard requirements are checked, saved, or exported.
                   {v.manualIssues.map((issue) => <span key={issue.title} style={sx("display:block;font-weight:400")}>{issue.title}: {issue.body}</span>)}
                 </span>
               </div>
             )}
           </div>
           <div style={sx("flex:1 1 320px;min-width:0;display:flex;flex-direction:column;gap:14px")}>
-            <div style={sx("background:#fff;border:1px solid #e2dfd6;border-radius:10px;overflow:hidden")}>
-              <div style={sx("display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:16px 20px")}>
-                <span style={sx("font:600 17px/1.2 'IBM Plex Sans',sans-serif")}>Nutritional validation</span>
-                <button onClick={v.goNutrients} style={sx("border:0;background:transparent;padding:0;font:500 14px/1 'IBM Plex Sans',sans-serif;color:#2f5a3f")}>All nutrients</button>
-              </div>
-              {opt.validation.rows.map((row) => (
-                <details key={row.key} open={row.open} style={sx(`border-top:1px solid #ece8df;background:${row.tint}`)}>
-                  <summary title={row.note} style={sx("display:flex;justify-content:space-between;gap:14px;padding:14px 20px;align-items:center;font:400 15px/1.3 'IBM Plex Sans',sans-serif;cursor:pointer;list-style:none")}>
-                    <span style={sx(row.cards.length ? "font-weight:600" : "")}>{row.label}</span>
-                    <span style={sx(`display:flex;align-items:center;gap:8px;color:${row.status.color};font-weight:600;font-size:14px`)}>
-                      <StatusGlyph shape={row.status.shape} color={row.status.bg} />
-                      {row.status.label}
-                      {row.cards.length > 0 && <span aria-hidden className="fs-caret" style={sx("font-size:9px")}>▲</span>}
-                    </span>
-                  </summary>
-                  <div style={sx("padding:0 20px 14px;display:flex;flex-direction:column;gap:8px;font:400 13px/1.45 'IBM Plex Sans',sans-serif;color:#45473f")}>
-                    {!row.cards.length && <span style={sx("font-size:12px")}>{row.note}</span>}
-                    {row.cards.map((card) => (
-                      <div key={card.key} style={sx("padding:12px 14px;background:#fff;border:1px solid #e2dfd6;border-radius:8px;display:flex;flex-direction:column;gap:5px")}>
-                        <span style={sx("display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap")}>
-                          <span style={sx("font-weight:600;color:#222420;font-size:14px")}>{card.title}</span>
-                          <span style={sx("color:#45473f;font-size:14px")}>
-                            {card.value && <b style={sx("font-weight:600;color:#222420")}>{card.value}</b>}
-                            {card.valueRest}
-                          </span>
-                        </span>
-                        {card.detail && <span>{card.detail}</span>}
-                        {card.chips.length > 0 && (
-                          <span role="list" aria-label={`Ingredients that fix ${card.title}`} style={sx("display:flex;gap:6px;flex-wrap:wrap;margin-top:2px")}>
-                            {card.chips.map((chip) => <RescueChip key={chip.key} chip={chip} />)}
-                          </span>
-                        )}
-                        {card.links.length > 0 && (
-                          <span style={sx("display:flex;gap:18px;flex-wrap:wrap")}>
-                            {card.links.map((link) => (
-                              <button key={link.label} type="button" onClick={link.go} style={sx("border:0;background:transparent;padding:0;font:600 13px/1.4 'IBM Plex Sans',sans-serif;color:#2f5a3f;text-align:left")}>{link.label}</button>
-                            ))}
-                          </span>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </details>
-              ))}
-              {opt.validation.unresolved ? (
-                <div style={sx("padding:12px 20px;border-top:1px solid #ece8df;background:#faf8f3;font:400 13px/1.5 'IBM Plex Sans',sans-serif;color:#45473f")}>
-                  Confirm unresolved results with a nutritionist before mixing.{" "}
-                  <a href={opt.validation.waHref} target="_blank" rel="noopener" style={sx("font-weight:600;color:#222420;text-decoration:none")}>Ask on WhatsApp</a>
-                </div>
-              ) : (
-                <div style={sx("padding:12px 20px;border-top:1px solid #ece8df;display:flex;flex-direction:column;gap:4px;font:400 12px/1.5 'IBM Plex Sans',sans-serif;color:#64665c")}>
-                  <span style={sx(`font:600 13px/1.3 'IBM Plex Sans',sans-serif;color:${opt.validation.overallColor}`)}>{opt.validation.overallLabel}</span>
-                  <span>{opt.validation.note}</span>
-                </div>
-              )}
-            </div>
+            <PremixCard opt={opt} />
             {v.notManual && (
-              <div style={sx("background:#fff;border:1px solid #e2dfd6;border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:10px")}>
+              <div style={sx(`${CARD};padding:16px;display:flex;flex-direction:column;gap:10px`)}>
                 <div style={sx("display:flex;flex-direction:column;gap:4px")}>
                   <span style={sx("font:600 15px/1.2 'IBM Plex Sans',sans-serif")}>Other ways to formulate this</span>
                   <span style={sx("font:400 12px/1.4 'IBM Plex Sans',sans-serif;color:#64665c")}>Same requirements and ingredients, within 3% of least cost.</span>
                 </div>
                 {opt.strategies.map((g) => (
                   <button key={g.label} onClick={g.pick} disabled={g.disabled} style={sx(`text-align:left;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 12px;padding:11px 12px;border-radius:7px;border:1px ${g.bs} ${g.bd};box-shadow:${g.ring};background:${g.bg};color:#222420;cursor:${g.cursor}`)}>
-                    <span style={sx("font:600 14px/1.2 'IBM Plex Sans',sans-serif")}>
-                      {g.label} <span style={sx("font:500 10px/1 'IBM Plex Mono',monospace;color:#2f5a3f")}>{g.badge}</span>
-                    </span>
+                    <span style={sx("font:600 14px/1.2 'IBM Plex Sans',sans-serif")}>{g.label} <span style={sx("font:500 10px/1 'IBM Plex Mono',monospace;color:#2f5a3f")}>{g.badge}</span></span>
                     <span style={sx("font:600 14px/1.2 'IBM Plex Sans',sans-serif;text-align:right")}>{g.cost}</span>
                     <span style={sx("font:400 12px/1.4 'IBM Plex Sans',sans-serif;color:#45473f")}>{g.note}</span>
                     <span style={sx(`font:500 12px/1.2 'IBM Plex Sans',sans-serif;color:${g.deltaColor};text-align:right`)}>{g.delta}</span>
@@ -1511,69 +1714,10 @@ function Optimal({ v, opt }: V & { opt: NonNullable<StudioVals["opt"]> }) {
         </div>
       )}
 
-      {v.tabNutrients && (
-        <div style={sx("background:#fff;border:1px solid #e2dfd6;border-radius:10px;overflow:hidden")}>
-          <div style={sx("display:flex;gap:16px;padding:12px 18px;font:400 12px/1 'IBM Plex Sans',sans-serif;color:#64665c;border-bottom:1px solid #e2dfd6;flex-wrap:wrap")}>
-            <span style={sx("display:flex;align-items:center;gap:6px")}>
-              <span style={sx("width:14px;height:8px;background:#dbe7dc;border-left:2px solid #2f5a3f")} />
-              Required range (hard)
-            </span>
-            <span style={sx("display:flex;align-items:center;gap:6px")}>
-              <span style={sx("width:2px;height:12px;background:#222420")} />
-              This recipe
-            </span>
-            <span style={sx("display:flex;align-items:center;gap:6px")}>
-              <span style={sx("font:500 10px/1 'IBM Plex Mono',monospace;color:#2f5a3f")}>LIMITING</span>
-              exactly at a limit, drives cost
-            </span>
-          </div>
-          {opt.nuts.map((n) => (
-            <div key={n.name} style={sx("display:grid;grid-template-columns:minmax(0,1.3fr) 100px minmax(120px,1.6fr) 110px 130px;gap:14px;padding:12px 18px;border-top:1px solid #ece8df;align-items:center;font:400 14px/1.2 'IBM Plex Sans',sans-serif")}>
-              <span style={sx("display:flex;flex-direction:column;gap:3px")}>
-                <span style={sx("font-weight:500")}>{n.name}</span>
-                <span style={sx("font-size:12px;color:#64665c")}>{n.reqTxt}</span>
-              </span>
-              <span style={sx("text-align:right;font-weight:600")}>{n.val}</span>
-              <span style={sx(`position:relative;height:10px;background:${n.trackBg};border-radius:2px`)}>
-                <span style={sx(`position:absolute;left:${n.zl};width:${n.zw};top:0;bottom:0;background:#dbe7dc;border-left:2px solid ${n.zbl};border-right:2px solid ${n.zbr}`)} />
-                <span style={sx(`position:absolute;left:${n.mk};top:-3px;width:2px;height:16px;background:${n.mkC}`)} />
-              </span>
-              <span style={sx(`display:flex;align-items:center;gap:6px;color:${n.st.color};font-size:13px`)}>
-                <span style={sx(`flex:none;width:8px;height:8px;background:${n.st.bg};border-radius:${n.st.r}`)} />
-                {n.st.label}
-              </span>
-              <span style={sx("font:500 10px/1.3 'IBM Plex Mono',monospace;color:#2f5a3f")}>{n.flag}</span>
-            </div>
-          ))}
-          <div style={sx("padding:12px 18px;border-top:1px solid #ece8df;font:400 12px/1.5 'IBM Plex Sans',sans-serif;color:#64665c")}>As-fed basis. Source: {v.prog.source}. Requirements and ingredient values as published; nothing is relaxed.</div>
-          {opt.micronutrients.map((group) => (
-            <section key={group.id} aria-labelledby={`micronutrient-${group.id}`} style={sx("border-top:8px solid #f3f0e8")}>
-              <div style={sx("padding:16px 18px 12px;display:flex;flex-direction:column;gap:5px")}>
-                <h3 id={`micronutrient-${group.id}`} style={sx("font:600 17px/1.25 'IBM Plex Sans',sans-serif;margin:0;color:#222420")}>{group.label}</h3>
-                <span style={sx("font:400 12px/1.45 'IBM Plex Sans',sans-serif;color:#64665c")}>{group.note}</span>
-              </div>
-              {group.rows.length ? (
-                <div style={sx("overflow-x:auto")}>
-                  <div style={sx("min-width:760px")}>
-                    <div style={sx("display:grid;grid-template-columns:minmax(170px,1.35fr) 105px 130px 135px minmax(230px,1.8fr);gap:14px;padding:10px 18px;background:#faf8f3;border-top:1px solid #ece8df;font:500 11px/1 'IBM Plex Mono',monospace;color:#64665c;text-transform:uppercase;letter-spacing:0.04em")}>
-                      <span>Nutrient</span><span>Actual</span><span>Target</span><span>Status</span><span>Evidence</span>
-                    </div>
-                    {group.rows.map((row) => (
-                      <div key={row.name} style={sx("display:grid;grid-template-columns:minmax(170px,1.35fr) 105px 130px 135px minmax(230px,1.8fr);gap:14px;padding:12px 18px;border-top:1px solid #ece8df;align-items:start;font:400 13px/1.4 'IBM Plex Sans',sans-serif")}>
-                        <span style={sx("display:flex;flex-direction:column;gap:3px")}><strong style={sx("font-weight:600")}>{row.name}</strong><span style={sx("font-size:11px;color:#64665c")}>{row.scope}</span></span>
-                        <span style={sx("font-weight:600")}>{row.actual}</span>
-                        <span>{row.target}</span>
-                        <span style={sx(`display:flex;align-items:center;gap:7px;color:${row.status.color};font-weight:600`)}><span aria-hidden style={sx(`flex:none;width:8px;height:8px;background:${row.status.bg};border-radius:${row.status.r}`)} />{row.status.label}</span>
-                        <span style={sx("display:flex;flex-direction:column;gap:3px;color:#45473f")}><span>{row.reason}</span><span style={sx("font-size:11px;color:#64665c")}>Target source: {row.source}</span></span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ) : <div style={sx("padding:0 18px 16px;font:400 13px/1.45 'IBM Plex Sans',sans-serif;color:#64665c")}>No targets are loaded for this category.</div>}
-            </section>
-          ))}
-        </div>
-      )}
+      {v.tabNutrients && <NutrientAnalysis v={v} opt={opt} />}
+      {v.tabAdvisories && <AdvisoriesTab opt={opt} />}
+      {v.tabNotes && <NotesTab v={v} />}
+      {v.compareOpen && opt.compare && <ComparePremixes c={opt.compare} />}
 
       {v.tabWhy && (
         <>
@@ -2174,8 +2318,6 @@ function Compare({ v }: V) {
 }
 
 function AdvisoryDrawer({ v }: V) {
-  const advisories = v.opt?.advisories ?? [];
-  const count = advisories.length;
   const title = v.advisoriesLabel;
   return (
     <>
@@ -2183,32 +2325,14 @@ function AdvisoryDrawer({ v }: V) {
       <aside role="dialog" aria-modal="true" aria-labelledby="advisories-title" style={sx("position:fixed;top:0;right:0;bottom:0;width:min(480px,100vw);background:#fff;display:flex;flex-direction:column;box-shadow:-12px 0 40px rgba(0,0,0,.18);z-index:21;animation:fsin .2s ease-out")}>
         <div style={sx("padding:22px 26px 18px;border-bottom:1px solid #e2dfd6;display:flex;justify-content:space-between;align-items:flex-start;gap:20px")}>
           <div style={sx("display:flex;flex-direction:column;gap:7px")}>
-            <span style={sx("font:500 11px/1 'IBM Plex Mono',monospace;color:#8a5f18;text-transform:uppercase;letter-spacing:.06em")}>Practical guidance</span>
+            <span style={sx("font:500 11px/1 'IBM Plex Mono',monospace;color:#2f5a3f;text-transform:uppercase;letter-spacing:.06em")}>Advice from FeedSport</span>
             <h2 id="advisories-title" style={sx("margin:0;font:600 22px/1.2 'IBM Plex Sans',sans-serif;color:#222420")}>{title}</h2>
-            {count > 0 && <span style={sx("font:400 13px/1.5 'IBM Plex Sans',sans-serif;color:#64665c")}>Your recipe is valid. These are practical inclusion guidelines, not hard formulation limits.</span>}
           </div>
-          <button onClick={v.closeAdvisories} aria-label="Close advisories" style={sx("flex:none;border:0;background:transparent;font:400 24px/1 'IBM Plex Sans',sans-serif;color:#64665c;padding:0 4px")}>×</button>
+          <button onClick={v.closeAdvisories} aria-label="Close notes" style={sx("flex:none;border:0;background:transparent;font:400 24px/1 'IBM Plex Sans',sans-serif;color:#64665c;padding:0 4px")}>×</button>
         </div>
         <div style={sx("flex:1;overflow-y:auto;padding:20px 26px;display:flex;flex-direction:column;gap:14px")}>
-          {advisories.map((a, i) => (
-            <article key={i} style={sx("background:#fdf6e8;border:1px solid #f0c97f;border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:9px")}>
-              <div style={sx("display:flex;align-items:center;gap:8px;font:600 13px/1.3 'IBM Plex Sans',sans-serif;color:#5c4012")}>
-                <span style={sx("width:8px;height:8px;background:#c98a1e;transform:rotate(45deg)")} />
-                Advisory {i + 1}
-              </div>
-              <div style={sx("font:500 15px/1.5 'IBM Plex Sans',sans-serif;color:#33240b")}>{a.text}</div>
-              <div style={sx("font:400 13px/1.5 'IBM Plex Sans',sans-serif;color:#5c4012")}>{a.note}</div>
-              {a.actionable && (
-                <div style={sx("display:flex;gap:8px;padding-top:4px;flex-wrap:wrap")}>
-                  <button onClick={a.cap} style={sx("font:600 13px/1.2 'IBM Plex Sans',sans-serif;padding:10px 12px;background:#fff;border:1px solid #e8b55a;border-radius:6px;color:#33240b")}>{a.capLabel}</button>
-                  <button onClick={a.keep} style={sx("font:500 13px/1.2 'IBM Plex Sans',sans-serif;padding:10px 8px;color:#5c4012;border:0;background:transparent")}>Keep as is</button>
-                </div>
-              )}
-            </article>
-          ))}
           {v.hasAdvice && (
             <>
-              {count > 0 && <h3 style={sx("margin:10px 0 0;font:600 15px/1.3 'IBM Plex Sans',sans-serif;color:#222420")}>Advice from FeedSport</h3>}
               {v.docAdvice.map((a) => (
                 <article key={a.id} style={sx("background:#eef3ee;border:1px solid #c5d8c8;border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:9px")}>
                   <div style={sx("display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap")}>
@@ -2454,10 +2578,10 @@ function SwitchPremix({ v }: V) {
   return (
     <>
       <div onClick={v.closePremix} style={sx("position:fixed;inset:0;background:rgba(34,36,32,.38);z-index:30")} />
-      <div role="dialog" aria-modal="true" aria-label="Switch premix" style={sx("position:fixed;top:6vh;left:0;right:0;margin:0 auto;width:min(655px,96vw);max-height:88vh;background:#fff;border-radius:14px;box-shadow:0 20px 60px rgba(0,0,0,.25);z-index:31;display:flex;flex-direction:column;overflow:hidden;animation:fsin .2s ease-out")}>
+      <div role="dialog" aria-modal="true" aria-label={v.premixTitle} style={sx("position:fixed;top:6vh;left:0;right:0;margin:0 auto;width:min(655px,96vw);max-height:88vh;background:#fff;border-radius:14px;box-shadow:0 20px 60px rgba(0,0,0,.25);z-index:31;display:flex;flex-direction:column;overflow:hidden;animation:fsin .2s ease-out")}>
         <div style={sx("padding:18px 20px 12px;display:flex;flex-direction:column;gap:12px")}>
           <div style={sx("display:flex;justify-content:space-between;align-items:center;gap:12px")}>
-            <span style={sx("font:600 18px/1.2 'IBM Plex Sans',sans-serif")}>Switch premix</span>
+            <span style={sx("font:600 18px/1.2 'IBM Plex Sans',sans-serif")}>{v.premixTitle}</span>
             <button onClick={v.closePremix} aria-label="Close premix selector" style={sx("border:0;background:transparent;color:#45473f;font:400 22px/1 'IBM Plex Sans',sans-serif;padding:0 2px")}>×</button>
           </div>
           {v.premixCurrent && (
@@ -2492,7 +2616,7 @@ function SwitchPremix({ v }: V) {
           <span style={sx("flex:1 1 280px;font:400 12px/1.45 'IBM Plex Sans',sans-serif;color:#45473f")}>{v.premixFooter}</span>
           <div style={sx("display:flex;gap:10px;margin-left:auto")}>
             <button onClick={v.switchPremix} disabled={!v.premixPicked} style={sx(`border:1px solid #d0cdc3;background:#fff;color:${v.premixPicked ? "#222420" : "#8d8a80"};font:500 14px/1 'IBM Plex Sans',sans-serif;padding:12px 14px;border-radius:8px`)}>{v.premixPrimaryLabel}</button>
-            {v.showPremixRun && <button onClick={v.switchPremixAndRun} disabled={!v.premixPicked} style={sx(`border:0;background:${v.premixPicked ? "#2f5a3f" : "#a9b8ad"};color:#fff;font:600 14px/1 'IBM Plex Sans',sans-serif;padding:12px 16px;border-radius:8px`)}>Switch and re-formulate</button>}
+            {v.showPremixRun && <button onClick={v.switchPremixAndRun} disabled={!v.premixPicked} style={sx(`border:0;background:${v.premixPicked ? "#2f5a3f" : "#a9b8ad"};color:#fff;font:600 14px/1 'IBM Plex Sans',sans-serif;padding:12px 16px;border-radius:8px`)}>{v.premixRunLabel}</button>}
           </div>
         </div>
       </div>
