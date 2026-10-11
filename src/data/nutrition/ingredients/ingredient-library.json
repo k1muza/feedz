@@ -23961,12 +23961,13 @@
           "url": "https://www.aeciworld.net/animal-health.html",
           "basis": "as-fed",
           "priority": "supplier",
-          "note": "All 24 label ranges now live directly in premix.labelGuarantees. User confirmed min/max column order; unit basis for converting label figures into per-kg premix concentrations remains unresolved."
+          "note": "AECI bag label (batch 25254-07.2024), min/max amounts per tonne of FINISHED feed, first=min second=max, confirmed by user. Converted positive, clearly identified minima to the equivalent per-kg premix concentrations at 10kg premix/t; ambiguous maxima remain stored in labelGuarantees. Public AECI website is manufacturer context, not the original bag label."
         },
         "nutrientSources": {},
         "notes": [
-          "All 24 label min/max entries verified as transcribed and stored in ingredient-library.json.",
-          "A verified label range is not necessarily a verified as-fed nutrient concentration. Do not credit concentrations until their reference basis is established."
+          "The 24 user-confirmed label rows are the sole source of AECI nutrient minimum/maximum values.",
+          "Positive, clearly identified label minima are calculated as conservative nutrient contributions. This is a transcribed manufacturer guarantee, not a lot-specific laboratory assay.",
+          "Nutrients absent from the label, with zero minimum, or with uncertain identity remain unknown rather than assumed supplied."
         ],
         "verificationStatus": "manufacturer_unverified",
         "profileBasis": "as-fed"
@@ -23988,9 +23989,12 @@
         "specificationUrl": "https://www.aeciworld.net/animal-health.html",
         "note": "Registration V1736 under Act 36 of 1947. The photographed label specifies 10 kg/t and a 20 kg pack (2 x 10 kg). No supplier price was provided.",
         "notes": [
-          "All 24 min/max label records are embedded in ingredient-library.json; user has confirmed column meanings.",
-          "10 kg/t dosage remains confirmed from the photographed bag.",
-          "No numeric as-fed concentration can be derived until the label min/max basis and unit meaning are established."
+          "All 24 min/max label records are embedded in ingredient-library.json.",
+          "The label guarantees are per tonne of FINISHED feed at the fixed dosage of 10 kg/t.",
+          "The positive minima for recognizable vitamins and trace minerals are credited via guaranteedMinimumAsFed, equivalent to an as-fed premix concentration.",
+          "Vitamin E minimum is expressed in IU on the label; the second column is retained separately, not used as an analytical upper limit.",
+          "Pantothenic acid, selenium and total choline cannot be confirmed from this label; zero minimum means no guaranteed contribution.",
+          "Label minima are not a batch COA or an exact analytical assay."
         ],
         "simulationOnlyPhases": [
           {
@@ -24007,7 +24011,7 @@
             "second": "maximum"
           },
           "confirmedByUser": true,
-          "concentrationBasis": "The numerical min/max columns are confirmed, but concentration per kg premix versus per tonne of finished feed is not established.",
+          "concentrationBasis": "Values per tonne of finished feed at the supplier dosage of 10 kg/t (confirmed by user); minima are converted to as-fed concentrations per kg premix for the formulation engine.",
           "rows": [
             {
               "category": "Vitamin",
@@ -24227,12 +24231,37 @@
             }
           ],
           "notes": [
-            "User verified first column = minimum, second column = maximum; values are preserved verbatim.",
-            "The printed unit applies to the second column; do not infer the first-column unit or concentration basis.",
-            "Choline chloride is not equivalent to total choline; no selenium or pantothenic acid is listed.",
-            "The second magnesium row is likely a labelling anomaly; do not assume digestible lysine.",
-            "Raw min/max label figures are verified as transcribed, not a verified as-fed premix nutrient matrix."
+            "Both label columns represent amounts per tonne of finished feed, at 10 kg premix per tonne; user confirmed the basis.",
+            "First column is minimum, second is maximum. Minima in IU/t or g/t are converted to per-kg premix only where nutrient identity and units are sufficiently clear.",
+            "For vitamin A, D3 and E, the first-column figures are in IU/t; the second-column units are transcribed as MIU and not used for calculation.",
+            "Maxima retained as printed, including ambiguous decimal points and units; they do not replace minimum guarantees.",
+            "A zero guaranteed minimum is not evidence of a positive choline or biotin contribution.",
+            "Choline chloride is not the same as elemental or total choline; neither selenium nor pantothenic acid is declared.",
+            "The second magnesium row appears to be lysine text and cannot be credited as a SID amino acid.",
+            "The phytase activity basis is not established and cannot be credited from the printed figure."
           ]
+        },
+        "guaranteedMinimumAsFed": {
+          "sourceUrl": "https://www.aeciworld.net/animal-health.html",
+          "vitamins": {
+            "vitaminAIuKg": 500000,
+            "vitaminDIuKg": 200000,
+            "vitaminEIuKg": 1000,
+            "vitaminKMgKg": 30,
+            "vitaminB1MgKg": 150,
+            "riboflavinMgKg": 300,
+            "vitaminB6MgKg": 100,
+            "vitaminB12McgKg": 1500,
+            "niacinMgKg": 1500,
+            "folicAcidMgKg": 10
+          },
+          "traceMineralsPpm": {
+            "zinc": 3000,
+            "manganese": 1500,
+            "iron": 2500,
+            "copper": 100,
+            "iodine": 30
+          }
         }
       }
     },
