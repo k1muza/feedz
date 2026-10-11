@@ -23953,11 +23953,6 @@
     {
       "id": "aeci-v1736-pig-weaner-premix",
       "name": "AECI V1736 — Pig Weaner premix",
-      "aliases": [
-        "AECI Pig Weaner",
-        "V1736",
-        "Irvine's Africa Exports Pig Weaner"
-      ],
       "category": "vitamin_mineral_premix",
       "provenance": {
         "source": {
@@ -24008,7 +24003,7 @@
           "rows": [
             {
               "category": "Vitamin",
-              "nutrient": "Vit A",
+              "nutrient": "Vitamin A",
               "source_form": "",
               "left_value": "5000000",
               "right_value": "14.5",
@@ -24017,7 +24012,7 @@
             },
             {
               "category": "Vitamin",
-              "nutrient": "Vit D3",
+              "nutrient": "Vitamin D3",
               "source_form": "",
               "left_value": "2000000",
               "right_value": "400",
@@ -24026,8 +24021,8 @@
             },
             {
               "category": "Vitamin",
-              "nutrient": "Vit E (DL)",
-              "source_form": "",
+              "nutrient": "Vitamin E",
+              "source_form": "DL (as labelled; exact chemical form unconfirmed)",
               "left_value": "10000",
               "right_value": "30.00",
               "right_unit": "MIU",
@@ -24035,8 +24030,8 @@
             },
             {
               "category": "Vitamin",
-              "nutrient": "Vit B4",
-              "source_form": "choline chloride",
+              "nutrient": "Choline chloride",
+              "source_form": "",
               "left_value": "0",
               "right_value": "500.000",
               "right_unit": "g",
@@ -24044,8 +24039,8 @@
             },
             {
               "category": "Vitamin",
-              "nutrient": "Vit B3",
-              "source_form": "niacin",
+              "nutrient": "Niacin",
+              "source_form": "",
               "left_value": "15.0000",
               "right_value": "20.000",
               "right_unit": "g",
@@ -24053,7 +24048,7 @@
             },
             {
               "category": "Vitamin",
-              "nutrient": "Vit B2",
+              "nutrient": "Riboflavin",
               "source_form": "",
               "left_value": "3.0000",
               "right_value": "5000",
@@ -24062,7 +24057,7 @@
             },
             {
               "category": "Vitamin",
-              "nutrient": "Vit B6",
+              "nutrient": "Vitamin B6",
               "source_form": "pyridoxine",
               "left_value": "1.00",
               "right_value": "6000",
@@ -24071,7 +24066,7 @@
             },
             {
               "category": "Vitamin",
-              "nutrient": "Vit B1",
+              "nutrient": "Vitamin B1",
               "source_form": "",
               "left_value": "1.5000",
               "right_value": "3.5000",
@@ -24080,7 +24075,7 @@
             },
             {
               "category": "Vitamin",
-              "nutrient": "Vit K3",
+              "nutrient": "Vitamin K3",
               "source_form": "",
               "left_value": "0.3000",
               "right_value": "2.5000",
@@ -24089,7 +24084,7 @@
             },
             {
               "category": "Vitamin",
-              "nutrient": "Vit B9",
+              "nutrient": "Folic acid",
               "source_form": "",
               "left_value": "0.1",
               "right_value": "2000",
@@ -24098,7 +24093,7 @@
             },
             {
               "category": "Vitamin",
-              "nutrient": "Vit H",
+              "nutrient": "Biotin",
               "source_form": "D-biotin",
               "left_value": "0.0000",
               "right_value": "0.2000",
@@ -24107,7 +24102,7 @@
             },
             {
               "category": "Vitamin",
-              "nutrient": "Vit B12",
+              "nutrient": "Vitamin B12",
               "source_form": "",
               "left_value": "0.0150",
               "right_value": "0.2000",
@@ -24116,7 +24111,7 @@
             },
             {
               "category": "Vitamin",
-              "nutrient": "Vit C",
+              "nutrient": "Vitamin C",
               "source_form": "ascorbic acid",
               "left_value": "0.0000",
               "right_value": "0",
@@ -24188,7 +24183,7 @@
             },
             {
               "category": "Mineral",
-              "nutrient": "Magnesium (2nd row, likely lysine)",
+              "nutrient": "Magnesium (second row; identity unverified)",
               "source_form": "",
               "left_value": "78% L-Lysine",
               "right_value": "0",
@@ -24197,8 +24192,8 @@
             },
             {
               "category": "Additive",
-              "nutrient": "L-Threonine",
-              "source_form": "",
+              "nutrient": "Threonine",
+              "source_form": "L-threonine",
               "left_value": "98.5%",
               "right_value": "0.000",
               "right_unit": "g",
@@ -24206,7 +24201,7 @@
             },
             {
               "category": "Additive",
-              "nutrient": "NSP enzyme",
+              "nutrient": "NSP enzyme (glucanase)",
               "source_form": "glucanase",
               "left_value": "",
               "right_value": "0.0000",
@@ -24227,7 +24222,7 @@
             "The CSV is authoritative for the transcription, not a laboratory analysis or nutrient guarantee.",
             "Neither numeric column has an established measurement basis; do not infer guaranteed as-fed concentrations.",
             "Choline chloride is not the same as elemental or total choline; do not convert without product specification.",
-            "The row 'Magnesium (2nd row, likely lysine)' explicitly notes a possible label error; do not map it to digestible lysine.",
+            "The row 'Magnesium (second row; identity unverified)' explicitly notes a possible label error; do not map it to digestible lysine.",
             "The phytase activity unit and basis are not established; do not infer FTU/kg from a bare 10000.",
             "Vitamin E activity/form, selenium content and pantothenic acid are not independently verified.",
             "The CSV notes the Vitamin C right-hand value is difficult to read; preserve the note verbatim."
