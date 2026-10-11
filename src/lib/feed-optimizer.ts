@@ -266,6 +266,16 @@ export function evaluateFormulation(
   };
 }
 
+/**
+ * GLPK feasibility and independently recomputed nutrient totals may differ
+ * microscopically at binding constraints. Match the existing 1e-5 relative
+ * binding-window convention, while retaining a small absolute floor for
+ * targets close to zero. Never use display rounding as a feasibility rule.
+ */
+export function nutrientFeasibilityTolerance(bound: number): number {
+  return Math.max(Math.abs(bound) * 1e-5, 1e-7);
+}
+
 export type ConstraintSpec = {
   id: string;
   label: string;
@@ -1320,7 +1330,7 @@ export function buildNutrientProfile(
         ? actual - constraint.bound
         : constraint.bound - actual;
     const scale = Math.max(Math.abs(constraint.bound), 1e-9);
-    const bindingTolerance = Math.max(scale * 1e-5, 1e-7);
+    const bindingTolerance = nutrientFeasibilityTolerance(constraint.bound);
 
     return [
       {
