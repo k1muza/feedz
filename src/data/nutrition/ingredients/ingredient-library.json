@@ -23962,15 +23962,16 @@
       "provenance": {
         "source": {
           "publisher": "AECI Animal Health",
-          "title": "AECI V1736 Pig Weaner — manufacturer bag label, batch 25254-07.2024",
+          "title": "AECI V1736 Pig Weaner — user-supplied CSV transcription of bag label, batch 25254-07.2024",
           "url": "https://www.aeciworld.net/animal-health.html",
           "basis": "as-fed",
           "priority": "supplier",
-          "note": "User-supplied image of Irvine's Africa Exports AECI V1736 bag, batch 25254-07.2024; AECI site is not a product-specific datasheet. Nutrient columns are not safely normalizable from image."
+          "note": "Canonical row data: src/data/nutrition/premixes/aeci-v1736-pig-weaner-label.csv. The photograph supports pack identity and 10 kg/t inclusion, but neither numeric column has a verified concentration basis. The public AECI URL is manufacturer context, not the product datasheet."
         },
         "nutrientSources": {},
         "notes": [
-          "Bag-label transcription only; both numeric column bases unknown. No nutrient quantities currently verified for direct formulation credit."
+          "CSV is the single source of truth for all 24 label rows; it does not establish analytical nutrient concentrations.",
+          "The code intentionally withholds AECI nutrient guarantees from formulation calculations pending manufacturer clarification."
         ],
         "verificationStatus": "manufacturer_unverified",
         "profileBasis": "as-fed"
