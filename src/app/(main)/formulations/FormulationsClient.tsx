@@ -252,7 +252,8 @@ export default function FormulationsClient({ ingredientPrices, ingredientPackSiz
       ?? commercialPremixForProgramme(programmeId, nextPhaseId);
     // A grower-to-finisher change changes the manufacturer dose, so rebalance
     // the existing basal percentages rather than leaving the total invalid.
-    setInclusions((current) => initialFeedMix(current, "sorghum", nextProduct?.inclusionPct ?? 0));
+    const extraShare = Object.values(extraInclusions).reduce((sum, pct) => sum + pct, 0);
+    setInclusions((current) => initialFeedMix(current, "sorghum", (nextProduct?.inclusionPct ?? 0) + extraShare));
     setPhaseId(nextPhaseId);
     setFormulationNote(null);
     setBalanceError(null);
