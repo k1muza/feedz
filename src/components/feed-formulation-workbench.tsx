@@ -187,7 +187,7 @@ export function FeedFormulationWorkbench({
         lockedPct: "",
       })) ??
     [];
-  const initialPremix = commercialPremixForProgramme(initialProgramme?.id ?? "");
+  const initialPremix = commercialPremixForProgramme(initialProgramme?.id ?? "", initialFormulaSet?.phaseId ?? initialProgramme?.phases[0]?.id);
   const initialManufacturerRows = !initialFormulaSet && initialPremix?.manufacturerRecipe
     ? initialPremix.manufacturerRecipe
         .filter((item) => item.ingredientId !== initialPremix.id)
@@ -234,7 +234,7 @@ export function FeedFormulationWorkbench({
     String(initialFormulaSet?.targetBatchKg ?? 1000),
   );
   const savedPremixPrice =
-    initialFormulaSet?.setup?.fixedPremixName === commercialPremixForProgramme(initialProgramme?.id ?? "")?.name &&
+    initialFormulaSet?.setup?.fixedPremixName === commercialPremixForProgramme(initialProgramme?.id ?? "", initialFormulaSet?.phaseId ?? initialProgramme?.phases[0]?.id)?.name &&
     initialFormulaSet?.setup?.fixedPremixPricePerKg?.trim()
       ? initialFormulaSet.setup.fixedPremixPricePerKg
       : undefined;
@@ -289,8 +289,8 @@ export function FeedFormulationWorkbench({
     Number.isFinite(parsedTargetBatchKg) && parsedTargetBatchKg > 0
       ? parsedTargetBatchKg
       : 1000;
-  const selectedPremix = commercialPremixForProgramme(programmeId);
-  const previousPremixId = useRef(commercialPremixForProgramme(initialProgramme?.id ?? "")?.id);
+  const selectedPremix = commercialPremixForProgramme(programmeId, phaseId);
+  const previousPremixId = useRef(commercialPremixForProgramme(initialProgramme?.id ?? "", initialFormulaSet?.phaseId ?? initialProgramme?.phases[0]?.id)?.id);
   useEffect(() => {
     if (previousPremixId.current !== selectedPremix?.id) {
       previousPremixId.current = selectedPremix?.id;
@@ -393,7 +393,7 @@ export function FeedFormulationWorkbench({
   function changeProgramme(value: string) {
     requirementsWereEdited.current = true;
     const programme = programmes.find((candidate) => candidate.id === value);
-    const premix = commercialPremixForProgramme(value);
+    const premix = commercialPremixForProgramme(value, programme?.phases[0]?.id);
     const wasManufacturerLocked = Boolean(selectedPremix?.manufacturerRecipe);
     if (premix?.manufacturerRecipe) {
       if (!wasManufacturerLocked) {
