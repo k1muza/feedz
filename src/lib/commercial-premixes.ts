@@ -19,7 +19,7 @@ export type PremixMicronutrientProfile = {
 
 export type CommercialPremix = {
   id: string;
-  manufacturer: "AECI Animal Health" | "Chengdu Sustar Feed" | "CJ (Tianjin) Feed";
+  manufacturer: "Trouw Nutrition" | "Chengdu Sustar Feed" | "CJ (Tianjin) Feed";
   sku: string;
   name: string;
   species: "pig" | "broiler" | "layer";
@@ -28,6 +28,8 @@ export type CommercialPremix = {
   eligibleProgrammePrefixes: readonly string[];
   /** May be selected manually for a phase-specific exploratory formulation; not a manufacturer feeding recommendation. */
   simulationOnlyPhases?: readonly { programmeId: string; phaseClass: "grower" }[];
+  /** Stage eligibility for an otherwise matching programme, when a phase is available. */
+  eligiblePhaseClasses?: readonly ("pre-starter" | "starter" | "grower" | "finisher")[];
   /** One default supplier product per animal family; users may replace it. */
   defaultForEligibleProgrammes?: boolean;
   inclusionPct: number;
@@ -46,6 +48,10 @@ export type CommercialPremix = {
    * ration and count towards vitamin and trace-mineral targets.
    */
   guaranteedMinimumAsFed?: PremixMicronutrientProfile;
+  /** Back-calculated assumption from finished-feed nutrient targets, NOT a
+   * manufacturer's analysed or guaranteed premix concentration.
+   */
+  estimatedAsFedMicronutrients?: PremixMicronutrientProfile;
   /** Approved exact analysis/COA values; preferred over label minima when present. */
   verifiedAsFedMicronutrients?: PremixMicronutrientProfile & { reference: string };
   /**
@@ -109,8 +115,8 @@ export function commercialPremixById(id: string): CommercialPremix | undefined {
  * Map only recognized programme families. Never infer premix compatibility from
  * incidental substrings (especially "boar" versus sow/breeding products).
  */
-export function commercialPremixForProgramme(programmeId: string): CommercialPremix | undefined {
-  const eligible = eligibleCommercialPremixes(programmeId);
+export function commercialPremixForProgramme(programmeId: string, phaseId?: string): CommercialPremix | undefined {
+  const eligible = eligibleCommercialPremixes(programmeId, phaseId);
   return eligible.find((product) => product.defaultForEligibleProgrammes) ?? eligible[0];
 }
 
@@ -133,12 +139,17 @@ export function commercialPremixCompatibleWithProgramme(
   phaseId?: string,
 ): boolean {
   const family = programmeId.split(":")[0].toLowerCase();
-  return premix.eligibleProgrammePrefixes.some((prefix) => family.startsWith(prefix)) ||
-    commercialPremixSimulationOnlyForPhase(premix, programmeId, phaseId);
+  const matchesFamily = premix.eligibleProgrammePrefixes.some((prefix) => family.startsWith(prefix));
+  const matchesPhase = !premix.eligiblePhaseClasses?.length || !phaseId ||
+    (() => {
+      const phase = feedProgrammePhaseById(programmeId, phaseId);
+      return !!phase && premix.eligiblePhaseClasses!.includes(phase.phaseClass);
+    })();
+  return (matchesFamily && matchesPhase) || commercialPremixSimulationOnlyForPhase(premix, programmeId, phaseId);
 }
 
-export function eligibleCommercialPremixes(programmeId: string): CommercialPremix[] {
-  return COMMERCIAL_PREMIXES.filter((product) => commercialPremixCompatibleWithProgramme(product, programmeId));
+export function eligibleCommercialPremixes(programmeId: string, phaseId?: string): CommercialPremix[] {
+  return COMMERCIAL_PREMIXES.filter((product) => commercialPremixCompatibleWithProgramme(product, programmeId, phaseId));
 }
 
 /**
@@ -205,7 +216,7 @@ export type PremixFinishedFeedContribution = {
   unit: "IU/kg" | "mg/kg" | "mcg/kg" | "ppm";
   premixConcentration: number;
   finishedFeedContribution: number;
-  basis: "minimum_guarantee" | "verified_analysis";
+  basis: "minimum_guarantee" | "verified_analysis" | "estimated_from_complete_feed";
 };
 
 const VITAMIN_META: Partial<Record<keyof Vitamins, { label: string; unit: PremixFinishedFeedContribution["unit"] }>> = {
@@ -228,9 +239,13 @@ export function premixFinishedFeedContributions(
   premix: CommercialPremix,
   inclusionPct = premix.inclusionPct,
 ): PremixFinishedFeedContribution[] {
-  const profile = premix.verifiedAsFedMicronutrients ?? premix.guaranteedMinimumAsFed;
+  const profile = premix.verifiedAsFedMicronutrients ?? premix.guaranteedMinimumAsFed ?? premix.estimatedAsFedMicronutrients;
   if (!profile) return [];
-  const basis = premix.verifiedAsFedMicronutrients ? "verified_analysis" as const : "minimum_guarantee" as const;
+  const basis = premix.verifiedAsFedMicronutrients
+    ? "verified_analysis" as const
+    : premix.guaranteedMinimumAsFed
+      ? "minimum_guarantee" as const
+      : "estimated_from_complete_feed" as const;
   const share = inclusionPct / 100;
   const vitamins = Object.entries(profile.vitamins).flatMap(([key, concentration]) => {
     const meta = VITAMIN_META[key as keyof Vitamins];
@@ -270,7 +285,9 @@ export function premixAnalysisForIds(ids: readonly string[]): CommercialPremixAn
     status: "included",
     reason: "commercial_premix_selected",
     product_id: selected.id,
-    message: `${selected.name} is included at its supplier dose of ${selected.inclusionKgPerTonne} kg/t. Its label-minimum contribution is credited towards vitamin and trace-mineral targets.`,
+    message: selected.estimatedAsFedMicronutrients
+      ? `${selected.name} is included at ${selected.inclusionKgPerTonne} kg/t. The modelled vitamin and trace-mineral amounts are back-calculated from FINISHED-FEED targets, not manufacturer-certified premix contents. Results require verification before mixing.`
+      : `${selected.name} is included at its supplier dose of ${selected.inclusionKgPerTonne} kg/t. Its label-minimum contribution is credited towards vitamin and trace-mineral targets.`,
     manufacturer: selected.manufacturer,
     sku: selected.sku,
     permitted_species: selected.species,
@@ -279,12 +296,12 @@ export function premixAnalysisForIds(ids: readonly string[]): CommercialPremixAn
     inclusion_pct: selected.inclusionPct,
     inclusion_kg_per_tonne: selected.inclusionKgPerTonne,
     inclusion_instructions: selected.inclusionInstructions,
-    nutrient_profile: selected.verifiedAsFedMicronutrients || selected.guaranteedMinimumAsFed ? {
+    nutrient_profile: selected.verifiedAsFedMicronutrients || selected.guaranteedMinimumAsFed || selected.estimatedAsFedMicronutrients ? {
       status: selected.verifiedAsFedMicronutrients && selected.verificationStatus === "verified"
         ? "manufacturer_verified"
         : "manufacturer_unverified",
       basis: "as-fed",
-      source_url: (selected.verifiedAsFedMicronutrients ?? selected.guaranteedMinimumAsFed)!.sourceUrl,
+      source_url: (selected.verifiedAsFedMicronutrients ?? selected.guaranteedMinimumAsFed ?? selected.estimatedAsFedMicronutrients)!.sourceUrl,
       contributions: premixFinishedFeedContributions(selected),
     } : null,
   };
