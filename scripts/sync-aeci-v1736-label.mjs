@@ -83,6 +83,12 @@ transcript.cautions = [
   "Vitamin E activity/form, selenium content and pantothenic acid are not independently verified.",
   "The CSV notes the Vitamin C right-hand value is difficult to read; preserve the note verbatim.",
 ];
+ingredient.provenance.source.title = "AECI V1736 Pig Weaner — user-supplied CSV transcription of bag label, batch 25254-07.2024";
+ingredient.provenance.source.note = "Canonical row data: " + csvPath + ". The photograph supports pack identity and 10 kg/t inclusion, but neither numeric column has a verified concentration basis. The public AECI URL is manufacturer context, not the product datasheet.";
+ingredient.provenance.notes = [
+  "CSV is the single source of truth for all 24 label rows; it does not establish analytical nutrient concentrations.",
+  "The code intentionally withholds AECI nutrient guarantees from formulation calculations pending manufacturer clarification.",
+];
 ingredient.premix.notes = [
   "Label transcribed from the canonical CSV at " + csvPath + ".",
   "10 kg/t usage remains from the photographed pack; the CSV supplies nutrient/additive table rows only.",
