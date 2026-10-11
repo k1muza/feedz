@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { describe, test } from "node:test";
 import { FEED_PROGRAMMES } from "./feed-programmes";
-import { INGREDIENT_LIBRARY, ingredientLibraryWithCommercialPremixes } from "./ingredient-nutrients";
+import { INGREDIENT_LIBRARY, INGREDIENT_LIBRARY_SOURCE, ingredientLibraryWithCommercialPremixes } from "./ingredient-nutrients";
 import {
   COMMERCIAL_PREMIXES,
   commercialPremixById,
@@ -38,7 +38,7 @@ describe("Manufacturer-backed commercial premix catalogue", () => {
     assert.match(output, /in sync with authoritative CSV \(24 rows\)/);
   });
 
-  test("uses all AECI V1736 CSV columns without inventing nutrient guarantees", () => {
+  test("AECI uses canonical nutrient names, no product aliases, and no assumed guarantees", () => {
     const product = commercialPremixById("aeci-v1736-pig-weaner-premix");
     assert.ok(product);
     assert.equal(product.manufacturer, "AECI Animal Health");
@@ -48,6 +48,10 @@ describe("Manufacturer-backed commercial premix catalogue", () => {
     assert.equal(commercialPremixCompatibleWithProgramme(product, "nursery-pig"), true);
     assert.equal(commercialPremixCompatibleWithProgramme(product, "grow-finish-pig"), false);
 
+    const libraryRow = INGREDIENT_LIBRARY_SOURCE.ingredients.find(row => row.id === product.id);
+    assert.ok(libraryRow);
+    assert.deepEqual(libraryRow.aliases, [], "No redundant aliases for canonical AECI product name");
+
     const csv = product.labelTranscription;
     assert.ok(csv);
     assert.equal(csv.csvPath, "src/data/nutrition/premixes/aeci-v1736-pig-weaner-label.csv");
@@ -55,21 +59,26 @@ describe("Manufacturer-backed commercial premix catalogue", () => {
     assert.equal(csv.firstColumnHeading, "not established by CSV or source photo");
     assert.equal(csv.secondColumnHeading, "not established by CSV or source photo");
     const get = (name: string) => csv.rows.find((row) => row.nutrient === name);
+    const names = csv.rows.map(row => row.nutrient);
+    assert.equal(new Set(names).size, 24, "Every nutrient has one unambiguous canonical label");
+    assert.ok(names.every(name => !/^Vit\s/.test(name)), "No raw Vit abbreviations remain");
 
-    assert.deepEqual(get("Vit E (DL)"), {
-      category: "Vitamin", nutrient: "Vit E (DL)", source_form: "",
+    assert.deepEqual(get("Vitamin E"), {
+      category: "Vitamin", nutrient: "Vitamin E",
+      source_form: "DL (as labelled; exact chemical form unconfirmed)",
       left_value: "10000", right_value: "30.00", right_unit: "MIU", note: "",
     });
-    assert.equal(get("Vit B2")?.right_value, "5000");
-    assert.equal(get("Vit B6")?.right_value, "6000");
-    assert.equal(get("Vit B9")?.right_value, "2000");
-    assert.equal(get("Vit B4")?.source_form, "choline chloride");
-    assert.equal(get("Vit H")?.source_form, "D-biotin");
-    assert.equal(get("Magnesium (2nd row, likely lysine)")?.note,
+    assert.equal(get("Riboflavin")?.right_value, "5000");
+    assert.equal(get("Vitamin B6")?.right_value, "6000");
+    assert.equal(get("Folic acid")?.right_value, "2000");
+    assert.equal(get("Choline chloride")?.left_value, "0");
+    assert.equal(get("Biotin")?.source_form, "D-biotin");
+    assert.equal(get("Magnesium (second row; identity unverified)")?.note,
       "label error likely; 78% probably lysine source grade");
-    assert.equal(get("NSP enzyme")?.right_value, "0.0000");
+    assert.equal(get("NSP enzyme (glucanase)")?.right_value, "0.0000");
+    assert.equal(get("Threonine")?.source_form, "L-threonine");
     assert.equal(get("Phytase")?.right_value, "0.0000");
-    assert.equal(get("Vit C")?.note, "right value hard to read");
+    assert.equal(get("Vitamin C")?.note, "right value hard to read");
     assert.deepEqual(
       ["Vitamin", "Mineral", "Additive"].map(category => csv.rows.filter(row => row.category === category).length),
       [13, 8, 3],
@@ -79,7 +88,7 @@ describe("Manufacturer-backed commercial premix catalogue", () => {
     assert.equal(product.publishedGuarantees, undefined);
     assert.equal(product.publishedAnalysis, undefined);
     assert.deepEqual(premixFinishedFeedContributions(product), [],
-      "CSV label values must not be credited as finished-feed nutrients without a confirmed basis.");
+      "Unverified column values must not be credited as finished-feed nutrients.");
   });
 
   test("selects the stage-specific commercial product, never one universal premix", () => {
