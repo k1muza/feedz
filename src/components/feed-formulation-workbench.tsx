@@ -53,6 +53,11 @@ import {
 import { commercialPremixById, commercialPremixForProgramme } from "@/lib/commercial-premixes";
 import { mergeSuggestedIngredients, restoreIngredientPool } from "@/lib/ingredient-pool-transition";
 import type { ManufacturerRecipeReport } from "@/lib/manufacturer-recipe";
+import {
+  requirementCounts,
+  supplementationCounts,
+  type FormulationAssessment,
+} from "@/lib/formulation-assessment-model";
 import type {
   FormulationIngredientOption,
   FormulationIngredientSuggestionResult,
@@ -549,7 +554,6 @@ export function FeedFormulationWorkbench({
           programmeId,
           phaseId,
           energySystem,
-          includeSupplementationTargets: false, // Premix nutrients are not credited against micronutrient targets.
           customPremixes: [],
           ingredients: requestIngredients,
         }),
@@ -606,10 +610,6 @@ export function FeedFormulationWorkbench({
             targetBatchKg: batchKg,
             ingredientPoolMode,
             solverObjective: "least-cost-with-alternatives",
-            settings: {
-              includeSupplementationTargets: false,
-              traceMineralBasis: "inorganic",
-            },
             ingredients: basisIngredients,
             ...(selectedPremix ? {
               fixedPremix: {
@@ -1260,7 +1260,7 @@ export function FeedFormulationWorkbench({
 
           {legacySavedPremix ? (
             <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 p-3 text-sm text-ink">
-              This saved formulation used the retired hypothetical premix. Its previous nutrient verification has been withdrawn; enter a real premix price and generate a new recipe.
+              This saved formulation used the retired hypothetical premix. Its previous nutrient assessment has been withdrawn; enter a real premix price and generate a new recipe.
             </div>
           ) : null}
           {requestError ? (
@@ -1327,7 +1327,7 @@ function ResultPanel({
         <CardHeader>
           <div className="flex flex-wrap items-center gap-2">
             <CardTitle>Manufacturer's fixed recipe</CardTitle>
-            <Badge variant="secondary">Nutritional verification incomplete</Badge>
+            <Badge variant="secondary">{result.assessment.headline}</Badge>
           </div>
           <CardDescription>
             {result.manufacturer} · Published ingredients only ·
@@ -1338,7 +1338,7 @@ function ResultPanel({
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <CompleteFeedValidationPanel assessment={result.validation} />
+          <CompleteFeedValidationPanel assessment={result.assessment} />
           <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 p-4 text-sm leading-6">
             <strong>Manufacturer recipe.</strong> {result.warning}{" "}
             No GLPK optimisation was performed and no complete-feed pass is claimed.
@@ -1350,7 +1350,7 @@ function ResultPanel({
           />
           {result.incomplete_requirements.length > 0 ? (
             <div className="space-y-2">
-              <div className="font-medium text-ink">Cannot verify — missing ingredient nutrient values</div>
+              <div className="font-medium text-ink">Missing ingredient nutrient values</div>
               {result.incomplete_requirements.map((row) => (
                 <div key={row.nutrient} className="rounded-lg border border-hairline p-3 text-sm">
                   <strong>{row.label}</strong> · Missing: {row.missing_data_for.join(", ")}
@@ -1392,9 +1392,7 @@ function ResultPanel({
                 ? "CJ published boar ration (fixed proportions)"
                 : selectedRecipe.label}</CardTitle>
             <Badge variant="secondary">
-              {result.assessment?.verdict === "verified"
-                ? "Nutritional requirements verified"
-                : "Nutritional verification required"}
+              {result.assessment?.headline ?? "Not assessed"}
             </Badge>
           </div>
           <CardDescription>
@@ -1555,32 +1553,43 @@ function ResultPanel({
 function CompleteFeedValidationPanel({
   assessment,
 }: {
-  assessment: NonNullable<Extract<LeastCostFormulationResult, { status: "optimal" }>["assessment"]>;
+  assessment: FormulationAssessment;
 }) {
-  const label = (status: (typeof assessment.categories)[number]["status"]) =>
-    status === "met" ? "Verified" : status === "unmet" ? "Does not meet" : status === "unknown" ? "Cannot verify" : "Not assessed";
-  const overallLabel = assessment.verdict === "verified"
-    ? "Nutritional requirements verified"
-    : assessment.verdict === "infeasible"
-      ? "Reformulation required"
-      : "Nutritional verification required";
+  const { failed } = requirementCounts(assessment);
+  const chapter7 = supplementationCounts(assessment);
+  const gapLabels = [...new Set(assessment.documentationGaps.map((gap) => gap.label))];
+  const fails = assessment.verdict !== "meets_requirements" || failed.length > 0;
   return (
     <div className="overflow-hidden rounded-lg border border-hairline">
       <div className="flex items-center justify-between gap-3 bg-raised/30 px-4 py-3 text-sm font-medium text-ink">
-        <span>Nutritional validation</span>
-        <span className={assessment.verdict === "verified" ? "text-emerald-700" : "text-amber-700"}>
-          {overallLabel}
-        </span>
+        <span>Hard requirements</span>
+        <span className={fails ? "text-red-700" : "text-emerald-700"}>{assessment.headline}</span>
       </div>
-      {assessment.categories.map((category) => (
-        <div key={category.id} title={category.note} className="grid grid-cols-[minmax(0,1fr)_8rem] gap-3 border-t border-hairline px-4 py-2.5 text-sm">
-          <span>{category.label}</span>
-          <span className={category.status === "met" ? "font-medium text-emerald-700" : category.status === "unmet" ? "font-medium text-red-700" : "font-medium text-amber-700"}>
-            {label(category.status)}
+      {failed.map((check) => (
+        <div key={check.id} className="grid grid-cols-[minmax(0,1fr)_8rem] gap-3 border-t border-hairline px-4 py-2.5 text-sm">
+          <span>
+            {check.label}: {check.actual.toFixed(3)} {check.unit} ({check.relation === "min" ? "min" : check.relation === "max" ? "max" : "required"} {check.bound.toFixed(3)})
           </span>
+          <span className="font-medium text-red-700">Not met</span>
         </div>
       ))}
-      <div className="border-t border-hairline px-4 py-3 text-xs leading-5 text-ink-muted">{assessment.summary} {assessment.guidance}</div>
+      {gapLabels.length || chapter7.total ? (
+        <div className="space-y-1 border-t border-hairline bg-amber-500/5 px-4 py-3 text-xs leading-5 text-amber-800">
+          <div className="font-medium">Advisories (optional, never block the recipe)</div>
+          {gapLabels.length ? (
+            <div>
+              Premix documentation is incomplete for {gapLabels.length} value{gapLabels.length === 1 ? "" : "s"} ({gapLabels.join(", ")}). Check with the manufacturer before manufacturing.
+            </div>
+          ) : null}
+          {chapter7.total ? (
+            <div>
+              Chapter 7 vitamins and trace minerals: {chapter7.at} of {chapter7.total} at recommendation
+              {chapter7.below ? `, ${chapter7.below} below` : ""}{chapter7.noData ? `, ${chapter7.noData} with no data` : ""}. These are recommendations, not requirements.
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+      <div className="border-t border-hairline px-4 py-3 text-xs leading-5 text-ink-muted">{assessment.summary}</div>
     </div>
   );
 }
@@ -1690,8 +1699,8 @@ function FormulationBasisPanel({
           </table>
         </div>
         <div className="border-t border-hairline px-4 py-3 text-[11px] leading-5 text-ink-muted">
-          Solver mode: least-cost baseline plus validated alternatives. Supplementation targets:{" "}
-          {basis.settings.includeSupplementationTargets ? "on" : "off"}. Batch:{" "}
+          Solver mode: least-cost baseline plus validated alternatives. Chapter 7 vitamin and
+          trace-mineral supplementation is compared as an advisory. Batch:{" "}
           {basis.targetBatchKg.toFixed(1)} kg. Generated{" "}
           {new Date(basis.generatedAt).toLocaleString()}.
         </div>

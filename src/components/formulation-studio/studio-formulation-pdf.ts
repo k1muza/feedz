@@ -11,12 +11,23 @@ import {
 } from "pdf-lib";
 
 import { siteConfig } from "@/lib/seo";
-import {
-  FORMULATION_VERDICT_LABELS,
-  micronutrientAssessmentGroups,
-  nutrientAssessmentStatusLabel,
+import { documentationGapLine,
+  DATA_STATUS_LABELS,
+  LEGACY_PREMIX_NOTE,
+  isFormulationAssessment,
   type FormulationAssessment,
+  type PremixComparison,
+  type RequirementCheck,
+  type SupplementationStatus,
 } from "@/lib/formulation-assessment-model";
+import {
+  commercialPremixById,
+  premixNutrientContributions,
+  type CommercialPremix,
+} from "@/lib/commercial-premixes";
+
+/** A schema-1 assessment from a saved version: shown with the legacy note, never re-scored. */
+export type LegacyStudioAssessment = { schemaVersion: 1; [key: string]: unknown };
 
 export interface StudioFormulationPdfInput {
   documentName: string;
@@ -31,7 +42,11 @@ export interface StudioFormulationPdfInput {
   costPerTonne: number;
   leastCostPerTonne?: number;
   preparedFor?: string;
-  assessment: FormulationAssessment;
+  assessment: FormulationAssessment | LegacyStudioAssessment;
+  /** Optional premix advisory from the optimize response (Replace, never Add). */
+  premixComparison?: PremixComparison | null;
+  /** The commercial premix in the recipe; detected from the assessment when omitted. */
+  premixId?: string | null;
   ingredients: {
     name: string;
     setting: string;
@@ -74,6 +89,7 @@ const C = {
   amber: hex("#d99a2b"),
   paleAmber: hex("#fdf6e8"),
   red: hex("#b4412f"),
+  amberText: hex("#7a5414"),
   rule: hex("#d9d4c7"),
   pale: hex("#f3f0e8"),
   white: rgb(1, 1, 1),
@@ -119,6 +135,39 @@ function slug(value: string) {
     .slice(0, 64);
 }
 
+const SUPPLEMENTATION_STATUS_LABELS: Record<SupplementationStatus, string> = {
+  at_recommendation: "At recommendation",
+  below_recommendation: "Below recommendation",
+  no_data: "No data",
+};
+
+const compact = (value: number, maximumFractionDigits = 3) =>
+  value.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits });
+
+/** Data tag: Published / Assumed 0 / Missing, plus "total only" when a TOTAL value is not counted toward SID. */
+export function requirementDataTag(check: Pick<RequirementCheck, "data" | "totalOnlyIngredientIds">) {
+  return `${DATA_STATUS_LABELS[check.data]}${check.totalOnlyIngredientIds.length ? " · total only" : ""}`;
+}
+
+function premixInAssessment(assessment: FormulationAssessment, premixId?: string | null): CommercialPremix | undefined {
+  if (premixId) return commercialPremixById(premixId);
+  const ids = new Set<string>([
+    ...assessment.documentationGaps.map((gap) => gap.ingredientId),
+    ...assessment.requirements.flatMap((check) => [
+      ...check.contributions.map((row) => row.ingredientId),
+      ...check.assumedZeroIngredientIds,
+      ...check.totalOnlyIngredientIds,
+      ...check.missingIngredientIds,
+    ]),
+    ...(assessment.supplementation?.rows.flatMap((row) => row.undocumentedIngredientIds) ?? []),
+  ]);
+  for (const id of ids) {
+    const premix = commercialPremixById(id);
+    if (premix) return premix;
+  }
+  return undefined;
+}
+
 export function studioFormulationPdfFilename(documentName: string) {
   return `feedsport-${slug(documentName) || "formulation"}.pdf`;
 }
@@ -126,6 +175,14 @@ export function studioFormulationPdfFilename(documentName: string) {
 export async function buildStudioFormulationPdf(
   input: StudioFormulationPdfInput,
 ): Promise<Uint8Array> {
+  return (await renderStudioFormulationPdf(input)).bytes;
+}
+
+/** Renders the PDF and returns every drawn line of text alongside the bytes (used by tests). */
+export async function renderStudioFormulationPdf(
+  input: StudioFormulationPdfInput,
+): Promise<{ bytes: Uint8Array; text: string[] }> {
+  const drawnText: string[] = [];
   const pdf = await PDFDocument.create();
   pdf.registerFontkit(fontkit);
   const bytes = await loadFontBytes();
@@ -186,7 +243,10 @@ export async function buildStudioFormulationPdf(
     size = 8,
     font: PDFFont = regular,
     color: RGB = C.ink,
-  ) => page.drawText(value, { x, y: atY, size, font, color });
+  ) => {
+    drawnText.push(value);
+    page.drawText(value, { x, y: atY, size, font, color });
+  };
   const drawRight = (
     value: string,
     right: number,
@@ -250,7 +310,7 @@ export async function buildStudioFormulationPdf(
     pageHeader(true);
   };
   const section = (title: string, aside = "") => {
-    ensure(30);
+    ensure(75);
     draw(title.toUpperCase(), M, y, 7.5, fonts.monoMedium, C.green);
     if (aside) drawRight(aside, W - M, y, 7, fonts.mono, C.muted);
     line(y - 8, C.ink, 0.9);
@@ -273,15 +333,20 @@ export async function buildStudioFormulationPdf(
   if (input.preparedFor) drawRight(`Prepared for ${input.preparedFor}`, W - M, y, 7.5, regular, C.muted);
   y -= 26;
 
-  const assessmentColor = input.assessment.verdict === "verified" ? C.green : input.assessment.verdict === "infeasible" ? C.red : hex("#7a5414");
-  const assessmentBg = input.assessment.verdict === "verified" ? C.paleGreen : C.paleAmber;
-  const assessmentText = `${input.assessment.summary} ${input.assessment.guidance}`;
+  const assessment = isFormulationAssessment(input.assessment) ? input.assessment : null;
+  const failedRequirements = assessment?.requirements.filter((check) => check.status === "not_met") ?? [];
+  const hardFailure = !!assessment && (assessment.verdict !== "meets_requirements" || failedRequirements.length > 0);
+  // Red only for a genuine hard failure; a legacy result is a neutral note.
+  const assessmentColor = !assessment ? C.amberText : hardFailure ? C.red : C.green;
+  const assessmentBg = !assessment ? C.paleAmber : hardFailure ? hex("#f6dcd8") : C.paleGreen;
+  const assessmentTitle = assessment ? assessment.headline : "Premix data updated";
+  const assessmentText = assessment ? assessment.summary : LEGACY_PREMIX_NOTE;
   const assessmentLines = wrap(assessmentText, regular, 7.8, CW - 24);
   const assessmentHeight = 38 + assessmentLines.length * 10;
   page.drawRectangle({ x: M, y: y - assessmentHeight, width: CW, height: assessmentHeight, color: assessmentBg });
   page.drawRectangle({ x: M, y: y - assessmentHeight, width: 4, height: assessmentHeight, color: assessmentColor });
-  draw("FORMULATION ASSESSMENT", M + 13, y - 15, 6.6, fonts.monoMedium, assessmentColor);
-  draw(FORMULATION_VERDICT_LABELS[input.assessment.verdict], M + 13, y - 30, 10.5, bold, assessmentColor);
+  draw(assessment ? "HARD REQUIREMENTS" : "SAVED RESULT", M + 13, y - 15, 6.6, fonts.monoMedium, assessmentColor);
+  draw(fit(assessmentTitle, bold, 10.5, CW - 26), M + 13, y - 30, 10.5, bold, assessmentColor);
   assessmentLines.forEach((part, index) => draw(part, M + 13, y - 45 - index * 10, 7.8, regular, C.body));
   y -= assessmentHeight + 18;
 
@@ -364,94 +429,171 @@ export async function buildStudioFormulationPdf(
   drawRight(money(batchCost), W - M - 5, y - 15, 7.5, bold);
   y -= 29;
 
-  section("Nutrient compliance", `${input.nutrients.filter((n) => n.status === "met").length}/${input.nutrients.length} met`);
-  const nutrientHeader = () => {
-    page.drawRectangle({ x: M, y: y - 22, width: CW, height: 22, color: C.green });
-    draw("REQUIREMENT", M + 5, y - 14, 6.2, mono, C.white);
-    drawRight("TARGET", M + 340, y - 14, 6.2, mono, C.white);
-    drawRight("ACTUAL", M + 420, y - 14, 6.2, mono, C.white);
-    drawRight("STATUS", W - M - 5, y - 14, 6.2, mono, C.white);
-    y -= 22;
-  };
-  nutrientHeader();
-  input.nutrients.forEach((nutrient, index) => {
-    const rowHeight = 22;
-    if (y - rowHeight < BOTTOM) {
-      pageHeader(true);
-      section("Nutrient compliance", "continued");
-      nutrientHeader();
-    }
-    if (index % 2) page.drawRectangle({ x: M, y: y - rowHeight, width: CW, height: rowHeight, color: C.pale });
-    const target = [
-      nutrient.min != null ? `min ${number(nutrient.min, nutrient.unit === "%" ? 3 : 0)}` : "",
-      nutrient.max != null ? `max ${number(nutrient.max, nutrient.unit === "%" ? 3 : 0)}` : "",
-    ].filter(Boolean).join(" / ");
-    draw(`${nutrient.name} (${nutrient.unit})`, M + 5, y - 14, 7.2, bold);
-    drawRight(target || "reported", M + 340, y - 14, 7, regular, C.body);
-    drawRight(number(nutrient.value, nutrient.unit === "%" ? 3 : 0), M + 420, y - 14, 7, regular, C.body);
-    const status = nutrient.status === "met" ? (nutrient.limiting ? "MET - LIMITING" : "MET") : nutrient.status === "below" ? "BELOW MIN" : "ABOVE MAX";
-    drawRight(status, W - M - 5, y - 14, 6.6, bold, nutrient.status === "met" ? C.green : C.red);
-    y -= rowHeight;
-    line(y, C.rule, 0.35);
-  });
-  y -= 18;
-
-  micronutrientAssessmentGroups(input.assessment).forEach((group) => {
-    const label = group.category?.label ?? (group.id === "vitamins" ? "Vitamins" : "Trace minerals");
-    section(label, group.category ? `${group.category.checked}/${group.category.required} checked` : "not assessed");
-    if (!group.checks.length) {
-      paragraph(`No ${label.toLowerCase()} targets are loaded for this stage.`, C.muted);
-      return;
-    }
-    const sources = [...new Set(group.checks.map((check) => check.targetSource))];
-    sources.forEach((source) => paragraph(`Target source: ${source}`, C.muted));
-    const micronutrientHeader = () => {
+  type Column = { label: string; width: number; align?: "left" | "right" };
+  const table = (
+    title: string,
+    columns: Column[],
+    rows: { cells: string[]; colors?: (RGB | undefined)[] }[],
+  ) => {
+    const header = () => {
       page.drawRectangle({ x: M, y: y - 22, width: CW, height: 22, color: C.green });
-      draw("NUTRIENT", M + 5, y - 14, 6.2, mono, C.white);
-      drawRight("ACTUAL", M + 315, y - 14, 6.2, mono, C.white);
-      drawRight("TARGET", M + 415, y - 14, 6.2, mono, C.white);
-      drawRight("STATUS", W - M - 5, y - 14, 6.2, mono, C.white);
+      let x = M;
+      columns.forEach((column) => {
+        if (column.align === "right") drawRight(column.label.toUpperCase(), x + column.width - 5, y - 14, 6.2, mono, C.white);
+        else draw(column.label.toUpperCase(), x + 5, y - 14, 6.2, mono, C.white);
+        x += column.width;
+      });
       y -= 22;
     };
-    micronutrientHeader();
-    group.checks.forEach((check, index) => {
-      const rowHeight = 22;
+    ensure(44);
+    header();
+    rows.forEach((row, index) => {
+      const wrapped = row.cells.map((cell, cellIndex) => wrap(cell, cellIndex === 0 ? bold : regular, 7, columns[cellIndex].width - 10));
+      const rowHeight = Math.max(22, Math.max(...wrapped.map((lines) => lines.length)) * 9 + 10);
       if (y - rowHeight < BOTTOM) {
         pageHeader(true);
-        section(label, "continued");
-        micronutrientHeader();
+        section(title, "continued");
+        header();
       }
       if (index % 2) page.drawRectangle({ x: M, y: y - rowHeight, width: CW, height: rowHeight, color: C.pale });
-      const dp = check.unit === "%" ? 3 : Math.abs(check.actual ?? check.requiredMin ?? check.allowedMax ?? 0) >= 100 ? 0 : 2;
-      const amount = (value: number | undefined) => value == null ? "Unknown" : `${number(value, dp)} ${check.unit}`;
-      const target = check.requiredMin != null ? `min ${amount(check.requiredMin)}` : `max ${amount(check.allowedMax)}`;
-      const status = nutrientAssessmentStatusLabel(check.status).toUpperCase();
-      draw(fit(check.label, bold, 7.2, 185), M + 5, y - 14, 7.2, bold);
-      drawRight(fit(amount(check.actual), regular, 7, 90), M + 315, y - 14, 7, regular, C.body);
-      drawRight(fit(target, regular, 7, 94), M + 415, y - 14, 7, regular, C.body);
-      drawRight(status, W - M - 5, y - 14, 6.4, bold, check.status === "met" ? C.green : check.status === "unknown" ? hex("#7a5414") : C.red);
+      let x = M;
+      columns.forEach((column, cellIndex) => {
+        const color = row.colors?.[cellIndex];
+        const font = cellIndex === 0 || color ? bold : regular;
+        wrapped[cellIndex].forEach((part, lineIndex) => {
+          const atY = y - 14 - lineIndex * 9;
+          if (column.align === "right") drawRight(part, x + column.width - 5, atY, 7, font, color ?? C.body);
+          else draw(part, x + 5, atY, 7, font, color ?? C.body);
+        });
+        x += column.width;
+      });
       y -= rowHeight;
       line(y, C.rule, 0.35);
     });
     y -= 18;
-  });
+  };
 
-  section("Nutritional assessment", FORMULATION_VERDICT_LABELS[input.assessment.verdict]);
-  const categoryStatus = (status: FormulationAssessment["categories"][number]["status"]) =>
-    status === "met" ? "VERIFIED" : status === "unmet" ? "DOES NOT MEET" : status === "unknown" ? "CANNOT VERIFY" : "NOT ASSESSED";
-  input.assessment.categories.forEach((category) => {
-    ensure(32);
-    draw(category.label, M + 5, y - 14, 7.5, bold);
-    drawRight(categoryStatus(category.status), W - M - 5, y - 14, 6.8, bold, category.status === "met" ? C.green : category.status === "unmet" ? C.red : hex("#7a5414"));
-    y -= 22;
-    line(y, C.rule, 0.35);
-  });
-  y -= 8;
-  const unresolved = input.assessment.nutrientChecks.filter((check) => check.status !== "met");
-  unresolved.forEach((check) => paragraph(`${check.label} — ${check.status === "unknown" ? "Cannot verify" : check.status === "below_target" ? "Below target" : "Above limit"}. ${check.reason} Target source: ${check.targetSource}`, check.status === "unknown" ? hex("#7a5414") : C.red));
+  if (assessment) {
+    const title = "Hard requirements";
+    section(title, assessment.headline);
+    assessment.consistencyErrors.forEach((error) => paragraph(`Engine consistency error: ${error}`, C.red));
+    if (assessment.requirements.length) {
+      table(
+        title,
+        [
+          { label: "Requirement", width: 170 },
+          { label: "Recipe", width: 80, align: "right" },
+          { label: "Requirement", width: 96, align: "right" },
+          { label: "Status", width: 60 },
+          { label: "Data", width: CW - 406 },
+        ],
+        assessment.requirements.map((check) => ({
+          cells: [
+            `${check.label}${check.unit ? ` (${check.unit})` : ""}`,
+            compact(check.actual),
+            `${check.relation === "min" ? "min" : check.relation === "max" ? "max" : "="} ${compact(check.bound)}`,
+            check.status === "met" ? (check.limiting ? "Met · limiting" : "Met") : "Not met",
+            requirementDataTag(check),
+          ],
+          colors: [undefined, undefined, undefined, check.status === "met" ? C.green : C.red, undefined],
+        })),
+      );
+    }
+    paragraph("Data: Published = documented by the source; Assumed 0 = the premix does not document the value, so it is counted as 0 (a conservative assumption, not a documented value); Missing = no value is available; total only = a total value without a SID/digestible value, not counted toward SID.", C.muted);
+    paragraph(assessment.scope, C.muted);
+  } else {
+    section("Nutrient results", "saved result, not re-scored");
+    paragraph(LEGACY_PREMIX_NOTE, C.amberText);
+    table(
+      "Nutrient results",
+      [
+        { label: "Nutrient", width: 220 },
+        { label: "Target", width: 120, align: "right" },
+        { label: "Actual", width: 90, align: "right" },
+        { label: "Status", width: CW - 430 },
+      ],
+      input.nutrients.map((nutrient) => {
+        const dp = nutrient.unit === "%" ? 3 : 0;
+        const target = [
+          nutrient.min != null ? `min ${number(nutrient.min, dp)}` : "",
+          nutrient.max != null ? `max ${number(nutrient.max, dp)}` : "",
+        ].filter(Boolean).join(" / ");
+        return {
+          cells: [`${nutrient.name} (${nutrient.unit})`, target || "reported", number(nutrient.value, dp), nutrient.status === "met" ? "Met" : "Not met"],
+          colors: [undefined, undefined, undefined, nutrient.status === "met" ? C.green : C.red],
+        };
+      }),
+    );
+  }
 
-  if (input.advisories.length || input.notes.length) {
-    section("Advisories and notes");
+  const premix = assessment ? premixInAssessment(assessment, input.premixId) : undefined;
+  if (premix) {
+    const dose = assessment?.requirements.find((check) => check.id === "premix-dose")?.actual ?? premix.inclusionPct;
+    const contributions = premixNutrientContributions(premix, dose);
+    const title = "What the premix contributes";
+    section(title, `${premix.sku} · ${compact(dose * 10, 2)} kg/t`);
+    paragraph(`${premix.name} (${premix.manufacturer}) is an ordinary ingredient in this recipe: each documented nutrient${premix.source?.basis ? ` (${premix.source.basis})` : ""} is counted once alongside every other ingredient. Nutrients it does not document are counted as 0 (Assumed 0).`);
+    if (contributions.length) {
+      table(
+        title,
+        [
+          { label: "Nutrient", width: 150 },
+          { label: "Unit", width: 50 },
+          { label: "Per kg premix", width: 85, align: "right" },
+          { label: "Per kg feed", width: 85, align: "right" },
+          { label: "Note", width: CW - 370 },
+        ],
+        contributions.map((row) => ({
+          cells: [
+            row.nutrient,
+            row.unit,
+            compact(row.premixConcentration, 3),
+            compact(row.finishedFeedContribution, 4),
+            row.countsTowardDigestible ? "Published" : "Published · total only, not counted toward SID",
+          ],
+        })),
+      );
+    } else {
+      paragraph("The manufacturer has not published a composition for this premix, so none of its nutrients is credited.", C.amberText);
+    }
+  }
+
+  const supplementationRows = assessment?.supplementation?.rows ?? [];
+  const gapLine = assessment ? documentationGapLine(assessment) : null;
+  const suggested = input.premixComparison?.suggestedPremixId
+    ? input.premixComparison.options.find((option) => option.premixId === input.premixComparison!.suggestedPremixId)
+    : undefined;
+  if (gapLine || supplementationRows.length || suggested || input.advisories.length || input.notes.length) {
+    section("Advisories", "optional · never block the recipe");
+    if (gapLine) paragraph(gapLine, C.amberText);
+    if (suggested && input.premixComparison) {
+      const current = input.premixComparison.options.find((option) => option.current);
+      const verb = current ? `Replace premix: ${current.name} with ${suggested.name}` : `Premix option: ${suggested.name}`;
+      paragraph(`Premix advisory. ${verb}. Re-running the formulation with ${suggested.name} at its manufacturer dose ${input.premixComparison.reasons.join("; ")}.`, C.amberText);
+    }
+    if (supplementationRows.length) {
+      paragraph(`Vitamin and trace-mineral supplementation compared with ${assessment!.supplementation!.source} (inorganic trace-mineral basis). These are recommendations, not requirements: they do not affect whether the recipe meets its hard requirements.`, C.amberText);
+      table(
+        "Advisories",
+        [
+          { label: "Nutrient", width: 130 },
+          { label: "Supplemented", width: 85, align: "right" },
+          { label: "Recommendation", width: 85, align: "right" },
+          { label: "% of recommendation", width: 96, align: "right" },
+          { label: "Advisory", width: CW - 396 },
+        ],
+        supplementationRows.map((row) => ({
+          cells: [
+            row.label,
+            `${compact(row.actual, 2)} ${row.unit}`,
+            `${compact(row.recommended, 2)} ${row.unit}`,
+            row.pctOfRecommendation === null ? "-" : `${Math.round(row.pctOfRecommendation)}%`,
+            `${SUPPLEMENTATION_STATUS_LABELS[row.status]} · ${DATA_STATUS_LABELS[row.data]}`,
+          ],
+          colors: [undefined, undefined, undefined, row.status === "at_recommendation" ? undefined : C.amberText, undefined],
+        })),
+      );
+    }
     input.advisories.forEach((note) => paragraph(`Advisory: ${note}`));
     input.notes.forEach((note) => paragraph(note));
   }
@@ -474,5 +616,7 @@ export async function buildStudioFormulationPdf(
     drawRight(`Page ${index + 1} of ${pages.length}`, W - M, M - 2, 6.8, fonts.monoMedium, C.ink);
   });
 
-  return pdf.save();
+  return { bytes: await pdf.save(), text: drawnText };
 }
+
+export { documentationGapLine };

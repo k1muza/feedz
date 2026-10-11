@@ -16,19 +16,19 @@ with its own attribution. Price provenance is separate from nutrient provenance.
   the profile citation for any nutrient contributed by another publication.
   Studio's ingredient detail shows the individual citation for every
   displayed non-null nutrient and the profile-level source.
-* **Missing data** — `undefined` remains unknown. Manufacturer label
-  guarantees expressed as **minimums or ranges** are never presented as exact
-  analytical concentrations. A published minimum may be retained explicitly
-  as a conservative `minimum_guarantee` and multiplied by the premix inclusion
-  rate to report a minimum finished-feed contribution. That contribution stays
-  `manufacturer_unverified` and cannot produce a complete-feed pass. SID amino
-  acid values require a
-  supplier-provided SID analysis or sufficiently documented total-AA value
-  and digestibility coefficient.
-* **Supplier products** — manufacturer SKU, stage eligibility, inclusion rule,
-  mixing instructions, specification URL, nutrient contribution and formula
-  restrictions are additional **ingredient constraints**, not a separate
-  formulation engine.
+* **Missing data** — `undefined` is never a verified zero. For an ordinary
+  ingredient it stays missing and the optimizer sets the ingredient aside. For
+  a commercial premix it is counted as 0 (conservative for a minimum) and
+  reported as `assumed_zero` with the premix ID, never as a published value.
+  Label guarantees expressed as **minimums or ranges** are recorded as the
+  minimum (`basis: "as-fed label minimum per kg premix"`), never as an exact
+  analysis. SID amino-acid values require a supplier-provided SID analysis or
+  a published total plus a source-backed digestibility coefficient.
+* **Supplier products** — a commercial premix's composition is an ordinary
+  species nutrition profile (`nutrition.swine` / `nutrition.poultry`), credited
+  through the same pipeline as maize or soybean meal. Its `premix` block adds
+  manufacturer, SKU, stage eligibility, the fixed dose, instructions, min/max
+  `publishedGuarantees`, the specification URL and formula restrictions.
 * **User-entered premixes** — a source can be attached to the request; a
   user-provided profile stays unverified until separately validated. Without
   a URL, the source is explicitly reported as user-supplied without an
@@ -45,76 +45,40 @@ with its own attribution. Price provenance is separate from nutrient provenance.
 3. Record exact per-kg nutrient concentrations only where evidence supports
    them. For amino acids, store total and SID distinctly; never treat a
    minimum total lysine label as SID lysine.
-4. Add `verifiedAsFedAminoAcids` only with a `reference` and `sourceUrl`
-   and record each `aminoAcids.totalPct.*` and `aminoAcids.sidPct.*`
-   source in `provenance.nutrientSources`.
+4. Put published per-kg-premix values in the premix's species nutrition
+   profile: vitamins, trace minerals, `macroMinerals`, `aminoAcids.totalPct`,
+   `aminoAcids.sidPct` (only when SID is published) and any protein or energy.
+   Cite any value whose basis differs from the product-level source in
+   `provenance.nutrientSources` (for example "TOTAL lysine, no SID value
+   published" or a NaCl-to-sodium molar-mass conversion).
 5. Retain product-level verification warnings until all relevant nutrient
    guarantees, practical dosage restrictions and compatibility are verified.
 
-## Caremix Maxipacks: reversing finished-feed targets for exploratory formulation
+## Caremix Maxipacks: finished-feed specifications kept as reference
 
 The user-provided one-page Caremix / Trouw Nutrition sheet describes **nutrient
-ranges per kilogram of finished feed** for three *different* products:
-PigWeaner 28 kg/t (2.8%; 14 kg bag), Pig Grower 32 kg/t (3.2%; 16 kg bag)
-and Pig Finisher 26 kg/t (2.6%; 13 kg bag). The original AECI V1736 product
-has been replaced with those stage-specific SKUs. The 30 printed nutrient
-rows per product are preserved under `premix.labelGuarantees` in the canonical
-`ingredient-library.json` file.
+ranges per kilogram of finished feed** for three stage-specific products:
+PigWeaner 28 kg/t (2.8%), Pig Grower 32 kg/t (3.2%) and Pig Finisher 26 kg/t
+(2.6%). The 30 printed rows per product are preserved under
+`premix.finishedFeedSpecification`, with the user-approved min/max reversals
+noted per row.
 
-The original sheet contains numerical Min/Max reversals. Following the user's
-explicit direction, these are sorted into ascending bounds. Each reversed
-row has a note recording the originally printed values, so normalization is
-traceable. Unknown, unreadable or overlapping cells are recorded explicitly
-and **not** silently fabricated.
+A finished-feed specification is not a premix composition. FeedSport no longer
+reverse-calculates a premix profile from it: the Caremix nutrition profiles are
+empty, so every premix nutrient is reported as undocumented (`assumed_zero` in
+hard requirements, `no_data` against Chapter 7). The premix advisory can then
+compare a documented alternative. A per-kg premix analysis from the supplier
+is required before any Caremix nutrient is credited.
 
-### Modelled nutrient equivalents (not a supplier premix assay)
+## Hard requirements versus supplementation advisories
 
-The only mathematically possible inversion from the provided document is a
-**target-equivalent** nutrient profile: if one attributes *all* of a finished-feed
-minimum to the premix and assumes zero contribution from the basal ingredients,
-then:
-
-`estimated amount per kg premix = finished feed minimum per kg / (premix kg per tonne / 1000)`.
-
-For example, PigWeaner vitamin A is 12,000 IU/kg finished feed; the
-2.8%-inclusion theoretical premix equivalent is 428,571.43 IU/kg premix.
-It is **not evidence** the manufacturer actually puts that concentration
-in the product. For nutrients with significant basal contributions, this
-assumption may overestimate actual premix supplementation. The estimates are
-held in `premix.estimatedAsFedMicronutrients` rather than
-`guaranteedMinimumAsFed` or `verifiedAsFedMicronutrients`.
-
-Some table rows are visibly ambiguous or anomalous. The extra, unlabelled
-vitamin E-equivalent IU row is not double-counted; calcium pantothenate is not
-treated as identical to pantothenic acid; choline with no positive minimum
-remains unknown; grower iodine and selenium appear shifted by a row and are
-not credited. Whole-feed calcium, phosphorus and sodium values are preserved
-but are **not** converted into premix macro-mineral contributions. No total-
-or SID-amino-acid concentrations are manufactured from the completed-feed
-lysine/methionine/threonine ranges.
-
-Studio and its APIs may show numerical planning equivalents, but their
-assessment **must remain `needs_verification`**, even if a modelled recipe
-passes every numerical check. A supplier premix analysis (and consideration of
-basal contributions) is required for a truly verified feed formula.
-
-## Formulation versus complete-feed validation
-
-The least-cost solver reports whether a recipe is feasible against its active
-hard constraints. Complete-feed validation is a separate assessment with four
-categories: energy/protein/amino acids, major minerals, vitamins, and trace
-minerals. Vitamins and trace minerals use supplemented targets separately from
-total-diet requirements where the source publishes supplementation guidance:
-Brazilian Tables 2024 Tables 7.01/7.03 (broilers, printed pp. 469/471),
-7.05/7.06 (growing swine, pp. 473/474) and 7.07 (breeders, p. 475), matched to
-phases by age band. Table 7.05 starts at weaning (21 days), so the 14–21 day
-nursery phase has no supplementation targets.
-
-Each category is `met`, `not_met`, or `no_target`. Premix label minima count
-towards micronutrient targets, and a nutrient that no ingredient declares counts
-as not supplied, so its category is `not_met`. A category with no loaded targets
-for the phase is `no_target`; it keeps the complete-feed result at `incomplete`,
-even when every assessed category is met.
+The least-cost solver enforces hard requirements only: energy, protein, SID
+amino acids, minerals, ingredient limits and the premix dose. Brazilian Tables
+2024 Chapter 7 supplementation guidance (Tables 7.01/7.03 broilers, 7.05/7.06
+growing swine, 7.07 breeders, matched to phases by age band) is compared with
+the supplemented vitamins and trace minerals as an **advisory**. It never makes
+a feed deficient. Table 7.05 starts at weaning (21 days), so the 14–21 day
+nursery phase has no comparison. See `docs/formulation-assessment.md`.
 
 ## Interfaces
 

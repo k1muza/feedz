@@ -122,7 +122,7 @@ test("Studio can send a default fixed Caremix premix without inventing its purch
     }, ctx);
     assert.equal(result.status, "infeasible", "Formulation must reach the solver, not block over premix price");
     assert.equal(calls, 1);
-    assert.ok(result.warns.some((warning) => /excludes|excludes/i.test(warning.body)));
+    assert.ok(result.warns.some((warning) => /costs exclude it/i.test(warning.body)));
   } finally { globalThis.fetch = originalFetch; }
 });
 

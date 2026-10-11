@@ -11,7 +11,7 @@ import { ingredientDefaultPricePerKg } from '@/lib/feed-ingredient-prices';
 import { evaluateFormulation } from '@/lib/feed-optimizer';
 import { getIngredientPrices } from '@/lib/ingredient-prices';
 import { feedProgrammeById, feedProgrammePhaseById } from '@/lib/feed-programmes';
-import { ingredientLibraryForPhase, ingredientLibraryWithCommercialPremixes } from '@/lib/ingredient-nutrients';
+import { ingredientLibraryForPhase } from '@/lib/ingredient-nutrients';
 import { renderPublicFormulationPdf } from '@/lib/public-formulation-pdf';
 
 export const runtime = 'nodejs';
@@ -97,15 +97,9 @@ export async function POST(request: Request) {
       formula.ingredients.map((row) => ({ ingredientId: row.ingredientId, minInclusionPct: row.inclusionPct, maxInclusionPct: row.inclusionPct })),
     );
 
-    const library = ingredientLibraryWithCommercialPremixes([premix], ingredientLibraryForPhase(phase));
-    const evaluation = evaluateFormulation(
-      phase,
-      'ME',
-      formula,
-      library,
-      { includeSupplementationTargets: true, traceMineralBasis: 'inorganic' },
-    );
-    const assessment = buildFormulationAssessment(phase, 'ME', formula, library, evaluation);
+    const library = ingredientLibraryForPhase(phase);
+    const evaluation = evaluateFormulation(phase, 'ME', formula, library);
+    const assessment = buildFormulationAssessment(phase, 'ME', formula, library);
     const ingredientPrices = await getIngredientPrices();
     // An unpriced ingredient makes the total unknown; it is never costed as zero.
     let costPerKg: number | null = 0;

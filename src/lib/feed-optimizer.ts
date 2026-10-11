@@ -32,17 +32,15 @@ export type FormulationUnsupportedRequirement =
   | "available-phosphorus"
   | "potassium"
   | "linoleic-acid"
-  | "calcium-phosphorus-ratio"
-  | "vitamin-trace-mineral-supplementation";
+  | "calcium-phosphorus-ratio";
 
-export type FormulationSettings = {
+export type FormulationRunOptions = {
   /**
-   * Apply Brazilian Tables Chapter 7 vitamin and trace-mineral supplementation
-   * guidance as hard formulation constraints. These are deliberately separate
-   * from total-diet nutrient requirements.
+   * Also search the 3%-cost alternatives and ingredient opportunities. Off
+   * for comparison re-runs (e.g. premix replacement), which need only the
+   * least-cost recipe.
    */
-  includeSupplementationTargets?: boolean;
-  traceMineralBasis?: "inorganic" | "organic";
+  explore?: boolean;
 };
 
 export type FormulationMissingData = {
@@ -220,13 +218,14 @@ export type FormulationRequirement = {
 /**
  * The hard constraints the optimizer enforces for a phase, so callers can
  * publish exactly what formulation and evaluation are checked against.
+ * Brazilian Tables Chapter 7 supplementation guidance is advisory and is
+ * never part of this list; see formulation-assessment.
  */
 export function formulationRequirements(
   phase: NutritionPhase,
   energySystem: EnergySystem,
-  settings: FormulationSettings = {},
 ): FormulationRequirement[] {
-  return buildConstraintSpecs(phase, energySystem, settings).map(
+  return buildConstraintSpecs(phase, energySystem).map(
     ({ id, label, unit, relation, bound }) => ({ id, label, unit, relation, bound }),
   );
 }
@@ -241,9 +240,8 @@ export function evaluateFormulation(
   energySystem: EnergySystem,
   formula: DietFormula,
   library: IngredientLibrary = INGREDIENT_LIBRARY,
-  settings: FormulationSettings = {},
 ): FormulationEvaluation {
-  const constraints = buildConstraintSpecs(phase, energySystem, settings);
+  const constraints = buildConstraintSpecs(phase, energySystem);
   const analysis = analyzeDiet(formula, [], library);
   return {
     analysis,
@@ -262,7 +260,7 @@ export function evaluateFormulation(
         },
       ];
     }),
-    unsupportedRequirements: unsupportedRequirementsForPhase(phase, settings),
+    unsupportedRequirements: unsupportedRequirementsForPhase(phase),
   };
 }
 
@@ -295,12 +293,8 @@ export type PreparedIngredient = {
 
 export function unsupportedRequirementsForPhase(
   phase: NutritionPhase,
-  settings: FormulationSettings = {},
 ): FormulationUnsupportedRequirement[] {
   const unsupported: FormulationUnsupportedRequirement[] = [];
-  if (settings.includeSupplementationTargets && !phase.supplementation) {
-    unsupported.push("vitamin-trace-mineral-supplementation");
-  }
   if (phase.requirements.practical.calciumToTotalPhosphorusMinRatio !== undefined) {
     unsupported.push("calcium-phosphorus-ratio");
   }
@@ -311,7 +305,9 @@ export function unsupportedRequirementsForPhase(
  * Least-cost formulation against Brazilian Tables requirements.
  *
  * Primary mode is deliberately strict: modeled nutrient constraints are hard
- * constraints. If no exact formulation exists, a second diagnostic LP adds
+ * constraints. Every ingredient, commercial premixes included, contributes
+ * through the same coefficients, so a premix that documents SID lysine
+ * reduces the crystalline lysine the recipe needs. If no exact formulation exists, a second diagnostic LP adds
  * deviation variables and minimizes relative nutrient shortfall/excess so the
  * caller can explain what prevents feasibility.
  */
@@ -320,9 +316,9 @@ export async function formulateLeastCostDiet(
   energySystem: EnergySystem,
   options: readonly FormulationIngredientOption[],
   library: IngredientLibrary = INGREDIENT_LIBRARY,
-  settings: FormulationSettings = {},
+  { explore = true }: FormulationRunOptions = {},
 ): Promise<LeastCostFormulationResult> {
-  const unsupportedRequirements = unsupportedRequirementsForPhase(phase, settings);
+  const unsupportedRequirements = unsupportedRequirementsForPhase(phase);
 
   if (options.length === 0) {
     return {
@@ -335,7 +331,7 @@ export async function formulateLeastCostDiet(
   try {
     validateOptions(options, library);
 
-    const constraints = buildConstraintSpecs(phase, energySystem, settings);
+    const constraints = buildConstraintSpecs(phase, energySystem);
     const prepared = prepareIngredients(options, constraints, library, phase);
     const missingData = collectMissingData(prepared, constraints);
 
@@ -354,20 +350,12 @@ export async function formulateLeastCostDiet(
 
     if (strict.status === "optimal") {
       const solution = buildSolution(strict.vars, prepared, library);
-      const alternatives = await buildAlternativeFormulations(
-        glpk,
-        prepared,
-        constraints,
-        solution,
-        library,
-      );
-      const ingredientOpportunities = await buildIngredientOpportunities(
-        glpk,
-        prepared,
-        constraints,
-        solution,
-        library,
-      );
+      const alternatives = explore
+        ? await buildAlternativeFormulations(glpk, prepared, constraints, solution, library)
+        : [];
+      const ingredientOpportunities = explore
+        ? await buildIngredientOpportunities(glpk, prepared, constraints, solution, library)
+        : [];
       return {
         status: "optimal",
         solution,
@@ -435,6 +423,8 @@ export async function suggestFormulationIngredients(
     const constraints = buildConstraintSpecs(phase, energySystem);
     const options: FormulationIngredientOption[] = library.ingredients.flatMap(
       (ingredient) => {
+        // A commercial premix is chosen deliberately, never auto-suggested.
+        if (ingredient.category === "vitamin_mineral_premix") return [];
         const pricePerKg = priceForIngredient(ingredient.id);
         if (
           pricePerKg === undefined ||
@@ -527,6 +517,7 @@ export async function suggestFormulationAdditions(
       (ingredient) => {
         const current = currentById.get(ingredient.id);
         if (current) return [current];
+        if (ingredient.category === "vitamin_mineral_premix") return [];
         const pricePerKg = priceForIngredient(ingredient.id);
         if (
           pricePerKg === undefined ||
@@ -619,7 +610,6 @@ export async function suggestFormulationAdditions(
 export function buildConstraintSpecs(
   phase: NutritionPhase,
   energySystem: EnergySystem,
-  settings: FormulationSettings = {},
 ): ConstraintSpec[] {
   const selectedEnergyKcalKg =
     energySystem === "ME"
@@ -834,139 +824,10 @@ export function buildConstraintSpecs(
         value: analysis.lLysineHclPct,
         complete: true,
         missingIngredientIds: [],
+        assumedZeroIngredientIds: [],
+        totalOnlyIngredientIds: [],
       }),
     });
-  }
-
-  if (settings.includeSupplementationTargets && phase.supplementation) {
-    const vitamins = phase.supplementation.vitamins;
-    const vitaminConstraints: Array<{
-      id: string;
-      label: string;
-      unit: string;
-      bound: number;
-      measure: (analysis: DietAnalysis) => AnalyzedNutrient;
-    }> = [
-      {
-        id: "supplement-vitamin-a",
-        label: "Supplemented vitamin A",
-        unit: "IU/kg",
-        bound: vitamins.vitaminAIuKg,
-        measure: (analysis) => analysis.supplementation.vitamins.vitaminAIuKg,
-      },
-      {
-        id: "supplement-vitamin-d3",
-        label: "Supplemented vitamin D3",
-        unit: "IU/kg",
-        bound: vitamins.vitaminDIuKg,
-        measure: (analysis) => analysis.supplementation.vitamins.vitaminDIuKg,
-      },
-      {
-        id: "supplement-vitamin-e",
-        label: "Supplemented vitamin E",
-        unit: "IU/kg",
-        bound: vitamins.vitaminEIuKg,
-        measure: (analysis) => analysis.supplementation.vitamins.vitaminEIuKg,
-      },
-      {
-        id: "supplement-vitamin-k3",
-        label: "Supplemented vitamin K3",
-        unit: "mg/kg",
-        bound: vitamins.vitaminKMgKg,
-        measure: (analysis) => analysis.supplementation.vitamins.vitaminKMgKg,
-      },
-      {
-        id: "supplement-vitamin-b1",
-        label: "Supplemented vitamin B1",
-        unit: "mg/kg",
-        bound: vitamins.vitaminB1MgKg,
-        measure: (analysis) => analysis.supplementation.vitamins.vitaminB1MgKg,
-      },
-      {
-        id: "supplement-vitamin-b2",
-        label: "Supplemented vitamin B2",
-        unit: "mg/kg",
-        bound: vitamins.riboflavinMgKg,
-        measure: (analysis) => analysis.supplementation.vitamins.riboflavinMgKg,
-      },
-      {
-        id: "supplement-vitamin-b6",
-        label: "Supplemented vitamin B6",
-        unit: "mg/kg",
-        bound: vitamins.vitaminB6MgKg,
-        measure: (analysis) => analysis.supplementation.vitamins.vitaminB6MgKg,
-      },
-      {
-        id: "supplement-vitamin-b12",
-        label: "Supplemented vitamin B12",
-        unit: "mcg/kg",
-        bound: vitamins.vitaminB12McgKg,
-        measure: (analysis) => analysis.supplementation.vitamins.vitaminB12McgKg,
-      },
-      {
-        id: "supplement-pantothenic-acid",
-        label: "Supplemented pantothenic acid",
-        unit: "mg/kg",
-        bound: vitamins.pantothenicAcidMgKg,
-        measure: (analysis) => analysis.supplementation.vitamins.pantothenicAcidMgKg,
-      },
-      {
-        id: "supplement-niacin",
-        label: "Supplemented niacin",
-        unit: "mg/kg",
-        bound: vitamins.niacinMgKg,
-        measure: (analysis) => analysis.supplementation.vitamins.niacinMgKg,
-      },
-      {
-        id: "supplement-folic-acid",
-        label: "Supplemented folic acid",
-        unit: "mg/kg",
-        bound: vitamins.folicAcidMgKg,
-        measure: (analysis) => analysis.supplementation.vitamins.folicAcidMgKg,
-      },
-      {
-        id: "supplement-biotin",
-        label: "Supplemented biotin",
-        unit: "mg/kg",
-        bound: vitamins.biotinMgKg,
-        measure: (analysis) => analysis.supplementation.vitamins.biotinMgKg,
-      },
-      {
-        id: "supplement-choline",
-        label: "Supplemented choline",
-        unit: "mg/kg",
-        bound: vitamins.totalCholineMgKg,
-        measure: (analysis) => analysis.supplementation.vitamins.totalCholineMgKg,
-      },
-    ];
-    constraints.push(
-      ...vitaminConstraints.map((constraint) => ({
-        ...constraint,
-        relation: "min" as const,
-      })),
-    );
-
-    const basis = settings.traceMineralBasis ?? "inorganic";
-    const trace = phase.supplementation.traceMinerals[basis];
-    const traceMeasures = [
-      ["copper", "Copper", trace.copperPpm, (analysis: DietAnalysis) => analysis.supplementation.traceMineralsPpm.copper],
-      ["iron", "Iron", trace.ironPpm, (analysis: DietAnalysis) => analysis.supplementation.traceMineralsPpm.iron],
-      ["manganese", "Manganese", trace.manganesePpm, (analysis: DietAnalysis) => analysis.supplementation.traceMineralsPpm.manganese],
-      ["selenium", "Selenium", trace.seleniumPpm, (analysis: DietAnalysis) => analysis.supplementation.traceMineralsPpm.selenium],
-      ["zinc", "Zinc", trace.zincPpm, (analysis: DietAnalysis) => analysis.supplementation.traceMineralsPpm.zinc],
-      ["iodine", "Iodine", trace.iodinePpm, (analysis: DietAnalysis) => analysis.supplementation.traceMineralsPpm.iodine],
-    ] as const;
-    for (const [id, label, bound, measure] of traceMeasures) {
-      if (bound === undefined) continue;
-      constraints.push({
-        id: `supplement-${id}`,
-        label: `Supplemented ${label.toLowerCase()}`,
-        unit: "ppm",
-        relation: "min",
-        bound,
-        measure,
-      });
-    }
   }
 
   return constraints;
@@ -1042,6 +903,34 @@ export function collectMissingData(
   });
 }
 
+type LpModel = Parameters<GLPK["solve"]>[0];
+
+/**
+ * GLPK's presolver can report OPTIMAL for an infeasible model (for example a
+ * basket that cannot reach SID valine without crystalline valine). Every
+ * reported optimum is checked against its own constraint rows; if one is
+ * violated, the model is solved again without presolve, which reports the
+ * true status. The post-solve assessment remains the final safeguard.
+ */
+async function solveLp(glpk: GLPK, lp: LpModel) {
+  const presolved = await glpk.solve(lp, { msglev: glpk.GLP_MSG_OFF, presol: true });
+  if (presolved.result.status !== glpk.GLP_OPT || satisfiesRows(glpk, lp, presolved.result.vars)) return presolved;
+  return glpk.solve(lp, { msglev: glpk.GLP_MSG_OFF, presol: false });
+}
+
+function satisfiesRows(glpk: GLPK, lp: LpModel, vars: Record<string, number>): boolean {
+  return lp.subjectTo.every((row) => {
+    const value = row.vars.reduce((sum, term) => sum + term.coef * (vars[term.name] ?? 0), 0);
+    const { type, lb, ub } = row.bnds;
+    const ok = (bound: number, holds: boolean) => holds || Math.abs(value - bound) <= Math.max(1e-7, Math.abs(bound) * 1e-6);
+    if (type === glpk.GLP_FX) return ok(lb, Math.abs(value - lb) <= 0);
+    if (type === glpk.GLP_LO) return ok(lb, value >= lb);
+    if (type === glpk.GLP_UP) return ok(ub, value <= ub);
+    if (type === glpk.GLP_DB) return ok(lb, value >= lb) && ok(ub, value <= ub);
+    return true;
+  });
+}
+
 export async function solveStrict(
   glpk: GLPK,
   ingredients: readonly PreparedIngredient[],
@@ -1060,7 +949,6 @@ export async function solveStrict(
     GLP_FX,
     GLP_LO,
     GLP_MIN,
-    GLP_MSG_OFF,
     GLP_OPT,
   } = glpk;
 
@@ -1106,10 +994,7 @@ export async function solveStrict(
     })),
   };
 
-  const result = await glpk.solve(lp, {
-    msglev: GLP_MSG_OFF,
-    presol: true,
-  });
+  const result = await solveLp(glpk, lp);
 
   if (result.result.status !== GLP_OPT) {
     return { status: "infeasible" };
@@ -1127,7 +1012,7 @@ async function solveMinimumAdditions(
   | { status: "optimal"; vars: Record<string, number> }
   | { status: "infeasible" }
 > {
-  const { GLP_DB, GLP_FX, GLP_LO, GLP_MIN, GLP_MSG_OFF, GLP_OPT, GLP_UP } = glpk;
+  const { GLP_DB, GLP_FX, GLP_LO, GLP_MIN, GLP_OPT, GLP_UP } = glpk;
   const optional = ingredients.filter(
     (ingredient) => !currentIds.has(ingredient.option.ingredientId),
   );
@@ -1220,10 +1105,7 @@ async function solveMinimumAdditions(
     binaries: optional.map(binaryName),
   };
 
-  const result = await glpk.solve(lp, {
-    msglev: GLP_MSG_OFF,
-    presol: true,
-  });
+  const result = await solveLp(glpk, lp);
   if (result.result.status !== GLP_OPT) return { status: "infeasible" };
   return { status: "optimal", vars: result.result.vars };
 }
@@ -1246,7 +1128,6 @@ async function solveAlternativeObjective(
     GLP_FX,
     GLP_LO,
     GLP_MIN,
-    GLP_MSG_OFF,
     GLP_OPT,
     GLP_UP,
   } = glpk;
@@ -1304,10 +1185,7 @@ async function solveAlternativeObjective(
     })),
   };
 
-  const result = await glpk.solve(lp, {
-    msglev: GLP_MSG_OFF,
-    presol: true,
-  });
+  const result = await solveLp(glpk, lp);
 
   if (result.result.status !== GLP_OPT) {
     return { status: "infeasible" };
@@ -1638,7 +1516,6 @@ export async function solveDiagnostic(
     GLP_FX,
     GLP_LO,
     GLP_MIN,
-    GLP_MSG_OFF,
     GLP_OPT,
     GLP_UP,
   } = glpk;
@@ -1710,10 +1587,7 @@ export async function solveDiagnostic(
     ],
   };
 
-  const result = await glpk.solve(lp, {
-    msglev: GLP_MSG_OFF,
-    presol: true,
-  });
+  const result = await solveLp(glpk, lp);
 
   if (result.result.status !== GLP_OPT) {
     return { status: "infeasible" };

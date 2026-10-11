@@ -3,7 +3,6 @@ import "server-only";
 import {
   INGREDIENT_LIBRARY,
   POULTRY_INGREDIENT_LIBRARY,
-  ingredientLibraryWithCommercialPremixes,
   ingredientProfileAttribution,
   nutrientValueSource,
   sidAminoAcidPct,
@@ -12,7 +11,7 @@ import {
 } from "@/lib/ingredient-nutrients";
 import { getIngredientPrices } from "@/lib/ingredient-prices";
 import { ingredientDefaultPlanningPricePerTonne } from "@/lib/feed-ingredient-prices";
-import { COMMERCIAL_PREMIXES, premixFinishedFeedContributions } from "@/lib/commercial-premixes";
+import { commercialPremixById, premixNutrientContributions } from "@/lib/commercial-premixes";
 import { analyzeDiet } from "@/lib/diet-formula";
 import { FEED_PROGRAMMES } from "@/lib/feed-programmes";
 import type { IngredientLibrary } from "@/lib/ingredient-nutrients";
@@ -47,7 +46,8 @@ export interface CatalogueIngredient {
     inclusionPct: number;
     inclusionKgPerTonne: number;
     inclusionInstructions: string;
-    contributions: ReturnType<typeof premixFinishedFeedContributions>;
+    /** Every documented nutrient and its contribution at the manufacturer dose. */
+    contributions: ReturnType<typeof premixNutrientContributions>;
   };
   /** Provenance belongs to the ingredient's actual nutrition profile, not price. */
   nutritionSource: {
@@ -143,10 +143,8 @@ function requirementProfile(id: string, library: IngredientLibrary, specs: Retur
 export async function getStudioCatalogue(): Promise<CatalogueIngredient[]> {
   const priceList = await getIngredientPrices();
   const prices = new Map(priceList.map((price) => [price.ingredientId, price]));
-  const pigProducts = COMMERCIAL_PREMIXES.filter((product) => product.species === "pig");
-  const birdProducts = COMMERCIAL_PREMIXES.filter((product) => product.species !== "pig");
-  const swine = ingredientLibraryWithCommercialPremixes(pigProducts, INGREDIENT_LIBRARY);
-  const poultryRecords = ingredientLibraryWithCommercialPremixes(birdProducts, POULTRY_INGREDIENT_LIBRARY);
+  const swine = INGREDIENT_LIBRARY;
+  const poultryRecords = POULTRY_INGREDIENT_LIBRARY;
   const poultry = new Map(poultryRecords.ingredients.map((record) => [record.id, record]));
   const swineIds = new Set(swine.ingredients.map((item) => item.id));
   const allRecords = [
@@ -175,7 +173,7 @@ export async function getStudioCatalogue(): Promise<CatalogueIngredient[]> {
     const pig = swine.ingredients.find((record) => record.id === ingredient.id);
     const profile = pig ?? bird ?? ingredient;
     const attribution = ingredientProfileAttribution(profile);
-    const product = COMMERCIAL_PREMIXES.find((item) => item.id === ingredient.id);
+    const product = commercialPremixById(ingredient.id);
     const price = prices.get(ingredient.id);
     const planningPricePerTonne = price
       ? ingredientDefaultPlanningPricePerTonne(ingredient.id, priceList)
@@ -233,7 +231,7 @@ export async function getStudioCatalogue(): Promise<CatalogueIngredient[]> {
           inclusionPct: product.inclusionPct,
           inclusionKgPerTonne: product.inclusionKgPerTonne,
           inclusionInstructions: product.inclusionInstructions,
-          contributions: premixFinishedFeedContributions(product),
+          contributions: premixNutrientContributions(product),
         } } : {}),
       nutritionSource: {
         publisher: attribution.source?.publisher ?? "User",

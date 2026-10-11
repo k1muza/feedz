@@ -1,16 +1,14 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import { FEED_PROGRAMMES } from "./feed-programmes";
-import { INGREDIENT_LIBRARY, INGREDIENT_LIBRARY_SOURCE, ingredientLibraryWithCommercialPremixes } from "./ingredient-nutrients";
+import { INGREDIENT_LIBRARY_SOURCE } from "./ingredient-nutrients";
 import {
   COMMERCIAL_PREMIXES,
   commercialPremixById,
   assertManufacturerRecipe,
   commercialPremixCompatibleWithProgramme,
   commercialPremixForProgramme,
-  premixFinishedFeedContributions,
-  publishedPremixAminoAcids,
-  publishedMinimumTotalAminoAcidsInFeed,
+  premixNutrientContributions,
 } from "./commercial-premixes";
 
 describe("Manufacturer-backed commercial premix catalogue", () => {
@@ -28,38 +26,24 @@ describe("Manufacturer-backed commercial premix catalogue", () => {
     }
   });
 
-  test("Caremix finished-feed ranges are embedded with corrected reversed bounds", () => {
+  test("Caremix finished-feed specifications are kept as reference only, never as premix composition", () => {
     assert.equal(commercialPremixById("aeci-v1736-pig-weaner-premix"), undefined);
-    const cases = [
-      { id: "caremix-pig-weaner", dose: 28, vitaminA: 12000, zinc: 0.6, iron: 2.5, selenium: 0.1, missing: ["totalCholineMgKg", "pantothenicAcidMgKg"] },
-      { id: "caremix-pig-grower", dose: 32, vitaminA: 10000, zinc: 20, iron: 90, selenium: null, missing: ["totalCholineMgKg", "pantothenicAcidMgKg"] },
-      { id: "caremix-pig-finisher", dose: 26, vitaminA: 6000, zinc: 0.4, iron: 1.5, selenium: 0.1, missing: ["totalCholineMgKg", "pantothenicAcidMgKg"] },
-    ] as const;
-    for (const item of cases) {
-      const product = commercialPremixById(item.id)!;
-      assert.ok(product, item.id);
+    for (const [id, dose] of [["caremix-pig-weaner", 28], ["caremix-pig-grower", 32], ["caremix-pig-finisher", 26]] as const) {
+      const product = commercialPremixById(id)!;
+      assert.ok(product, id);
       assert.equal(product.manufacturer, "Trouw Nutrition");
-      assert.equal(product.inclusionKgPerTonne, item.dose);
-      assert.equal(product.inclusionPct, item.dose / 10);
-      assert.equal(product.guaranteedMinimumAsFed, undefined);
-      assert.equal(product.verifiedAsFedMicronutrients, undefined);
-      assert.equal(product.labelGuarantees?.rows.length, 30);
-      assert.match(product.labelGuarantees?.concentrationBasis ?? "", /per kg of FINISHED FEED/i);
-      const estimate = product.estimatedAsFedMicronutrients!;
-      assert.ok(estimate);
-      assert.ok(Math.abs(estimate.vitamins.vitaminAIuKg! * product.inclusionPct / 100 - item.vitaminA) < 1e-6);
-      const contributions = premixFinishedFeedContributions(product);
-      assert.ok(contributions.every((entry) => entry.basis === "estimated_from_complete_feed"));
-      const byName = (name: string) => contributions.find((entry) => entry.nutrient === name)?.finishedFeedContribution;
-      assert.ok(Math.abs((byName("Zinc") ?? NaN) - item.zinc) < 1e-6);
-      assert.ok(Math.abs((byName("Iron") ?? NaN) - item.iron) < 1e-6);
-      if (item.selenium === null) assert.equal(byName("Selenium"), undefined);
-      else assert.ok(Math.abs((byName("Selenium") ?? NaN) - item.selenium) < 1e-6);
-      for (const name of item.missing) assert.equal(estimate.vitamins[name], undefined);
-      const calcium = product.labelGuarantees?.rows.find((r) => r.nutrient === "Calcium");
-      assert.ok(calcium?.note.includes("reversed"), item.id);
+      assert.equal(product.inclusionKgPerTonne, dose);
+      assert.equal(product.inclusionPct, dose / 10);
+      assert.equal(product.finishedFeedSpecification?.rows.length, 30);
+      assert.match(product.finishedFeedSpecification?.concentrationBasis ?? "", /FINISHED FEED.*reference information only/i);
+      // No reverse-calculated composition: every premix nutrient is undocumented.
+      assert.deepEqual(premixNutrientContributions(product), []);
+      assert.deepEqual(product.composition.vitamins, {});
+      assert.deepEqual(product.composition.traceMineralsPpm, {});
+      assert.deepEqual(product.composition.aminoAcids.totalPct, {});
+      const calcium = product.finishedFeedSpecification?.rows.find((r) => r.nutrient === "Calcium");
       assert.ok(Number(calcium?.min) <= Number(calcium?.max));
-      assert.equal(INGREDIENT_LIBRARY_SOURCE.ingredients.find((r) => r.id === item.id)?.category, "vitamin_mineral_premix");
+      assert.equal(INGREDIENT_LIBRARY_SOURCE.ingredients.find((r) => r.id === id)?.category, "vitamin_mineral_premix");
     }
   });
 
@@ -142,50 +126,22 @@ describe("Manufacturer-backed commercial premix catalogue", () => {
     }]), /restricted/);
   });
 
-  test("distinguishes CJ total lysine guarantee from digestible SID lysine and unknown Sustar values", () => {
+  test("CJ total lysine and phosphorus count toward totals, never toward SID or digestible values", () => {
     const cj = commercialPremixById("cj-s174-boar-premix")!;
-    assert.deepEqual(publishedPremixAminoAcids(cj), [{
-      name: "Lysine",
-      basis: "total",
-      unit: "%",
-      minimumPct: 4,
-      maximumPct: null,
-      usableAsSid: false,
-    }]);
-    assert.deepEqual(publishedMinimumTotalAminoAcidsInFeed(cj), [
-      { name: "Lysine", minTotalFeedPct: 0.16, usableAsSid: false },
-    ]);
-    assert.deepEqual(publishedMinimumTotalAminoAcidsInFeed(commercialPremixById("sustar-glypro-x912")!), []);
-    assert.deepEqual(publishedPremixAminoAcids(commercialPremixById("sustar-glypro-x912")!), []);
-    assert.deepEqual(publishedPremixAminoAcids(commercialPremixById("sustar-glypro-x911")!), []);
-  });
-
-  test("verified exact amino acids can be credited, but unspecified amino acids remain unknown", () => {
-    const source = commercialPremixById("sustar-glypro-x912")!;
-    const synthetic = {
-      ...source,
-      id: "test-confirmed-aa-premix",
-      verifiedAsFedAminoAcids: {
-        reference: "test fixture only — not an actual supplier analysis",
-        sourceUrl: "https://example.com/fictional-test-only",
-        totalPct: { lysine: 5 },
-        sidPct: { lysine: 4.2 },
-      },
-    };
-    const library = ingredientLibraryWithCommercialPremixes([synthetic], INGREDIENT_LIBRARY);
-    const item = library.ingredients.find((record) => record.id === synthetic.id)!;
-    assert.equal(item.aminoAcids.totalPct.lysine, 5);
-    assert.equal(item.aminoAcids.sidPct.lysine, 4.2);
-    assert.equal(
-      item.provenance.nutrientSources["aminoAcids.sidPct.lysine"]?.url,
-      "https://example.com/fictional-test-only",
-      "Exact SID values must retain their supplier citation",
-    );
-    assert.equal(item.provenance.verificationStatus, "manufacturer_unverified",
-      "One verified AA value does not certify the entire premix matrix");
-    const actual = ingredientLibraryWithCommercialPremixes([source], INGREDIENT_LIBRARY);
-    const actualItem = actual.ingredients.find((record) => record.id === source.id)!;
-    assert.equal(actualItem.aminoAcids.sidPct.lysine, undefined, "Do not fabricate Sustar SID lysine.");
+    const rows = premixNutrientContributions(cj);
+    const lysine = rows.find((row) => row.path === "aminoAcids.totalPct.lysine")!;
+    assert.equal(lysine.premixConcentration, 4);
+    assert.ok(Math.abs(lysine.finishedFeedContribution - 0.16) < 1e-12);
+    assert.equal(lysine.countsTowardDigestible, false);
+    assert.match(lysine.basis, /TOTAL lysine/);
+    assert.equal(rows.find((row) => row.path === "aminoAcids.sidPct.lysine"), undefined, "Total lysine is not SID lysine");
+    assert.equal(rows.find((row) => row.path === "macroMinerals.totalPhosphorusPct")?.countsTowardDigestible, false);
+    // The labelled 5% NaCl minimum is converted by molar mass, and says so.
+    const sodium = rows.find((row) => row.path === "macroMinerals.sodiumPct")!;
+    assert.ok(Math.abs(sodium.premixConcentration - 5 * 0.3934) < 1e-9);
+    assert.match(sodium.basis, /molar mass/);
+    const x912 = premixNutrientContributions(commercialPremixById("sustar-glypro-x912")!);
+    assert.ok(x912.every((row) => row.group === "vitamin" || row.group === "trace_mineral"));
   });
 
   test("retains Sustar vitamin E mass guarantees without inventing IU or choline", () => {
@@ -201,9 +157,9 @@ describe("Manufacturer-backed commercial premix catalogue", () => {
       assert.deepEqual(product.publishedGuarantees?.find((entry) => entry.nutrient === "Vitamin E"), {
         nutrient: "Vitamin E", unit: "g/kg", min, max,
       });
-      assert.equal(product.guaranteedMinimumAsFed?.vitamins.vitaminEIuKg, undefined,
+      assert.equal(product.composition.vitamins.vitaminEIuKg, undefined,
         "Supplier-published mass values cannot be treated as IU without the vitamin form.");
-      assert.equal(product.guaranteedMinimumAsFed?.vitamins.totalCholineMgKg, undefined,
+      assert.equal(product.composition.vitamins.totalCholineMgKg, undefined,
         "Undeclared choline must remain unknown.");
     }
   });

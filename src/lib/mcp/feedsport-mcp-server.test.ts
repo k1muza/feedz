@@ -19,7 +19,7 @@ const snapshot: Snapshot = {
   goal: "least_cost",
   batch: 1000,
   pool: Object.fromEntries(
-    ["corn-yellow-dent", "soybean-meal-solvent-extracted", "soybean-degummed-oil", "l-lysine-hcl", "l-threonine", "dl-methionine", "l-tryptophan", "limestone-ground", "dicalcium-phosphate", "sodium-chloride"].map((id) => [id, { role: "available" as const }]),
+    ["corn-yellow-dent", "soybean-meal-solvent-extracted", "soybean-degummed-oil", "l-lysine-hcl", "l-threonine", "dl-methionine", "l-tryptophan", "l-valine", "limestone-ground", "dicalcium-phosphate", "sodium-chloride"].map((id) => [id, { role: "available" as const }]),
   ),
 };
 
@@ -138,7 +138,9 @@ describe("MCP premix guidance", () => {
     };
     assert.match(find("formulate"), /BASAL ingredients only/);
     assert.match(find("formulate"), /nutritional_validation/);
-    assert.match(find("formulate"), /needs_verification/);
+    assert.match(find("formulate"), /meets_requirements/);
+    assert.match(find("formulate"), /advisories/);
+    assert.doesNotMatch(find("formulate"), /needs_verification|verified/);
     assert.match(find("formulate"), /fixed manufacturer inclusion dose/);
     assert.match(find("search_ingredients"), /Alibaba-derived planning prices/);
     assert.match(find("get_ingredient"), /manufacturer specification metadata/);

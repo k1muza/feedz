@@ -14,14 +14,15 @@ import type { StudioProgrammeData } from "@/lib/studio-programmes";
 import { canAddStudioIngredient, selectStudioIngredient, poolWithCarriedPremixSelection, poolWithPremixPrice, poolWithPremixSelection, poolWithProgrammePremix, poolWithoutPremix } from "@/lib/studio-commercial-premix";
 import { commercialPremixById, commercialPremixCompatibleWithProgramme, commercialPremixSimulationOnlyForPhase } from "@/lib/commercial-premixes";
 import {
-  FORMULATION_VERDICT_LABELS,
-  micronutrientAssessmentGroups,
-  nutrientAssessmentStatusLabel,
+  DATA_STATUS_LABELS,
+  documentationGapLine,
+  isFormulationAssessment,
+  isLegacyAssessment,
+  requirementCounts,
+  supplementationCounts,
   type FormulationVerdict,
-  type NutrientAssessment,
-  type NutritionalCategoryId,
+  type RequirementCheck,
 } from "@/lib/formulation-assessment-model";
-import { formulationRescueIngredientCandidates } from "@/lib/formulation-rescue-ingredients";
 
 import {
   evaluateManual,
@@ -150,7 +151,7 @@ interface AuthForm {
   org: string;
   role: Role3;
 }
-type Tab = "recipe" | "nutrients" | "why" | "history";
+type Tab = "recipe" | "nutrients" | "advisories" | "why" | "history";
 type InputEvent = ChangeEvent<HTMLInputElement | HTMLSelectElement>;
 type KeyEvent = KeyboardEvent<HTMLInputElement>;
 type Species = "swine" | "broiler";
@@ -172,6 +173,7 @@ interface RunEntry {
   goal: GoalKey;
   n: number;
   verdict?: FormulationVerdict;
+  headline: string;
 }
 interface Suggestion {
   /** programmeId|phaseId the suggestion is for. */
@@ -188,26 +190,6 @@ interface CompletionSuggestion {
   projectedInclusionPct: Record<string, number>;
   setAsideIds: string[];
   message?: string;
-}
-
-/** A candidate ingredient re-formulated in the background to see whether it rescues the recipe. */
-export interface RescueTrial {
-  id: string;
-  name: string;
-  /** Recipe ingredient it mostly replaces, when one gives way. */
-  displaced: string | null;
-  /** $/t change against the current recipe; null when either cost excludes an unpriced premix. */
-  deltaT: number | null;
-  /** Unresolved nutrient checks this ingredient turns into "met". */
-  resolves: string[];
-  /** True when the trial recipe is fully verified. */
-  verified: boolean;
-}
-
-interface RescueTrials {
-  key: string;
-  status: "loading" | "ready";
-  trials: RescueTrial[];
 }
 
 interface RecoveryUndo {
@@ -272,7 +254,8 @@ interface State {
   /** Search box on the guided setup's ingredient step. */
   ingQ: string;
   completionSuggestion: CompletionSuggestion | null;
-  rescueTrials: RescueTrials | null;
+  /** The premix comparison dialog (Compare premixes). */
+  compareOpen: boolean;
   /** One-step rollback for an ingredient set applied from an infeasible result. */
   recoveryUndo: RecoveryUndo | null;
   catQ: string;
@@ -571,12 +554,13 @@ type ManualView = ReturnType<typeof manualRecipe> & {
 };
 
 function summarise(r: FormulateResult, manual: ManualView | null): Summary {
-  if (manual) return { status: "manual", costT: manual.cost, recipe: manual.recipe, met: manual.nutrients.filter((n) => n.status === "met").length, req: manual.nutrients.length + manual.incompleteRequirements.length, adv: manual.advisories.length, fail: manual.nutrients.filter((n) => n.status !== "met").length, unknown: manual.incompleteRequirements.length, ...(manual.assessment ? { assessment: manual.assessment } : {}) };
-  if (r.status === "manufacturer_recipe") return { status: r.status, recipe: r.recipe.map((row) => ({ id: row.id, pct: row.pct })), ...(r.costT === null ? {} : { costT: r.costT }), assessment: r.assessment };
-  if (r.status !== "optimal") return { status: r.status, ...(r.status === "infeasible" ? { assessment: r.assessment } : {}) };
-  const failed = r.assessment.nutrientChecks.filter((check) => check.status === "below_target" || check.status === "above_limit").length;
-  const unknown = r.assessment.nutrientChecks.filter((check) => check.status === "unknown").length;
-  return { status: "optimal", ...(r.costExcludesPremix ? {} : { costT: r.costT }), recipe: r.recipe.map((x) => ({ id: x.id, pct: x.pct })), met: r.assessment.nutrientChecks.filter((check) => check.status === "met").length, req: r.assessment.nutrientChecks.length, adv: r.advisories.length, fail: failed, unknown, assessment: r.assessment };
+  const counts = (assessment: Summary["assessment"]) => isFormulationAssessment(assessment)
+    ? (({ met, total, failed }) => ({ met, req: total, fail: failed.length }))(requirementCounts(assessment))
+    : {};
+  if (manual) return { status: "manual", costT: manual.cost, recipe: manual.recipe, adv: manual.advisories.length, ...counts(manual.assessment ?? undefined), ...(manual.assessment ? { assessment: manual.assessment } : {}) };
+  if (r.status === "manufacturer_recipe") return { status: r.status, recipe: r.recipe.map((row) => ({ id: row.id, pct: row.pct })), ...(r.costT === null ? {} : { costT: r.costT }), ...counts(r.assessment), assessment: r.assessment };
+  if (r.status !== "optimal") return { status: r.status, ...(r.status === "infeasible" ? { ...counts(r.assessment), assessment: r.assessment } : {}) };
+  return { status: "optimal", ...(r.costExcludesPremix ? {} : { costT: r.costT }), recipe: r.recipe.map((x) => ({ id: x.id, pct: x.pct })), adv: r.advisories.length, ...counts(r.assessment), assessment: r.assessment };
 }
 
 function programmeLabel(programmes: StudioProgrammeData, snap: Pick<Snapshot, "programmeId" | "phaseId">) {
@@ -607,32 +591,20 @@ function diff(a: Snapshot, b: Snapshot, ctx: EngineContext) {
 }
 
 const money = (v: number | null | undefined, dp = 2) => (v == null || isNaN(v) ? "—" : "$" + fmt(v, dp));
-const RESCUE_TRIAL_LIMIT = 6;
-const CATEGORY_SINGULAR: Record<NutritionalCategoryId, string> = {
-  "energy-protein-amino-acids": "energy, protein or amino acid",
-  "major-minerals": "major mineral",
-  vitamins: "vitamin",
-  "trace-minerals": "trace mineral",
-};
-/** "Supplemented vitamin E" → "Vitamin E". */
-const nutrientShortName = (check: { label: string }) => {
-  const s = check.label.replace(/^(supplemented|total)\s+/i, "");
-  return s.charAt(0).toUpperCase() + s.slice(1);
-};
 const shortName = (name: string) => name.split(" — ")[0];
 const lowerFirstName = (name: string) => name.replace(/^[A-Z](?![A-Z0-9])/, (c) => c.toLowerCase());
 const joinWords = (words: string[]) => (words.length < 2 ? words[0] ?? "" : words.slice(0, -1).join(", ") + " and " + words[words.length - 1]);
 const nutVal = (n: { unit: string; dp: number }, v: number) => (n.unit === "%" ? fmt(v, n.dp) + "%" : fmt(v, n.dp) + " " + n.unit);
 const roleShort = (e: PoolEntry) => (e.role === "fixed" ? "Fixed " + e.fixed + "%" : e.role === "required" ? "Min " + e.min + "%" + (e.max ? " · max " + e.max + "%" : "") : e.role === "excluded" ? "Excluded" : e.max ? "Max " + e.max + "%" : "Available");
 
+const VERDICT_MARK: Record<FormulationVerdict, keyof typeof ST> = { meets_requirements: "met", fails_requirements: "below", infeasible: "below" };
+
 function stOfSum(s: Summary | undefined): StatusMark {
   if (!s) return ST.none;
-  if (s.assessment?.verdict === "verified") return { ...ST.met, label: FORMULATION_VERDICT_LABELS.verified };
-  if (s.assessment?.verdict === "needs_verification") return { ...ST.adv, label: FORMULATION_VERDICT_LABELS.needs_verification };
-  if (s.assessment?.verdict === "infeasible") return { ...ST.below, label: FORMULATION_VERDICT_LABELS.infeasible };
-  // Old summaries did not persist complete-feed validation. Never upgrade
-  // their basal optimizer result into a nutritional pass.
-  if (s.status === "optimal" || s.status === "manual") return { ...ST.adv, label: "Verification unavailable" };
+  if (isFormulationAssessment(s.assessment)) return { ...ST[VERDICT_MARK[s.assessment.verdict]], label: s.assessment.headline };
+  // Assessed before premixes counted as full ingredients: shown, never re-scored.
+  if (isLegacyAssessment(s.assessment)) return { ...ST.adv, label: "Premix data updated · re-formulate" };
+  if (s.status === "optimal" || s.status === "manual") return { ...ST.adv, label: "Not assessed · re-formulate" };
   if (s.status === "infeasible") return { ...ST.below, label: "No valid recipe" };
   return { ...ST.below, label: "Can't formulate" };
 }
@@ -653,7 +625,7 @@ function draftErr(d: Draft, fs: number) {
 }
 
 const INITIAL: State = {
-  w: 1400, screen: "home", step: 1, species: "swine", programmeId: DEFAULT_PROGRAMME, phaseId: "", setKey: "none", setupListId: null, pool: {}, goal: "least_cost", batch: 100, batchMode: "100", customBatch: "", unit: "t", docName: "Untitled formulation", docId: null, pendingDoc: null, pendingCmp: null, result: null, runSig: null, runSnap: null, running: false, runToken: 0, tab: "recipe", drawer: null, advisoriesOpen: false, addOpen: false, addQ: "", addCategory: null, addPick: [], premixOpen: false, premixFilter: "matches", premixPick: null, mode: "optimised", manual: {}, manualCheck: null, rulesOpen: false, history: [], sel: [], cmp: null, toast: null, dismissed: {}, savedSig: null, saving: false, exporting: false, suggestion: null, completionSuggestion: null, rescueTrials: null, recoveryUndo: null, ingQ: "", catQ: "", catSel: null, catPage: 1, catPageSize: CAT_DEFAULT_PAGE_SIZE, progSel: null, progPhase: null, progAllLimits: false, addTarget: "pool", auth: null, authNext: null, af: { email: "", password: "", name: "", org: "", role: "farmer" }, aShow: false, aErr: {}, aBusy: false, aGoogleBusy: false, aSent: null, myListSel: null, listRename: null, listCreate: null, sq: "", sOpen: false, sIdx: 0, uOpen: false, nOpen: false, featFilter: "all", cOpen: false, cTopic: "review", cPhone: "", cMsg: "", cAttach: true, cBusy: false, cSent: false, cErr: "",
+  w: 1400, screen: "home", step: 1, species: "swine", programmeId: DEFAULT_PROGRAMME, phaseId: "", setKey: "none", setupListId: null, pool: {}, goal: "least_cost", batch: 100, batchMode: "100", customBatch: "", unit: "t", docName: "Untitled formulation", docId: null, pendingDoc: null, pendingCmp: null, result: null, runSig: null, runSnap: null, running: false, runToken: 0, tab: "recipe", drawer: null, advisoriesOpen: false, addOpen: false, addQ: "", addCategory: null, addPick: [], premixOpen: false, premixFilter: "matches", premixPick: null, mode: "optimised", manual: {}, manualCheck: null, rulesOpen: false, history: [], sel: [], cmp: null, toast: null, dismissed: {}, savedSig: null, saving: false, exporting: false, suggestion: null, completionSuggestion: null, compareOpen: false, recoveryUndo: null, ingQ: "", catQ: "", catSel: null, catPage: 1, catPageSize: CAT_DEFAULT_PAGE_SIZE, progSel: null, progPhase: null, progAllLimits: false, addTarget: "pool", auth: null, authNext: null, af: { email: "", password: "", name: "", org: "", role: "farmer" }, aShow: false, aErr: {}, aBusy: false, aGoogleBusy: false, aSent: null, myListSel: null, listRename: null, listCreate: null, sq: "", sOpen: false, sIdx: 0, uOpen: false, nOpen: false, featFilter: "all", cOpen: false, cTopic: "review", cPhone: "", cMsg: "", cAttach: true, cBusy: false, cSent: false, cErr: "",
 };
 
 const spinnerStyle = (track: string, head: string): CSSProperties => ({ width: 16, height: 16, borderRadius: "50%", border: "2px solid " + track, borderTopColor: head, display: "inline-block", animation: "fsspin .8s linear infinite", flex: "none" });
@@ -691,7 +663,7 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
     let current = true;
     void formulate(snap, engine).then((r) => {
       if (!current) return;
-      const h: RunEntry = { t: new Date(), status: r.status, cost: r.status === "optimal" && !r.costExcludesPremix ? r.costT : undefined, goal: snap.goal, n: (r.status === "optimal" || r.status === "manufacturer_recipe") ? r.recipe.length : 0, verdict: r.status === "optimal" || r.status === "infeasible" || r.status === "manufacturer_recipe" ? r.assessment.verdict : undefined };
+      const h: RunEntry = { t: new Date(), status: r.status, cost: r.status === "optimal" && !r.costExcludesPremix ? r.costT : undefined, goal: snap.goal, n: (r.status === "optimal" || r.status === "manufacturer_recipe") ? r.recipe.length : 0, verdict: r.status === "optimal" || r.status === "infeasible" || r.status === "manufacturer_recipe" ? r.assessment.verdict : undefined, headline: r.status === "optimal" || r.status === "infeasible" || r.status === "manufacturer_recipe" ? r.assessment.headline : "" };
       update((s) => (s.runToken !== token ? {} : { running: false, result: r, runSig: sig, runSnap: snap, history: [h, ...s.history].slice(0, 12), mode: "optimised", manual: {}, manualCheck: null, dismissed: {} }));
     });
     return () => {
@@ -702,65 +674,6 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
   }, [S.runToken]);
 
   const flash = useCallback((msg: string) => update({ toast: msg }), [update]);
-
-  // When a recipe needs verification, try each ingredient that might rescue
-  // it and keep only those whose re-formulated recipe resolves a check.
-  const rescueBase = S.screen === "workspace" && !S.running && S.mode === "optimised" && S.result?.status === "optimal" &&
-    S.result.assessment.verdict === "needs_verification" && S.runSig === sigOf(S) ? S.result : null;
-  const rescueIds = rescueBase
-    ? formulationRescueIngredientCandidates(
-        rescueBase.assessment,
-        catalogue.filter((g) => !S.pool[g.id] && canAddStudioIngredient(g.id, S.programmeId, S.pool, S.phaseId) &&
-          !(commercialPremixById(g.id) && commercialPremixSimulationOnlyForPhase(commercialPremixById(g.id)!, S.programmeId, S.phaseId))),
-        S.species,
-        RESCUE_TRIAL_LIMIT,
-      ).map((c) => c.id)
-    : [];
-  const rescueKey = rescueBase && rescueIds.length ? S.runSig + "|" + rescueIds.join(",") : null;
-  useEffect(() => {
-    if (!rescueKey || !rescueBase) return;
-    let current = true;
-    update({ rescueTrials: { key: rescueKey, status: "loading", trials: [] } });
-    const base = rescueBase;
-    const unresolved = base.assessment.nutrientChecks.filter((check) => check.status !== "met").map((check) => check.nutrientId);
-    const snap = snapOf(S);
-    void Promise.all(rescueIds.map(async (id): Promise<RescueTrial | null> => {
-      try {
-        const r = await formulate({ ...snap, pool: selectStudioIngredient(snap.pool, id, snap.programmeId, snap.phaseId) }, engine);
-        if (r.status !== "optimal") return null;
-        const met = new Set(r.assessment.nutrientChecks.filter((check) => check.status === "met").map((check) => check.nutrientId));
-        const resolves = unresolved.filter((nutrientId) => met.has(nutrientId));
-        if (!resolves.length) return null;
-        const after = new Map(r.recipe.map((line) => [line.id, line.pct]));
-        const drop = base.recipe
-          .filter((line) => line.id !== id)
-          .map((line) => ({ name: line.name, drop: line.pct - (after.get(line.id) ?? 0) }))
-          .sort((a, b) => b.drop - a.drop)[0];
-        return {
-          id,
-          name: catalogueById.get(id)?.name ?? id,
-          displaced: drop && drop.drop >= 0.01 ? drop.name : null,
-          deltaT: r.costExcludesPremix || base.costExcludesPremix ? null : r.costT - base.costT,
-          resolves,
-          verified: r.assessment.verdict === "verified",
-        };
-      } catch {
-        return null;
-      }
-    })).then((results) => {
-      if (!current) return;
-      const trials = results
-        .filter((trial): trial is RescueTrial => !!trial)
-        .sort((a, b) => Number(b.verified) - Number(a.verified) || b.resolves.length - a.resolves.length || (a.deltaT ?? Infinity) - (b.deltaT ?? Infinity));
-      update((s) => (s.rescueTrials?.key === rescueKey ? { rescueTrials: { key: rescueKey, status: "ready", trials } } : {}));
-    });
-    return () => {
-      current = false;
-    };
-    // rescueKey serializes the run and the candidate list.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rescueKey]);
-  const rescueTrials = rescueKey && S.rescueTrials?.key === rescueKey ? S.rescueTrials : null;
 
   // The Supabase session loads from its cookie on mount; the studio waits for
   // it so a signed-in visitor isn't bounced to sign-in.
@@ -1680,9 +1593,9 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
     recipe: R.recipe,
     costText: R.costT == null ? "Supplier premix quote required — total cost unknown" : money(R.costT) + "/tonne",
     message: R.message,
-    verdict: FORMULATION_VERDICT_LABELS[R.assessment.verdict],
+    verdict: R.assessment.headline,
     summary: R.assessment.summary,
-    guidance: R.assessment.guidance,
+    guidance: "This is the manufacturer's fixed recipe. Confirm undocumented premix values with the manufacturer before manufacturing.",
   } : null;
   const changes = stale ? diff(S.runSnap!, snapOf(S), engine) : [];
   const runState = S.running
@@ -1727,6 +1640,7 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
           : GOALS[runGoal].desc,
         mode: manualView ? "Manual" : "Optimised",
         assessment: manualView?.assessment ?? optimal.assessment,
+        ...(!manualView ? { premixComparison: optimal.premixComparison } : {}),
         batchKg: S.batch,
         costPerTonne,
         ...(!manualView ? { leastCostPerTonne: optimal.leastCostT } : {}),
@@ -1851,8 +1765,12 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
               edit: w.edit,
             };
           });
+          // A re-run with another premix that meets every hard requirement is a real fix.
+          const premixFix = R.premixComparison?.suggestedPremixId
+            ? R.premixComparison.options.find((o) => o.premixId === R.premixComparison!.suggestedPremixId && o.status === "optimal" && o.requirementsMet === o.requirementsTotal) ?? null
+            : null;
           return {
-            headline: "No valid recipe",
+            headline: R.assessment.requirements.length ? R.assessment.headline : "No valid recipe",
             counts: R.shortfalls.length
               ? "Your " + R.activeCount + " usable ingredient" + (R.activeCount === 1 ? "" : "s") + " can’t meet " + (R.shortfalls.length === 1 ? "1 requirement" : R.shortfalls.length + " requirements")
               : "Each requirement can be met on its own, but not all together",
@@ -1870,7 +1788,9 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
             footnote: loading ? "Testing catalogue ingredients against this formulation…" : "Requirements are never relaxed · each chip was tested against your ingredients and limits · catalogue prices",
             primary: recoveryIds.length
               ? { label: recoveryIds.length === 1 ? "Add " + lowerFirstName(ingredientName(recoveryIds[0])) + " and re-formulate" : "Add all " + recoveryIds.length + " and re-formulate", go: () => applyRecoveryIngredients(recoveryIds) }
-              : null,
+              : premixFix
+                ? { label: (R.premixComparison?.currentPremixId ? "Replace premix with " : "Add ") + shortName(premixFix.name), go: () => replacePremix(premixFix.premixId) }
+                : null,
             askNutritionist: () => update({ cOpen: true, cSent: false, cErr: "", cTopic: "infeasible" }),
             figures: ["This batch · " + batchLabel, "Per kg", "Per 50 kg bag", "Per tonne"],
             body: "Each requirement can be met on its own, but not all together with these ingredients and limits.",
@@ -1880,18 +1800,34 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
         })()
       : null;
 
-  const opt = optimal ? optimalVals(S, optimal, manualView, { poolIds, isEligible, isUserPrice, priceTxt, batchLabel, openDrawer, update, run, flash, engine, showSolverDetails, adviceCount: doc?.advice.length ?? 0, waHref: shell.waHref, rescueTrials }) : null;
+  const currentPremixProduct = () => poolIds.map((id) => (S.pool[id].role !== "excluded" ? commercialPremixById(id) : undefined)).find((product) => product !== undefined);
+  const openNutritionistNotes = () => {
+    update({ advisoriesOpen: true, drawer: null, addOpen: false, premixOpen: false, rulesOpen: false });
+    if (doc) formulations.markAdviceRead(doc.advice.map((a) => a.id));
+  };
+  const openPremixPicker = () => update({ premixOpen: true, premixFilter: "matches", premixPick: null, addOpen: false, compareOpen: false });
+  // Replace, never stack: the selected premix is removed, the new one fixed at
+  // its manufacturer dose, and the whole diet re-optimised and re-assessed.
+  const replacePremix = (premixId: string) => {
+    const product = commercialPremixById(premixId);
+    if (!product) return;
+    update((state) => ({ pool: poolWithPremixSelection(state.pool, state.programmeId, premixId, state.phaseId), compareOpen: false, premixOpen: false, premixPick: null, tab: "recipe" }));
+    flash((currentPremixProduct() ? "Replaced " + currentPremixProduct()!.sku + " with " : "Added ") + product.sku + " at its manufacturer dose · re-formulating");
+    run();
+  };
+  const opt = optimal ? optimalVals(S, optimal, manualView, { poolIds, isEligible, isUserPrice, priceTxt, batchLabel, openDrawer, update, run, flash, engine, showSolverDetails, adviceCount: doc?.advice.length ?? 0, waHref: shell.waHref, openPremixPicker, replacePremix, openAdvice: openNutritionistNotes }) : null;
 
   const tabs = (
     [
       ["recipe", "Recipe"],
-      ["nutrients", "Nutrients"],
+      ["nutrients", "Nutrient analysis"],
+      ["advisories", "Advisories"],
       ["why", "Why this recipe"],
       ["history", "History"],
     ] as [Tab, string][]
-  ).map(([k, label]) => ({ label, bd: S.tab === k ? "#222420" : "transparent", color: S.tab === k ? "#222420" : "#64665c", go: () => update({ tab: k }) }));
+  ).map(([k, label]) => ({ label, count: k === "advisories" ? opt?.advisoryTotal ?? 0 : 0, bd: S.tab === k ? "#222420" : "transparent", color: S.tab === k ? "#222420" : "#64665c", go: () => update({ tab: k }) }));
   const why = optimal ? whyVals(S, optimal, { update, run, engine, phase: PH }) : { limiting: [], held: [], opps: [], misses: [], none: false };
-  const runs = S.history.map((h) => ({ time: h.t.toTimeString().slice(0, 5), label: h.verdict ? FORMULATION_VERDICT_LABELS[h.verdict] + (h.status === "optimal" ? " · " + h.n + " ingredients" : "") : h.status === "infeasible" ? "Reformulation required" : "Couldn’t formulate", cost: h.status === "optimal" ? money(h.cost) + "/t" : "—" }));
+  const runs = S.history.map((h) => ({ time: h.t.toTimeString().slice(0, 5), label: h.verdict ? h.headline + (h.status === "optimal" ? " · " + h.n + " ingredients" : "") : h.status === "infeasible" ? "Reformulation required" : "Couldn’t formulate", cost: h.status === "optimal" ? money(h.cost) + "/t" : "—" }));
   const docAdvice = doc
     ? doc.advice.map((a) => ({
         id: a.id,
@@ -2000,10 +1936,9 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
     const product = commercialPremixById(ingredient.id)!;
     return commercialPremixCompatibleWithProgramme(product, S.programmeId, S.phaseId);
   });
-  const documentedPremixes = speciesPremixes.filter((ingredient) => {
-    const product = commercialPremixById(ingredient.id)!;
-    return !!(product.verifiedAsFedMicronutrients || product.guaranteedMinimumAsFed);
-  });
+  // Documented: the manufacturer publishes a per-kg premix composition.
+  const premixDocumented = (ingredient: CatalogueIngredient) => (ingredient.premix?.contributions.length ?? 0) > 0;
+  const documentedPremixes = speciesPremixes.filter(premixDocumented);
   const premixFilterOpts = [
     { key: "matches" as const, label: "Matches " + PH.label.toLowerCase(), count: matchingPremixes.length },
     { key: "species" as const, label: "All " + (S.species === "swine" ? "pig" : "broiler") + " premixes", count: speciesPremixes.length },
@@ -2016,16 +1951,18 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
       const product = commercialPremixById(ingredient.id)!;
       const allowed = commercialPremixCompatibleWithProgramme(product, S.programmeId, S.phaseId);
       const selected = S.premixPick === ingredient.id;
-      const documented = !!(product.verifiedAsFedMicronutrients || product.guaranteedMinimumAsFed);
+      const contributions = ingredient.premix?.contributions ?? [];
+      const documented = contributions.length > 0;
+      const aminoAcids = contributions.filter((c) => c.group === "amino_acid");
       return {
         id: ingredient.id,
         name: ingredient.name,
         selected,
         disabled: !allowed,
         application: product.application,
-        detail: "Dose " + product.inclusionKgPerTonne + " kg/t" + (product.estimatedAsFedMicronutrients ? " · Modelled from complete-feed targets (not verified)" : documented ? " · Documented vitamin and trace-mineral values" : " · Limited documented profile"),
+        detail: "Dose " + product.inclusionKgPerTonne + " kg/t · " + (documented ? contributions.length + " documented nutrients" : "No published premix composition"),
         detailColor: documented ? "#2f7a4a" : "#8a5f18",
-        warning: product.verifiedAsFedAminoAcids ? "" : "No SID amino-acid analysis",
+        warning: !documented ? "" : aminoAcids.some((c) => c.countsTowardDigestible) ? "Documents SID amino acids" : aminoAcids.length ? "Amino acids published as total only" : "",
         dose: fmt(product.inclusionPct, product.inclusionPct < 1 ? 1 : 0) + "%",
         price: ingredient.price ? "$" + fmt(ingredient.price.usdPerTonne, 0) : "Quote",
         pick: () => { if (allowed) update({ premixPick: ingredient.id }); },
@@ -2088,11 +2025,20 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
     premixCurrent, premixFilterOpts, premixRows, premixEmpty: premixRows.length === 0,
     premixPicked: !!pickedPremix,
     premixFooter: pickedPremix
-      ? (currentPremix ? currentPremix.sku + " is removed and " : "") + pickedPremix.sku + " is fixed at its supplier dose. Your other ingredients and limits stay as they are."
+      ? (currentPremix ? currentPremix.sku + " is removed and " : "") + pickedPremix.sku + " is fixed at its manufacturer dose. Re-formulating re-optimises the other ingredients and recalculates every nutrient and the cost."
       : "Choose the product whose documented application matches this feeding stage.",
     switchPremix: () => applyPremixChoice(false), switchPremixAndRun: () => applyPremixChoice(true),
-    showPremixRun: S.screen === "workspace", premixPrimaryLabel: S.screen === "workspace" ? "Switch only" : "Switch premix",
-    poolRows: poolIds.map((id) => {
+    // Replace, never "Add", while another commercial premix is selected.
+    premixTitle: currentPremix ? "Replace premix" : "Add premix",
+    premixRunLabel: currentPremix ? "Replace and re-formulate" : "Add and re-formulate",
+    showPremixRun: S.screen === "workspace", premixPrimaryLabel: S.screen === "workspace" ? (currentPremix ? "Replace only" : "Add only") : currentPremix ? "Replace premix" : "Add premix",
+    premixPoolRow: currentPremix ? {
+      sku: currentPremix.manufacturer.replace(/^Chengdu |^CJ \(Tianjin\) /, "").replace(/ Feed$/, "") + " " + currentPremix.sku,
+      sub: "Fixed " + currentPremix.inclusionKgPerTonne + " kg/t · manufacturer dose",
+      open: () => openDrawer(currentPremix.id),
+      replace: openPremixPicker,
+    } : null,
+    poolRows: poolIds.filter((id) => id !== currentPremixId).map((id) => {
       const e = S.pool[id];
       return { name: ingredientName(id), short: !isEligible(id) ? "Set aside" : e.role === "available" && !e.max ? "—" : roleShort(e), chip: CHIP[e.role], nameColor: e.role === "excluded" || !isEligible(id) ? "#8d8a80" : "#222420", roleColor: e.role === "fixed" ? "#222420" : e.role === "excluded" || !isEligible(id) ? "#8d8a80" : "#2f5a3f", open: () => openDrawer(id) };
     }),
@@ -2109,12 +2055,13 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
     undoRecovery,
     view, dimOpacity: S.running || stale ? "0.5" : "1", emptyTitle: activeCount ? "Ready to formulate" : "Before you can formulate", checklist, blockErrs, hasWarns: warns.length > 0 && !S.running && !inf, warns, inf,
     opt, manufacturerResult, showSolver: showSolverDetails, tabs, tabRecipe: S.tab === "recipe", tabNutrients: S.tab === "nutrients", tabWhy: S.tab === "why", tabHistory: S.tab === "history",
-    advisoriesOpen: S.advisoriesOpen && (!!opt?.advisories.length || docAdvice.length > 0),
-    advisoriesLabel: advisoryCount((opt?.advisories.length ?? 0) + docAdvice.length),
-    openAdvisories: () => {
-      update({ advisoriesOpen: true, drawer: null, addOpen: false, premixOpen: false, rulesOpen: false });
-      if (doc) formulations.markAdviceRead(doc.advice.map((a) => a.id));
-    },
+    // The drawer holds the nutritionist's notes; result advisories live in the Advisories tab.
+    advisoriesOpen: S.advisoriesOpen && docAdvice.length > 0,
+    advisoriesLabel: advisoryCount(docAdvice.length),
+    openAdvisories: () => (opt ? update({ tab: "advisories" }) : openNutritionistNotes()),
+    tabAdvisories: S.tab === "advisories",
+    compareOpen: S.compareOpen && !!opt?.compare,
+    headerCompare: opt?.compare ? () => update({ compareOpen: true }) : null,
     closeAdvisories: () => update({ advisoriesOpen: false }),
     editManually: () => {
       if (S.mode === "manual" || !optimal) return;
@@ -2168,19 +2115,32 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
 
 type Update = (patch: Partial<State> | ((s: State) => Partial<State>)) => void;
 
-const advisoryCount = (n: number) => n + " practical advisor" + (n === 1 ? "y" : "ies");
+const advisoryCount = (n: number) => n + " note" + (n === 1 ? "" : "s") + " from your nutritionist";
 
 function optimalVals(
   S: State,
   R: OptimalResult,
   mc: ManualView | null,
-  ctx: { poolIds: string[]; isEligible: (id: string) => boolean; isUserPrice: (id: string) => boolean; priceTxt: (p: number | null) => string; batchLabel: string; openDrawer: (id: string) => void; update: Update; run: () => void; flash: (message: string) => void; engine: EngineContext; showSolverDetails: boolean; adviceCount: number; waHref: string; rescueTrials: RescueTrials | null },
+  ctx: { poolIds: string[]; isEligible: (id: string) => boolean; isUserPrice: (id: string) => boolean; priceTxt: (p: number | null) => string; batchLabel: string; openDrawer: (id: string) => void; update: Update; run: () => void; flash: (message: string) => void; engine: EngineContext; showSolverDetails: boolean; adviceCount: number; waHref: string; openPremixPicker: () => void; replacePremix: (id: string) => void; openAdvice: () => void },
 ) {
   const { update, run, engine } = ctx;
   const runSnap = S.runSnap!;
+  const name = (id: string) => engine.catalogue.get(id)?.name ?? id;
   const costT = mc ? mc.cost : R.costT;
   const partialCost = R.costExcludesPremix;
   const baseRows = mc ? ctx.poolIds.filter((id) => S.pool[id].role !== "excluded" && ctx.isEligible(id)).map((id) => ({ id, pct: +S.manual[id] || 0 })) : R.recipe.map((r) => ({ id: r.id, pct: r.pct }));
+  const premixIngredient = baseRows.filter((row) => row.pct > 0).map((row) => engine.catalogue.get(row.id)).find((ingredient) => ingredient?.premix);
+  const premixProduct = premixIngredient ? commercialPremixById(premixIngredient.id) ?? null : null;
+  const assessment = mc ? mc.assessment : R.assessment;
+  const requirementLabel = (id: string) => assessment?.requirements.find((check) => check.id === id)?.label ?? id;
+  // How much less of a crystalline amino acid or mineral the premix's documented nutrients made necessary.
+  const effect = mc ? null : R.premixEffect;
+  const savingNote = (id: string) => {
+    const change = effect?.changes.find((c) => c.ingredientId === id && c.withoutContributionPct > c.withPremixPct);
+    if (!change) return "";
+    const supplied = effect!.requirementIds.filter((rid) => rid.startsWith("sid-") || ["calcium", "sttd-phosphorus", "available-phosphorus", "sodium", "chloride"].includes(rid)).map(requirementLabel);
+    return fmt(change.withoutContributionPct - change.withPremixPct, 2) + "% less because the premix supplies " + joinWords(supplied.length ? supplied : ["documented nutrients"]);
+  };
   const advIds = new Set((mc ? mc.advisories : R.advisories).map((a) => a.id));
   const rows = baseRows.map((r) => {
     const e = S.pool[r.id] || { role: "available" };
@@ -2188,235 +2148,101 @@ function optimalVals(
     const share = costT > 0 ? (((r.pct / 100) * (p || 0)) / costT) * 100 : 0;
     const rr = R.recipe.find((x) => x.id === r.id);
     const user = ctx.isUserPrice(r.id);
-    return { name: engine.catalogue.get(r.id)?.name ?? r.id, setting: roleShort(e) + (rr && rr.atMax ? " · at limit" : ""), pctTxt: fmt(r.pct, r.pct < 1 ? 2 : 1) + "%", barW: Math.min(100, r.pct) + "%", barC: e.role === "fixed" ? "#222420" : "#2f5a3f", kg: fmt((r.pct / 100) * S.batch, S.batch >= 1000 ? 0 : r.pct * S.batch < 100 ? 2 : 1), price: ctx.priceTxt(p), tag: user ? "YOURS" : p === null ? "QUOTE" : "DEFAULT", tagFg: user ? "#8a5f18" : "#8d8a80", shareTxt: fmt(share, 1) + "%", shareW: share + "%", adv: advIds.has(r.id), bg: advIds.has(r.id) ? "#fdf9ef" : "#fff", manual: S.manual[r.id] ?? "", onManual: (ev: InputEvent) => update((s) => ({ manual: { ...s.manual, [r.id]: ev.target.value } })), open: () => ctx.openDrawer(r.id) };
+    const premix = engine.catalogue.get(r.id)?.premix;
+    return {
+      name: shortName(name(r.id)),
+      setting: roleShort(e) + (rr && rr.atMax ? " · at limit" : ""),
+      pctTxt: fmt(r.pct, r.pct < 1 ? 2 : 1) + "%",
+      barW: Math.min(100, r.pct) + "%",
+      barC: e.role === "fixed" ? "#222420" : "#2f5a3f",
+      kg: fmt((r.pct / 100) * S.batch, S.batch >= 1000 ? 0 : r.pct * S.batch < 100 ? 2 : 1),
+      price: ctx.priceTxt(p),
+      priceT: p == null ? "—" : fmt(p, 0),
+      tag: user ? "YOURS" : p === null ? "QUOTE" : "DEFAULT",
+      tagFg: user ? "#8a5f18" : "#8d8a80",
+      shareTxt: p == null ? "—" : fmt(share, 1) + "%",
+      shareW: share + "%",
+      adv: advIds.has(r.id),
+      bg: premix ? "#f4f6f1" : advIds.has(r.id) ? "#fdf9ef" : "#fff",
+      isPremix: !!premix,
+      sub: premix ? premix.application + " · manufacturer dose " + premix.inclusionKgPerTonne + " kg/t" : savingNote(r.id),
+      fixed: e.role === "fixed",
+      manual: S.manual[r.id] ?? "",
+      onManual: (ev: InputEvent) => update((s) => ({ manual: { ...s.manual, [r.id]: ev.target.value } })),
+      open: () => ctx.openDrawer(r.id),
+    };
   });
   const tp = mc ? mc.total : 100;
   const off = !!mc && Math.abs(tp - 100) > 0.05;
-  const total = { pct: fmt(tp, 1) + "%" + (off ? (tp > 100 ? " (+" : " (−") + fmt(Math.abs(tp - 100), 1) + ")" : ""), color: off ? "#a63d2a" : "#222420", kg: fmt((tp / 100) * S.batch, S.batch >= 1000 ? 0 : 1), cost: (partialCost ? "≥ " : "") + money(costT) + (partialCost ? " + premix quote" : "") };
-  const nList = mc ? mc.nutrients : R.nutrients;
+  const total = { pct: fmt(tp, 1) + "%" + (off ? (tp > 100 ? " (+" : " (−") + fmt(Math.abs(tp - 100), 1) + ")" : ""), color: off ? "#a63d2a" : "#222420", kg: fmt((tp / 100) * S.batch, S.batch >= 1000 ? 0 : 1), cost: (partialCost ? "≥ " : "") + money(costT) + (partialCost ? " + premix" : "") };
   const adv = mc ? mc.advisories : R.advisories.filter((a) => !S.dismissed[a.id]);
-  // The nutritionist's notes count as practical advisories; they share the drawer.
-  const advTotal = adv.length + ctx.adviceCount;
-  const advTxt = advisoryCount(advTotal);
   const recipeInvalid = !!mc && !mc.checking && !mc.recipeValidity?.valid;
-  const assessment = mc ? mc.assessment : R.assessment;
-  const displayedValidationCategories = assessment?.categories ?? [];
-  const hasConfirmedFailure = displayedValidationCategories.some((item) => item.status === "unmet");
-  const feedVerdict = mc?.checking
-    ? {
-        eyebrow: "Formulation assessment",
-        title: "Checking nutritional requirements…",
-        summary: "FeedSport is checking the manual recipe against the selected programme.",
-        guidance: "Wait for the assessment before saving, exporting, manufacturing or feeding this recipe.",
-        color: "#45473f", bg: "#f3f0e8", border: "#d0cdc3", mark: "…",
-      }
-    : recipeInvalid
-      ? {
-          eyebrow: "Formulation assessment",
-          title: "Reformulation required",
-          summary: "The manual ingredient amounts do not form a valid recipe, so nutritional verification has not been performed.",
-          guidance: "Correct the recipe total and ingredient limits, then check it again.",
-          color: "#7a2a1c", bg: "#fdf3f0", border: "#e9b9ad", mark: "!",
-        }
-      : !assessment
-        ? {
-            eyebrow: "Formulation assessment",
-            title: "Nutritional verification unavailable",
-            summary: "This recipe does not have a complete nutritional assessment.",
-            guidance: "Re-formulate before manufacturing or feeding this recipe.",
-            color: "#5c4012", bg: "#fdf6e8", border: "#f0c97f", mark: "?",
-          }
-        : assessment.verdict === "verified"
-          ? {
-              eyebrow: "Formulation assessment",
-              title: FORMULATION_VERDICT_LABELS.verified,
-              summary: assessment.summary,
-              guidance: assessment.guidance,
-              color: "#1f3e2b", bg: "#eef3ee", border: "#9fc2a7", mark: "✓",
-            }
-          : {
-              eyebrow: "Formulation assessment",
-              title: FORMULATION_VERDICT_LABELS.needs_verification,
-              summary: assessment.summary,
-              guidance: assessment.guidance,
-              color: hasConfirmedFailure ? "#7a2a1c" : "#5c4012",
-              bg: hasConfirmedFailure ? "#fdf3f0" : "#fdf6e8",
-              border: hasConfirmedFailure ? "#e9b9ad" : "#f0c97f",
-              mark: hasConfirmedFailure ? "!" : "?",
-            };
-  const rescueSuggestions = assessment?.verdict === "needs_verification"
-    ? formulationRescueIngredientCandidates(
-        assessment,
-        [...engine.catalogue.values()].filter((ingredient) =>
-          !S.pool[ingredient.id] && canAddStudioIngredient(ingredient.id, S.programmeId, S.pool, S.phaseId) &&
-          !(commercialPremixById(ingredient.id) && commercialPremixSimulationOnlyForPhase(commercialPremixById(ingredient.id)!, S.programmeId, S.phaseId))),
-        S.species,
-      ).map((ingredient) => ({
-        ...ingredient,
-        add: () => {
-          if (!canAddStudioIngredient(ingredient.id, S.programmeId, S.pool, S.phaseId)) return;
-          update((state) => ({
-            pool: selectStudioIngredient(state.pool, ingredient.id, state.programmeId, state.phaseId),
-          }));
-          ctx.flash(commercialPremixById(ingredient.id)
-            ? ingredient.name + " selected; reformulate to check the nutritional result"
-            : ingredient.name + " added as Available; reformulate to check the nutritional result");
-        },
-      }))
-    : [];
-  const unresolvedChecks = assessment?.nutrientChecks.filter((check) => check.status !== "met") ?? [];
-  const iodineCheck = unresolvedChecks.find((check) => check.nutrientId === "supplement-iodine");
-  const selectedPremix = baseRows
-    .filter((row) => row.pct > 0)
-    .map((row) => engine.catalogue.get(row.id))
-    .find((ingredient) => ingredient?.premix);
-  const rescueEmptyMessage = assessment?.verdict === "needs_verification" && rescueSuggestions.length === 0
-    ? iodineCheck?.status === "below_target" && iodineCheck.actual != null && iodineCheck.requiredMin != null
-      ? `${selectedPremix?.name ?? "The selected premix"} supplies ${fmt(iodineCheck.actual, 3)} ${iodineCheck.unit} supplemented iodine in the finished feed, below this phase's minimum of ${fmt(iodineCheck.requiredMin, 3)} ${iodineCheck.unit}. No other stage-eligible catalogue ingredient has a documented iodine value. Add a documented iodine source or compatible replacement premix to the catalogue before reformulating.`
-      : `No stage-eligible catalogue ingredient has documented data that addresses ${unresolvedChecks.map((check) => check.label.replace(/^Supplemented\s+/i, "").toLowerCase()).join(", ")}. Add a supplier product with a published nutrient profile to the catalogue before reformulating.`
-    : "";
-  // ---- "Not ready to mix" card and the expanded validation panel ----
-  const trials = ctx.rescueTrials;
-  const askForValues = (checks: NutrientAssessment[]) => {
-    const sources = [...new Set(checks.flatMap((check) => check.missingIngredientIds))].map((id) => engine.catalogue.get(id)?.name ?? id);
-    const names = joinWords(checks.map((check) => nutrientShortName(check).toLowerCase()));
-    update({ cOpen: true, cSent: false, cErr: "", cTopic: "ingredients", cMsg: "I have the manufacturer's published " + names + " value" + (checks.length === 1 ? "" : "s") + " for " + (sources.length ? joinWords(sources) : "an ingredient in this recipe") + ": " });
+
+  // ---- Data and value formatting shared by every requirement view ----
+  const DATA_TAGS: Record<RequirementCheck["data"], { label: string; dashed: boolean }> = {
+    published: { label: DATA_STATUS_LABELS.published, dashed: false },
+    assumed_zero: { label: "Premix " + DATA_STATUS_LABELS.assumed_zero.toLowerCase(), dashed: false },
+    missing: { label: DATA_STATUS_LABELS.missing, dashed: true },
   };
-  const lowerFirst = (name: string) => name.replace(/^[A-Z](?![A-Z0-9])/, (c) => c.toLowerCase());
-  const signedCost = (deltaT: number) => (Math.abs(deltaT) < 0.005 ? "same cost" : (deltaT > 0 ? "+" : "−") + money(Math.abs(deltaT)) + "/t");
-  // Cheapest confirmed fix first; it is the "green" chip that "Apply all green" adds.
-  const trialsFor = (nutrientIds: string[]) => (trials?.trials ?? [])
-    .filter((trial) => nutrientIds.some((id) => trial.resolves.includes(id)))
-    .sort((a, b) => (a.deltaT ?? Infinity) - (b.deltaT ?? Infinity) || b.resolves.length - a.resolves.length);
-  const chipsFor = (nutrientIds: string[]) => trialsFor(nutrientIds)
-    .slice(0, 3)
-    .map((trial, i) => ({
-      key: trial.id,
-      primary: i === 0,
-      // Product names carry a description after " — "; the chip keeps the name.
-      label: shortName(trial.name) + (trial.displaced ? " for " + lowerFirst(shortName(trial.displaced)) : ""),
-      fixes: trial.resolves.length < 2 ? "" : trial.resolves.length === unresolvedChecks.length ? "fixes all " + trial.resolves.length : "fixes " + trial.resolves.length,
-      delta: trial.deltaT == null ? "" : signedCost(trial.deltaT),
-      title: (trial.verified ? "Re-formulated with " + trial.name + ": every nutrient verified." : "Re-formulated with " + trial.name + ": resolves " + trial.resolves.length + " of " + unresolvedChecks.length + " unresolved nutrient" + (unresolvedChecks.length === 1 ? "" : "s") + ".") + " Click to apply and re-formulate.",
-      go: () => {
-        if (!canAddStudioIngredient(trial.id, S.programmeId, S.pool, S.phaseId)) return;
-        update((state) => ({ pool: selectStudioIngredient(state.pool, trial.id, state.programmeId, state.phaseId) }));
-        ctx.run();
-      },
-    }));
-  const checkInfo = (check: NutrientAssessment, firstUnknownFor: Set<string>) => {
-    const name = nutrientShortName(check);
-    const lower = name.toLowerCase();
-    const supplemented = /^supplemented\s/i.test(check.label);
-    const failed = check.status === "below_target" || check.status === "above_limit";
-    const premixName = supplemented ? selectedPremix?.name ?? null : null;
-    const chips = chipsFor([check.nutrientId]);
-    const checking = !!trials && trials.status === "loading";
-    const fixNote = chips.length ? "" : checking ? "Checking ingredients…" : failed ? "No catalogue ingredient fixes this." : "";
-    const fixLink = failed ? null : { label: "Enter manufacturer’s value", go: () => askForValues([check]) };
-    const sourceCandidate = chips.length ? { name: chips[0].label.replace(/ for .*$/, "") } : null;
-    const verb = check.status === "above_limit" ? "lower" : "raise";
-    let why: { pre: string; strong: string; post: string };
-    let shortWhy: string;
-    if (failed && premixName) {
-      why = { pre: "All of it comes from ", strong: premixName, post: " premix. " + (sourceCandidate ? sourceCandidate.name + " " + verb + "s it when the recipe is re-formulated." : checking ? "Checking whether another eligible ingredient can " + verb + " it." : "No other ingredient eligible for this stage has a documented " + lower + " value, so the optimiser had nothing to " + verb + " it with.") };
-      shortWhy = "Only source is " + premixName + " premix. " + (sourceCandidate ? sourceCandidate.name + " " + verb + "s it." : checking ? "" : "No eligible ingredient documents " + lower + ".");
-    } else if (check.status === "unknown" && check.missingIngredientIds.length) {
-      const key = check.missingIngredientIds.slice().sort().join("|");
-      const allPremix = check.missingIngredientIds.every((id) => engine.catalogue.get(id)?.premix);
-      const subject = allPremix ? (check.missingIngredientIds.length === 1 ? "The premix" : "The premixes") : joinWords(check.missingIngredientIds.map((id) => engine.catalogue.get(id)?.name ?? id));
-      const repeat = firstUnknownFor.has(key);
-      firstUnknownFor.add(key);
-      why = repeat
-        ? { pre: "Same " + (allPremix ? "premix" : "ingredients") + ", no published " + lower + " value.", strong: "", post: "" }
-        : { pre: subject + "’s published data has no " + lower + " value. The feed may well contain enough; FeedSport can’t confirm it.", strong: "", post: "" };
-      shortWhy = "No published data";
-    } else {
-      why = { pre: check.reason, strong: "", post: "" };
-      shortWhy = check.reason;
-    }
-    const dp = (v: number) => (Math.abs(v) >= 100 ? 0 : Math.abs(v) >= 10 ? 2 : 3);
-    const num = (v: number) => fmt(v, dp(v));
-    const limit = check.status === "above_limit" ? check.allowedMax : check.requiredMin ?? check.allowedMax;
-    const limitTxt = limit == null ? "" : (check.status === "above_limit" || check.requiredMin == null ? "max " : "min ") + num(limit) + " " + check.unit;
-    const limitShort = limit == null ? "" : (check.status === "above_limit" || check.requiredMin == null ? "max " : "") + num(limit) + " " + check.unit;
-    let bar = { fill: "0%", marker: "0%", delta: "" };
-    if (failed && check.actual != null && limit != null && limit > 0) {
-      const hi = Math.max(limit, check.actual) * 1.3;
-      const pct = (v: number) => Math.min(100, (v / hi) * 100) + "%";
-      const delta = Math.abs(check.actual - limit) / limit * 100;
-      bar = { fill: pct(check.actual), marker: pct(limit), delta: fmt(delta, delta < 10 ? 1 : 0) + "% " + (check.status === "below_target" ? "short" : "over") };
-    }
+  const dpFor = (id: string, unit: string, v: number) => (unit === "%" ? (id === "crude-protein" || id === "digestible-protein" ? 1 : 2) : Math.abs(v) >= 100 ? 0 : Math.abs(v) >= 10 ? 1 : 2);
+  const valueTxt = (check: { id: string; unit: string }, v: number) => fmt(v, dpFor(check.id, check.unit, v)) + (check.unit === "%" ? "%" : " " + check.unit);
+  const boundTxt = (check: RequirementCheck) => (check.relation === "min" ? "≥" : check.relation === "max" ? "≤" : "=") + fmt(check.bound, dpFor(check.id, check.unit, check.bound));
+
+  // ---- Headline: hard requirements only, plus one line on premix documentation ----
+  const counts = assessment ? requirementCounts(assessment) : null;
+  const supp = assessment ? supplementationCounts(assessment) : null;
+  const gaps = assessment?.documentationGaps ?? [];
+  const gapLabels = [...new Set(gaps.map((gap) => lowerFirstName(gap.label.replace(/ methionine \+ cysteine/i, " methionine"))))];
+  const comparison = mc ? null : R.premixComparison;
+  const current = comparison?.options.find((option) => option.current) ?? null;
+  const suggested = comparison?.suggestedPremixId ? comparison.options.find((option) => option.premixId === comparison.suggestedPremixId) ?? null : null;
+  const showPremixAdvisory = !!suggested && !S.dismissed["premix-advisory:" + suggested.premixId];
+  const suppAdvisory = !!supp && supp.below + supp.noData > 0;
+  const advisoryTotal = (showPremixAdvisory ? 1 : 0) + (suppAdvisory ? 1 : 0) + adv.length + (gaps.length ? 1 : 0) + ctx.adviceCount;
+  const advisoriesLabel = advisoryTotal + " advisor" + (advisoryTotal === 1 ? "y" : "ies");
+  const goAdvisories = () => update({ tab: "advisories" });
+  const failedRows = (counts?.failed ?? []).map((check) => {
+    const hi = Math.max(check.bound, check.actual, 1e-9) * 1.25;
+    const fixes = suggested && suggested.requirementsMet === suggested.requirementsTotal ? suggested : null;
     return {
-      key: check.nutrientId,
-      name,
-      sub: (supplemented ? "Supplemented · " : "") + CATEGORY_SINGULAR[check.categoryId],
-      failed,
-      status: failed ? { label: check.status === "below_target" ? "Below target" : "Above limit", color: "#a63d2a", bg: "#b2412e", shape: "square" } : { label: "Can’t verify", color: "#8a5f18", bg: "#c98a1e", shape: "triangle" },
-      actual: check.actual == null ? "Unknown" : num(check.actual),
-      limitTxt,
-      limitShort,
-      missingTxt: check.missingIngredientIds.length && check.missingIngredientIds.every((id) => engine.catalogue.get(id)?.premix) ? "No value in premix data" : check.missingIngredientIds.length ? "No published value" : "Unknown",
-      known: failed && check.actual != null,
-      bar,
-      why,
-      shortWhy,
-      chips,
-      fixNote,
-      fixLink,
+      key: check.id,
+      name: check.label,
+      actual: valueTxt(check, check.actual),
+      bound: boundTxt(check),
+      fill: Math.min(100, (check.actual / hi) * 100) + "%",
+      marker: Math.min(100, (check.bound / hi) * 100) + "%",
+      data: check.data === "published" ? null : DATA_TAGS[check.data],
+      replace: fixes ? { label: "Replace premix", note: shortName(fixes.name) + " meets it in a re-run", go: () => ctx.replacePremix(fixes.premixId) } : null,
     };
-  };
-  const firstUnknownFor = new Set<string>();
-  const checkRows = unresolvedChecks.map((check) => ({ check, info: checkInfo(check, firstUnknownFor) }));
-  const infoFor = new Map(checkRows.map(({ check, info }) => [check.nutrientId, info]));
-  const failCount = checkRows.filter(({ info }) => info.failed).length;
-  const belowCount = unresolvedChecks.filter((check) => check.status === "below_target").length;
-  const aboveCount = unresolvedChecks.filter((check) => check.status === "above_limit").length;
-  const unknownCount = unresolvedChecks.length - failCount;
+  });
   const lastRun = S.history[0]?.t;
   const mins = lastRun ? Math.floor((Date.now() - lastRun.getTime()) / 60000) : 0;
   const solvedAgo = !lastRun || mins < 1 ? "just now" : mins < 60 ? mins + " min ago" : "at " + lastRun.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-  const greenTrials = [...new Map(unresolvedChecks.flatMap((check) => trialsFor([check.nutrientId]).slice(0, 1)).map((trial) => [trial.id, trial])).values()];
-  const greenDelta = greenTrials.every((trial) => trial.deltaT != null) ? greenTrials.reduce((total, trial) => total + trial.deltaT!, 0) : null;
-  const metCount = assessment?.nutrientChecks.filter((check) => check.status === "met").length ?? 0;
-  const verification = assessment?.verdict === "needs_verification" && unresolvedChecks.length && !mc?.checking && !recipeInvalid
-    ? {
-        headline: "Not ready to mix",
-        counts: [
-          belowCount ? belowCount + " nutrient" + (belowCount === 1 ? "" : "s") + " below target" : "",
-          aboveCount ? aboveCount + (belowCount ? "" : " nutrient" + (aboveCount === 1 ? "" : "s")) + " above limit" : "",
-          unknownCount ? unknownCount + (failCount ? "" : " nutrient" + (unknownCount === 1 ? "" : "s")) + " can’t be verified" : "",
-        ].filter(Boolean).join(", "),
-        othersVerified: metCount ? metCount + " other" + (metCount === 1 ? "" : "s") + " verified" : "",
-        applyGreen: greenTrials.length
-          ? {
-              label: "Apply all green" + (greenDelta == null ? "" : " · " + signedCost(greenDelta)),
-              title: "Adds " + joinWords(greenTrials.map((trial) => trial.name)) + " and re-formulates. Each was confirmed on its own; the combined cost is the sum of their individual changes.",
-              go: () => {
-                update((state) => ({ pool: greenTrials.reduce((pool, trial) => (canAddStudioIngredient(trial.id, state.programmeId, pool, state.phaseId) ? selectStudioIngredient(pool, trial.id, state.programmeId, state.phaseId) : pool), state.pool) }));
-                ctx.run();
-              },
-            }
-          : null,
-        checking: !!trials && trials.status === "loading",
-        askNutritionist: () => update({ cOpen: true, cSent: false, cErr: "", cTopic: "review" }),
-        mark: failCount ? { color: "#a63d2a", shape: "square" } : { color: "#c98a1e", shape: "triangle" },
-        meta: mc ? "Manual recipe · checked " + solvedAgo : GOALS[runSnap.goal].label + (runSnap.goal === "least_cost" || R.goalUnavailable ? "" : " · within 3%") + " · solved " + solvedAgo,
-        rows: checkRows.map(({ info }) => info),
-        verified: displayedValidationCategories.filter((category) => category.status === "met").map((category) => category.label.toLowerCase()).join(", "),
-        waHref: ctx.waHref,
-      }
-    : null;
-  const strip = {
-    label: mc ? "Manual ingredient amounts checked separately" : "Optimizer found a 100% recipe within the enforced ingredient and nutrient constraints",
-    color: "#45473f",
-    bg: "#8d8a80",
-    r: "50%",
-    hasAdv: advTotal > 0,
-    adv: advTxt,
-    goal: mc ? "Manual recipe" : GOALS[runSnap.goal].label + (runSnap.goal === "least_cost" || R.goalUnavailable ? "" : " · within 3%"),
+  const headline = mc?.checking
+    ? { text: "Checking hard requirements…", sub: "", state: "pending" as const }
+    : recipeInvalid
+      ? { text: "Recipe isn't complete yet", sub: "Fix the amounts below; hard requirements are checked once the recipe adds to 100%.", state: "fail" as const }
+      : !assessment
+        ? { text: "Not assessed", sub: "Re-formulate to check the hard requirements.", state: "pending" as const }
+        : {
+            text: assessment.headline,
+            sub: assessment.verdict === "meets_requirements"
+              ? (mc ? "Manual recipe · checked " + solvedAgo : GOALS[runSnap.goal].label + (runSnap.goal === "least_cost" || R.goalUnavailable ? "" : " · within 3%")) + (premixProduct ? " · premix at manufacturer dose" : " · no premix selected")
+              : "Don't mix this feed until every hard requirement is met",
+            state: assessment.verdict === "meets_requirements" ? "ok" as const : "fail" as const,
+          };
+  const documentation = assessment && !mc?.checking ? documentationGapLine(assessment) ?? "" : "";
+  const summary = {
+    headline,
+    metNote: counts && counts.failed.length ? counts.met + " met" : "",
+    failedRows,
+    documentation,
+    advisoriesLabel,
+    hasAdvisories: advisoryTotal > 0,
+    openAdvisories: goAdvisories,
     solver: mc ? "" : "FeedSport engine · " + R.nVars + " ingredients · " + R.nRows + " requirements · " + Math.round(R.ms) + " ms",
   };
+
   let goalCostNote = { show: false, text: "" };
   if (!mc && runSnap.goal !== "least_cost") {
     const dd = R.costT - R.leastCostT;
@@ -2425,112 +2251,232 @@ function optimalVals(
       text: R.goalUnavailable
         ? "There’s no distinct " + GOALS[runSnap.goal].label.toLowerCase() + " within 3% of least cost, so the least-cost recipe is shown."
         : dd > 0.005
-          ? GOALS[runSnap.goal].label + " costs " + money(dd) + "/t more than least cost (" + money(R.leastCostT) + "/t)." + (R.dropped.length ? " Leaves out: " + R.dropped.map((x) => engine.catalogue.get(x)?.name ?? x).join(", ") + "." : "")
+          ? GOALS[runSnap.goal].label + " costs " + money(dd) + "/t more than least cost (" + money(R.leastCostT) + "/t)." + (R.dropped.length ? " Leaves out: " + R.dropped.map(name).join(", ") + "." : "")
           : "No cost difference from least cost for this formulation.",
     };
   }
-  const qualifier = partialCost ? " (excl. unpriced premix)" : "";
-  const showCost = (value: number, decimals = 2) => (partialCost ? "≥ " : "") + money(value, decimals);
+  const qualifier = partialCost ? " · partial" : "";
+  const showCost = (value: number, decimals = 2) => money(value, decimals) + (partialCost ? " + premix" : "");
   const figures = [
-    { label: "This batch · " + ctx.batchLabel + qualifier, value: showCost((costT * S.batch) / 1000), bg: "#2f5a3f", fg: "#fff", sub: "#cfe0d2" },
-    { label: "Per kg" + qualifier, value: showCost(costT / 1000, 3), bg: "#fff", fg: "#222420", sub: "#64665c" },
-    { label: "Per 50 kg bag" + qualifier, value: showCost(costT / 20), bg: "#fff", fg: "#222420", sub: "#64665c" },
-    { label: "Per tonne" + qualifier, value: showCost(costT), bg: "#fff", fg: "#222420", sub: "#64665c" },
+    { label: "Per tonne" + qualifier, value: showCost(costT), bg: "#2f5a3f", fg: "#fff", sub: "#cfe0d2" },
+    { label: "This batch · " + ctx.batchLabel, value: showCost((costT * S.batch) / 1000), bg: "#fff", fg: "#222420", sub: "#64665c" },
+    { label: "Per 50 kg bag", value: showCost(costT / 20), bg: "#fff", fg: "#222420", sub: "#64665c" },
+    { label: "Per kg", value: showCost(costT / 1000, 3), bg: "#fff", fg: "#222420", sub: "#64665c" },
   ];
-  const nuts = nList.map((n) => {
-    const base = n.status === "met" ? ST.met : ST[n.status];
-    const hi = n.max != null ? n.max * 1.3 : n.min != null ? n.min * 1.5 : Math.max(n.value * 1.5, 1);
-    const pos = (x: number) => Math.max(0, Math.min(100, (x / hi) * 100)) + "%";
-    return {
-      name: n.name, short: n.name, val: nutVal(n, n.value), st: n.limiting ? { ...base, label: base.label + " · limiting" } : base,
-      reqTxt: (n.min != null ? "min " + nutVal(n, n.min) : "") + (n.max != null ? (n.min != null ? " · " : "") + "max " + nutVal(n, n.max) : ""),
-      zl: n.min != null ? pos(n.min) : "0%", zw: (n.max != null ? ((n.max - (n.min || 0)) / hi) * 100 : 100 - ((n.min || 0) / hi) * 100) + "%", zbl: n.min != null ? "#2f5a3f" : "transparent", zbr: n.max != null ? "#2f5a3f" : "transparent", mk: pos(n.value), mkC: n.status !== "met" ? "#b2412e" : "#222420", trackBg: "#f3f0e8", flag: n.limiting ? "LIMITING" : "",
-    };
-  });
-  const micronutrients = assessment
-    ? micronutrientAssessmentGroups(assessment).map((group) => ({
-        id: group.id,
-        label: group.category?.label ?? (group.id === "vitamins" ? "Vitamins" : "Trace minerals"),
-        note: group.category?.note ?? "No targets are loaded for this stage.",
-        rows: group.checks.map((check) => {
-          const dp = check.unit === "%" ? 3 : Math.abs(check.actual ?? check.requiredMin ?? check.allowedMax ?? 0) >= 100 ? 0 : 2;
-          const value = (amount: number | undefined) => amount == null ? "Unknown" : `${fmt(amount, dp)} ${check.unit}`;
-          const target = check.requiredMin != null
-            ? `Minimum ${value(check.requiredMin)}`
-            : `Maximum ${value(check.allowedMax)}`;
-          const st = check.status === "met"
-            ? { ...ST.met, label: nutrientAssessmentStatusLabel(check.status) }
-            : check.status === "unknown"
-              ? { ...ST.adv, label: nutrientAssessmentStatusLabel(check.status) }
-              : { ...(check.status === "below_target" ? ST.below : ST.above), label: nutrientAssessmentStatusLabel(check.status) };
-          return {
-            name: check.label,
-            actual: value(check.actual),
-            target,
-            status: st,
-            reason: check.reason,
-            source: check.targetSource,
-            scope: check.enforcedByOptimizer ? "Hard optimizer constraint" : "Post-optimization verification",
-          };
-        }),
-      }))
-    : [];
-  const STATUS_ORDER = { met: 0, unmet: 1, unknown: 2, not_assessed: 3 } as const;
-  const validationRows = displayedValidationCategories
-    .map((item, i) => ({ item, i }))
-    .sort((a, b) => STATUS_ORDER[a.item.status] - STATUS_ORDER[b.item.status] || a.i - b.i)
-    .map(({ item }) => {
-      const st = item.status === "met"
-        ? { label: "Verified", color: "#2b6a42", bg: "#2f7a4a", shape: "dot" }
-        : item.status === "unmet"
-          ? { label: "Does not meet", color: "#a63d2a", bg: "#b2412e", shape: "square" }
-          : item.status === "unknown"
-            ? { label: "Can’t verify", color: "#8a5f18", bg: "#c98a1e", shape: "triangle" }
-            : { label: "Not assessed", color: "#64665c", bg: "#d0cdc3", shape: "dot" };
-      const checks = unresolvedChecks.filter((check) => check.categoryId === item.id);
-      const failedChecks = checks.filter((check) => check.status !== "unknown");
-      const unknownChecks = checks.filter((check) => check.status === "unknown");
-      const cards = failedChecks.map((check) => {
-        const info = infoFor.get(check.nutrientId)!;
-        return { key: check.nutrientId, title: info.name, value: info.actual, valueRest: info.limitTxt ? " / " + info.limitTxt : "", detail: info.shortWhy, chips: info.chips, links: info.fixLink ? [info.fixLink] : [] };
-      });
-      if (unknownChecks.length) {
-        const names = unknownChecks.map((check, i) => (i ? nutrientShortName(check).replace(/^[A-Z](?![A-Z0-9])/, (c) => c.toLowerCase()) : nutrientShortName(check)));
-        cards.push({
-          key: "unknown-" + item.id,
-          title: names.join(", "),
-          value: "",
-          valueRest: unknownChecks.every((check) => check.missingIngredientIds.length) ? "No published data" : "Unknown",
-          detail: "",
-          chips: chipsFor(unknownChecks.map((check) => check.nutrientId)),
-          links: [{ label: "Enter manufacturer’s value" + (unknownChecks.length === 1 ? "" : "s"), go: () => askForValues(unknownChecks) }],
-        });
-      }
-      return { key: item.id, label: item.label, status: st, note: item.note, open: checks.length > 0, tint: item.status === "unmet" ? "#fdf6f3" : "#fff", cards };
+  const priceNote = partialCost && premixProduct
+    ? { text: shortName(premixProduct.name) + " has no price, so costs exclude it. At " + fmt(premixProduct.inclusionPct, premixProduct.inclusionPct < 1 ? 1 : 0) + "% of the mix it could add a lot. Enter your price to see the full cost.", go: () => ctx.openDrawer(premixProduct.id) }
+    : null;
+
+  // ---- Selected premix card ----
+  const premixCard = premixIngredient && premixProduct && assessment ? (() => {
+    const contributions = premixIngredient.premix!.contributions;
+    const counted = assessment.requirements.flatMap((check) => {
+      if (check.relation === "equal") return [];
+      const value = check.contributions.find((c) => c.ingredientId === premixProduct.id)?.value;
+      if (value) return [{ key: check.id, name: check.label, sub: "", value: valueTxt(check, value), tag: DATA_STATUS_LABELS.published, dashed: false, muted: false }];
+      if (check.totalOnlyIngredientIds.includes(premixProduct.id)) return [{ key: check.id, name: check.label, sub: "total only", value: "0", tag: DATA_STATUS_LABELS.assumed_zero, dashed: false, muted: true }];
+      return [];
     });
-  const validationView = {
-    rows: validationRows,
-    overallLabel: feedVerdict.title,
-    overallColor: feedVerdict.color,
-    note: assessment?.summary ?? "Nutritional verification has not been completed.",
-    unresolved: unresolvedChecks.length > 0,
-    waHref: ctx.waHref,
+    const group = (kind: "vitamin" | "trace_mineral", label: string, of: number) => {
+      const documented = contributions.filter((c) => c.group === kind).length;
+      const missing = of - documented;
+      return { key: kind, name: label + " · " + documented + " of " + of, sub: "", value: "—", tag: missing ? missing + " missing" : DATA_STATUS_LABELS.published, dashed: missing > 0, muted: false };
+    };
+    const assumed = assessment.requirements
+      .filter((check) => check.assumedZeroIngredientIds.includes(premixProduct.id) && !check.totalOnlyIngredientIds.includes(premixProduct.id))
+      .map((check) => lowerFirstName(check.label));
+    const totalOnly = contributions.filter((c) => !c.countsTowardDigestible).map((c) => lowerFirstName(c.nutrient));
+    return {
+      name: shortName(premixProduct.name) + " — " + premixProduct.application,
+      meta: [premixProduct.manufacturer, "SKU " + premixProduct.sku, premixProduct.inclusionKgPerTonne + " kg/t"].join(" · "),
+      url: premixProduct.specificationUrl,
+      rows: [...counted, group("vitamin", "Vitamins", 13), group("trace_mineral", "Trace minerals", 6)],
+      notes: [
+        totalOnly.length ? joinWords(totalOnly).replace(/^./, (c) => c.toUpperCase()) + (totalOnly.length === 1 ? " is" : " are") + " published as a total, with no SID value or source-backed digestibility, so " + (totalOnly.length === 1 ? "it isn't" : "they aren't") + " counted toward the digestible requirement." : "",
+        !contributions.length ? "No per-kg premix composition is published. Only a finished-feed specification is on file, kept for reference; none of it is credited." : "",
+        assumed.length ? "Not documented, counted as 0: " + joinWords(assumed.slice(0, 4)) + (assumed.length > 4 ? " and " + (assumed.length - 4) + " more" : "") + "." : "",
+      ].filter(Boolean),
+      canCompare: !!comparison && comparison.options.length > 1,
+      compare: () => update({ compareOpen: true }),
+      replace: ctx.openPremixPicker,
+      replaceLabel: "Replace premix",
+    };
+  })() : null;
+  const noPremix = !premixIngredient ? { add: ctx.openPremixPicker } : null;
+
+  // ---- Nutrient analysis: every source counted once, premix included ----
+  const GROUPS: Record<string, { label: string; color: string }> = {
+    amino: { label: "Crystalline amino acids", color: "#e3aa45" },
+    premix: { label: "Premix", color: "#222420" },
+    minerals: { label: "Minerals", color: "#d0cdc3" },
   };
+  const SHADES = ["#a9c4ad", "#2f5a3f", "#7c9a81", "#4f7a5a", "#c5d8c8", "#5e8566"];
+  const groupOf = (id: string) => {
+    const category = engine.catalogue.get(id)?.category;
+    return category === "Premix" ? "premix" : category === "Amino acid" ? "amino" : category === "Mineral" ? "minerals" : id;
+  };
+  const sourceKeys = [...new Set(baseRows.filter((row) => row.pct > 0).sort((a, b) => b.pct - a.pct).map((row) => groupOf(row.id)))];
+  const legend = sourceKeys.map((key, i) => GROUPS[key] ? { key, ...GROUPS[key] } : { key, label: shortName(name(key)).replace(/,.*$/, ""), color: SHADES[i % SHADES.length] });
+  const colorOf = new Map(legend.map((entry) => [entry.key, entry.color]));
+  const analysisRows = (assessment?.requirements ?? [])
+    .map((check, index) => ({ check, index }))
+    .sort((a, b) => {
+      const rank = (c: RequirementCheck) => (c.status === "not_met" ? 0 : c.limiting ? 1 : premixProduct && c.contributions.some((x) => x.ingredientId === premixProduct.id) ? 2 : c.data !== "published" && c.totalOnlyIngredientIds.length ? 2 : c.relation === "equal" ? 3 : 4);
+      return rank(a.check) - rank(b.check) || a.index - b.index;
+    })
+    .map(({ check }) => {
+      const scale = Math.max(check.bound, check.actual, 1e-9) * 1.15;
+      const bySource = new Map<string, number>();
+      for (const c of check.contributions) bySource.set(groupOf(c.ingredientId), (bySource.get(groupOf(c.ingredientId)) ?? 0) + c.value);
+      return {
+        key: check.id,
+        name: check.label,
+        value: valueTxt(check, check.actual),
+        bound: check.relation === "equal" ? "=" + fmt(check.bound, 2) : boundTxt(check),
+        note: check.relation === "equal" && premixProduct ? "Manufacturer instruction · " + premixProduct.inclusionKgPerTonne + " kg/t" : "",
+        segments: check.relation === "equal" ? [] : sourceKeys.flatMap((key) => {
+          const v = bySource.get(key) ?? 0;
+          return v > 0 ? [{ key, w: (v / scale) * 100 + "%", color: colorOf.get(key)!, title: (legend.find((l) => l.key === key)?.label ?? key) + ": " + valueTxt(check, v) }] : [];
+        }),
+        marker: (check.bound / scale) * 100 + "%",
+        met: check.status === "met",
+        status: check.status === "met" ? "Met" + (check.limiting ? " · limiting" : "") : "Not met",
+        data: DATA_TAGS[check.data],
+      };
+    });
+  const analysis = {
+    rows: analysisRows,
+    legend,
+    total: analysisRows.length,
+    footnote: (assessment?.requirements.length ?? 0) + " hard requirements · as-fed basis · source: " + engine.programmes.programmes.find((p) => p.id === runSnap.programmeId)?.source,
+    supplementationNote: assessment?.supplementation ? "Vitamins and trace minerals are compared with Brazilian Tables Chapter 7 under Advisories. They're recommendations, so they don't affect this table." : "",
+  };
+
+  // ---- Advisories ----
+  const premixName = (id: string | null) => (id ? shortName(name(id)) : "");
+  const recipeOf = (option: NonNullable<typeof current>) => new Map(option.recipe.map((row) => [row.ingredientId, row.inclusionPct]));
+  const premixAdvisory = suggested ? (() => {
+    const before = current ? recipeOf(current) : new Map(baseRows.map((row) => [row.id, row.pct] as const));
+    const after = recipeOf(suggested);
+    const dropped = [...before.keys()].filter((id) => !after.has(id) && groupOf(id) === "amino").map((id) => shortName(name(id)));
+    const beforeCost = current?.costPerTonne ?? costT;
+    const costKnown = suggested.costPerTonne !== null && !suggested.costExcludesPremix && !(current?.costExcludesPremix ?? partialCost);
+    const delta = costKnown ? suggested.costPerTonne! - beforeCost : null;
+    const beforeGaps = current?.documentationGapLabels.length ?? gapLabels.length;
+    return {
+      show: showPremixAdvisory,
+      title: current ? "Alternative available" : "Premix available",
+      body: (current
+        ? "Your selected premix " + (beforeGaps ? "has no published " + joinWords(current.documentationGapLabels.map(lowerFirstName).slice(0, 3)) + (current.documentationGapLabels.length > 3 ? " and " + (current.documentationGapLabels.length - 3) + " more" : "") + ". " : "is fully assessed. ")
+        : "No commercial premix is selected. ") + shortName(suggested.name) + " " + joinWords(comparison!.reasons) + ".",
+      rows: [
+        { label: "Cost", value: delta === null ? (suggested.costPerTonne === null ? "No recipe" : money(suggested.costPerTonne) + (suggested.costExcludesPremix ? " excl. premix · no premix price" : "")) : (delta >= 0 ? "+" : "−") + money(Math.abs(delta)) + "/t → " + money(suggested.costPerTonne), tone: delta === null ? "warn" : delta > 0.005 ? "bad" : "good" },
+        { label: "Ingredients", value: before.size + " → " + after.size + (dropped.length ? " · " + joinWords(dropped) + " no longer needed" : ""), tone: "plain" },
+        { label: "Hard requirements", value: (current ? current.requirementsMet + " → " : "") + suggested.requirementsMet + " of " + suggested.requirementsTotal + (current && current.requirementsMet === suggested.requirementsMet ? " · no change" : ""), tone: "plain" },
+        { label: "Documentation gaps", value: beforeGaps + " → " + suggested.documentationGapLabels.length, tone: suggested.documentationGapLabels.length < beforeGaps ? "good" : "plain" },
+        { label: "Chapter 7 comparison", value: (current ? current.supplementationAt + " → " : "") + suggested.supplementationAt + " of " + suggested.supplementationTotal + " at recommendation", tone: "plain" },
+      ],
+      replaceLabel: current ? "Replace premix" : "Add premix",
+      replace: () => ctx.replacePremix(suggested.premixId),
+      compare: () => update({ compareOpen: true }),
+      dismiss: () => update((s) => ({ dismissed: { ...s.dismissed, ["premix-advisory:" + suggested.premixId]: true } })),
+    };
+  })() : null;
+  const noBetterPremix = comparison && !suggested && comparison.options.some((option) => !option.current)
+    ? { text: comparison.options.filter((option) => !option.current).length + " other eligible premix" + (comparison.options.filter((option) => !option.current).length === 1 ? " was" : "es were") + " re-run with your ingredients, limits and prices. None improves documentation, Chapter 7 coverage, hard requirements or cost.", compare: () => update({ compareOpen: true }) }
+    : null;
+  const suppRows = (assessment?.supplementation?.rows ?? [])
+    .map((row, index) => ({ row, index }))
+    .sort((a, b) => (a.row.status === "at_recommendation" ? 1 : 0) - (b.row.status === "at_recommendation" ? 1 : 0) || a.index - b.index)
+    .map(({ row }) => ({
+      key: row.id,
+      name: row.label + ", " + row.unit,
+      recipe: row.status === "no_data" ? "—" : fmt(row.actual, row.actual >= 100 ? 0 : row.actual >= 10 ? 1 : 2),
+      recommended: fmt(row.recommended, row.recommended >= 100 ? 0 : row.recommended >= 10 ? 1 : 2),
+      status: row.status,
+      text: row.status === "at_recommendation" ? "At recommendation" : row.status === "below_recommendation" ? fmt(row.pctOfRecommendation ?? 0, 0) + "% of recommendation" : premixProduct ? "Not on the premix data sheet" : "No premix selected",
+    }));
+  const supplementation = assessment?.supplementation ? {
+    counts: supp ? [supp.at + " at recommendation", supp.below ? supp.below + " below" : "", supp.noData ? supp.noData + " no data" : ""].filter(Boolean).join(" · ") : "",
+    rows: suppRows,
+    source: assessment.supplementation.source,
+  } : null;
+  const documentationCard = gaps.length && premixProduct ? {
+    text: [
+      gaps.some((gap) => gap.reason === "total_only")
+        ? shortName(premixProduct.name) + " publishes " + joinWords([...new Set(gaps.filter((gap) => gap.reason === "total_only").map((gap) => lowerFirstName(gap.label).replace(/^sid /, "")))]) + " as a total only. It is counted as 0 toward the SID requirement, so the recipe may carry slightly more than needed."
+        : "",
+      gaps.some((gap) => gap.reason === "not_documented")
+        ? "Not on the data sheet: " + joinWords([...new Set(gaps.filter((gap) => gap.reason === "not_documented").map((gap) => lowerFirstName(gap.label)))]) + "."
+        : "",
+    ].filter(Boolean).join(" "),
+    url: premixProduct.specificationUrl,
+    ask: () => update({ cOpen: true, cSent: false, cErr: "", cTopic: "review" }),
+  } : null;
   const advisories = adv.map((a) => {
     const e = S.pool[a.id];
     const fixedOrReq = e?.role === "fixed" || (e?.role === "required" && Number(e.min) > a.guide);
-    return { text: a.text, note: mc ? "This is a guideline, not a hard limit." : "This is a guideline, not a hard limit. The recipe is valid as it is.", actionable: !mc && !fixedOrReq, capLabel: "Limit to " + a.guide + "% and re-formulate", cap: () => { update((s) => ({ pool: { ...s.pool, [a.id]: { ...(s.pool[a.id] || { role: "available" }), max: a.guide } }, advisoriesOpen: false })); run(); }, keep: () => update((s) => ({ dismissed: { ...s.dismissed, [a.id]: true }, advisoriesOpen: adv.length > 1 })) };
+    return { key: a.id, text: shortName(name(a.id)) + " is at " + fmt(a.pct, 1) + "%. The guideline for this stage is up to " + a.guide + "%.", actionable: !mc && !fixedOrReq, capLabel: "Limit to " + a.guide + "% and re-formulate", cap: () => { update((s) => ({ pool: { ...s.pool, [a.id]: { ...(s.pool[a.id] || { role: "available" }), max: a.guide } } })); run(); }, keep: () => update((s) => ({ dismissed: { ...s.dismissed, [a.id]: true } })) };
   });
+  const advisoryTab = {
+    premix: premixAdvisory,
+    noBetterPremix,
+    supplementation,
+    guidelines: advisories,
+    documentation: documentationCard,
+    nutritionistNotes: ctx.adviceCount ? { label: ctx.adviceCount + " note" + (ctx.adviceCount === 1 ? "" : "s") + " from your nutritionist", open: ctx.openAdvice } : null,
+    empty: advisoryTotal === 0,
+  };
+
+  // ---- Compare premixes ----
+  const compare = comparison && comparison.options.length > 1 ? (() => {
+    const ordered = [...comparison.options].sort((a, b) => Number(b.current) - Number(a.current) || Number(b.premixId === comparison.suggestedPremixId) - Number(a.premixId === comparison.suggestedPremixId));
+    const aminoIds = [...new Set(ordered.flatMap((option) => option.recipe.map((row) => row.ingredientId)).filter((id) => groupOf(id) === "amino"))];
+    const base = ordered.find((option) => option.current) ?? null;
+    const columns = ordered.map((option) => {
+      const recipe = recipeOf(option);
+      const minerals = option.recipe.filter((row) => groupOf(row.ingredientId) === "minerals").reduce((t, row) => t + row.inclusionPct, 0);
+      const delta = base && option !== base && option.costPerTonne !== null && base.costPerTonne !== null && !option.costExcludesPremix && !base.costExcludesPremix ? option.costPerTonne - base.costPerTonne : null;
+      return {
+        key: option.premixId,
+        badge: option.current ? "Current" : option.premixId === comparison.suggestedPremixId ? "Suggested" : "Also eligible",
+        suggested: option.premixId === comparison.suggestedPremixId,
+        name: premixName(option.premixId),
+        dose: option.inclusionKgPerTonne + " kg/t · fixed " + fmt(option.inclusionPct, option.inclusionPct < 1 ? 1 : 1) + "%",
+        result: option.status === "optimal" || option.status === "infeasible" ? option.requirementsMet + " of " + option.requirementsTotal + " met" : option.message ?? "No recipe",
+        resultOk: option.status === "optimal" && option.requirementsMet === option.requirementsTotal,
+        cost: option.costPerTonne === null ? "—" : money(option.costPerTonne) + (option.costExcludesPremix ? " excl. premix" : ""),
+        costNote: option.costExcludesPremix ? "no premix price" : delta === null ? "" : (delta >= 0 ? "+" : "−") + money(Math.abs(delta)),
+        costTone: option.costExcludesPremix ? "warn" : delta !== null && delta > 0.005 ? "bad" : "plain",
+        amino: aminoIds.map((id) => (recipe.has(id) ? fmt(recipe.get(id)!, 2) + "%" : "0%")),
+        minerals: fmt(minerals, 2) + "%",
+        ingredients: String(option.recipe.length),
+        chapter7: option.supplementationAt + " of " + option.supplementationTotal,
+        gaps: option.documentationGapLabels.length ? option.documentationGapLabels.length + " value" + (option.documentationGapLabels.length === 1 ? "" : "s") : "None",
+        current: option.current,
+        canReplace: !option.current && option.recipe.length > 0,
+        replace: () => ctx.replacePremix(option.premixId),
+      };
+    });
+    return {
+      columns,
+      aminoLabels: aminoIds.map((id) => shortName(name(id))),
+      subtitle: "Eligible for " + (engine.programmes.programmes.find((p) => p.id === runSnap.programmeId)?.name.toLowerCase() ?? "this stage") + " · re-run with your " + ctx.poolIds.length + " ingredients, limits and prices",
+      footnote: (current ? "Replace removes " + premixName(current.premixId) + ", adds the new premix at its manufacturer dose, re-optimises the rest and recalculates every nutrient and the cost. " : "Each column adds that premix at its manufacturer dose and re-optimises the rest. ") + "Two premixes are never kept together. Columns without a price say so instead of guessing.",
+      close: () => update({ compareOpen: false }),
+    };
+  })() : null;
+
   const shownGoal = R.goalUnavailable ? "least_cost" : runSnap.goal;
   const strategies = R.strategies.map((g) => {
     const on = shownGoal === g.key;
     const dd = g.possible ? g.cost! - R.leastCostT : 0;
-    return { label: g.label, badge: on ? "CURRENT" : "", cost: g.possible ? (partialCost ? "≥ " : "") + money(g.cost) : "Not possible", note: g.possible && g.key === "least_cost" ? g.count + " ingredients" : g.possible ? g.count + " ingredients · " + g.note : g.note, delta: g.possible && g.key !== "least_cost" ? (dd > 0.005 ? "+" + money(dd) + "/t · +" + fmt((dd / R.leastCostT) * 100, 1) + "%" : "same cost") : "", deltaColor: dd > 0.005 ? "#a63d2a" : "#64665c", disabled: !g.possible || on, cursor: g.possible && !on ? "pointer" : "default", bs: g.possible ? "solid" : "dashed", bd: on ? "#2f5a3f" : g.possible ? "#e2dfd6" : "#b9b6ab", ring: on ? "inset 0 0 0 1px #2f5a3f" : "none", bg: on ? "#eef3ee" : g.possible ? "#fff" : "#faf8f3", pick: () => { if (!g.possible || on) return; update({ goal: g.key }); run(); } };
+    return { label: g.label, badge: on ? "CURRENT" : "", cost: g.possible ? money(g.cost) + (partialCost ? " + premix" : "") : "Not possible", note: g.possible && g.key === "least_cost" ? g.count + " ingredients" : g.possible ? g.count + " ingredients · " + g.note : g.note, delta: g.possible && g.key !== "least_cost" ? (dd > 0.005 ? "+" + money(dd) + "/t · +" + fmt((dd / R.leastCostT) * 100, 1) + "%" : "same cost") : "", deltaColor: dd > 0.005 ? "#a63d2a" : "#64665c", disabled: !g.possible || on, cursor: g.possible && !on ? "pointer" : "default", bs: g.possible ? "solid" : "dashed", bd: on ? "#2f5a3f" : g.possible ? "#e2dfd6" : "#b9b6ab", ring: on ? "inset 0 0 0 1px #2f5a3f" : "none", bg: on ? "#eef3ee" : g.possible ? "#fff" : "#faf8f3", pick: () => { if (!g.possible || on) return; update({ goal: g.key }); run(); } };
   });
-  const unusedText = R.unused.map((id) => engine.catalogue.get(id)?.name ?? id).join(", ");
+  const unusedText = R.unused.map(name).join(", ");
   const usedN = baseRows.filter((r) => r.pct > 0).length;
   const recipeTitle = "Recipe · " + usedN + " ingredient" + (usedN === 1 ? "" : "s");
-  return { rows, total, figures, strip, verdict: { ...feedVerdict, rescueSuggestions, rescueEmptyMessage }, verification, nuts, micronutrients, validation: validationView, advisories, strategies, unusedText, hasUnused: !mc && !!unusedText, goalCostNote, recipeTitle };
+  return { rows, total, figures, priceNote, summary, premixCard, noPremix, analysis, advisoryTab, advisoriesLabel, advisoryTotal, compare, strategies, unusedText, hasUnused: !mc && !!unusedText, goalCostNote, recipeTitle };
 }
 
 /** "Why this recipe": what's at its limit, and the ingredients the recipe leaves out. */

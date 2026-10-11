@@ -8,7 +8,6 @@ import {
   PREMIX_RECORDS,
   ingredientLibraryForSpecies,
   ingredientLibraryWithCustomPremixes,
-  ingredientLibraryWithCommercialPremixes,
   ingredientProfileAttribution,
   nutrientValueSource,
   loadIngredientLibrarySource,
@@ -16,9 +15,9 @@ import {
 
 test("ingredient library is the single canonical ingredient dataset", () => {
   assert.equal(INGREDIENT_LIBRARY_SOURCE.schemaVersion, 2);
-  // 113 feedstuffs plus 9 manufacturer vitamin-mineral premixes.
+  // 113 feedstuffs plus 9 manufacturer premixes (7 pig, 2 poultry), each an ordinary ingredient.
   assert.equal(INGREDIENT_LIBRARY_SOURCE.ingredients.length, 122);
-  assert.equal(INGREDIENT_LIBRARY.ingredients.length, 113);
+  assert.equal(INGREDIENT_LIBRARY.ingredients.length, 120);
   assert.ok(INGREDIENT_LIBRARY_SOURCE.ingredients.every((item) => item.provenance.source?.url && item.provenance.verificationStatus),
     "All canonical ingredient records must explicitly carry a source and verification status");
 
@@ -26,15 +25,18 @@ test("ingredient library is the single canonical ingredient dataset", () => {
   assert.equal(new Set(ids).size, ids.length);
 });
 
-test("premixes live in the library but join a formulation only when selected", () => {
+test("premixes are ordinary ingredients of their species library", () => {
   const premixes = INGREDIENT_LIBRARY_SOURCE.ingredients.filter((ingredient) => ingredient.premix);
   assert.equal(premixes.length, 9);
   assert.ok(premixes.every((ingredient) => ingredient.category === "vitamin_mineral_premix"));
   assert.deepEqual(PREMIX_RECORDS.map((record) => record.id), premixes.map((ingredient) => ingredient.id));
   assert.deepEqual(COMMERCIAL_PREMIXES.map((product) => product.id), premixes.map((ingredient) => ingredient.id));
-  const premixIds = new Set(premixes.map((ingredient) => ingredient.id));
-  for (const library of [INGREDIENT_LIBRARY, ingredientLibraryForSpecies("poultry")]) {
-    assert.ok(library.ingredients.every((ingredient) => !premixIds.has(ingredient.id)));
+  // One nutrient model: a premix's composition is a normal species profile.
+  for (const product of COMMERCIAL_PREMIXES) {
+    const library = ingredientLibraryForSpecies(product.nutritionSpecies);
+    assert.ok(library.ingredients.some((ingredient) => ingredient.id === product.id), product.id);
+    const other = ingredientLibraryForSpecies(product.nutritionSpecies === "swine" ? "poultry" : "swine");
+    assert.ok(!other.ingredients.some((ingredient) => ingredient.id === product.id), product.id);
   }
   // Supplier premixes carry the manufacturer's citation, not the Brazilian Tables'.
   const x912 = premixes.find((ingredient) => ingredient.id === "sustar-glypro-x912")!;
@@ -56,7 +58,7 @@ test("species nutrition lives under the canonical ingredient record", () => {
 
 test("poultry library materializes only ingredients with poultry profiles", () => {
   const poultry = ingredientLibraryForSpecies("poultry");
-  assert.equal(poultry.ingredients.length, 113);
+  assert.equal(poultry.ingredients.length, 115);
   assert.ok(poultry.ingredients.every((ingredient) => ingredient.species === "poultry"));
 });
 
@@ -109,7 +111,7 @@ test("all canonical species ingredient profiles carry a traceable nutrition sour
       const origin = ingredientProfileAttribution(ingredient);
       assert.ok(origin.source?.url?.startsWith("https://"), ingredient.id);
       assert.ok(origin.source?.title, ingredient.id);
-      assert.equal(origin.verificationStatus, "published_reference", ingredient.id);
+      assert.equal(origin.verificationStatus, ingredient.premix ? "manufacturer_unverified" : "published_reference", ingredient.id);
       assert.equal(origin.species, species);
     }
   }
@@ -120,15 +122,14 @@ test("all canonical species ingredient profiles carry a traceable nutrition sour
 
 test("supplier premixes retain sourced label minima without inventing digestible values", () => {
   const product = COMMERCIAL_PREMIXES.find((item) => item.id === "sustar-glypro-x912")!;
-  const supplemented = ingredientLibraryWithCommercialPremixes([product], INGREDIENT_LIBRARY);
-  const record = supplemented.ingredients.find((item) => item.id === product.id)!;
+  const record = INGREDIENT_LIBRARY.ingredients.find((item) => item.id === product.id)!;
   const origin = ingredientProfileAttribution(record);
   assert.equal(origin.source?.publisher, product.manufacturer);
   assert.equal(origin.source?.url, product.specificationUrl);
   assert.equal(origin.verificationStatus, "manufacturer_unverified");
   assert.equal(record.vitamins.vitaminAIuKg, 28_000_000);
   assert.equal(record.traceMineralsPpm.zinc, 40_000);
-  assert.equal(record.provenance.nutrientSources["vitamins.vitaminAIuKg"]?.url, product.specificationUrl);
+  assert.equal(nutrientValueSource(record, "vitamins.vitaminAIuKg")?.basis, "as-fed label minimum per kg premix");
   assert.equal(record.aminoAcids.sidPct.lysine, undefined, "No unverified supplier guarantees credited as SID");
 });
 

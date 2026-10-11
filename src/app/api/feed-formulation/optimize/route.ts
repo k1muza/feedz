@@ -3,20 +3,15 @@ import { NextResponse } from "next/server";
 export const runtime = "nodejs";
 import { z } from "zod";
 
-import { formulateLeastCostDiet } from "@/lib/feed-optimizer";
+import { ingredientDefaultPricePerKg } from "@/lib/feed-ingredient-prices";
 import { feedProgrammePhaseById } from "@/lib/feed-programmes";
 import {
   ingredientLibraryForPhase,
   ingredientLibraryWithCustomPremixes,
-  ingredientLibraryWithCommercialPremixes,
 } from "@/lib/ingredient-nutrients";
 import { assertManufacturerRecipe, commercialPremixById, commercialPremixCompatibleWithProgramme, premixAnalysisForIds } from "@/lib/commercial-premixes";
 import { buildManufacturerRecipeReport } from "@/lib/manufacturer-recipe";
-import {
-  buildFormulationAssessment,
-  buildInfeasibleFormulationAssessment,
-  keepConsistentAlternatives,
-} from "@/lib/formulation-assessment";
+import { formulateAndAssess } from "@/lib/formulation-assessment";
 
 const optionalNutrient = z.number().finite().nonnegative().optional();
 
@@ -24,8 +19,8 @@ const requestSchema = z.object({
   programmeId: z.string().min(1),
   phaseId: z.string().min(1),
   energySystem: z.enum(["ME", "NE"]).default("ME"),
-  includeSupplementationTargets: z.boolean().default(false),
-  traceMineralBasis: z.enum(["inorganic", "organic"]).default("inorganic"),
+  /** Ingredients sent with a placeholder price of 0 because no quotation exists. */
+  unpricedIngredientIds: z.array(z.string().min(1)).default([]),
   customPremixes: z.array(
     z.object({
       id: z.string().min(1),
@@ -62,6 +57,17 @@ const requestSchema = z.object({
         iodine: optionalNutrient,
         selenium: optionalNutrient,
       }).default({}),
+      macroMinerals: z.object({
+        calciumPct: optionalNutrient,
+        totalPhosphorusPct: optionalNutrient,
+        sttdPhosphorusPct: optionalNutrient,
+        sodiumPct: optionalNutrient,
+        chloridePct: optionalNutrient,
+      }).optional(),
+      aminoAcids: z.object({
+        totalPct: z.record(z.string(), z.number().finite().nonnegative()).optional(),
+        sidPct: z.record(z.string(), z.number().finite().nonnegative()).optional(),
+      }).optional(),
     }),
   ).default([]),
   ingredients: z.array(
@@ -91,8 +97,7 @@ export async function POST(request: Request) {
     programmeId,
     phaseId,
     energySystem,
-    includeSupplementationTargets,
-    traceMineralBasis,
+    unpricedIngredientIds,
     customPremixes,
     ingredients,
   } = parsed.data;
@@ -127,79 +132,28 @@ export async function POST(request: Request) {
     if (customPremixes.some((premix) => commercialPremixById(premix.id))) {
       throw new Error("Do not override built-in premix references with user-supplied nutrient profiles.");
     }
-    // User-provided analyses remain separate from manufacturer-identified
-    // products, whose nutrients are not credited against requirements.
-    const library = ingredientLibraryWithCommercialPremixes(
-      selectedCommercial,
-      ingredientLibraryWithCustomPremixes(customPremixes, ingredientLibraryForPhase(phase)),
-    );
+    // A user-entered analysis is an ingredient like any other; it may not
+    // overwrite a manufacturer-identified product.
+    const library = ingredientLibraryWithCustomPremixes(customPremixes, ingredientLibraryForPhase(phase));
     const manufacturer = selectedCommercial.find((p) => p.formulationCompatibility === "manufacturer_recipe_only");
     if (manufacturer?.manufacturerRecipe) {
       const report = buildManufacturerRecipeReport(
         manufacturer, phase, energySystem, library,
         new Map(ingredients.map((row) => [row.ingredientId, row.pricePerKg])),
       );
-      return NextResponse.json({ ...report, assessment: report.validation });
+      return NextResponse.json({ ...report, assessment: report.assessment });
     }
 
-    const result = await formulateLeastCostDiet(
+    const { result, assessment, alternatives, premixComparison, premixEffect } = await formulateAndAssess({
       phase,
       energySystem,
-      ingredients,
+      programmeId,
+      options: ingredients,
       library,
-      {
-        // Strict callers may require micronutrient supplementation in the LP.
-        // Missing premix values then return `missing-data`; they are never
-        // silently treated as zero or disabled merely because a premix exists.
-        includeSupplementationTargets,
-        traceMineralBasis,
-      },
-    );
-
-    const assessment = result.status === "optimal"
-      ? buildFormulationAssessment(
-          phase,
-          energySystem,
-          result.solution.formula,
-          library,
-          undefined,
-          {
-            optimizerFeasible: true,
-            enforcedSettings: { includeSupplementationTargets, traceMineralBasis },
-            checkOptimizerConsistency: true,
-          },
-        )
-      : result.status === "infeasible"
-        ? buildInfeasibleFormulationAssessment(result.message, result.diagnostics)
-        : undefined;
-    // An optional lower-soy/simple/low-import alternative must never make a
-    // valid primary formulation fail. Evaluate each independently and omit
-    // alternative recipes that breach enforced nutritional bounds.
-    const alternatives = result.status === "optimal"
-      ? keepConsistentAlternatives(result.alternatives.map((alternative) => {
-          const alternativeAssessment = buildFormulationAssessment(
-            phase,
-            energySystem,
-            alternative.solution.formula,
-            library,
-            undefined,
-            {
-              optimizerFeasible: true,
-              enforcedSettings: { includeSupplementationTargets, traceMineralBasis },
-              checkOptimizerConsistency: true,
-            },
-          );
-          if (alternativeAssessment.consistencyErrors.length) {
-            console.warn("Discarded inconsistent optional formulation alternative", {
-              alternative: alternative.id,
-              programmeId,
-              phaseId,
-              errors: alternativeAssessment.consistencyErrors,
-            });
-          }
-          return { ...alternative, assessment: alternativeAssessment };
-        }))
-      : undefined;
+      unpricedIngredientIds,
+      priceForPremix: ingredientDefaultPricePerKg,
+      onDiscardedAlternative: (alternative, errors) => console.warn("Discarded inconsistent optional formulation alternative", { alternative, programmeId, phaseId, errors }),
+    });
 
     // Still reject a primary solution that genuinely violates its hard LP
     // constraints. Include measured values and the exact allowed tolerance in
@@ -215,6 +169,8 @@ export async function POST(request: Request) {
       ...result,
       ...(alternatives ? { alternatives } : {}),
       ...(assessment ? { assessment } : {}),
+      premixComparison,
+      premixEffect,
       premix_analysis: premixAnalysisForIds(ingredients.map((row) => row.ingredientId)),
     });
   } catch (error) {

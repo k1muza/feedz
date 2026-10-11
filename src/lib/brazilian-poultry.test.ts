@@ -15,7 +15,8 @@ import {
 test("Brazilian 2024 poultry data loads and is tied to canonical ingredients", () => {
   assert.equal(BRAZILIAN_2024_BROILER_PROGRAMMES.length, 3);
 
-  assert.equal(BRAZILIAN_2024_POULTRY_INGREDIENT_LIBRARY.ingredients.length, 113);
+  // 113 feedstuffs plus the two poultry commercial premixes, which are ordinary ingredients.
+  assert.equal(BRAZILIAN_2024_POULTRY_INGREDIENT_LIBRARY.ingredients.length, 115);
   for (const ingredient of BRAZILIAN_2024_POULTRY_INGREDIENT_LIBRARY.ingredients) {
     assert.equal(ingredient.species, "poultry");
     assert.ok(ingredient.nutrition.poultry, `Missing poultry profile: ${ingredient.id}`);

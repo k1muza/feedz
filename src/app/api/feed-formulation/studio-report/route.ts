@@ -8,40 +8,86 @@ import {
 
 export const runtime = "nodejs";
 
-const nutrientAssessmentSchema = z.object({
-  nutrientId: z.string(),
+const dataStatusSchema = z.enum(["published", "assumed_zero", "missing"]);
+const idList = z.array(z.string().max(200)).max(200);
+
+const requirementSchema = z.object({
+  id: z.string(),
   label: z.string(),
-  categoryId: z.enum(["energy-protein-amino-acids", "major-minerals", "vitamins", "trace-minerals"]),
-  status: z.enum(["met", "below_target", "above_limit", "unknown"]),
-  actual: z.number().finite().optional(),
-  requiredMin: z.number().finite().optional(),
-  allowedMax: z.number().finite().optional(),
   unit: z.string(),
-  reason: z.string(),
-  missingIngredientIds: z.array(z.string()),
+  relation: z.enum(["min", "max", "equal"]),
+  bound: z.number().finite(),
+  actual: z.number().finite(),
+  status: z.enum(["met", "not_met"]),
+  limiting: z.boolean(),
+  data: dataStatusSchema,
+  missingIngredientIds: idList,
+  assumedZeroIngredientIds: idList,
+  totalOnlyIngredientIds: idList,
+  contributions: z.array(z.object({ ingredientId: z.string(), value: z.number().finite() })).max(200),
   enforcedByOptimizer: z.boolean(),
-  targetSource: z.string(),
 });
 
+const supplementationRowSchema = z.object({
+  id: z.string(),
+  label: z.string(),
+  unit: z.string(),
+  group: z.enum(["vitamin", "trace_mineral"]),
+  recommended: z.number().finite(),
+  actual: z.number().finite(),
+  pctOfRecommendation: z.number().finite().nullable(),
+  status: z.enum(["at_recommendation", "below_recommendation", "no_data"]),
+  data: dataStatusSchema,
+  undocumentedIngredientIds: idList,
+});
+
+/** Schema-2 FormulationAssessment (see isFormulationAssessment). */
 const assessmentSchema = z.object({
-  schemaVersion: z.literal(1),
+  schemaVersion: z.literal(2),
   optimizerFeasible: z.boolean(),
-  verdict: z.enum(["verified", "needs_verification", "infeasible"]),
-  nutrientChecks: z.array(nutrientAssessmentSchema),
-  categories: z.array(z.object({
-    id: z.enum(["energy-protein-amino-acids", "major-minerals", "vitamins", "trace-minerals"]),
+  verdict: z.enum(["meets_requirements", "fails_requirements", "infeasible"]),
+  requirements: z.array(requirementSchema).max(200),
+  supplementation: z.object({
+    source: z.string(),
+    traceMineralBasis: z.literal("inorganic"),
+    rows: z.array(supplementationRowSchema).max(100),
+  }).nullable(),
+  documentationGaps: z.array(z.object({
+    ingredientId: z.string(),
+    nutrientId: z.string(),
     label: z.string(),
-    status: z.enum(["met", "unmet", "unknown", "not_assessed"]),
-    checked: z.number().int().nonnegative(),
-    required: z.number().int().nonnegative(),
-    unmetNutrientIds: z.array(z.string()),
-    unknownNutrientIds: z.array(z.string()),
-    note: z.string(),
-  })),
+    reason: z.enum(["total_only", "not_documented"]),
+  })).max(200),
   consistencyErrors: z.array(z.string()),
+  headline: z.string(),
   summary: z.string(),
-  guidance: z.string(),
-  validationScope: z.string(),
+  scope: z.string(),
+});
+
+/** A saved version's schema-1 assessment: rendered with the legacy note, never re-scored. */
+const legacyAssessmentSchema = z.object({ schemaVersion: z.literal(1) }).passthrough();
+
+const premixComparisonSchema = z.object({
+  currentPremixId: z.string().nullable(),
+  options: z.array(z.object({
+    premixId: z.string(),
+    name: z.string(),
+    inclusionPct: z.number().finite(),
+    inclusionKgPerTonne: z.number().finite(),
+    current: z.boolean(),
+    status: z.enum(["optimal", "infeasible", "missing-data", "error"]),
+    message: z.string().optional(),
+    costPerTonne: z.number().finite().nullable(),
+    costExcludesPremix: z.boolean(),
+    requirementsMet: z.number().int().nonnegative(),
+    requirementsTotal: z.number().int().nonnegative(),
+    recipe: z.array(z.object({ ingredientId: z.string(), inclusionPct: z.number().finite() })).max(100),
+    documentationGapLabels: z.array(z.string()).max(200),
+    supplementationAt: z.number().int().nonnegative(),
+    supplementationTotal: z.number().int().nonnegative(),
+  })).max(50),
+  suggestedPremixId: z.string().nullable(),
+  reasons: z.array(z.string().max(1_000)).max(20),
 });
 
 const requestSchema = z.object({
@@ -57,7 +103,9 @@ const requestSchema = z.object({
   costPerTonne: z.number().finite().nonnegative(),
   leastCostPerTonne: z.number().finite().nonnegative().optional(),
   preparedFor: z.string().max(240).optional(),
-  assessment: assessmentSchema,
+  assessment: z.union([assessmentSchema, legacyAssessmentSchema]),
+  premixComparison: premixComparisonSchema.nullable().optional(),
+  premixId: z.string().max(200).nullable().optional(),
   ingredients: z.array(
     z.object({
       name: z.string().min(1).max(240),

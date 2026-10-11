@@ -31,10 +31,6 @@ export type FeedFormulationBasisSnapshot = {
   targetBatchKg: number;
   ingredientPoolMode: "automatic" | "selected";
   solverObjective: "least-cost-with-alternatives";
-  settings: {
-    includeSupplementationTargets: boolean;
-    traceMineralBasis: "inorganic" | "organic";
-  };
   ingredients: readonly FeedFormulationBasisIngredient[];
   fixedPremix?: {
     id: string;
@@ -61,10 +57,6 @@ function fingerprintPayload(input: FeedFormulationBasisInput): string {
     targetBatchKg: stableNumber(input.targetBatchKg),
     ingredientPoolMode: input.ingredientPoolMode,
     solverObjective: input.solverObjective,
-    settings: {
-      includeSupplementationTargets: input.settings.includeSupplementationTargets,
-      traceMineralBasis: input.settings.traceMineralBasis,
-    },
     fixedPremix: input.fixedPremix
       ? {
           id: input.fixedPremix.id,

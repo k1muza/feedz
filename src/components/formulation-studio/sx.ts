@@ -69,10 +69,7 @@ export const STUDIO_CSS =
   "@media (min-width:880px){.fs-studio .fs-auth-aside{position:sticky;top:0;height:100vh;align-self:flex-start}}" +
   // The sidebar is 20% wider on wide screens.
   ".fs-studio .fs-sidebar{width:232px}@media (min-width:1600px){.fs-studio .fs-sidebar{width:278px}}" +
-  // Keep assessment detail alongside the verdict when there is room; on
-  // narrow screens it remains below the main explanation.
-  "@media (min-width:1000px){.fs-studio .fs-assessment-card.fs-has-explanation{grid-template-columns:auto minmax(0,1fr) minmax(320px,.72fr)!important}.fs-studio .fs-assessment-explanation{grid-column:3!important;grid-row:1 / 4;align-self:start!important}}" +
-  // "Not ready to mix" rows: one line when there is room, stacked cells otherwise.
+  // Requirement rows (infeasible diagnosis): one line when there is room, stacked cells otherwise.
   ".fs-studio .fs-verify-row{display:grid;grid-template-columns:1fr;gap:8px}" +
   "@media (min-width:1000px){.fs-studio .fs-verify-row{grid-template-columns:120px minmax(90px,.55fr) minmax(190px,1fr) minmax(0,2.6fr) 44px;gap:14px}}" +
   // Validation panel: collapsed categories point their caret down.
