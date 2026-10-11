@@ -71,11 +71,42 @@ describe("Manufacturer-backed commercial premix catalogue", () => {
       ["Vitamin", "Mineral", "Additive"].map(category => label.rows.filter(row => row.category === category).length),
       [13, 8, 3],
     );
-    // User-confirmed label figures must not be promoted to a specific per-kg
-    // premix concentration without a confirmed reference basis.
-    assert.equal(product.guaranteedMinimumAsFed, undefined);
+    assert.match(label.concentrationBasis, /per tonne of finished feed/i);
+    const minimum = product.guaranteedMinimumAsFed;
+    assert.ok(minimum, "Confirmed per-tonne minima must feed the nutrient engine");
+    assert.equal(minimum.vitamins.vitaminAIuKg, 500_000);
+    assert.equal(minimum.vitamins.vitaminDIuKg, 200_000);
+    assert.equal(minimum.vitamins.vitaminEIuKg, 1_000);
+    assert.equal(minimum.vitamins.vitaminKMgKg, 30);
+    assert.equal(minimum.vitamins.vitaminB1MgKg, 150);
+    assert.equal(minimum.vitamins.riboflavinMgKg, 300);
+    assert.equal(minimum.vitamins.vitaminB6MgKg, 100);
+    assert.equal(minimum.vitamins.vitaminB12McgKg, 1_500);
+    assert.equal(minimum.vitamins.niacinMgKg, 1_500);
+    assert.equal(minimum.vitamins.folicAcidMgKg, 10);
+    assert.equal(minimum.traceMineralsPpm.zinc, 3_000);
+    assert.equal(minimum.traceMineralsPpm.manganese, 1_500);
+    assert.equal(minimum.traceMineralsPpm.iron, 2_500);
+    assert.equal(minimum.traceMineralsPpm.copper, 100);
+    assert.equal(minimum.traceMineralsPpm.iodine, 30);
+    const contributions = premixFinishedFeedContributions(product);
+    assert.equal(contributions.length, 15);
+    const getContribution = (name: string) => contributions.find((entry) => entry.nutrient === name)?.finishedFeedContribution;
+    assert.equal(getContribution("Vitamin A"), 5_000);
+    assert.equal(getContribution("Vitamin D3"), 2_000);
+    assert.equal(getContribution("Vitamin E"), 10);
+    assert.equal(getContribution("Vitamin K3"), 0.3);
+    assert.equal(getContribution("Vitamin B12"), 15);
+    assert.equal(getContribution("Zinc"), 30);
+    assert.equal(getContribution("Copper"), 1);
+    assert.equal(getContribution("Iron"), 25);
+    assert.ok(contributions.every((entry) => entry.basis === "minimum_guarantee"));
+    // A label range is not an exact, lot-tested value.
     assert.equal(product.verifiedAsFedMicronutrients, undefined);
-    assert.deepEqual(premixFinishedFeedContributions(product), []);
+    assert.equal(minimum.vitamins.totalCholineMgKg, undefined);
+    assert.equal(minimum.vitamins.biotinMgKg, undefined);
+    assert.equal(minimum.vitamins.pantothenicAcidMgKg, undefined);
+    assert.equal(minimum.traceMineralsPpm.selenium, undefined);
   });
 
   test("AECI V1736 is selectable for grower simulation only, not finisher feeding approval", () => {
