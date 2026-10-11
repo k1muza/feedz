@@ -69,28 +69,27 @@ export type CommercialPremix = {
     vitaminAIuKg: { min: number; max?: number };
   };
   note?: string;
-  /** Uninterpreted, unheaded label columns. Never used as formulation nutrients. */
-  labelTranscription?: {
-    csvPath: string;
+  /** User-confirmed minimum/maximum label transcription stored in the ingredient JSON.
+   * These recorded ranges are evidence of labelled values, not a per-kg
+   * as-fed matrix until the dosage/concentration basis has been established.
+   */
+  labelGuarantees?: {
     source: string;
     batch: string;
     inclusionPrinted: string;
-    firstColumnHeading: string;
-    secondColumnHeading: string;
-    basis: string;
-    /** Fields mirror the CSV; never treat either value column as an analysed
-     * nutrient concentration without a manufacturer-confirmed basis.
-     */
+    columns: { first: "minimum"; second: "maximum" };
+    confirmedByUser: boolean;
+    concentrationBasis: string;
     rows: readonly {
       category: "Vitamin" | "Mineral" | "Additive";
       nutrient: string;
       source_form: string;
-      left_value: string;
-      right_value: string;
-      right_unit: string;
+      min: string;
+      max: string;
+      unit: string;
       note: string;
     }[];
-    cautions: readonly string[];
+    notes: readonly string[];
   };
   /** Data caveats recorded with the values, e.g. why a published figure isn't credited. */
   notes?: readonly string[];

@@ -51,6 +51,40 @@ with its own attribution. Price provenance is separate from nutrient provenance.
 5. Retain product-level verification warnings until all relevant nutrient
    guarantees, practical dosage restrictions and compatibility are verified.
 
+## AECI V1736: supplier-label minimums per tonne of finished feed
+
+AECI V1736's 24 label entries live exclusively in
+`src/data/nutrition/ingredients/ingredient-library.json` under
+`premix.labelGuarantees`. The former CSV and synchronisation script have
+been removed. The user confirmed that the first column is **minimum** and the
+second is **maximum**, expressed for **one tonne of finished feed** when
+V1736 is included at **10 kg premix per tonne (1%)**.
+
+For positive minimums whose identity and activity/mass units are recognisable,
+`premix.guaranteedMinimumAsFed` stores the equivalent minimum
+**per kilogram of premix**, derived by dividing the finished-feed requirement
+by the 1% dose. For example:
+
+- Vitamin A minimum 5,000,000 IU/t feed = 5,000 IU/kg feed =
+  500,000 IU/kg premix.
+- Vitamin E minimum 10,000 IU/t feed = 10 IU/kg feed =
+  1,000 IU/kg premix.
+- Zinc minimum 30 g/t feed = 30 mg/kg feed =
+  3,000 ppm in premix.
+- Vitamin B12 minimum 0.015 g/t feed = 15 mcg/kg feed =
+  1,500 mcg/kg premix.
+
+These are **labelled lower bounds**, not exact nutrient concentrations or a
+batch certificate. Printed maximums remain in the original unit strings in
+`labelGuarantees` and are not treated as exact laboratory concentrations;
+several upper-bound transcriptions have suspicious unit magnitudes.
+
+The label gives zero minima for choline chloride and biotin, does not
+declare selenium or pantothenic acid, and does not establish total choline
+from choline chloride. Do not silently mark those supplementation targets as
+met. The anomalous second magnesium/lysine row and phytase activity are not
+mapped into SID amino acids or other quantitative constraints.
+
 ## Formulation versus complete-feed validation
 
 The least-cost solver reports whether a recipe is feasible against its active

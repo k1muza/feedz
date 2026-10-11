@@ -10,9 +10,8 @@ import {
 
 const cornId = "corn-yellow-dent";
 const soybeanId = "soybean-meal-solvent-extracted";
-// Use an explicitly synthetic known-analysis fixture for the numeric accounting
-// tests. AECI V1736 now contains raw CSV label values with unverified units and
-// must NOT be credited as a proven copper/vitamin K source.
+// Synthetic fixture for independent numeric accounting tests; AECI V1736
+// now contributes its user-confirmed per-tonne finished-feed label minima.
 const aeciPremix = commercialPremixById("aeci-v1736-pig-weaner-premix");
 if (!aeciPremix) throw new Error("Missing AECI V1736 premix record");
 
@@ -76,7 +75,7 @@ describe("supplemented micronutrients versus total dietary micronutrients", () =
     assert.ok(analysis.supplementation.traceMineralsPpm.selenium.missingIngredientIds.includes(weanerPremixId));
   });
 
-  test("AECI V1736 CSV-only label values remain unknown, never guessed from unheaded columns", () => {
+  test("AECI V1736 per-tonne label minima are credited at 10 kg/t", () => {
     const actualLibrary = ingredientLibraryWithCommercialPremixes([aeciPremix], INGREDIENT_LIBRARY);
     const analysis = analyzeDiet({
       ingredients: [
@@ -85,13 +84,50 @@ describe("supplemented micronutrients versus total dietary micronutrients", () =
         { ingredientId: aeciPremix.id, inclusionPct: 1 },
       ],
     }, [], actualLibrary);
-    assert.equal(aeciPremix.guaranteedMinimumAsFed, undefined);
-    assert.equal(analysis.supplementation.traceMineralsPpm.copper.complete, false);
-    assert.ok(analysis.supplementation.traceMineralsPpm.copper.missingIngredientIds.includes(aeciPremix.id));
-    assert.equal(analysis.supplementation.vitamins.vitaminKMgKg.complete, false);
-    assert.ok(analysis.supplementation.vitamins.vitaminKMgKg.missingIngredientIds.includes(aeciPremix.id));
-    assert.equal(analysis.supplementation.vitamins.totalCholineMgKg.complete, false);
-    assert.ok(analysis.supplementation.vitamins.totalCholineMgKg.missingIngredientIds.includes(aeciPremix.id));
+    near(analysis.supplementation.vitamins.vitaminAIuKg.value, 5_000);
+    near(analysis.supplementation.vitamins.vitaminDIuKg.value, 2_000);
+    near(analysis.supplementation.vitamins.vitaminEIuKg.value, 10);
+    near(analysis.supplementation.vitamins.vitaminKMgKg.value, 0.3);
+    near(analysis.supplementation.vitamins.vitaminB1MgKg.value, 1.5);
+    near(analysis.supplementation.vitamins.riboflavinMgKg.value, 3);
+    near(analysis.supplementation.vitamins.vitaminB6MgKg.value, 1);
+    near(analysis.supplementation.vitamins.vitaminB12McgKg.value, 15);
+    near(analysis.supplementation.vitamins.niacinMgKg.value, 15);
+    near(analysis.supplementation.vitamins.folicAcidMgKg.value, 0.1);
+    near(analysis.supplementation.traceMineralsPpm.zinc.value, 30);
+    near(analysis.supplementation.traceMineralsPpm.manganese.value, 15);
+    near(analysis.supplementation.traceMineralsPpm.iron.value, 25);
+    near(analysis.supplementation.traceMineralsPpm.copper.value, 1);
+    near(analysis.supplementation.traceMineralsPpm.iodine.value, 0.3);
+    for (const checked of [
+      analysis.supplementation.vitamins.vitaminAIuKg,
+      analysis.supplementation.vitamins.vitaminDIuKg,
+      analysis.supplementation.vitamins.vitaminEIuKg,
+      analysis.supplementation.vitamins.vitaminKMgKg,
+      analysis.supplementation.vitamins.vitaminB1MgKg,
+      analysis.supplementation.vitamins.riboflavinMgKg,
+      analysis.supplementation.vitamins.vitaminB6MgKg,
+      analysis.supplementation.vitamins.vitaminB12McgKg,
+      analysis.supplementation.vitamins.niacinMgKg,
+      analysis.supplementation.vitamins.folicAcidMgKg,
+      analysis.supplementation.traceMineralsPpm.zinc,
+      analysis.supplementation.traceMineralsPpm.manganese,
+      analysis.supplementation.traceMineralsPpm.iron,
+      analysis.supplementation.traceMineralsPpm.copper,
+      analysis.supplementation.traceMineralsPpm.iodine,
+    ]) {
+      assert.equal(checked.complete, true);
+      assert.deepEqual(checked.missingIngredientIds, []);
+    }
+    for (const genuinelyUnknown of [
+      analysis.supplementation.vitamins.totalCholineMgKg,
+      analysis.supplementation.vitamins.biotinMgKg,
+      analysis.supplementation.vitamins.pantothenicAcidMgKg,
+      analysis.supplementation.traceMineralsPpm.selenium,
+    ]) {
+      assert.equal(genuinelyUnknown.complete, false);
+      assert.ok(genuinelyUnknown.missingIngredientIds.includes(aeciPremix.id));
+    }
   });
 
   test("a separately added mineral source with a declared trace nutrient still counts as supplementation", () => {
