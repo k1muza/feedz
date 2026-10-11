@@ -33,6 +33,8 @@ import {
   phaseOf,
   poolEntryFromListItem,
   priceOf,
+  restoreVersion,
+  summarise,
   type EngineContext,
   type FormulateResult,
   type GoalKey,
@@ -241,6 +243,8 @@ interface State {
   mode: "optimised" | "manual";
   manual: Record<string, string>;
   manualCheck: (ManualCheck & { sig: string }) | null;
+  /** Manual amounts of a version saved before results were stored, re-entered once its re-run lands. */
+  restoreManual: Record<string, string> | null;
   rulesOpen: boolean;
   history: RunEntry[];
   sel: string[];
@@ -447,18 +451,48 @@ function poolFromList(list: IngredientList | null): Pool {
   return pool;
 }
 
-const RESET_RESULT: Partial<State> = { result: null, runSig: null, runSnap: null, history: [], mode: "optimised", manual: {}, manualCheck: null, tab: "recipe", dismissed: {}, savedSig: null, drawer: null, advisoriesOpen: false, recoveryUndo: null };
+const RESET_RESULT: Partial<State> = { result: null, runSig: null, runSnap: null, history: [], mode: "optimised", manual: {}, manualCheck: null, restoreManual: null, tab: "recipe", dismissed: {}, savedSig: null, drawer: null, advisoriesOpen: false, recoveryUndo: null };
 
 function freshDoc(programmeId: string, phaseId: string, species: Species, pool: Pool, docName: string): Partial<State> {
   return { ...RESET_RESULT, programmeId, phaseId, species, pool: poolWithProgrammePremix(pool, programmeId, undefined, phaseId), goal: "least_cost", batch: 100, batchMode: "100", customBatch: "", docName, docId: null, pendingDoc: null };
 }
 
-function versionState(doc: SavedDoc, programmes: StudioProgrammeData, v?: number): Partial<State> {
-  const ver = doc.versions.find((x) => x.v === v) || doc.versions[doc.versions.length - 1];
-  const s = clone(ver.snap);
+/** A saved formulation's settings in the workspace, with no result yet. */
+function settingsState(doc: SavedDoc, snap: Snapshot, programmes: StudioProgrammeData) {
+  const s = clone(snap);
   const { programme, phase } = phaseOf(programmes, s.programmeId, s.phaseId);
   const batch = s.batch || 100;
-  return { ...RESET_RESULT, screen: "workspace", species: programme.species, programmeId: programme.id, phaseId: phase.id, pool: s.pool, goal: s.goal, batch, batchMode: [50, 100, 1000].includes(batch) ? String(batch) : "custom", customBatch: String(batch), docName: doc.name, docId: doc.id, pendingDoc: null, toast: "Reopened v" + ver.v + " · result reproduced from its stored settings" };
+  return { ...RESET_RESULT, screen: "workspace" as const, species: programme.species, programmeId: programme.id, phaseId: phase.id, pool: s.pool, goal: s.goal, batch, batchMode: [50, 100, 1000].includes(batch) ? String(batch) : "custom", customBatch: String(batch), docName: doc.name, docId: doc.id, pendingDoc: null };
+}
+
+/**
+ * Opens a saved version with the result it was saved with, never re-solving
+ * it. Only versions saved before results were stored ask for a run.
+ */
+function versionState(doc: SavedDoc, programmes: StudioProgrammeData, v?: number): { patch: Partial<State>; run: boolean } {
+  const ver = doc.versions.find((x) => x.v === v) || doc.versions[doc.versions.length - 1];
+  const settings = settingsState(doc, ver.snap, programmes);
+  const restored = restoreVersion(ver);
+  const reopened = "Reopened v" + ver.v;
+  if (restored.mode === "rerun")
+    return {
+      patch: {
+        ...settings,
+        restoreManual: restored.manual,
+        toast: reopened + (restored.manual
+          ? " · saved manual amounts restored; nutrients re-checked against current data"
+          : restored.wasManual
+            ? " · its manual amounts weren’t stored, so it was re-formulated from its settings"
+            : " · saved before results were stored, so it was re-formulated from its settings"),
+      },
+      run: true,
+    };
+  // Run against the saved settings: if its programme or phase no longer exists,
+  // the result shows as out of date rather than as the replacement phase's.
+  const runSnap = snapOf({ ...ver.snap, batch: settings.batch });
+  const landed = { ...settings, result: restored.result, runSig: sigOf(runSnap), runSnap };
+  if (restored.mode === "optimised") return { patch: { ...landed, toast: reopened + " · saved result restored" }, run: false };
+  return { patch: { ...landed, mode: "manual", manual: restored.manual, manualCheck: { ...restored.check, sig: manualSig(restored.manual) }, toast: reopened + " · manual recipe restored as saved" }, run: false };
 }
 
 const guidedStart = (s: State, programmes: StudioProgrammeData): Partial<State> => {
@@ -499,7 +533,7 @@ function enterRoute(s: State, route: Route | null, ctx: RouteContext, url: strin
       if (!route.docId || route.docId === s.docId) return { patch: { screen: "workspace", pendingDoc: null } };
       if (!ctx.docs) return { patch: { ...RESET_RESULT, screen: "workspace", docId: null, pendingDoc: route.docId } };
       const doc = ctx.docs.find((d) => d.id === route.docId);
-      return doc ? { patch: versionState(doc, ctx.programmes), run: true } : { patch: { pendingDoc: null }, redirect: BASE + "/formulations" };
+      return doc ? versionState(doc, ctx.programmes) : { patch: { pendingDoc: null }, redirect: BASE + "/formulations" };
     }
     case "programmes": {
       const { id, phase } = route.prog!;
@@ -530,16 +564,23 @@ function enterRoute(s: State, route: Route | null, ctx: RouteContext, url: strin
 const clone = <T,>(v: T): T => JSON.parse(JSON.stringify(v));
 const day = 864e5;
 
-const sigOf = (S: State) => JSON.stringify({ programmeId: S.programmeId, phaseId: S.phaseId, pool: S.pool, goal: S.goal });
-const snapOf = (S: State): Snapshot => clone({ programmeId: S.programmeId, phaseId: S.phaseId, pool: S.pool, goal: S.goal, batch: S.batch });
+const sigOf = (S: Pick<State, "programmeId" | "phaseId" | "pool" | "goal">) => JSON.stringify({ programmeId: S.programmeId, phaseId: S.phaseId, pool: S.pool, goal: S.goal });
+const snapOf = (S: Pick<State, "programmeId" | "phaseId" | "pool" | "goal" | "batch">): Snapshot => clone({ programmeId: S.programmeId, phaseId: S.phaseId, pool: S.pool, goal: S.goal, batch: S.batch });
+
+/** The typed-in amounts that count: numbers other than zero. */
+function manualPct(manual: Record<string, string>) {
+  const pct: Record<string, number> = {};
+  Object.keys(manual).forEach((id) => {
+    const v = +manual[id];
+    if (Number.isFinite(v) && v !== 0) pct[id] = v;
+  });
+  return pct;
+}
+const manualSig = (manual: Record<string, string>) => JSON.stringify(manualPct(manual));
 
 /** Typed-in amounts for manual mode, with cost and total worked out here and nutrients from the engine. */
 function manualRecipe(S: State, catalogue: Map<string, CatalogueIngredient>) {
-  const pct: Record<string, number> = {};
-  Object.keys(S.manual).forEach((id) => {
-    const v = +S.manual[id];
-    if (Number.isFinite(v) && v !== 0) pct[id] = v;
-  });
+  const pct = manualPct(S.manual);
   const cost = Object.keys(pct).reduce((t, id) => t + (pct[id] / 100) * (priceOf(id, S.pool, catalogue) ?? 0), 0);
   return { pct, cost, recipe: Object.keys(pct).map((id) => ({ id, pct: pct[id] })), total: Object.values(pct).reduce((t, v) => t + v, 0), sig: JSON.stringify(pct) };
 }
@@ -552,16 +593,6 @@ type ManualView = ReturnType<typeof manualRecipe> & {
   checking: boolean;
   assessment: ManualCheck["assessment"];
 };
-
-function summarise(r: FormulateResult, manual: ManualView | null): Summary {
-  const counts = (assessment: Summary["assessment"]) => isFormulationAssessment(assessment)
-    ? (({ met, total, failed }) => ({ met, req: total, fail: failed.length }))(requirementCounts(assessment))
-    : {};
-  if (manual) return { status: "manual", costT: manual.cost, recipe: manual.recipe, adv: manual.advisories.length, ...counts(manual.assessment ?? undefined), ...(manual.assessment ? { assessment: manual.assessment } : {}) };
-  if (r.status === "manufacturer_recipe") return { status: r.status, recipe: r.recipe.map((row) => ({ id: row.id, pct: row.pct })), ...(r.costT === null ? {} : { costT: r.costT }), ...counts(r.assessment), assessment: r.assessment };
-  if (r.status !== "optimal") return { status: r.status, ...(r.status === "infeasible" ? { ...counts(r.assessment), assessment: r.assessment } : {}) };
-  return { status: "optimal", ...(r.costExcludesPremix ? {} : { costT: r.costT }), recipe: r.recipe.map((x) => ({ id: x.id, pct: x.pct })), adv: r.advisories.length, ...counts(r.assessment), assessment: r.assessment };
-}
 
 function programmeLabel(programmes: StudioProgrammeData, snap: Pick<Snapshot, "programmeId" | "phaseId">) {
   const { programme, phase } = phaseOf(programmes, snap.programmeId, snap.phaseId);
@@ -625,7 +656,7 @@ function draftErr(d: Draft, fs: number) {
 }
 
 const INITIAL: State = {
-  w: 1400, screen: "home", step: 1, species: "swine", programmeId: DEFAULT_PROGRAMME, phaseId: "", setKey: "none", setupListId: null, pool: {}, goal: "least_cost", batch: 100, batchMode: "100", customBatch: "", unit: "t", docName: "Untitled formulation", docId: null, pendingDoc: null, pendingCmp: null, result: null, runSig: null, runSnap: null, running: false, runToken: 0, tab: "recipe", drawer: null, advisoriesOpen: false, addOpen: false, addQ: "", addCategory: null, addPick: [], premixOpen: false, premixFilter: "matches", premixPick: null, mode: "optimised", manual: {}, manualCheck: null, rulesOpen: false, history: [], sel: [], cmp: null, toast: null, dismissed: {}, savedSig: null, saving: false, exporting: false, suggestion: null, completionSuggestion: null, compareOpen: false, recoveryUndo: null, ingQ: "", catQ: "", catSel: null, catPage: 1, catPageSize: CAT_DEFAULT_PAGE_SIZE, progSel: null, progPhase: null, progAllLimits: false, addTarget: "pool", auth: null, authNext: null, af: { email: "", password: "", name: "", org: "", role: "farmer" }, aShow: false, aErr: {}, aBusy: false, aGoogleBusy: false, aSent: null, myListSel: null, listRename: null, listCreate: null, sq: "", sOpen: false, sIdx: 0, uOpen: false, nOpen: false, featFilter: "all", cOpen: false, cTopic: "review", cPhone: "", cMsg: "", cAttach: true, cBusy: false, cSent: false, cErr: "",
+  w: 1400, screen: "home", step: 1, species: "swine", programmeId: DEFAULT_PROGRAMME, phaseId: "", setKey: "none", setupListId: null, pool: {}, goal: "least_cost", batch: 100, batchMode: "100", customBatch: "", unit: "t", docName: "Untitled formulation", docId: null, pendingDoc: null, pendingCmp: null, result: null, runSig: null, runSnap: null, running: false, runToken: 0, tab: "recipe", drawer: null, advisoriesOpen: false, addOpen: false, addQ: "", addCategory: null, addPick: [], premixOpen: false, premixFilter: "matches", premixPick: null, mode: "optimised", manual: {}, manualCheck: null, restoreManual: null, rulesOpen: false, history: [], sel: [], cmp: null, toast: null, dismissed: {}, savedSig: null, saving: false, exporting: false, suggestion: null, completionSuggestion: null, compareOpen: false, recoveryUndo: null, ingQ: "", catQ: "", catSel: null, catPage: 1, catPageSize: CAT_DEFAULT_PAGE_SIZE, progSel: null, progPhase: null, progAllLimits: false, addTarget: "pool", auth: null, authNext: null, af: { email: "", password: "", name: "", org: "", role: "farmer" }, aShow: false, aErr: {}, aBusy: false, aGoogleBusy: false, aSent: null, myListSel: null, listRename: null, listCreate: null, sq: "", sOpen: false, sIdx: 0, uOpen: false, nOpen: false, featFilter: "all", cOpen: false, cTopic: "review", cPhone: "", cMsg: "", cAttach: true, cBusy: false, cSent: false, cErr: "",
 };
 
 const spinnerStyle = (track: string, head: string): CSSProperties => ({ width: 16, height: 16, borderRadius: "50%", border: "2px solid " + track, borderTopColor: head, display: "inline-block", animation: "fsspin .8s linear infinite", flex: "none" });
@@ -664,7 +695,13 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
     void formulate(snap, engine).then((r) => {
       if (!current) return;
       const h: RunEntry = { t: new Date(), status: r.status, cost: r.status === "optimal" && !r.costExcludesPremix ? r.costT : undefined, goal: snap.goal, n: (r.status === "optimal" || r.status === "manufacturer_recipe") ? r.recipe.length : 0, verdict: r.status === "optimal" || r.status === "infeasible" || r.status === "manufacturer_recipe" ? r.assessment.verdict : undefined, headline: r.status === "optimal" || r.status === "infeasible" || r.status === "manufacturer_recipe" ? r.assessment.headline : "" };
-      update((s) => (s.runToken !== token ? {} : { running: false, result: r, runSig: sig, runSnap: snap, history: [h, ...s.history].slice(0, 12), mode: "optimised", manual: {}, manualCheck: null, dismissed: {} }));
+      update((s) => {
+        if (s.runToken !== token) return {};
+        const landed: Partial<State> = { running: false, result: r, runSig: sig, runSnap: snap, history: [h, ...s.history].slice(0, 12), mode: "optimised", manual: {}, manualCheck: null, restoreManual: null, dismissed: {} };
+        // An older saved manual recipe goes back over the re-run it needed for context.
+        if (!s.restoreManual) return landed;
+        return r.status === "optimal" ? { ...landed, mode: "manual", manual: s.restoreManual } : { ...landed, toast: "Couldn’t restore the saved manual amounts: these settings no longer give a valid recipe" };
+      });
     });
     return () => {
       current = false;
@@ -819,9 +856,10 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
   }, [ready, S.auth, S.screen, engine, featuredList]);
 
   // Manual mode: the engine checks typed-in amounts a moment after typing stops.
-  const manualSig = S.mode === "manual" ? manualRecipe(S, catalogueById).sig : "";
+  const manualKey = S.mode === "manual" ? manualSig(S.manual) : "";
   useEffect(() => {
-    if (S.mode !== "manual") return;
+    // A restored saved check already describes these amounts; keep it rather than re-checking against today's data.
+    if (S.mode !== "manual" || (S.manualCheck?.sig === manualKey && S.runSig === sigOf(S))) return;
     const t = setTimeout(() => {
       const m = manualRecipe(S, catalogueById);
       evaluateManual(snapOf(S), m.pct, engine)
@@ -829,9 +867,9 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
         .catch((error) => flash(error instanceof Error ? error.message : "Couldn’t check this recipe."));
     }, 400);
     return () => clearTimeout(t);
-    // The typed amounts (manualSig) and the phase decide what to check.
+    // The typed amounts (manualKey) and the phase decide what to check.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [manualSig, S.mode, S.phaseId]);
+  }, [manualKey, S.mode, S.phaseId]);
 
   // The ingredient step starts from your default list when you have one, and
   // from the FeedSport suggestion list otherwise. Only an unpicked source is
@@ -1155,8 +1193,9 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
   const openVersion = (docId: string, v: number) => {
     const doc = formulations.docs.find((d) => d.id === docId);
     if (!doc) return;
-    update(versionState(doc, programmes, v));
-    run();
+    const opened = versionState(doc, programmes, v);
+    update(opened.patch);
+    if (opened.run) run();
   };
   /** Opens the version a note is about, with the advisories drawer showing it. */
   const openAdvice = (docId: string, adviceId: string) => {
@@ -1165,7 +1204,7 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
     if (!doc || !advice) return;
     const v = doc.versions.some((x) => x.v === advice.v) ? advice.v! : doc.versions[doc.versions.length - 1].v;
     openVersion(docId, v);
-    // After openVersion, whose run closes drawers.
+    // After openVersion, whose run (for older versions) closes drawers.
     update({ advisoriesOpen: true });
     formulations.markAdviceRead(doc.advice.map((a) => a.id));
   };
@@ -1175,7 +1214,7 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
     const advice = doc?.advice.find((a) => a.id === adviceId);
     if (!doc || !advice?.suggestion) return;
     const base = doc.versions.find((x) => x.v === advice.v) || doc.versions[doc.versions.length - 1];
-    update({ ...versionState({ ...doc, versions: [{ ...base, snap: advice.suggestion }] }, programmes), tab: "recipe", toast: "Opened " + advice.author + "’s suggestion · save to keep it as a new version" });
+    update({ ...settingsState(doc, advice.suggestion, programmes), tab: "recipe", toast: "Opened " + advice.author + "’s suggestion · save to keep it as a new version" });
     run();
   };
   /** Opens the workspace with these ingredients for a programme phase; runs straight away when asked. */
@@ -1193,6 +1232,8 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
           const check = S.manualCheck?.sig === m.sig ? S.manualCheck : null;
           return {
             ...m,
+            // The checked cost, so a restored version keeps its saved cost while its settings are unchanged.
+            cost: check && !stale ? check.cost : m.cost,
             nutrients: check?.nutrients ?? [],
             incompleteRequirements: check?.incompleteRequirements ?? [],
             advisories: check?.advisories ?? [],
@@ -1209,7 +1250,10 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
     const name = S.docName.trim() || "Untitled formulation";
     update({ saving: true });
     try {
-      const saved = await formulations.save(S.docId, name, snapOf(S), summarise(S.result, manualView));
+      const manual = manualView?.recipeValidity
+        ? { recipe: manualView.recipe, cost: manualView.cost, recipeValidity: manualView.recipeValidity, nutrientAdequacy: manualView.nutrientAdequacy, nutrients: manualView.nutrients, incompleteRequirements: manualView.incompleteRequirements, advisories: manualView.advisories, assessment: manualView.assessment }
+        : null;
+      const saved = await formulations.save(S.docId, name, snapOf(S), summarise(S.result, manual));
       if (!S.docId) replaceNext.current = true;
       update({ saving: false, docId: saved.id, docName: name, savedSig: sigOf(S) + S.mode + JSON.stringify(S.manual) });
       flash("Saved as v" + saved.version + " · programme, ingredients, prices, limits, goal and result stored");

@@ -10,7 +10,7 @@ import type {
   FormulationSolution,
   LeastCostFormulationResult,
 } from "@/lib/feed-optimizer";
-import type { FormulationAssessment, PremixComparison, PremixRecipeEffect } from "@/lib/formulation-assessment-model";
+import { isFormulationAssessment, requirementCounts, type FormulationAssessment, type PremixComparison, type PremixRecipeEffect } from "@/lib/formulation-assessment-model";
 
 // The formulation studio's link to FeedSport's formulation engine
 // (/api/feed-formulation/optimize and /evaluate). It prices the ingredient
@@ -178,7 +178,18 @@ export interface Summary {
   unknown?: number;
   /** Schema 2. Older versions carry a schema-1 assessment and are never re-scored. */
   assessment?: FormulationAssessment | { schemaVersion: 1 };
+  /** The result on screen when saved, so reopening shows it rather than re-solving
+   * against today's prices and data. Versions saved before it re-run their settings. */
+  result?: SavedResult;
 }
+/**
+ * What a saved version showed. A manual recipe's amounts, cost and assessment
+ * are the summary's own recipe, costT and assessment; only the rest of its
+ * check and the optimised recipe it was edited from are kept here.
+ */
+export type SavedResult =
+  | { mode: "optimised"; result: FormulateResult }
+  | { mode: "manual"; base: OptimalResult; check: Omit<ManualCheck, "cost" | "assessment"> };
 export interface SavedVersion {
   v: number;
   date: number;
@@ -586,4 +597,55 @@ export async function evaluateManual(snap: Snapshot, pct: Record<string, number>
     cost,
     assessment: data.assessment ?? null,
   };
+}
+
+/** A checked manual recipe, as saved. */
+export interface ManualResult extends ManualCheck {
+  recipe: { id: string; pct: number }[];
+}
+
+export function summarise(r: FormulateResult, manual: ManualResult | null): Summary {
+  const counts = (assessment: Summary["assessment"]) => isFormulationAssessment(assessment)
+    ? (({ met, total, failed }) => ({ met, req: total, fail: failed.length }))(requirementCounts(assessment))
+    : {};
+  if (manual) {
+    const { recipeValidity, nutrientAdequacy, nutrients, incompleteRequirements, advisories } = manual;
+    return {
+      status: "manual", costT: manual.cost, recipe: manual.recipe, adv: advisories.length, ...counts(manual.assessment ?? undefined), ...(manual.assessment ? { assessment: manual.assessment } : {}),
+      ...(r.status === "optimal" ? { result: { mode: "manual", base: r, check: { recipeValidity, nutrientAdequacy, nutrients, incompleteRequirements, advisories } } } : {}),
+    };
+  }
+  const result: SavedResult = { mode: "optimised", result: r };
+  if (r.status === "manufacturer_recipe") return { status: r.status, recipe: r.recipe.map((row) => ({ id: row.id, pct: row.pct })), ...(r.costT === null ? {} : { costT: r.costT }), ...counts(r.assessment), assessment: r.assessment, result };
+  if (r.status !== "optimal") return { status: r.status, ...(r.status === "infeasible" ? { ...counts(r.assessment), assessment: r.assessment } : {}), result };
+  return { status: "optimal", ...(r.costExcludesPremix ? {} : { costT: r.costT }), recipe: r.recipe.map((x) => ({ id: x.id, pct: x.pct })), adv: r.advisories.length, ...counts(r.assessment), assessment: r.assessment, result };
+}
+
+export type RestoredVersion =
+  | { mode: "optimised"; result: FormulateResult }
+  | { mode: "manual"; result: OptimalResult; manual: Record<string, string>; check: ManualCheck }
+  /** Saved before results were stored: re-run its settings, then re-enter any saved manual amounts. */
+  | { mode: "rerun"; manual: Record<string, string> | null; wasManual: boolean };
+
+/** Manual-mode amounts for a saved recipe: its own percentages, and 0 for the rest of the pool. */
+function manualAmounts(recipe: { id: string; pct: number }[], pool: Pool): Record<string, string> {
+  const manual: Record<string, string> = {};
+  for (const line of recipe) manual[line.id] = String(line.pct);
+  for (const id of Object.keys(pool)) if (pool[id].role !== "excluded" && !(id in manual)) manual[id] = "0";
+  return manual;
+}
+
+/**
+ * How to reopen a saved version: exactly as saved when its result was stored,
+ * without calling the engine. Older versions say so and re-run instead; a
+ * manual one keeps its saved amounts rather than the re-run's recipe.
+ */
+export function restoreVersion(version: SavedVersion): RestoredVersion {
+  const { sum, snap } = JSON.parse(JSON.stringify(version)) as SavedVersion;
+  const saved = sum.result;
+  const isManual = sum.status === "manual";
+  if (isManual && saved?.mode === "manual" && saved.base?.status === "optimal" && saved.check && sum.recipe && typeof sum.costT === "number" && isFormulationAssessment(sum.assessment))
+    return { mode: "manual", result: saved.base, manual: manualAmounts(sum.recipe, snap.pool), check: { ...saved.check, cost: sum.costT, assessment: sum.assessment } };
+  if (!isManual && saved?.mode === "optimised" && saved.result?.status === sum.status) return { mode: "optimised", result: saved.result };
+  return { mode: "rerun", manual: isManual && sum.recipe?.length ? manualAmounts(sum.recipe, snap.pool) : null, wasManual: isManual };
 }
