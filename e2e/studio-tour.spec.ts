@@ -19,7 +19,7 @@ test('real walkthrough autoplays, pauses offscreen, and preserves manual pause',
     height: element.videoHeight,
     muted: element.muted,
     width: element.videoWidth,
-  }))).toEqual({ duration: 27.333, height: 900, muted: true, width: 1600 });
+  }))).toEqual({ duration: 32.5, height: 764, muted: true, width: 1600 });
   await expect.poll(() => video.evaluate((element: HTMLVideoElement) => element.paused)).toBe(false);
 
   await page.getByRole('button', { name: 'Pause Studio walkthrough' }).click();
@@ -77,7 +77,7 @@ test('mobile player keeps the full frame without horizontal overflow', async ({ 
   });
 
   expect(dimensions.objectFit).toBe('contain');
-  expect(dimensions.aspectRatio).toBeCloseTo(16 / 9, 2);
+  expect(dimensions.aspectRatio).toBeCloseTo(1600 / 764, 2);
   expect(dimensions.overflow).toBe(0);
   await expect(page.getByRole('button', { name: /Studio walkthrough/ }).first()).toBeVisible();
   await expect(page.getByRole('button', { name: 'Replay Studio walkthrough from the beginning' })).toBeVisible();

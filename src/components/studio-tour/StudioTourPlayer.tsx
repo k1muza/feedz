@@ -3,7 +3,7 @@
 import { Pause, Play, RotateCcw } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
-const VIDEO_DURATION_SECONDS = 27.3;
+const VIDEO_DURATION_SECONDS = 32.5;
 
 function formatTime(seconds: number) {
   if (!Number.isFinite(seconds)) return "0:00";
@@ -123,13 +123,13 @@ export default function StudioTourPlayer() {
           </span>
         </div>
 
-        <div className="relative aspect-video w-full overflow-hidden bg-[#faf8f3]">
+        <div className="relative aspect-[400/191] w-full overflow-hidden bg-[#faf8f3]">
           <video
             ref={videoRef}
             data-testid="studio-tour-video"
             className="block h-full w-full object-contain"
             width={1600}
-            height={900}
+            height={764}
             poster="/videos/studio-walkthrough-poster.jpg"
             preload="metadata"
             muted
@@ -204,7 +204,7 @@ export default function StudioTourPlayer() {
       <div className="grid gap-6 py-6 md:grid-cols-[minmax(0,1fr)_minmax(260px,0.65fr)] md:items-start">
         <div>
           <p className="mb-2 font-mono text-xs font-semibold uppercase tracking-widest text-[#2f5a3f]">
-            Actual Studio walkthrough · 27 seconds
+            Actual Studio walkthrough · 33 seconds
           </p>
           <h3 className="mb-2 text-[clamp(24px,3vw,36px)] font-bold leading-tight tracking-[-.025em]">
             From feeding stage to saved formulation
@@ -218,9 +218,9 @@ export default function StudioTourPlayer() {
           id="walkthrough-cost-note"
           className="m-0 rounded-lg border border-[#dfc98e] bg-[#fff8e8] px-4 py-3 text-[13px] leading-6 text-[#5c4b25]"
         >
-          <strong className="font-semibold text-[#3f341d]">Cost shown is partial.</strong> The $444.83/t result excludes the
-          unpriced Caremix premix, so it is not the complete feed cost. Planning prices are indicative; review the nutrient
-          analysis, missing premix documentation and advisories before manufacturing.
+          <strong className="font-semibold text-[#3f341d]">Cost context.</strong> The $508.46/t result includes the entered
+          Caremix premix price. Planning prices are indicative; review the nutrient analysis, missing premix documentation and
+          advisories before manufacturing.
         </p>
       </div>
     </div>
