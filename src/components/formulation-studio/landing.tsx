@@ -91,7 +91,7 @@ export function StudioLanding({ featured }: { featured: LandingFeatured[] }) {
             </div>
             <span style={sx("font:400 14px/1.5 'IBM Plex Sans',sans-serif;color:#64665c")}>For farmers mixing their own feed, nutritionists and agro-dealers. Pigs and poultry today.</span>
           </div>
-          <Shot src="/images/studio/workspace.webp" alt="FeedSport Studio formulation workspace" w={909} h={540} priority sizes="(max-width: 1240px) 100vw, 1192px" frame="width:100%;background:#fff;border:1px solid #e2dfd6;box-shadow:0 2px 4px rgba(0,0,0,.04),0 24px 60px rgba(34,36,32,.14)" />
+          <StudioTourPlayer />
         </section>
 
         <section style={sx("max-width:1240px;margin:0 auto;padding:24px 24px 72px")}>
@@ -135,15 +135,6 @@ export function StudioLanding({ featured }: { featured: LandingFeatured[] }) {
               ))}
             </ol>
           </div>
-        </section>
-
-        <section style={sx("max-width:1240px;margin:0 auto;padding:80px 24px;display:flex;flex-direction:column;gap:26px")}>
-          <div style={sx("display:flex;flex-direction:column;gap:12px;max-width:740px")}>
-            <span style={sx(EYEBROW)}>See Studio in action</span>
-            <h2 style={sx(H2)}>Follow a feed formulation, screen by screen</h2>
-            <p style={sx("margin:0;font:400 16px/1.6 'IBM Plex Sans',sans-serif;color:#45473f")}>Watch the cursor move through the real Studio screens, or pause and select a step to explore the ingredients, recipe, nutrient checks and advisories at your own pace.</p>
-          </div>
-          <StudioTourPlayer />
         </section>
 
         <section id="ingredients" style={sx("max-width:1240px;margin:0 auto;padding:88px 24px;display:flex;flex-wrap:wrap;gap:48px;align-items:center;scroll-margin-top:80px")}>

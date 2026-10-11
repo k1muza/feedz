@@ -12,7 +12,7 @@ const DEMO_STEPS = [
     description: "Choose pigs or poultry, then select a feeding stage. Studio loads the corresponding published nutritional requirements.",
     image: "/images/studio-tour/01-animal-stage.jpg",
     alt: "FeedSport Studio animal and stage selection showing Grow-Finish Pig and a 26–47 kg grower stage",
-    cursor: { x: 39, y: 43 },
+    cursor: { x: 85.5, y: 94 },
   },
   {
     eyebrow: "02 / Choose ingredients",
@@ -20,7 +20,7 @@ const DEMO_STEPS = [
     description: "Select your available ingredients, including a compatible premix. Use FeedSport's suggestion list or your own saved stock list.",
     image: "/images/studio-tour/02-ingredient-pool.jpg",
     alt: "FeedSport Studio ingredient selection with a premix, cereals, protein meals and ingredient limits",
-    cursor: { x: 28, y: 48 },
+    cursor: { x: 85, y: 94 },
   },
   {
     eyebrow: "03 / Set preferences",
@@ -28,7 +28,7 @@ const DEMO_STEPS = [
     description: "Choose a batch size and decide whether to prioritise least cost, fewer ingredients, less soybean meal or fewer imports.",
     image: "/images/studio-tour/03-batch-goal.jpg",
     alt: "FeedSport Studio showing batch size and formulation goal choices",
-    cursor: { x: 32, y: 34 },
+    cursor: { x: 86.5, y: 94 },
   },
   {
     eyebrow: "04 / Get your recipe",
@@ -36,7 +36,7 @@ const DEMO_STEPS = [
     description: "Run the optimiser to see the proposed ingredient mix, hard-requirement assessment and cost breakdown.",
     image: "/images/studio-tour/04-recipe.jpg",
     alt: "FeedSport Studio formulation workspace displaying a grower pig recipe and partial cost breakdown",
-    cursor: { x: 33, y: 56 },
+    cursor: { x: 38.3, y: 56.3 },
   },
   {
     eyebrow: "05 / Check the nutrition",
@@ -44,7 +44,7 @@ const DEMO_STEPS = [
     description: "Check the formula against nutritional requirements and inspect which values are supported by available ingredient data.",
     image: "/images/studio-tour/05-nutrient-analysis.jpg",
     alt: "FeedSport Studio displaying the nutrient analysis tab for the grower pig formulation",
-    cursor: { x: 39, y: 56 },
+    cursor: { x: 44.7, y: 56.3 },
   },
   {
     eyebrow: "06 / Review the advisories",
@@ -52,11 +52,12 @@ const DEMO_STEPS = [
     description: "Inspect advisories about ingredient data, premix documentation and pricing before using a formula in practice.",
     image: "/images/studio-tour/06-advisories.jpg",
     alt: "FeedSport Studio advisory tab explaining incomplete premix documentation and an alternative premix",
-    cursor: { x: 45, y: 56 },
+    cursor: { x: 36.5, y: 83.5 },
   },
 ] as const;
 
-const STEP_MS = 5200;
+// Short enough to scan in a hero. Controls let visitors pause or select any screen.
+const STEP_MS = 2400;
 
 export default function StudioTourPlayer() {
   const [active, setActive] = useState(0);
@@ -136,15 +137,15 @@ export default function StudioTourPlayer() {
               style={{ marginLeft: "-3px", marginTop: "-3px" }}
               initial={false}
               animate={{ left: step.cursor.x + "%", top: step.cursor.y + "%" }}
-              transition={{ duration: 0.85, ease: [0.2, 0.7, 0.2, 1] }}
+              transition={{ duration: 0.65, ease: [0.2, 0.7, 0.2, 1] }}
               aria-hidden="true"
             >
               <motion.span
                 key={active}
-                className="absolute left-0 top-0 block h-9 w-9 rounded-full border-[3px] border-[#e3aa45] bg-[#e3aa45]/20"
+                className="absolute left-0 top-0 block h-9 w-9 -translate-x-1/2 -translate-y-1/2 rounded-full border-[3px] border-[#e3aa45] bg-[#e3aa45]/20"
                 initial={{ opacity: 0, scale: 0.2 }}
                 animate={{ opacity: [0, 0.85, 0], scale: [0.2, 1, 1.8] }}
-                transition={{ duration: 0.95, delay: 0.95 }}
+                transition={{ duration: 0.6, delay: 0.7 }}
               />
               <MousePointer2 className="relative h-7 w-7 fill-white stroke-[#222420] stroke-[2.5] drop-shadow-md" />
             </motion.div>
