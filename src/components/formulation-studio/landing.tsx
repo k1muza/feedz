@@ -173,7 +173,6 @@ export function StudioLanding({ featured }: { featured: LandingFeatured[] }) {
                 ))}
               </div>
             </div>
-            <Shot src="/images/studio/compare-premixes.webp" alt="Compare premixes window" w={909} h={463} sizes="(max-width: 1240px) 100vw, 1192px" frame="width:100%;background:#faf8f3;box-shadow:0 24px 60px rgba(0,0,0,.4)" />
           </div>
         </section>
 
