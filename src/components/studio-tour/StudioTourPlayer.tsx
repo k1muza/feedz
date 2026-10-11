@@ -84,7 +84,7 @@ export default function StudioTourPlayer() {
   }, [reducedMotion]);
 
   useEffect(() => {
-    if (!playing || !inView || reducedMotion) return;
+    if (!playing || !inView) return;
     const timer = window.setInterval(() => {
       setActive((index) => (index + 1) % DEMO_STEPS.length);
     }, STEP_MS);
@@ -107,7 +107,7 @@ export default function StudioTourPlayer() {
             feedsport.co.zw/studio
           </span>
           <span className="hidden text-[11px] font-semibold uppercase tracking-wide text-white/50 sm:inline">
-            Recorded UI
+            Captured UI
           </span>
         </div>
         <div className="relative aspect-[1908/832] w-full overflow-hidden bg-[#faf8f3]" aria-live="off">
@@ -188,7 +188,7 @@ export default function StudioTourPlayer() {
               <RotateCcw className="h-4 w-4" />
             </button>
           </div>
-          <span className="font-mono text-xs text-[#d0cdc3]">{String(active + 1).padStart(2, "0")} / 06</span>
+          <div className="flex items-center gap-3"><a href={step.image} target="_blank" rel="noopener noreferrer" className="text-[11px] font-medium text-[#d0cdc3] underline underline-offset-2 hover:text-white">Enlarge screen ↗</a><span className="font-mono text-xs text-[#d0cdc3]">{String(active + 1).padStart(2, "0")} / 06</span></div>
         </div>
       </div>
 
