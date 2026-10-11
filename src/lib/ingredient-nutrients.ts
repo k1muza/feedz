@@ -231,18 +231,24 @@ const commercialPremixSchema = z
      * This metadata is never a nutrient matrix and cannot enter the optimizer.
      */
     labelTranscription: z.object({
+      csvPath: z.string(),
       source: z.string(),
       batch: z.string(),
       inclusionPrinted: z.string(),
       firstColumnHeading: z.string(),
       secondColumnHeading: z.string(),
       basis: z.string(),
+      /** Exact string fields from the authoritative CSV. Preserve precision,
+       * spelling, ambiguous chemical forms and unresolved label notes.
+       */
       rows: z.array(z.object({
-        category: z.enum(["vitamins", "minerals", "additives"]),
-        label: z.string(),
-        column1Raw: z.string().nullable(),
-        column2Raw: z.string().nullable(),
-        uncertain: z.boolean().optional(),
+        category: z.enum(["Vitamin", "Mineral", "Additive"]),
+        nutrient: z.string(),
+        source_form: z.string(),
+        left_value: z.string(),
+        right_value: z.string(),
+        right_unit: z.string(),
+        note: z.string(),
       }).strict()),
       cautions: z.array(z.string()),
     }).strict().optional(),
