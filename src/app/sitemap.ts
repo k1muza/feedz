@@ -19,7 +19,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { path: '/knowledge', changeFrequency: 'weekly', priority: 0.8, lastModified: latestArticle },
     { path: '/formulations', changeFrequency: 'monthly', priority: 0.8 },
     { path: '/studio-tour', changeFrequency: 'monthly', priority: 0.8 },
-    { path: '/formulation-studio', changeFrequency: 'monthly', priority: 0.8 },
     { path: '/products/categories', changeFrequency: 'monthly', priority: 0.7 },
     { path: '/about', changeFrequency: 'yearly', priority: 0.6 },
     { path: '/contact', changeFrequency: 'yearly', priority: 0.6 },

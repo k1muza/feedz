@@ -8,7 +8,7 @@ import { Search, X } from 'lucide-react';
 const links = [
   { href: '/products', label: 'Products' },
   { href: '/formulations', label: 'Formulation' },
-  { href: '/formulation-studio', label: 'Studio' },
+  { href: '/studio-tour', label: 'Studio' },
   { href: '/knowledge', label: 'Knowledge' },
   { href: '/about', label: 'About' },
 ];

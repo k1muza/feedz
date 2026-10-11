@@ -1,10 +1,11 @@
 import Image from "next/image";
 import Link from "next/link";
+import StudioTourPlayer from "@/components/studio-tour/StudioTourPlayer";
 
 import { studioMono, studioSans } from "./fonts";
 import { sx } from "./sx";
 
-// The public page introducing FeedSport Studio, at /formulation-studio. It sits
+// The public page introducing FeedSport Studio, at /studio-tour. It sits
 // inside the site's own menu and footer; the sections between are the inline
 // CSS strings from design/FeedSport Studio Page.html, kept verbatim through
 // sx() like the studio views.
@@ -134,6 +135,15 @@ export function StudioLanding({ featured }: { featured: LandingFeatured[] }) {
               ))}
             </ol>
           </div>
+        </section>
+
+        <section style={sx("max-width:1240px;margin:0 auto;padding:80px 24px;display:flex;flex-direction:column;gap:26px")}>
+          <div style={sx("display:flex;flex-direction:column;gap:12px;max-width:740px")}>
+            <span style={sx(EYEBROW)}>See Studio in action</span>
+            <h2 style={sx(H2)}>Follow a feed formulation, screen by screen</h2>
+            <p style={sx("margin:0;font:400 16px/1.6 'IBM Plex Sans',sans-serif;color:#45473f")}>Watch the cursor move through the real Studio screens, or pause and select a step to explore the ingredients, recipe, nutrient checks and advisories at your own pace.</p>
+          </div>
+          <StudioTourPlayer />
         </section>
 
         <section id="ingredients" style={sx("max-width:1240px;margin:0 auto;padding:88px 24px;display:flex;flex-wrap:wrap;gap:48px;align-items:center;scroll-margin-top:80px")}>

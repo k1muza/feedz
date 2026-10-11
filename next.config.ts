@@ -9,6 +9,11 @@ const nextConfig: NextConfig = {
   async redirects() {
     return [
       {
+        source: '/formulation-studio',
+        destination: '/studio-tour',
+        permanent: true,
+      },
+      {
         source: '/:path*',
         has: [
           {
