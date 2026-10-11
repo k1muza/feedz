@@ -15,6 +15,7 @@ import { buildManufacturerRecipeReport } from "@/lib/manufacturer-recipe";
 import {
   buildFormulationAssessment,
   buildInfeasibleFormulationAssessment,
+  keepConsistentAlternatives,
 } from "@/lib/formulation-assessment";
 
 const optionalNutrient = z.number().finite().nonnegative().optional();
@@ -175,7 +176,7 @@ export async function POST(request: Request) {
     // valid primary formulation fail. Evaluate each independently and omit
     // alternative recipes that breach enforced nutritional bounds.
     const alternatives = result.status === "optimal"
-      ? result.alternatives.flatMap((alternative) => {
+      ? keepConsistentAlternatives(result.alternatives.map((alternative) => {
           const alternativeAssessment = buildFormulationAssessment(
             phase,
             energySystem,
@@ -195,10 +196,9 @@ export async function POST(request: Request) {
               phaseId,
               errors: alternativeAssessment.consistencyErrors,
             });
-            return [];
           }
-          return [{ ...alternative, assessment: alternativeAssessment }];
-        })
+          return { ...alternative, assessment: alternativeAssessment };
+        }))
       : undefined;
 
     // Still reject a primary solution that genuinely violates its hard LP
