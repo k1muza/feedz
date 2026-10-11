@@ -43,7 +43,7 @@ export function poolWithProgrammePremix(pool: Pool, programmeId: string, preferr
   const preferred = preferredId ? commercialPremixById(preferredId) : undefined;
   const chosen = preferred && commercialPremixCompatibleWithProgramme(preferred, programmeId, phaseId)
     ? preferred
-    : activeProduct(pool, programmeId, phaseId) ?? commercialPremixForProgramme(programmeId);
+    : activeProduct(pool, programmeId, phaseId) ?? commercialPremixForProgramme(programmeId, phaseId);
   if (!chosen) return next;
   if (chosen.manufacturerRecipe) {
     // Manufacturer-restricted SKUs are still first-class ingredients, but
