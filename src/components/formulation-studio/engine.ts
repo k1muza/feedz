@@ -148,8 +148,12 @@ export interface OptimalResult {
   assessment: FormulationAssessment;
   /** Premix advisory: every eligible alternative re-run in place of the selected premix. */
   premixComparison: PremixComparison | null;
-  /** How the premix's documented nutrients changed the rest of the recipe. */
+  /** How the premix's documented nutrients changed the rest of the recipe.
+   * Only for the least-cost recipe it was computed on; null otherwise. */
   premixEffect: PremixRecipeEffect | null;
+  /** The premix comparison re-runs least cost. True when another goal's recipe
+   * is on screen, so the advisory must say what it was compared on. */
+  premixComparedOnLeastCost: boolean;
 }
 
 export type FormulateResult =
@@ -481,7 +485,10 @@ export async function formulate(snap: Snapshot, ctx: EngineContext): Promise<For
     costExcludesPremix: missingPremixPrice,
     assessment,
     premixComparison: result.premixComparison ?? null,
-    premixEffect: result.premixEffect ?? null,
+    // Both advisories describe the least-cost recipe. Never attach its effect
+    // notes to a simpler, lower-soy or lower-import recipe.
+    premixEffect: alt ? null : result.premixEffect ?? null,
+    premixComparedOnLeastCost: !!alt,
   };
 }
 

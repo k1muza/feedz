@@ -27,6 +27,7 @@ import { FEED_PROGRAMMES, feedProgrammeById, type FeedProgrammeDefinition } from
 import {
   INGREDIENT_LIBRARY,
   ingredientLibraryForPhase,
+  ingredientLibraryForSpecies,
   ingredientProfileAttribution,
   sidAminoAcidPct,
   sttdPhosphorusPctOf,
@@ -322,7 +323,7 @@ export function nutritionalValidationReport(assessment: FormulationAssessment) {
   };
 }
 
-export function premixComparisonReport(comparison: PremixComparison | null, effect: PremixRecipeEffect | null) {
+export function premixComparisonReport(comparison: PremixComparison | null, effect: PremixRecipeEffect | null, comparedOnLeastCost = false) {
   return {
     premix_effect: effect && {
       premix: effect.premixId,
@@ -335,7 +336,9 @@ export function premixComparisonReport(comparison: PremixComparison | null, effe
       cost_per_tonne_without_premix_contribution: effect.costPerTonneWithoutContribution === null ? null : round(effect.costPerTonneWithoutContribution, 2),
     },
     premix_advisory: comparison && {
-      note: "Each option is a re-run: the selected premix is replaced (never stacked), the alternative is fixed at its manufacturer dose and the rest is re-optimised.",
+      note: "Each option is a least-cost re-run: the selected premix is replaced (never stacked), the alternative is fixed at its manufacturer dose and the rest is re-optimised." +
+        (comparedOnLeastCost ? " The returned recipe uses a different objective, so these options are compared on least-cost recipes, not on the returned recipe." : ""),
+      compared_on: "least_cost" as const,
       current_premix: comparison.currentPremixId,
       suggested_replacement: comparison.suggestedPremixId,
       reasons: comparison.reasons,
@@ -660,23 +663,22 @@ export function getIngredient(
   programmeId?: string,
   library: IngredientLibrary = INGREDIENT_LIBRARY,
 ) {
+  // A commercial premix is an ordinary ingredient of its species library, so it
+  // is serialized exactly like maize: the same nutrient values the optimizer uses.
   const commercial = commercialPremixById(id);
-  if (commercial) return {
-    ...premixSummary(commercial, context),
-    nutrients: null,
-    source: commercial.specificationUrl,
-    source_url: commercial.specificationUrl,
-    note: "Supplier label minima contribute to finished-feed calculations at the fixed inclusion dose. Until the profile is verified, those contributions cannot support a verified nutritional claim.",
-  };
-
-  const ingredient = resolveIngredient(id, library).record;
+  const ingredient = commercial
+    ? ingredientLibraryForSpecies(commercial.nutritionSpecies).ingredients.find((record) => record.id === commercial.id)!
+    : resolveIngredient(id, library).record;
   const provenance = ingredient.provenance;
   return {
+    ...(commercial ? premixSummary(commercial, context) : {}),
     ...ingredientSummary(ingredient, context),
+    ...(commercial ? { default_constraints: { min_inclusion_percent: commercial.inclusionPct, max_inclusion_percent: commercial.inclusionPct } } : {}),
     nutrients: ingredientNutrients(ingredient),
     nutrient_basis: library.basis.nutrientComposition,
-    missing_values_note:
-      "Only published values are listed. Missing values are never assumed; FeedSport treats them as unknown.",
+    missing_values_note: commercial
+      ? "Values are per kg of premix, as fed, as documented by the manufacturer (label minima unless stated). Values the manufacturer does not document are not listed; in a formulation they count as 0 and are labelled assumed_zero. Total amino acids are never counted as SID."
+      : "Only published values are listed. Missing values are never assumed; FeedSport treats them as unknown.",
     ...(ingredient.constraints.notes.length > 0 ? { constraint_notes: ingredient.constraints.notes } : {}),
     source: provenance.source?.title ??
       (provenance.verificationStatus === "user_supplied_unverified"
@@ -684,8 +686,9 @@ export function getIngredient(
         : library.source.title),
     source_url: provenance.source?.url ??
       (provenance.verificationStatus === "user_supplied_unverified" ? null : library.source.url),
-    // Verification of supplier and user profiles is an admin task, not reported here.
-    ...(provenance.verificationStatus?.includes("unverified") ? {} : { verification_status: provenance.verificationStatus ?? "published_reference" }),
+    // Verification of supplier and user profiles is an admin task, not reported
+    // here; a commercial premix keeps its manufacturer status from premixSummary.
+    ...(commercial || provenance.verificationStatus?.includes("unverified") ? {} : { verification_status: provenance.verificationStatus ?? "published_reference" }),
     source_table: provenance.sourceTable,
     source_page: provenance.sourcePage,
     ...(Object.keys(provenance.nutrientSources).length > 0
@@ -1379,7 +1382,9 @@ export async function formulate(input: FormulateInput, context: FeedSportService
     ...(advisories.length > 0 ? { above_practical_inclusion: advisories } : {}),
     unsupported_requirements: result.unsupportedRequirements,
     nutritional_validation: nutritionalValidationReport(validation),
-    ...premixComparisonReport(assessed.premixComparison, assessed.premixEffect),
+    // The effect and comparison were computed on the least-cost recipe: never
+    // attach the effect to an alternative objective's recipe.
+    ...premixComparisonReport(assessed.premixComparison, alternative ? null : assessed.premixEffect, !!alternative),
     notes: [
       ...notes,
       ...(common.formulation_basis.ingredient_mode === "automatic"

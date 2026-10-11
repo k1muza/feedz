@@ -1461,6 +1461,7 @@ function AdvisoriesTab({ opt }: { opt: OptVals }) {
             <div style={sx("flex:1 1 320px;padding:16px 18px;display:flex;flex-direction:column;gap:12px")}>
               <span style={sx("font:400 14px/1.55 'IBM Plex Sans',sans-serif;color:#33352f")}>{t.premix.body}</span>
               <span style={sx("display:flex;align-items:center;gap:7px;font:500 12px/1.3 'IBM Plex Sans',sans-serif;color:#2b6a42")}><StatusGlyph shape="dot" color="#2f7a4a" size={6} />Re-run with your ingredients, limits and prices</span>
+              {t.premix.basis && <span style={sx("font:400 12px/1.45 'IBM Plex Sans',sans-serif;color:#8a5f18")}>{t.premix.basis}</span>}
               <div style={sx("display:flex;gap:10px;align-items:center;flex-wrap:wrap")}>
                 <button onClick={t.premix.compare} style={sx("border:1px solid #2f5a3f;background:#fff;color:#2f5a3f;font:600 13px/1 'IBM Plex Sans',sans-serif;padding:10px 13px;border-radius:6px")}>Compare premixes</button>
                 <button onClick={t.premix.replace} style={sx("border:0;background:#2f5a3f;color:#fff;font:600 13px/1 'IBM Plex Sans',sans-serif;padding:11px 14px;border-radius:6px")}>{t.premix.replaceLabel}</button>

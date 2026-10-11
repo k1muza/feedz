@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { analyseFormulation, formulate, getIngredient, FeedSportInputError, type FeedSportServiceContext } from "./feedsport-service";
+import { analyseFormulation, formulate, getIngredient, ingredientNutrients, FeedSportInputError, type FeedSportServiceContext } from "./feedsport-service";
 import { INGREDIENT_LIBRARY, ingredientLibraryWithCustomPremixes } from "@/lib/ingredient-nutrients";
 import { INGREDIENT_DEFAULT_PRICES } from "@/lib/feed-ingredient-prices";
 import { diagnoseInfeasibilityTool } from "./feedsport-diagnostics";
@@ -21,6 +21,23 @@ describe("MCP nutrition profile provenance", () => {
     assert.equal(commercial.nutrition_profile_source.verificationStatus, "manufacturer_unverified");
     assert.ok(commercial.nutrient_contributions.length);
     assert.ok(commercial.nutrition_profile_source.source?.url?.startsWith("https://"));
+  });
+
+  it("serializes a premix's nutrient composition exactly like any ingredient, for both species", () => {
+    const pig = getIngredient("sustar-glypro-x912", context);
+    const record = INGREDIENT_LIBRARY.ingredients.find((item) => item.id === "sustar-glypro-x912")!;
+    assert.ok(pig.nutrients, "premix nutrients are not hidden");
+    assert.deepEqual(pig.nutrients, ingredientNutrients(record), "the same values the optimizer uses");
+    assert.ok(Object.keys(pig.nutrients).length >= 15);
+    assert.equal(pig.default_constraints.min_inclusion_percent, 0.2);
+    assert.equal(pig.default_constraints.max_inclusion_percent, 0.2);
+    assert.ok("inclusion_instructions" in pig && /2 kg per tonne/.test(pig.inclusion_instructions), "manufacturer metadata is kept");
+    assert.doesNotMatch(JSON.stringify(pig), /cannot support a verified nutritional claim/);
+    const cj = getIngredient("cj-s174-boar-premix", context);
+    assert.ok(cj.nutrients?.total_lysine, "total lysine is listed as total");
+    assert.ok(!Object.keys(cj.nutrients ?? {}).some((key) => key === "sid_lysine"), "never relabelled as SID");
+    const broiler = getIngredient("sustar-glypro-x812", context);
+    assert.ok(broiler.nutrients && Object.keys(broiler.nutrients).length > 0, "poultry premixes resolve from the poultry library");
   });
 
   it("does not claim the Brazilian Tables as source of an unsourced farmer premix", () => {

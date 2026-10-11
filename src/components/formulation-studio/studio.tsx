@@ -2201,6 +2201,11 @@ function optimalVals(
   const gaps = assessment?.documentationGaps ?? [];
   const gapLabels = [...new Set(gaps.map((gap) => lowerFirstName(gap.label.replace(/ methionine \+ cysteine/i, " methionine"))))];
   const comparison = mc ? null : R.premixComparison;
+  // The comparison re-runs least cost for each premix. When another goal's
+  // recipe is shown, say so instead of implying it describes this recipe.
+  const leastCostBasis = !mc && R.premixComparedOnLeastCost
+    ? "Compared on least-cost recipes, not on the " + GOALS[runSnap.goal].label.toLowerCase() + " shown. Switch the goal to Least cost to see this exact recipe."
+    : "";
   const current = comparison?.options.find((option) => option.current) ?? null;
   const suggested = comparison?.suggestedPremixId ? comparison.options.find((option) => option.premixId === comparison.suggestedPremixId) ?? null : null;
   const showPremixAdvisory = !!suggested && !S.dismissed["premix-advisory:" + suggested.premixId];
@@ -2383,6 +2388,7 @@ function optimalVals(
         { label: "Documentation gaps", value: beforeGaps + " → " + suggested.documentationGapLabels.length, tone: suggested.documentationGapLabels.length < beforeGaps ? "good" : "plain" },
         { label: "Chapter 7 comparison", value: (current ? current.supplementationAt + " → " : "") + suggested.supplementationAt + " of " + suggested.supplementationTotal + " at recommendation", tone: "plain" },
       ],
+      basis: leastCostBasis,
       replaceLabel: current ? "Replace premix" : "Add premix",
       replace: () => ctx.replacePremix(suggested.premixId),
       compare: () => update({ compareOpen: true }),
@@ -2446,7 +2452,7 @@ function optimalVals(
       const delta = base && option !== base && option.costPerTonne !== null && base.costPerTonne !== null && !option.costExcludesPremix && !base.costExcludesPremix ? option.costPerTonne - base.costPerTonne : null;
       return {
         key: option.premixId,
-        badge: option.current ? "Current" : option.premixId === comparison.suggestedPremixId ? "Suggested" : "Also eligible",
+        badge: option.current ? (leastCostBasis ? "Current · least cost" : "Current") : option.premixId === comparison.suggestedPremixId ? "Suggested" : "Also eligible",
         suggested: option.premixId === comparison.suggestedPremixId,
         name: premixName(option.premixId),
         dose: option.inclusionKgPerTonne + " kg/t · fixed " + fmt(option.inclusionPct, option.inclusionPct < 1 ? 1 : 1) + "%",
@@ -2468,7 +2474,7 @@ function optimalVals(
     return {
       columns,
       aminoLabels: aminoIds.map((id) => shortName(name(id))),
-      subtitle: "Eligible for " + (engine.programmes.programmes.find((p) => p.id === runSnap.programmeId)?.name.toLowerCase() ?? "this stage") + " · re-run with your " + ctx.poolIds.length + " ingredients, limits and prices",
+      subtitle: "Eligible for " + (engine.programmes.programmes.find((p) => p.id === runSnap.programmeId)?.name.toLowerCase() ?? "this stage") + " · least-cost re-run with your " + ctx.poolIds.length + " ingredients, limits and prices" + (leastCostBasis ? " · " + leastCostBasis : ""),
       footnote: (current ? "Replace removes " + premixName(current.premixId) + ", adds the new premix at its manufacturer dose, re-optimises the rest and recalculates every nutrient and the cost. " : "Each column adds that premix at its manufacturer dose and re-optimises the rest. ") + "Two premixes are never kept together. Columns without a price say so instead of guessing.",
       close: () => update({ compareOpen: false }),
     };
