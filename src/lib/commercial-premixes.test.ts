@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
 import { describe, test } from "node:test";
 import { FEED_PROGRAMMES } from "./feed-programmes";
 import { INGREDIENT_LIBRARY, ingredientLibraryWithCommercialPremixes } from "./ingredient-nutrients";
@@ -28,7 +29,16 @@ describe("Manufacturer-backed commercial premix catalogue", () => {
     }
   });
 
-  test("preserves all photographed AECI V1736 label rows without assuming per-kg guarantees", () => {
+  test("keeps the AECI catalogue snapshot in sync with its authoritative CSV", () => {
+    const output = execFileSync(
+      process.execPath,
+      ["scripts/sync-aeci-v1736-label.mjs", "--check"],
+      { cwd: process.cwd(), encoding: "utf8" },
+    );
+    assert.match(output, /in sync with authoritative CSV \(24 rows\)/);
+  });
+
+  test("uses all AECI V1736 CSV columns without inventing nutrient guarantees", () => {
     const product = commercialPremixById("aeci-v1736-pig-weaner-premix");
     assert.ok(product);
     assert.equal(product.manufacturer, "AECI Animal Health");
@@ -37,25 +47,39 @@ describe("Manufacturer-backed commercial premix catalogue", () => {
     assert.equal(product.inclusionKgPerTonne, 10);
     assert.equal(commercialPremixCompatibleWithProgramme(product, "nursery-pig"), true);
     assert.equal(commercialPremixCompatibleWithProgramme(product, "grow-finish-pig"), false);
-    const printed = product.labelTranscription;
-    assert.ok(printed);
-    assert.equal(printed.rows.length, 24);
-    assert.equal(printed.firstColumnHeading, "not visible");
-    assert.equal(printed.secondColumnHeading, "not visible");
-    const get = (name: string) => printed.rows.find((row) => row.label === name);
-    assert.equal(get("VIT A")?.column1Raw, "5.000.000");
-    assert.equal(get("VIT B4 (CHLORIDE)")?.column2Raw, "500.000g");
-    assert.equal(get("VIT B9")?.column1Raw, "0000.1");
-    assert.equal(get("VIT H (D BIOTIN)")?.column2Raw, "0.2000g");
-    assert.equal(get("MAGNESIUM [as printed]")?.column1Raw, "78% L.LYSINE");
-    assert.equal(get("NSP ENZYME (GLUCANASE)")?.category, "additives");
-    assert.equal(get("PHYTASE")?.column1Raw, "10000");
+
+    const csv = product.labelTranscription;
+    assert.ok(csv);
+    assert.equal(csv.csvPath, "src/data/nutrition/premixes/aeci-v1736-pig-weaner-label.csv");
+    assert.equal(csv.rows.length, 24);
+    assert.equal(csv.firstColumnHeading, "not established by CSV or source photo");
+    assert.equal(csv.secondColumnHeading, "not established by CSV or source photo");
+    const get = (name: string) => csv.rows.find((row) => row.nutrient === name);
+
+    assert.deepEqual(get("Vit E (DL)"), {
+      category: "Vitamin", nutrient: "Vit E (DL)", source_form: "",
+      left_value: "10000", right_value: "30.00", right_unit: "MIU", note: "",
+    });
+    assert.equal(get("Vit B2")?.right_value, "5000");
+    assert.equal(get("Vit B6")?.right_value, "6000");
+    assert.equal(get("Vit B9")?.right_value, "2000");
+    assert.equal(get("Vit B4")?.source_form, "choline chloride");
+    assert.equal(get("Vit H")?.source_form, "D-biotin");
+    assert.equal(get("Magnesium (2nd row, likely lysine)")?.note,
+      "label error likely; 78% probably lysine source grade");
+    assert.equal(get("NSP enzyme")?.right_value, "0.0000");
+    assert.equal(get("Phytase")?.right_value, "0.0000");
+    assert.equal(get("Vit C")?.note, "right value hard to read");
+    assert.deepEqual(
+      ["Vitamin", "Mineral", "Additive"].map(category => csv.rows.filter(row => row.category === category).length),
+      [13, 8, 3],
+    );
 
     assert.equal(product.guaranteedMinimumAsFed, undefined);
     assert.equal(product.publishedGuarantees, undefined);
     assert.equal(product.publishedAnalysis, undefined);
     assert.deepEqual(premixFinishedFeedContributions(product), [],
-      "Unheaded label values must not be credited as finished-feed nutrients.");
+      "CSV label values must not be credited as finished-feed nutrients without a confirmed basis.");
   });
 
   test("selects the stage-specific commercial product, never one universal premix", () => {
