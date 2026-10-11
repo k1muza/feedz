@@ -24153,7 +24153,7 @@
         "sku": "GlyPro X911",
         "species": "pig",
         "application": "Piglets, approximately 5–25 kg",
-        "defaultForEligibleProgrammes": true,
+        "defaultForEligibleProgrammes": false,
         "eligibleProgrammePrefixes": [
           "nursery-pig"
         ],
@@ -24241,7 +24241,7 @@
         "sku": "GlyPro X912",
         "species": "pig",
         "application": "Growing and finishing pigs over 25 kg",
-        "defaultForEligibleProgrammes": true,
+        "defaultForEligibleProgrammes": false,
         "eligibleProgrammePrefixes": [
           "grow-finish-pig",
           "growing-barrows",
