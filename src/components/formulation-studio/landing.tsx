@@ -1,8 +1,8 @@
-import Image from "next/image";
 import Link from "next/link";
 import StudioTourPlayer from "@/components/studio-tour/StudioTourPlayer";
 
 import { studioMono, studioSans } from "./fonts";
+import { IngredientPoolPanel, type IngredientPoolRow } from "./ingredient-pool-panel";
 import { sx } from "./sx";
 
 // The public page introducing FeedSport Studio, at /studio-tour. It sits
@@ -49,6 +49,21 @@ const INGREDIENT_POINTS = [
   ["Limits and locks", "Set a minimum, a maximum, or lock an amount. FeedSport stage limits still apply."],
 ];
 
+const LANDING_INGREDIENT_ROWS: IngredientPoolRow[] = [
+  { name: "Corn, Grain", short: "Available", chip: { deco: "none" }, nameColor: "#222420", roleColor: "#2f5a3f" },
+  { name: "Soybean meal 45.6% CP", short: "Available", chip: { deco: "none" }, nameColor: "#222420", roleColor: "#2f5a3f" },
+  { name: "Wheat, Bran", short: "max 15%", chip: { deco: "none" }, nameColor: "#222420", roleColor: "#2f5a3f" },
+  { name: "Limestone", short: "Available", chip: { deco: "none" }, nameColor: "#222420", roleColor: "#2f5a3f" },
+  { name: "Dicalcium phosphate", short: "Available", chip: { deco: "none" }, nameColor: "#222420", roleColor: "#2f5a3f" },
+  { name: "Salt", short: "Available", chip: { deco: "none" }, nameColor: "#222420", roleColor: "#2f5a3f" },
+  { name: "L-Lysine HCl", short: "Available", chip: { deco: "none" }, nameColor: "#222420", roleColor: "#2f5a3f" },
+  { name: "L-Threonine", short: "Available", chip: { deco: "none" }, nameColor: "#222420", roleColor: "#2f5a3f" },
+  { name: "DL-Methionine", short: "Available", chip: { deco: "none" }, nameColor: "#222420", roleColor: "#2f5a3f" },
+  { name: "Soybean, Full-Fat Extruded", short: "Available", chip: { deco: "none" }, nameColor: "#222420", roleColor: "#2f5a3f" },
+  { name: "Sunflower meal", short: "max 10%", chip: { deco: "none" }, nameColor: "#222420", roleColor: "#2f5a3f" },
+  { name: "Vegetable oil", short: "max 5%", chip: { deco: "none" }, nameColor: "#222420", roleColor: "#2f5a3f" },
+];
+
 const PREMIX_POINTS = [
   ["Compare before you switch", "Each premix is re-run with your ingredients and prices, so you see the real cost difference."],
   ["Replace, never stack", "Replacing removes the old premix and re-optimises the whole diet."],
@@ -62,15 +77,6 @@ const VERSION_ROWS: { what: string; before: string; after: string; change: strin
   { what: "Premix", before: "Piglet premix", after: "GlyPro X912", change: "replaced" },
   { what: "L-Lysine HCl", before: "0.25%", after: "0.18%", change: "−0.07" },
 ];
-
-// The screenshots are already sized webp; re-encoding them blurs the UI text.
-function Shot({ src, alt, w, h, frame, sizes, priority }: { src: string; alt: string; w: number; h: number; frame: string; sizes: string; priority?: boolean }) {
-  return (
-    <div style={sx(`position:relative;overflow:hidden;border-radius:12px;aspect-ratio:${w} / ${h};${frame}`)}>
-      <Image src={src} alt={alt} width={w} height={h} sizes={sizes} priority={priority} unoptimized style={sx("display:block;width:100%;height:100%;object-fit:cover;object-position:top left")} />
-    </div>
-  );
-}
 
 const initials = (name: string) => name.split(/\s+/).map((w) => w[0]).join("").slice(0, 2).toUpperCase();
 
@@ -151,8 +157,17 @@ export function StudioLanding({ featured }: { featured: LandingFeatured[] }) {
               ))}
             </div>
           </div>
-          <div style={sx("flex:1 1 300px;max-width:420px;min-width:0")}>
-            <Shot src="/images/studio/ingredients.webp" alt="Ingredient list with the selected premix" w={420} h={532} sizes="(max-width: 468px) 100vw, 420px" frame="background:#fff;border:1px solid #e2dfd6;box-shadow:0 20px 50px rgba(34,36,32,.12)" />
+          <div
+            role="region"
+            aria-label="Example Studio ingredient pool"
+            style={sx("flex:1 1 300px;max-width:420px;min-width:0;overflow:hidden;border-radius:12px;background:#fff;border:1px solid #e2dfd6;box-shadow:0 20px 50px rgba(34,36,32,.12)")}
+          >
+            <IngredientPoolPanel
+              poolCount={13}
+              premixPoolRow={{ sku: "Sustar GlyPro X912", sub: "Fixed 2 kg/t · manufacturer dose" }}
+              poolRows={LANDING_INGREDIENT_ROWS}
+              previewCount={7}
+            />
           </div>
         </section>
 

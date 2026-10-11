@@ -83,6 +83,20 @@ test('mobile player keeps the full frame without horizontal overflow', async ({ 
   await expect(page.getByRole('button', { name: 'Replay Studio walkthrough from the beginning' })).toBeVisible();
 });
 
+test('ingredient section renders the reusable Studio panel', async ({ page }) => {
+  await page.goto('/studio-tour');
+
+  const section = page.getByRole('region', { name: 'Example Studio ingredient pool' });
+  await section.scrollIntoViewIfNeeded();
+  await expect(section.getByTestId('ingredient-pool-panel')).toBeVisible();
+  await expect(section.getByText('Sustar GlyPro X912')).toBeVisible();
+
+  await section.getByRole('button', { name: 'Show all 12 · 5 more available' }).click();
+  await expect(section.getByText('L-Threonine')).toBeVisible();
+  await section.getByRole('button', { name: 'Show fewer' }).click();
+  await expect(section.getByText('L-Threonine')).toHaveCount(0);
+});
+
 test('shows direct format links when the video reports a playback failure', async ({ page }) => {
   await page.goto('/studio-tour');
 

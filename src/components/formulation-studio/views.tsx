@@ -1,6 +1,7 @@
 import { Trash2 } from "lucide-react";
 import { useState, type ReactNode } from "react";
 
+import { IngredientPoolPanel } from "./ingredient-pool-panel";
 import { CAT_PAGE_SIZES, type ShellVals, type StudioVals } from "./studio";
 import { STUDIO_CSS, hv, sx } from "./sx";
 
@@ -829,12 +830,7 @@ function Setup({ v }: V) {
   );
 }
 
-const POOL_PREVIEW = 5;
-
 function Workspace({ v }: V) {
-  const [allPool, setAllPool] = useState(false);
-  const poolShown = allPool ? v.poolRows : v.poolRows.slice(0, POOL_PREVIEW);
-  const poolHidden = v.poolRows.length - POOL_PREVIEW;
   return (
     <div style={sx("flex:1;display:flex;flex-direction:column")}>
       <div style={sx("display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;padding:16px clamp(16px,3vw,32px);background:#fff;border-bottom:1px solid #e2dfd6")}>
@@ -871,36 +867,12 @@ function Workspace({ v }: V) {
               {v.prog.source} · {v.prog.nReq} requirements · {v.overrideText}
             </span>
           </div>
-          <div style={sx("padding:18px 22px;border-bottom:1px solid #ece8df;display:flex;flex-direction:column;gap:4px")}>
-            <div style={sx("display:flex;justify-content:space-between;align-items:center;padding-bottom:6px")}>
-              <span style={sx(MONO_LABEL)}>2 · Ingredients · {v.poolCount}</span>
-              <button onClick={v.openAdd} style={sx("border:0;background:transparent;font:600 13px/1 'IBM Plex Sans',sans-serif;color:#2f5a3f;padding:4px 0")}>+ Add</button>
-            </div>
-            {v.premixPoolRow && (
-              <div style={sx("display:flex;align-items:center;gap:8px;padding:9px 10px;margin:0 -8px 4px;border-radius:7px;background:#f3f0e8")}>
-                <button onClick={v.premixPoolRow.open} style={sx("flex:1;min-width:0;border:0;background:transparent;padding:0;text-align:left;display:flex;flex-direction:column;gap:3px;color:#222420")}>
-                  <span style={sx("display:flex;align-items:center;gap:7px;font:600 14px/1.2 'IBM Plex Sans',sans-serif")}>
-                    <span style={sx("font:600 9px/1 'IBM Plex Mono',monospace;background:#222420;color:#fff;padding:3px 5px;border-radius:3px")}>PREMIX</span>
-                    <span style={sx("overflow:hidden;text-overflow:ellipsis;white-space:nowrap")}>{v.premixPoolRow.sku}</span>
-                  </span>
-                  <span style={sx("font:400 12px/1.3 'IBM Plex Sans',sans-serif;color:#64665c")}>{v.premixPoolRow.sub}</span>
-                </button>
-                <button onClick={v.premixPoolRow.replace} style={sx("flex:none;border:0;background:transparent;padding:4px 0;font:600 12px/1 'IBM Plex Sans',sans-serif;color:#2f5a3f")}>⇄ Replace</button>
-              </div>
-            )}
-            {poolShown.map((c) => (
-              <button key={c.name} onClick={c.open} className={hv("pool")} style={sx("border:0;background:transparent;display:flex;justify-content:space-between;align-items:center;gap:8px;padding:7px 8px;margin:0 -8px;border-radius:6px;font:400 14px/1.2 'IBM Plex Sans',sans-serif;color:#222420;text-align:left")}>
-                <span style={sx(`text-decoration:${c.chip.deco};color:${c.nameColor}`)}>{c.name}</span>
-                <span style={sx(`font:500 12px/1 'IBM Plex Sans',sans-serif;color:${c.roleColor}`)}>{c.short}</span>
-              </button>
-            ))}
-            {poolHidden > 0 && (
-              <button onClick={() => setAllPool(!allPool)} style={sx("align-self:flex-start;border:0;background:transparent;padding:8px 0 0;font:600 14px/1 'IBM Plex Sans',sans-serif;color:#2f5a3f")}>
-                {allPool ? "Show fewer" : "Show all " + v.poolRows.length + " · " + poolHidden + " more available"}
-              </button>
-            )}
-            {v.poolEmpty && <span style={sx("font:400 13px/1.4 'IBM Plex Sans',sans-serif;color:#64665c")}>No ingredients yet.</span>}
-          </div>
+          <IngredientPoolPanel
+            poolCount={v.poolCount}
+            premixPoolRow={v.premixPoolRow}
+            poolRows={v.poolRows}
+            onAdd={v.openAdd}
+          />
           <div style={sx("padding:18px 22px;border-bottom:1px solid #ece8df;display:flex;flex-direction:column;gap:8px")}>
             <span style={sx(MONO_LABEL)}>3 · Goal</span>
             {v.goalOpts.map((g) => (
