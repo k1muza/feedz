@@ -3,6 +3,7 @@ import { commercialPremixById } from "./commercial-premixes";
 import {
   evaluateFormulation,
   formulationRequirements,
+  nutrientFeasibilityTolerance,
   type FormulationDiagnostic,
   type FormulationEvaluation,
   type FormulationSettings,
@@ -67,9 +68,10 @@ export function nutrientAssessmentStatus(
   actual: number,
   bound: number,
 ): NutrientAssessmentStatus {
+  const tolerance = nutrientFeasibilityTolerance(bound);
   const failed = relation === "min"
-    ? actual + 1e-7 < bound
-    : actual - 1e-7 > bound;
+    ? actual + tolerance < bound
+    : actual - tolerance > bound;
   return !failed ? "met" : relation === "min" ? "below_target" : "above_limit";
 }
 
@@ -215,7 +217,10 @@ export function buildFormulationAssessment(
   const consistencyErrors = options.checkOptimizerConsistency
     ? nutrientChecks
         .filter((check) => check.enforcedByOptimizer && (check.status === "below_target" || check.status === "above_limit"))
-        .map((check) => `${check.label} failed post-solve validation even though it was enforced by the optimizer.`)
+        .map((check) => {
+          const limit = check.status === "below_target" ? check.requiredMin : check.allowedMax;
+          return `${check.label} failed post-solve validation despite an enforced optimizer bound (actual ${check.actual}, ${check.status === "below_target" ? "minimum" : "maximum"} ${limit}, tolerance ${nutrientFeasibilityTolerance(limit ?? 0)}).`;
+        })
     : [];
   const unmet = nutrientChecks.filter((check) => check.status === "below_target" || check.status === "above_limit");
   const unknown = nutrientChecks.filter((check) => check.status === "unknown");
@@ -278,6 +283,17 @@ export function buildFormulationAssessment(
     guidance,
     validationScope: "FeedSport checks the selected programme's modeled energy, protein, amino-acid and major-mineral requirements plus loaded vitamin and trace-mineral supplementation targets. It does not verify ingredient quality, manufacturing accuracy, storage or animal health.",
   };
+}
+
+/**
+ * Bad optional recipes cannot invalidate an independently feasible primary
+ * solution. This only rejects the alternatives; it never forgives the same
+ * consistency failures on the primary solution.
+ */
+export function keepConsistentAlternatives<T extends { assessment: FormulationAssessment }>(
+  alternatives: readonly T[],
+): T[] {
+  return alternatives.filter((alternative) => alternative.assessment.consistencyErrors.length === 0);
 }
 
 export function buildInfeasibleFormulationAssessment(

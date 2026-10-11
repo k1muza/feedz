@@ -7,6 +7,7 @@ import {
   buildInfeasibleFormulationAssessment,
   isFormulationAssessment,
   nutrientAssessmentStatus,
+  keepConsistentAlternatives,
 } from "./formulation-assessment";
 import {
   micronutrientAssessmentGroups,
@@ -267,6 +268,35 @@ describe("canonical formulation assessment", () => {
   test("preserves the above-limit nutrient state", () => {
     assert.equal(nutrientAssessmentStatus("max", 1.01, 1), "above_limit");
     assert.equal(nutrientAssessmentStatus("max", 1, 1), "met");
+  });
+
+  test("post-solve tolerance accepts GLPK-sized numeric residuals but not real SID deficiencies", () => {
+    // Consistent with optimizer nutrient-binding tolerance: max(1e-7, 1e-5 * target).
+    assert.equal(nutrientAssessmentStatus("min", 0.208 - 1e-6, 0.208), "met");
+    assert.equal(nutrientAssessmentStatus("min", 0.208 - 1e-4, 0.208), "below_target");
+    assert.equal(nutrientAssessmentStatus("min", 0.716 - 5e-6, 0.716), "met");
+    assert.equal(nutrientAssessmentStatus("min", 0.716 - 5e-4, 0.716), "below_target");
+    assert.equal(nutrientAssessmentStatus("max", 0.208 + 1e-6, 0.208), "met");
+    assert.equal(nutrientAssessmentStatus("max", 0.208 + 1e-4, 0.208), "above_limit");
+    assert.equal(nutrientAssessmentStatus("min", 3250 - 0.01, 3250), "met");
+    assert.equal(nutrientAssessmentStatus("min", 3250 - 1, 3250), "below_target");
+  });
+
+  test("invalid optional alternatives are dropped without forgiving primary hard-constraint failures", () => {
+    const correct = buildInfeasibleFormulationAssessment("Sample.", []);
+    const rejected = {
+      ...correct,
+      consistencyErrors: ["SID valine: actual 0.6, minimum 0.716"],
+    };
+    const candidates = [
+      { id: "low-soy", assessment: rejected },
+      { id: "low-import", assessment: correct },
+      { id: "simple", assessment: rejected },
+    ];
+    const retained = keepConsistentAlternatives(candidates);
+    assert.deepEqual(retained.map((candidate) => candidate.id), ["low-import"]);
+    assert.equal(candidates[0].assessment.consistencyErrors.length, 1,
+      "Filtering alternatives must not mutate or pardon invalid solutions");
   });
 
   test("represents optimizer infeasibility with the same verdict model", () => {

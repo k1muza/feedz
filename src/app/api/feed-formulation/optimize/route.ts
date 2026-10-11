@@ -15,6 +15,7 @@ import { buildManufacturerRecipeReport } from "@/lib/manufacturer-recipe";
 import {
   buildFormulationAssessment,
   buildInfeasibleFormulationAssessment,
+  keepConsistentAlternatives,
 } from "@/lib/formulation-assessment";
 
 const optionalNutrient = z.number().finite().nonnegative().optional();
@@ -171,10 +172,12 @@ export async function POST(request: Request) {
       : result.status === "infeasible"
         ? buildInfeasibleFormulationAssessment(result.message, result.diagnostics)
         : undefined;
+    // An optional lower-soy/simple/low-import alternative must never make a
+    // valid primary formulation fail. Evaluate each independently and omit
+    // alternative recipes that breach enforced nutritional bounds.
     const alternatives = result.status === "optimal"
-      ? result.alternatives.map((alternative) => ({
-          ...alternative,
-          assessment: buildFormulationAssessment(
+      ? keepConsistentAlternatives(result.alternatives.map((alternative) => {
+          const alternativeAssessment = buildFormulationAssessment(
             phase,
             energySystem,
             alternative.solution.formula,
@@ -185,17 +188,26 @@ export async function POST(request: Request) {
               enforcedSettings: { includeSupplementationTargets, traceMineralBasis },
               checkOptimizerConsistency: true,
             },
-          ),
+          );
+          if (alternativeAssessment.consistencyErrors.length) {
+            console.warn("Discarded inconsistent optional formulation alternative", {
+              alternative: alternative.id,
+              programmeId,
+              phaseId,
+              errors: alternativeAssessment.consistencyErrors,
+            });
+          }
+          return { ...alternative, assessment: alternativeAssessment };
         }))
       : undefined;
-    const consistencyErrors = [
-      ...(assessment?.consistencyErrors ?? []),
-      ...(alternatives?.flatMap((alternative) => alternative.assessment.consistencyErrors) ?? []),
-    ];
-    if (consistencyErrors.length) {
+
+    // Still reject a primary solution that genuinely violates its hard LP
+    // constraints. Include measured values and the exact allowed tolerance in
+    // the response to make solver/nutrient-data discrepancies actionable.
+    if (assessment?.consistencyErrors.length) {
       return NextResponse.json({
         status: "error",
-        message: `Engine consistency error: ${consistencyErrors.join(" ")}`,
+        message: `Engine consistency error: ${assessment.consistencyErrors.join(" ")}`,
         assessment,
       }, { status: 500 });
     }
