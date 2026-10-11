@@ -23957,16 +23957,16 @@
       "provenance": {
         "source": {
           "publisher": "AECI Animal Health",
-          "title": "AECI V1736 Pig Weaner — user-supplied CSV transcription of bag label, batch 25254-07.2024",
+          "title": "AECI V1736 Pig Weaner — user-confirmed minimum/maximum label transcription, batch 25254-07.2024",
           "url": "https://www.aeciworld.net/animal-health.html",
           "basis": "as-fed",
           "priority": "supplier",
-          "note": "Canonical row data: src/data/nutrition/premixes/aeci-v1736-pig-weaner-label.csv. The photograph supports pack identity and 10 kg/t inclusion, but neither numeric column has a verified concentration basis. The public AECI URL is manufacturer context, not the product datasheet."
+          "note": "All 24 label ranges now live directly in premix.labelGuarantees. User confirmed min/max column order; unit basis for converting label figures into per-kg premix concentrations remains unresolved."
         },
         "nutrientSources": {},
         "notes": [
-          "CSV is the single source of truth for all 24 label rows; it does not establish analytical nutrient concentrations.",
-          "The code intentionally withholds AECI nutrient guarantees from formulation calculations pending manufacturer clarification."
+          "All 24 label min/max entries verified as transcribed and stored in ingredient-library.json.",
+          "A verified label range is not necessarily a verified as-fed nutrient concentration. Do not credit concentrations until their reference basis is established."
         ],
         "verificationStatus": "manufacturer_unverified",
         "profileBasis": "as-fed"
@@ -23988,253 +23988,252 @@
         "specificationUrl": "https://www.aeciworld.net/animal-health.html",
         "note": "Registration V1736 under Act 36 of 1947. The photographed label specifies 10 kg/t and a 20 kg pack (2 x 10 kg). No supplier price was provided.",
         "notes": [
-          "Label transcribed from the canonical CSV at src/data/nutrition/premixes/aeci-v1736-pig-weaner-label.csv.",
-          "10 kg/t usage remains from the photographed pack; the CSV supplies nutrient/additive table rows only.",
-          "Neither value column has established units per kg of premix. No AECI nutrient contributions are credited to the optimizer.",
-          "The AECI website gives manufacturer context, not the product's technical specification."
+          "All 24 min/max label records are embedded in ingredient-library.json; user has confirmed column meanings.",
+          "10 kg/t dosage remains confirmed from the photographed bag.",
+          "No numeric as-fed concentration can be derived until the label min/max basis and unit meaning are established."
         ],
-        "labelTranscription": {
-          "source": "User-supplied pig_weaner_premix_label.csv (authoritative transcription); photograph retained as secondary visual evidence",
+        "simulationOnlyPhases": [
+          {
+            "programmeId": "grow-finish-pig",
+            "phaseClass": "grower"
+          }
+        ],
+        "labelGuarantees": {
+          "source": "User-supplied AECI V1736 label transcription, confirmed by user (batch 25254-07.2024)",
           "batch": "25254-07.2024",
           "inclusionPrinted": "10Kgs Per 1 Tonne Of Final Feed",
-          "firstColumnHeading": "not established by CSV or source photo",
-          "secondColumnHeading": "not established by CSV or source photo",
-          "basis": "unknown; raw numeric fields and unit labels are not verified per-kg premix concentrations",
+          "columns": {
+            "first": "minimum",
+            "second": "maximum"
+          },
+          "confirmedByUser": true,
+          "concentrationBasis": "The numerical min/max columns are confirmed, but concentration per kg premix versus per tonne of finished feed is not established.",
           "rows": [
             {
               "category": "Vitamin",
               "nutrient": "Vitamin A",
               "source_form": "",
-              "left_value": "5000000",
-              "right_value": "14.5",
-              "right_unit": "MIU",
+              "min": "5000000",
+              "max": "14.5",
+              "unit": "MIU",
               "note": ""
             },
             {
               "category": "Vitamin",
               "nutrient": "Vitamin D3",
               "source_form": "",
-              "left_value": "2000000",
-              "right_value": "400",
-              "right_unit": "MIU",
+              "min": "2000000",
+              "max": "400",
+              "unit": "MIU",
               "note": ""
             },
             {
               "category": "Vitamin",
               "nutrient": "Vitamin E",
               "source_form": "DL (as labelled; exact chemical form unconfirmed)",
-              "left_value": "10000",
-              "right_value": "30.00",
-              "right_unit": "MIU",
+              "min": "10000",
+              "max": "30.00",
+              "unit": "MIU",
               "note": ""
             },
             {
               "category": "Vitamin",
               "nutrient": "Choline chloride",
               "source_form": "",
-              "left_value": "0",
-              "right_value": "500.000",
-              "right_unit": "g",
+              "min": "0",
+              "max": "500.000",
+              "unit": "g",
               "note": ""
             },
             {
               "category": "Vitamin",
               "nutrient": "Niacin",
               "source_form": "",
-              "left_value": "15.0000",
-              "right_value": "20.000",
-              "right_unit": "g",
+              "min": "15.0000",
+              "max": "20.000",
+              "unit": "g",
               "note": ""
             },
             {
               "category": "Vitamin",
               "nutrient": "Riboflavin",
               "source_form": "",
-              "left_value": "3.0000",
-              "right_value": "5000",
-              "right_unit": "g",
+              "min": "3.0000",
+              "max": "5000",
+              "unit": "g",
               "note": ""
             },
             {
               "category": "Vitamin",
               "nutrient": "Vitamin B6",
               "source_form": "pyridoxine",
-              "left_value": "1.00",
-              "right_value": "6000",
-              "right_unit": "g",
+              "min": "1.00",
+              "max": "6000",
+              "unit": "g",
               "note": ""
             },
             {
               "category": "Vitamin",
               "nutrient": "Vitamin B1",
               "source_form": "",
-              "left_value": "1.5000",
-              "right_value": "3.5000",
-              "right_unit": "g",
+              "min": "1.5000",
+              "max": "3.5000",
+              "unit": "g",
               "note": ""
             },
             {
               "category": "Vitamin",
               "nutrient": "Vitamin K3",
               "source_form": "",
-              "left_value": "0.3000",
-              "right_value": "2.5000",
-              "right_unit": "g",
+              "min": "0.3000",
+              "max": "2.5000",
+              "unit": "g",
               "note": ""
             },
             {
               "category": "Vitamin",
               "nutrient": "Folic acid",
               "source_form": "",
-              "left_value": "0.1",
-              "right_value": "2000",
-              "right_unit": "g",
+              "min": "0.1",
+              "max": "2000",
+              "unit": "g",
               "note": ""
             },
             {
               "category": "Vitamin",
               "nutrient": "Biotin",
               "source_form": "D-biotin",
-              "left_value": "0.0000",
-              "right_value": "0.2000",
-              "right_unit": "g",
+              "min": "0.0000",
+              "max": "0.2000",
+              "unit": "g",
               "note": ""
             },
             {
               "category": "Vitamin",
               "nutrient": "Vitamin B12",
               "source_form": "",
-              "left_value": "0.0150",
-              "right_value": "0.2000",
-              "right_unit": "g",
+              "min": "0.0150",
+              "max": "0.2000",
+              "unit": "g",
               "note": ""
             },
             {
               "category": "Vitamin",
               "nutrient": "Vitamin C",
               "source_form": "ascorbic acid",
-              "left_value": "0.0000",
-              "right_value": "0",
-              "right_unit": "g",
+              "min": "0.0000",
+              "max": "0",
+              "unit": "g",
               "note": "right value hard to read"
             },
             {
               "category": "Mineral",
               "nutrient": "Zinc",
               "source_form": "zinc oxide",
-              "left_value": "30.000",
-              "right_value": "150.000",
-              "right_unit": "g",
+              "min": "30.000",
+              "max": "150.000",
+              "unit": "g",
               "note": ""
             },
             {
               "category": "Mineral",
               "nutrient": "Manganese",
               "source_form": "manganese oxide",
-              "left_value": "15.000",
-              "right_value": "150.0000",
-              "right_unit": "g",
+              "min": "15.000",
+              "max": "150.0000",
+              "unit": "g",
               "note": ""
             },
             {
               "category": "Mineral",
               "nutrient": "Iron",
               "source_form": "iron sulphate",
-              "left_value": "25.0000",
-              "right_value": "1000",
-              "right_unit": "g",
+              "min": "25.0000",
+              "max": "1000",
+              "unit": "g",
               "note": ""
             },
             {
               "category": "Mineral",
               "nutrient": "Copper",
               "source_form": "copper sulphate",
-              "left_value": "1.0000",
-              "right_value": "20.0000",
-              "right_unit": "g",
+              "min": "1.0000",
+              "max": "20.0000",
+              "unit": "g",
               "note": ""
             },
             {
               "category": "Mineral",
               "nutrient": "Magnesium",
               "source_form": "oxide",
-              "left_value": "0.0000",
-              "right_value": "4.5000",
-              "right_unit": "g",
+              "min": "0.0000",
+              "max": "4.5000",
+              "unit": "g",
               "note": ""
             },
             {
               "category": "Mineral",
               "nutrient": "Iodine",
               "source_form": "",
-              "left_value": "0.3000",
-              "right_value": "2.000",
-              "right_unit": "g",
+              "min": "0.3000",
+              "max": "2.000",
+              "unit": "g",
               "note": ""
             },
             {
               "category": "Mineral",
               "nutrient": "Sodium",
               "source_form": "",
-              "left_value": "0.000",
-              "right_value": "0.4000",
-              "right_unit": "g",
+              "min": "0.000",
+              "max": "0.4000",
+              "unit": "g",
               "note": ""
             },
             {
               "category": "Mineral",
               "nutrient": "Magnesium (second row; identity unverified)",
               "source_form": "",
-              "left_value": "78% L-Lysine",
-              "right_value": "0",
-              "right_unit": "g",
+              "min": "78% L-Lysine",
+              "max": "0",
+              "unit": "g",
               "note": "label error likely; 78% probably lysine source grade"
             },
             {
               "category": "Additive",
               "nutrient": "Threonine",
               "source_form": "L-threonine",
-              "left_value": "98.5%",
-              "right_value": "0.000",
-              "right_unit": "g",
+              "min": "98.5%",
+              "max": "0.000",
+              "unit": "g",
               "note": ""
             },
             {
               "category": "Additive",
               "nutrient": "NSP enzyme (glucanase)",
               "source_form": "glucanase",
-              "left_value": "",
-              "right_value": "0.0000",
-              "right_unit": "g",
+              "min": "",
+              "max": "0.0000",
+              "unit": "g",
               "note": ""
             },
             {
               "category": "Additive",
               "nutrient": "Phytase",
               "source_form": "",
-              "left_value": "10000",
-              "right_value": "0.0000",
-              "right_unit": "g",
+              "min": "10000",
+              "max": "0.0000",
+              "unit": "g",
               "note": ""
             }
           ],
-          "cautions": [
-            "The CSV is authoritative for the transcription, not a laboratory analysis or nutrient guarantee.",
-            "Neither numeric column has an established measurement basis; do not infer guaranteed as-fed concentrations.",
-            "Choline chloride is not the same as elemental or total choline; do not convert without product specification.",
-            "The row 'Magnesium (second row; identity unverified)' explicitly notes a possible label error; do not map it to digestible lysine.",
-            "The phytase activity unit and basis are not established; do not infer FTU/kg from a bare 10000.",
-            "Vitamin E activity/form, selenium content and pantothenic acid are not independently verified.",
-            "The CSV notes the Vitamin C right-hand value is difficult to read; preserve the note verbatim."
-          ],
-          "csvPath": "src/data/nutrition/premixes/aeci-v1736-pig-weaner-label.csv"
-        },
-        "simulationOnlyPhases": [
-          {
-            "programmeId": "grow-finish-pig",
-            "phaseClass": "grower"
-          }
-        ]
+          "notes": [
+            "User verified first column = minimum, second column = maximum; values are preserved verbatim.",
+            "The printed unit applies to the second column; do not infer the first-column unit or concentration basis.",
+            "Choline chloride is not equivalent to total choline; no selenium or pantothenic acid is listed.",
+            "The second magnesium row is likely a labelling anomaly; do not assume digestible lysine.",
+            "Raw min/max label figures are verified as transcribed, not a verified as-fed premix nutrient matrix."
+          ]
+        }
       }
     },
     {
