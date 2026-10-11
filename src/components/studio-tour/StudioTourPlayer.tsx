@@ -3,7 +3,7 @@
 import { Pause, Play, RotateCcw } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
-const VIDEO_DURATION_SECONDS = 31.3;
+const VIDEO_DURATION_SECONDS = 27.3;
 
 function formatTime(seconds: number) {
   if (!Number.isFinite(seconds)) return "0:00";
@@ -128,8 +128,8 @@ export default function StudioTourPlayer() {
             ref={videoRef}
             data-testid="studio-tour-video"
             className="block h-full w-full object-contain"
-            width={1920}
-            height={1080}
+            width={1600}
+            height={900}
             poster="/videos/studio-walkthrough-poster.jpg"
             preload="metadata"
             muted
@@ -204,7 +204,7 @@ export default function StudioTourPlayer() {
       <div className="grid gap-6 py-6 md:grid-cols-[minmax(0,1fr)_minmax(260px,0.65fr)] md:items-start">
         <div>
           <p className="mb-2 font-mono text-xs font-semibold uppercase tracking-widest text-[#2f5a3f]">
-            Actual Studio walkthrough · 31 seconds
+            Actual Studio walkthrough · 27 seconds
           </p>
           <h3 className="mb-2 text-[clamp(24px,3vw,36px)] font-bold leading-tight tracking-[-.025em]">
             From feeding stage to saved formulation
