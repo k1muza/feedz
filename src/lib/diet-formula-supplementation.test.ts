@@ -84,23 +84,25 @@ describe("supplemented micronutrients versus total dietary micronutrients", () =
         { ingredientId: caremixWeaner.id, inclusionPct: 2.8 },
       ],
     }, [], actualLibrary);
-    near(analysis.supplementation.vitamins.vitaminAIuKg.value, 12000);
-    near(analysis.supplementation.vitamins.vitaminDIuKg.value, 1500);
-    near(analysis.supplementation.vitamins.vitaminEIuKg.value, 16);
-    near(analysis.supplementation.vitamins.vitaminKMgKg.value, 1);
-    near(analysis.supplementation.vitamins.vitaminB1MgKg.value, 1);
-    near(analysis.supplementation.vitamins.riboflavinMgKg.value, 4);
-    near(analysis.supplementation.vitamins.vitaminB6MgKg.value, 2);
-    near(analysis.supplementation.vitamins.vitaminB12McgKg.value, 35);
-    near(analysis.supplementation.vitamins.niacinMgKg.value, 30);
-    near(analysis.supplementation.vitamins.folicAcidMgKg.value, 1);
-    near(analysis.supplementation.vitamins.biotinMgKg.value, 0.15);
-    near(analysis.supplementation.traceMineralsPpm.zinc.value, 0.6);
-    near(analysis.supplementation.traceMineralsPpm.manganese.value, 20);
-    near(analysis.supplementation.traceMineralsPpm.iron.value, 2.5);
-    near(analysis.supplementation.traceMineralsPpm.copper.value, 120);
-    near(analysis.supplementation.traceMineralsPpm.iodine.value, 1);
-    near(analysis.supplementation.traceMineralsPpm.selenium.value, 0.1);
+    const close = (actual: number, expected: number) =>
+      assert.ok(Math.abs(actual - expected) < 0.00001, `Expected ${actual} ≈ ${expected}`);
+    close(analysis.supplementation.vitamins.vitaminAIuKg.value, 12000);
+    close(analysis.supplementation.vitamins.vitaminDIuKg.value, 1500);
+    close(analysis.supplementation.vitamins.vitaminEIuKg.value, 16);
+    close(analysis.supplementation.vitamins.vitaminKMgKg.value, 1);
+    close(analysis.supplementation.vitamins.vitaminB1MgKg.value, 1);
+    close(analysis.supplementation.vitamins.riboflavinMgKg.value, 4);
+    close(analysis.supplementation.vitamins.vitaminB6MgKg.value, 2);
+    close(analysis.supplementation.vitamins.vitaminB12McgKg.value, 35);
+    close(analysis.supplementation.vitamins.niacinMgKg.value, 30);
+    close(analysis.supplementation.vitamins.folicAcidMgKg.value, 1);
+    close(analysis.supplementation.vitamins.biotinMgKg.value, 0.15);
+    close(analysis.supplementation.traceMineralsPpm.zinc.value, 0.6);
+    close(analysis.supplementation.traceMineralsPpm.manganese.value, 20);
+    close(analysis.supplementation.traceMineralsPpm.iron.value, 2.5);
+    close(analysis.supplementation.traceMineralsPpm.copper.value, 120);
+    close(analysis.supplementation.traceMineralsPpm.iodine.value, 1);
+    close(analysis.supplementation.traceMineralsPpm.selenium.value, 0.1);
     for (const genuinelyUnknown of [
       analysis.supplementation.vitamins.totalCholineMgKg,
       analysis.supplementation.vitamins.pantothenicAcidMgKg,
