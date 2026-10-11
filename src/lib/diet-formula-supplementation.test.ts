@@ -11,7 +11,7 @@ import {
 const cornId = "corn-yellow-dent";
 const soybeanId = "soybean-meal-solvent-extracted";
 // Use an explicitly synthetic known-analysis fixture for the numeric accounting
-// tests. AECI V1736 now contains raw CSV label values with unverified units and
+// tests. AECI V1736 now contains user-confirmed label minima/maxima with no as-fed basis and
 // must NOT be credited as a proven copper/vitamin K source.
 const aeciPremix = commercialPremixById("aeci-v1736-pig-weaner-premix");
 if (!aeciPremix) throw new Error("Missing AECI V1736 premix record");
@@ -76,7 +76,7 @@ describe("supplemented micronutrients versus total dietary micronutrients", () =
     assert.ok(analysis.supplementation.traceMineralsPpm.selenium.missingIngredientIds.includes(weanerPremixId));
   });
 
-  test("AECI V1736 CSV-only label values remain unknown, never guessed from unheaded columns", () => {
+  test("AECI V1736 confirmed label ranges remain unconverted until the per-kg basis is known", () => {
     const actualLibrary = ingredientLibraryWithCommercialPremixes([aeciPremix], INGREDIENT_LIBRARY);
     const analysis = analyzeDiet({
       ingredients: [
