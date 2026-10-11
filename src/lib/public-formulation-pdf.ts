@@ -161,7 +161,8 @@ export async function renderPublicFormulationPdf(input: PublicFormulationPdfInpu
   );
   const docRef = `FS-FORM-${input.phase.id.toUpperCase()}-${dateParts.year}${dateParts.month}${dateParts.day}`;
   const premix = input.premix;
-  const premixProfile = premix.verifiedAsFedMicronutrients ?? premix.guaranteedMinimumAsFed;
+  const premixProfile = premix.verifiedAsFedMicronutrients ?? premix.guaranteedMinimumAsFed ?? premix.estimatedAsFedMicronutrients;
+  const premixEstimated = !!premix.estimatedAsFedMicronutrients && !premix.guaranteedMinimumAsFed && !premix.verifiedAsFedMicronutrients;
   const premixVerified = premix.verificationStatus === 'verified' && !!premix.verifiedAsFedMicronutrients;
   const ingredientLibrary = ingredientLibraryWithCommercialPremixes([premix], ingredientLibraryForPhase(input.phase));
   const planningPricePerTonne = (ingredientId: string) =>
@@ -452,7 +453,7 @@ export async function renderPublicFormulationPdf(input: PublicFormulationPdfInpu
       ['Manufacturer · SKU', `${premix.manufacturer} · ${premix.sku}`],
       ['Application', premix.application],
       ['Dose', premix.inclusionInstructions],
-      ['Nutrient data', premixVerified ? 'Manufacturer analysis.' : 'Manufacturer label minima.'],
+      ['Nutrient data', premixEstimated ? 'Planning estimate reverse-calculated from finished-feed range; NOT premix analysis.' : premixVerified ? 'Manufacturer analysis.' : 'Manufacturer label minima.'],
       ...(input.manufacturerRecipe ? [['Restriction', 'Fixed manufacturer recipe. No ingredient substitutions or ratio changes are permitted without a customised formula from the manufacturer.']] : []),
       ['Specification', premix.specificationUrl],
     ],
@@ -481,10 +482,12 @@ export async function renderPublicFormulationPdf(input: PublicFormulationPdfInpu
       { label: 'In finished feed', width: 100, align: 'right' },
       { label: 'Suggested addition', width: 100, align: 'right' },
     ];
-    const basis = premixVerified ? 'Manufacturer analysis' : 'Label minimum';
+    const basis = premixEstimated ? 'Modelled complete-feed target equivalent (unverified)' : premixVerified ? 'Manufacturer analysis' : 'Label minimum';
     if (vitaminRows.length) {
-      sectionHeading('Premix vitamin contribution', basis);
-      paragraph(`Concentrations are taken from the ${premix.manufacturer} label (${premixProfile.sourceUrl}) and scaled by the ${premix.inclusionKgPerTonne} kg/t dose. Suggested additions are the programme's published supplementation guidance.`, 8);
+      sectionHeading(premixEstimated ? 'Theoretical vitamin equivalent (not a premix assay)' : 'Premix vitamin contribution', basis);
+      paragraph(premixEstimated
+        ? 'These values are backwards-calculated from FINISHED-FEED specifications, assigning the entire nutrient target to the premix and ignoring basal contributions. They are NOT verified manufacturer premix concentrations or proof of adequate supplementation.'
+        : `Concentrations are taken from the ${premix.manufacturer} label (${premixProfile.sourceUrl}) and scaled by the ${premix.inclusionKgPerTonne} kg/t dose. Suggested additions are the programme's published supplementation guidance.`, 8);
       drawTable(columns, vitaminRows, { fontSize: 7.7 });
     }
     if (traceRows.length) {
