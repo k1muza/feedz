@@ -572,7 +572,7 @@ export function ingredientLibraryWithCommercialPremixes(
           ...record.provenance,
           source: {
             publisher: product.manufacturer,
-            title: product.name + " — manufacturer product specification",
+            title: product.estimatedAsFedMicronutrients ? product.name + " — modelled from complete-feed specification, not a manufacturer premix analysis" : product.name + " — manufacturer product specification",
             url: product.specificationUrl,
             priority: "supplier",
             basis: "as-fed",
@@ -586,7 +586,7 @@ export function ingredientLibraryWithCommercialPremixes(
                 `vitamins.${name}`,
                 {
                   publisher: product.manufacturer,
-                  title: `${product.name} — guaranteed nutritional composition`,
+                  title: product.estimatedAsFedMicronutrients ? `${product.name} — estimated complete-feed target equivalent` : `${product.name} — guaranteed nutritional composition`,
                   url: micronutrientProfile!.sourceUrl,
                   priority: "supplier" as const,
                   basis: product.estimatedAsFedMicronutrients ? "derived target equivalent; not assayed" : micronutrientProfileVerified ? "verified as-fed analysis" : "as-fed label minimum",
@@ -598,7 +598,7 @@ export function ingredientLibraryWithCommercialPremixes(
                 `traceMineralsPpm.${name}`,
                 {
                   publisher: product.manufacturer,
-                  title: `${product.name} — guaranteed nutritional composition`,
+                  title: product.estimatedAsFedMicronutrients ? `${product.name} — estimated complete-feed target equivalent` : `${product.name} — guaranteed nutritional composition`,
                   url: micronutrientProfile!.sourceUrl,
                   priority: "supplier" as const,
                   basis: micronutrientProfileVerified ? "verified as-fed analysis" : "as-fed label minimum",
