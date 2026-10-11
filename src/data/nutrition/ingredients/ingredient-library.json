@@ -23992,187 +23992,246 @@
         "specificationUrl": "https://www.aeciworld.net/animal-health.html",
         "note": "Registration V1736 under Act 36 of 1947. The photographed label specifies 10 kg/t and a 20 kg pack (2 x 10 kg). No supplier price was provided.",
         "notes": [
-          "The bag states 10 kg premix per tonne finished feed; neither nutrient column has a legible unit/basis heading.",
-          "The full first/second-column label table is preserved in labelTranscription, including vitamins, trace minerals, lysine, threonine, enzymes and phytase.",
-          "No guaranteed as-fed nutrient contributions are credited until AECI confirms the actual nutrient composition per kg of premix.",
-          "The AECI website is general manufacturer context, not a product-specific technical datasheet."
+          "Label transcribed from the canonical CSV at src/data/nutrition/premixes/aeci-v1736-pig-weaner-label.csv.",
+          "10 kg/t usage remains from the photographed pack; the CSV supplies nutrient/additive table rows only.",
+          "Neither value column has established units per kg of premix. No AECI nutrient contributions are credited to the optimizer.",
+          "The AECI website gives manufacturer context, not the product's technical specification."
         ],
         "labelTranscription": {
-          "source": "User-supplied photograph of Irvine's Africa Exports / AECI Pig Weaner V1736 bag",
+          "source": "User-supplied pig_weaner_premix_label.csv (authoritative transcription); photograph retained as secondary visual evidence",
           "batch": "25254-07.2024",
           "inclusionPrinted": "10Kgs Per 1 Tonne Of Final Feed",
-          "firstColumnHeading": "not visible",
-          "secondColumnHeading": "not visible",
-          "basis": "unknown; neither column can be normalized as per-kg premix concentration",
+          "firstColumnHeading": "not established by CSV or source photo",
+          "secondColumnHeading": "not established by CSV or source photo",
+          "basis": "unknown; raw numeric fields and unit labels are not verified per-kg premix concentrations",
           "rows": [
             {
-              "category": "vitamins",
-              "label": "VIT A",
-              "column1Raw": "5.000.000",
-              "column2Raw": "14.5000 M IU",
-              "uncertain": true
+              "category": "Vitamin",
+              "nutrient": "Vit A",
+              "source_form": "",
+              "left_value": "5000000",
+              "right_value": "14.5",
+              "right_unit": "MIU",
+              "note": ""
             },
             {
-              "category": "vitamins",
-              "label": "VIT D3",
-              "column1Raw": "2.000.000",
-              "column2Raw": "400 M IU",
-              "uncertain": true
+              "category": "Vitamin",
+              "nutrient": "Vit D3",
+              "source_form": "",
+              "left_value": "2000000",
+              "right_value": "400",
+              "right_unit": "MIU",
+              "note": ""
             },
             {
-              "category": "vitamins",
-              "label": "VIT E (DL)",
-              "column1Raw": "10.000",
-              "column2Raw": "30.40 M IU",
-              "uncertain": true
+              "category": "Vitamin",
+              "nutrient": "Vit E (DL)",
+              "source_form": "",
+              "left_value": "10000",
+              "right_value": "30.00",
+              "right_unit": "MIU",
+              "note": ""
             },
             {
-              "category": "vitamins",
-              "label": "VIT B4 (CHLORIDE)",
-              "column1Raw": "0.0000",
-              "column2Raw": "500.000g",
-              "uncertain": true
+              "category": "Vitamin",
+              "nutrient": "Vit B4",
+              "source_form": "choline chloride",
+              "left_value": "0",
+              "right_value": "500.000",
+              "right_unit": "g",
+              "note": ""
             },
             {
-              "category": "vitamins",
-              "label": "VIT B3 (NIACIN)",
-              "column1Raw": "15.0000",
-              "column2Raw": "20.000g"
+              "category": "Vitamin",
+              "nutrient": "Vit B3",
+              "source_form": "niacin",
+              "left_value": "15.0000",
+              "right_value": "20.000",
+              "right_unit": "g",
+              "note": ""
             },
             {
-              "category": "vitamins",
-              "label": "VIT B2",
-              "column1Raw": "3.0000",
-              "column2Raw": "5500g",
-              "uncertain": true
+              "category": "Vitamin",
+              "nutrient": "Vit B2",
+              "source_form": "",
+              "left_value": "3.0000",
+              "right_value": "5000",
+              "right_unit": "g",
+              "note": ""
             },
             {
-              "category": "vitamins",
-              "label": "VIT B6 (PYRIDOXINE)",
-              "column1Raw": "1.00",
-              "column2Raw": "600g",
-              "uncertain": true
+              "category": "Vitamin",
+              "nutrient": "Vit B6",
+              "source_form": "pyridoxine",
+              "left_value": "1.00",
+              "right_value": "6000",
+              "right_unit": "g",
+              "note": ""
             },
             {
-              "category": "vitamins",
-              "label": "VIT B1",
-              "column1Raw": "1.5000g",
-              "column2Raw": "3.5000g",
-              "uncertain": true
+              "category": "Vitamin",
+              "nutrient": "Vit B1",
+              "source_form": "",
+              "left_value": "1.5000",
+              "right_value": "3.5000",
+              "right_unit": "g",
+              "note": ""
             },
             {
-              "category": "vitamins",
-              "label": "VIT K3",
-              "column1Raw": "0.3000",
-              "column2Raw": "2.5000g"
+              "category": "Vitamin",
+              "nutrient": "Vit K3",
+              "source_form": "",
+              "left_value": "0.3000",
+              "right_value": "2.5000",
+              "right_unit": "g",
+              "note": ""
             },
             {
-              "category": "vitamins",
-              "label": "VIT B9",
-              "column1Raw": "0000.1",
-              "column2Raw": "200g",
-              "uncertain": true
+              "category": "Vitamin",
+              "nutrient": "Vit B9",
+              "source_form": "",
+              "left_value": "0.1",
+              "right_value": "2000",
+              "right_unit": "g",
+              "note": ""
             },
             {
-              "category": "vitamins",
-              "label": "VIT H (D BIOTIN)",
-              "column1Raw": "0.0000",
-              "column2Raw": "0.2000g"
+              "category": "Vitamin",
+              "nutrient": "Vit H",
+              "source_form": "D-biotin",
+              "left_value": "0.0000",
+              "right_value": "0.2000",
+              "right_unit": "g",
+              "note": ""
             },
             {
-              "category": "vitamins",
-              "label": "VIT B12",
-              "column1Raw": "0.0150",
-              "column2Raw": "0.2000g"
+              "category": "Vitamin",
+              "nutrient": "Vit B12",
+              "source_form": "",
+              "left_value": "0.0150",
+              "right_value": "0.2000",
+              "right_unit": "g",
+              "note": ""
             },
             {
-              "category": "vitamins",
-              "label": "VIT C (ASCORBIC ACID)",
-              "column1Raw": "0.0000",
-              "column2Raw": "000g",
-              "uncertain": true
+              "category": "Vitamin",
+              "nutrient": "Vit C",
+              "source_form": "ascorbic acid",
+              "left_value": "0.0000",
+              "right_value": "0",
+              "right_unit": "g",
+              "note": "right value hard to read"
             },
             {
-              "category": "minerals",
-              "label": "ZINC (zinc oxide)",
-              "column1Raw": "30.000",
-              "column2Raw": "150.000g"
+              "category": "Mineral",
+              "nutrient": "Zinc",
+              "source_form": "zinc oxide",
+              "left_value": "30.000",
+              "right_value": "150.000",
+              "right_unit": "g",
+              "note": ""
             },
             {
-              "category": "minerals",
-              "label": "MANGANESE (oxide)",
-              "column1Raw": "15.000",
-              "column2Raw": "150.000g",
-              "uncertain": true
+              "category": "Mineral",
+              "nutrient": "Manganese",
+              "source_form": "manganese oxide",
+              "left_value": "15.000",
+              "right_value": "150.0000",
+              "right_unit": "g",
+              "note": ""
             },
             {
-              "category": "minerals",
-              "label": "IRON (iron sulphate)",
-              "column1Raw": "25.0000",
-              "column2Raw": "1000g",
-              "uncertain": true
+              "category": "Mineral",
+              "nutrient": "Iron",
+              "source_form": "iron sulphate",
+              "left_value": "25.0000",
+              "right_value": "1000",
+              "right_unit": "g",
+              "note": ""
             },
             {
-              "category": "minerals",
-              "label": "COPPER (copper sulphate)",
-              "column1Raw": "1.0000",
-              "column2Raw": "20.000g"
+              "category": "Mineral",
+              "nutrient": "Copper",
+              "source_form": "copper sulphate",
+              "left_value": "1.0000",
+              "right_value": "20.0000",
+              "right_unit": "g",
+              "note": ""
             },
             {
-              "category": "minerals",
-              "label": "MAGNESIUM (OXIDE)",
-              "column1Raw": "0.0000",
-              "column2Raw": "4.5000g"
+              "category": "Mineral",
+              "nutrient": "Magnesium",
+              "source_form": "oxide",
+              "left_value": "0.0000",
+              "right_value": "4.5000",
+              "right_unit": "g",
+              "note": ""
             },
             {
-              "category": "minerals",
-              "label": "IODINE",
-              "column1Raw": "0.3000",
-              "column2Raw": "2.000g"
+              "category": "Mineral",
+              "nutrient": "Iodine",
+              "source_form": "",
+              "left_value": "0.3000",
+              "right_value": "2.000",
+              "right_unit": "g",
+              "note": ""
             },
             {
-              "category": "minerals",
-              "label": "SODIUM",
-              "column1Raw": "0.000",
-              "column2Raw": "0.4000g"
+              "category": "Mineral",
+              "nutrient": "Sodium",
+              "source_form": "",
+              "left_value": "0.000",
+              "right_value": "0.4000",
+              "right_unit": "g",
+              "note": ""
             },
             {
-              "category": "minerals",
-              "label": "MAGNESIUM [as printed]",
-              "column1Raw": "78% L.LYSINE",
-              "column2Raw": "0000kg",
-              "uncertain": true
+              "category": "Mineral",
+              "nutrient": "Magnesium (2nd row, likely lysine)",
+              "source_form": "",
+              "left_value": "78% L-Lysine",
+              "right_value": "0",
+              "right_unit": "g",
+              "note": "label error likely; 78% probably lysine source grade"
             },
             {
-              "category": "additives",
-              "label": "L-THREONINE",
-              "column1Raw": "98.5%",
-              "column2Raw": "0.000kg",
-              "uncertain": true
+              "category": "Additive",
+              "nutrient": "L-Threonine",
+              "source_form": "",
+              "left_value": "98.5%",
+              "right_value": "0.000",
+              "right_unit": "g",
+              "note": ""
             },
             {
-              "category": "additives",
-              "label": "NSP ENZYME (GLUCANASE)",
-              "column1Raw": null,
-              "column2Raw": "0.0030kg",
-              "uncertain": true
+              "category": "Additive",
+              "nutrient": "NSP enzyme",
+              "source_form": "glucanase",
+              "left_value": "",
+              "right_value": "0.0000",
+              "right_unit": "g",
+              "note": ""
             },
             {
-              "category": "additives",
-              "label": "PHYTASE",
-              "column1Raw": "10000",
-              "column2Raw": "0.0300kg",
-              "uncertain": true
+              "category": "Additive",
+              "nutrient": "Phytase",
+              "source_form": "",
+              "left_value": "10000",
+              "right_value": "0.0000",
+              "right_unit": "g",
+              "note": ""
             }
           ],
           "cautions": [
-            "Unheaded columns; raw strings preserve punctuation and typography but some print is uncertain.",
-            "Choline row (VIT B4 CHLORIDE) has 0.0000 in first column and around 500.000g in second; do not equate with total choline.",
-            "Row labelled MAGNESIUM contains 78% L.LYSINE; likely table layout error; no confirmed lysine assay.",
-            "Phytase value 10000 has unspecified FTU/activity and basis.",
-            "Label neither states elemental selenium nor unambiguous pantothenic acid guarantee.",
-            "Do not use the raw columns as active nutrient contributions before official manufacturer confirmation."
-          ]
+            "The CSV is authoritative for the transcription, not a laboratory analysis or nutrient guarantee.",
+            "Neither numeric column has an established measurement basis; do not infer guaranteed as-fed concentrations.",
+            "Choline chloride is not the same as elemental or total choline; do not convert without product specification.",
+            "The row 'Magnesium (2nd row, likely lysine)' explicitly notes a possible label error; do not map it to digestible lysine.",
+            "The phytase activity unit and basis are not established; do not infer FTU/kg from a bare 10000.",
+            "Vitamin E activity/form, selenium content and pantothenic acid are not independently verified.",
+            "The CSV notes the Vitamin C right-hand value is difficult to read; preserve the note verbatim."
+          ],
+          "csvPath": "src/data/nutrition/premixes/aeci-v1736-pig-weaner-label.csv"
         }
       }
     },
