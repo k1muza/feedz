@@ -1329,7 +1329,6 @@ export function buildNutrientProfile(
       constraint.relation === "min"
         ? actual - constraint.bound
         : constraint.bound - actual;
-    const scale = Math.max(Math.abs(constraint.bound), 1e-9);
     const bindingTolerance = nutrientFeasibilityTolerance(constraint.bound);
 
     return [
