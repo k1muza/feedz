@@ -10,14 +10,14 @@ import {
 
 const cornId = "corn-yellow-dent";
 const soybeanId = "soybean-meal-solvent-extracted";
-// Synthetic fixture for independent numeric accounting tests; AECI V1736
-// now contributes its user-confirmed per-tonne finished-feed label minima.
-const aeciPremix = commercialPremixById("aeci-v1736-pig-weaner-premix");
-if (!aeciPremix) throw new Error("Missing AECI V1736 premix record");
+// The Caremix per-kg FINISHED-feed ranges are reverse-modelled into a
+// provisional profile. This is not an assayed premix composition.
+const caremixWeaner = commercialPremixById("caremix-pig-weaner");
+if (!caremixWeaner) throw new Error("Missing Caremix PigWeaner premix");
 
 const weanerPremixId = "test-known-micronutrient-premix";
 const knownPremix = {
-  ...aeciPremix,
+  ...caremixWeaner,
   id: weanerPremixId,
   name: "Synthetic known-micronutrient premix (test fixture only)",
   guaranteedMinimumAsFed: {
@@ -75,59 +75,41 @@ describe("supplemented micronutrients versus total dietary micronutrients", () =
     assert.ok(analysis.supplementation.traceMineralsPpm.selenium.missingIngredientIds.includes(weanerPremixId));
   });
 
-  test("AECI V1736 per-tonne label minima are credited at 10 kg/t", () => {
-    const actualLibrary = ingredientLibraryWithCommercialPremixes([aeciPremix], INGREDIENT_LIBRARY);
+  test("Caremix label-equivalent estimates use the 2.8% inclusion rate without claiming verification", () => {
+    const actualLibrary = ingredientLibraryWithCommercialPremixes([caremixWeaner], INGREDIENT_LIBRARY);
     const analysis = analyzeDiet({
       ingredients: [
-        { ingredientId: cornId, inclusionPct: 59 },
+        { ingredientId: cornId, inclusionPct: 57.2 },
         { ingredientId: soybeanId, inclusionPct: 40 },
-        { ingredientId: aeciPremix.id, inclusionPct: 1 },
+        { ingredientId: caremixWeaner.id, inclusionPct: 2.8 },
       ],
     }, [], actualLibrary);
-    near(analysis.supplementation.vitamins.vitaminAIuKg.value, 5_000);
-    near(analysis.supplementation.vitamins.vitaminDIuKg.value, 2_000);
-    near(analysis.supplementation.vitamins.vitaminEIuKg.value, 10);
-    near(analysis.supplementation.vitamins.vitaminKMgKg.value, 0.3);
-    near(analysis.supplementation.vitamins.vitaminB1MgKg.value, 1.5);
-    near(analysis.supplementation.vitamins.riboflavinMgKg.value, 3);
-    near(analysis.supplementation.vitamins.vitaminB6MgKg.value, 1);
-    near(analysis.supplementation.vitamins.vitaminB12McgKg.value, 15);
-    near(analysis.supplementation.vitamins.niacinMgKg.value, 15);
-    near(analysis.supplementation.vitamins.folicAcidMgKg.value, 0.1);
-    near(analysis.supplementation.traceMineralsPpm.zinc.value, 30);
-    near(analysis.supplementation.traceMineralsPpm.manganese.value, 15);
-    near(analysis.supplementation.traceMineralsPpm.iron.value, 25);
-    near(analysis.supplementation.traceMineralsPpm.copper.value, 1);
-    near(analysis.supplementation.traceMineralsPpm.iodine.value, 0.3);
-    for (const checked of [
-      analysis.supplementation.vitamins.vitaminAIuKg,
-      analysis.supplementation.vitamins.vitaminDIuKg,
-      analysis.supplementation.vitamins.vitaminEIuKg,
-      analysis.supplementation.vitamins.vitaminKMgKg,
-      analysis.supplementation.vitamins.vitaminB1MgKg,
-      analysis.supplementation.vitamins.riboflavinMgKg,
-      analysis.supplementation.vitamins.vitaminB6MgKg,
-      analysis.supplementation.vitamins.vitaminB12McgKg,
-      analysis.supplementation.vitamins.niacinMgKg,
-      analysis.supplementation.vitamins.folicAcidMgKg,
-      analysis.supplementation.traceMineralsPpm.zinc,
-      analysis.supplementation.traceMineralsPpm.manganese,
-      analysis.supplementation.traceMineralsPpm.iron,
-      analysis.supplementation.traceMineralsPpm.copper,
-      analysis.supplementation.traceMineralsPpm.iodine,
-    ]) {
-      assert.equal(checked.complete, true);
-      assert.deepEqual(checked.missingIngredientIds, []);
-    }
+    near(analysis.supplementation.vitamins.vitaminAIuKg.value, 12000);
+    near(analysis.supplementation.vitamins.vitaminDIuKg.value, 1500);
+    near(analysis.supplementation.vitamins.vitaminEIuKg.value, 16);
+    near(analysis.supplementation.vitamins.vitaminKMgKg.value, 1);
+    near(analysis.supplementation.vitamins.vitaminB1MgKg.value, 1);
+    near(analysis.supplementation.vitamins.riboflavinMgKg.value, 4);
+    near(analysis.supplementation.vitamins.vitaminB6MgKg.value, 2);
+    near(analysis.supplementation.vitamins.vitaminB12McgKg.value, 35);
+    near(analysis.supplementation.vitamins.niacinMgKg.value, 30);
+    near(analysis.supplementation.vitamins.folicAcidMgKg.value, 1);
+    near(analysis.supplementation.vitamins.biotinMgKg.value, 0.15);
+    near(analysis.supplementation.traceMineralsPpm.zinc.value, 0.6);
+    near(analysis.supplementation.traceMineralsPpm.manganese.value, 20);
+    near(analysis.supplementation.traceMineralsPpm.iron.value, 2.5);
+    near(analysis.supplementation.traceMineralsPpm.copper.value, 120);
+    near(analysis.supplementation.traceMineralsPpm.iodine.value, 1);
+    near(analysis.supplementation.traceMineralsPpm.selenium.value, 0.1);
     for (const genuinelyUnknown of [
       analysis.supplementation.vitamins.totalCholineMgKg,
-      analysis.supplementation.vitamins.biotinMgKg,
       analysis.supplementation.vitamins.pantothenicAcidMgKg,
-      analysis.supplementation.traceMineralsPpm.selenium,
     ]) {
       assert.equal(genuinelyUnknown.complete, false);
-      assert.ok(genuinelyUnknown.missingIngredientIds.includes(aeciPremix.id));
+      assert.ok(genuinelyUnknown.missingIngredientIds.includes(caremixWeaner.id));
     }
+    assert.ok(caremixWeaner.estimatedAsFedMicronutrients);
+    assert.equal(caremixWeaner.guaranteedMinimumAsFed, undefined);
   });
 
   test("a separately added mineral source with a declared trace nutrient still counts as supplementation", () => {
