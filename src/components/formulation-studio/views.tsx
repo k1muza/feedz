@@ -1548,6 +1548,40 @@ function AdvisoriesTab({ opt }: { opt: OptVals }) {
   );
 }
 
+function NotesTab({ v }: V) {
+  const { alerts, planningPrices } = v.notesTab;
+  return (
+    <div style={sx("display:flex;flex-direction:column;gap:14px")}>
+      {alerts.map((w, i) => (
+        <div key={i} style={sx(`display:flex;gap:10px;align-items:flex-start;padding:12px 14px;background:${w.bg};border:1px solid ${w.bd};border-radius:8px`)}>
+          <span style={sx(`flex:none;margin-top:5px;width:8px;height:8px;background:${w.dot};border-radius:${w.r};transform:rotate(${w.rot})`)} />
+          <div style={sx("flex:1;display:flex;flex-direction:column;gap:3px")}>
+            <span style={sx(`font:600 13px/1.35 'IBM Plex Sans',sans-serif;color:${w.fg}`)}>{w.title}</span>
+            <span style={sx("font:400 13px/1.45 'IBM Plex Sans',sans-serif;color:#45473f")}>{w.body}</span>
+          </div>
+          {w.hasEdit && <button onClick={w.edit} style={sx("flex:none;border:0;background:transparent;font:600 13px/1 'IBM Plex Sans',sans-serif;color:#2f5a3f;padding:4px 0")}>Edit</button>}
+        </div>
+      ))}
+      {planningPrices.length > 0 && (
+        <section style={sx(`${CARD};overflow:hidden`)}>
+          <div style={sx("display:flex;flex-direction:column;gap:4px;padding:14px 18px;border-bottom:1px solid #ece8df")}>
+            <span style={sx("font:600 15px/1.2 'IBM Plex Sans',sans-serif")}>Using FeedSport planning prices · {planningPrices.length}</span>
+            <span style={sx("font:400 13px/1.45 'IBM Plex Sans',sans-serif;color:#64665c")}>Your cost will differ if you pay more or less. Enter your own price to replace one.</span>
+          </div>
+          {planningPrices.map((w) => (
+            <div key={w.name} style={sx("display:flex;align-items:center;gap:12px;padding:10px 18px;border-top:1px solid #f1eee7;font:400 14px/1.3 'IBM Plex Sans',sans-serif")}>
+              <span style={sx("flex:1;min-width:0")}>{w.name}</span>
+              <span style={sx("font-weight:600")}>{w.price}</span>
+              <span style={sx("width:44px;text-align:right")}>{w.hasEdit && <button onClick={w.edit} style={sx(ADV_LINK)}>Edit</button>}</span>
+            </div>
+          ))}
+        </section>
+      )}
+      {!alerts.length && !planningPrices.length && <div style={sx(`${CARD};padding:16px 18px;font:400 14px/1.5 'IBM Plex Sans',sans-serif;color:#45473f`)}>Every ingredient uses your own price, and there are no data notes.</div>}
+    </div>
+  );
+}
+
 function ComparePremixes({ c }: { c: NonNullable<OptVals["compare"]> }) {
   const cols = `minmax(150px,1fr) repeat(${c.columns.length},minmax(170px,1fr))`;
   const cellBg = (suggested: boolean) => (suggested ? "background:#eef3ee" : "");
@@ -1681,6 +1715,7 @@ function Optimal({ v, opt }: V & { opt: OptVals }) {
 
       {v.tabNutrients && <NutrientAnalysis v={v} opt={opt} />}
       {v.tabAdvisories && <AdvisoriesTab opt={opt} />}
+      {v.tabNotes && <NotesTab v={v} />}
       {v.compareOpen && opt.compare && <ComparePremixes c={opt.compare} />}
 
       {v.tabWhy && (

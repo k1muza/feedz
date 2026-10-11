@@ -151,7 +151,7 @@ interface AuthForm {
   org: string;
   role: Role3;
 }
-type Tab = "recipe" | "nutrients" | "advisories" | "why" | "history";
+type Tab = "recipe" | "nutrients" | "advisories" | "notes" | "why" | "history";
 type InputEvent = ChangeEvent<HTMLInputElement | HTMLSelectElement>;
 type KeyEvent = KeyboardEvent<HTMLInputElement>;
 type Species = "swine" | "broiler";
@@ -1699,7 +1699,13 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
       : S.savedSig === sigOf(S) + S.mode + JSON.stringify(S.manual)
         ? { label: "SAVED · v" + doc.versions.length, color: "#2b6a42" }
         : { label: "v" + doc.versions.length + " · UNSAVED CHANGES", color: "#8a5f18" };
-  const warns = (R ? R.warns.filter((w) => !w.soft || view.optimal) : []).map((w) => ({ soft: !!w.soft, title: w.title, body: w.body, bg: w.soft ? "#fff" : "#fdf6e8", bd: w.soft ? "#e2dfd6" : "#f0c97f", dot: w.soft ? "#b9b6ab" : "#c98a1e", r: w.soft ? "50%" : "0", rot: w.soft ? "0deg" : "45deg", fg: w.soft ? "#222420" : "#5c4012", hasEdit: !!w.id && !!S.pool[w.id], edit: () => w.id && openDrawer(w.id) }));
+  const warns = (R ? R.warns.filter((w) => !w.soft || view.optimal) : []).map((w) => ({ soft: !!w.soft, title: w.title, body: w.body, bg: w.soft ? "#fff" : "#fdf6e8", bd: w.soft ? "#e2dfd6" : "#f0c97f", dot: w.soft ? "#b9b6ab" : "#c98a1e", r: w.soft ? "50%" : "0", rot: w.soft ? "0deg" : "45deg", fg: w.soft ? "#222420" : "#5c4012", hasEdit: !!w.id && !!S.pool[w.id], edit: () => w.id && openDrawer(w.id), name: w.id ? ingredientName(w.id) : "", price: w.id ? priceTxt(priceOf(w.id, S.pool, catalogueById)) : "" }));
+  // With a recipe on screen, notes live in their own tab: planning prices as one
+  // table, anything that needs attention as cards above it.
+  const notesTab = {
+    alerts: warns.filter((w) => !w.soft),
+    planningPrices: warns.filter((w) => w.soft && w.name),
+  };
   const blockErrs =
     R?.status === "blocked"
       ? R.errs.map((e) => ({
@@ -1822,10 +1828,11 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
       ["recipe", "Recipe"],
       ["nutrients", "Nutrient analysis"],
       ["advisories", "Advisories"],
+      ["notes", "Prices & notes"],
       ["why", "Why this recipe"],
       ["history", "History"],
     ] as [Tab, string][]
-  ).map(([k, label]) => ({ label, count: k === "advisories" ? opt?.advisoryTotal ?? 0 : 0, bd: S.tab === k ? "#222420" : "transparent", color: S.tab === k ? "#222420" : "#64665c", go: () => update({ tab: k }) }));
+  ).map(([k, label]) => ({ label, count: k === "advisories" ? opt?.advisoryTotal ?? 0 : k === "notes" ? warns.length : 0, bd: S.tab === k ? "#222420" : "transparent", color: S.tab === k ? "#222420" : "#64665c", go: () => update({ tab: k }) }));
   const why = optimal ? whyVals(S, optimal, { update, run, engine, phase: PH }) : { limiting: [], held: [], opps: [], misses: [], none: false };
   const runs = S.history.map((h) => ({ time: h.t.toTimeString().slice(0, 5), label: h.verdict ? h.headline + (h.status === "optimal" ? " · " + h.n + " ingredients" : "") : h.status === "infeasible" ? "Reformulation required" : "Couldn’t formulate", cost: h.status === "optimal" ? money(h.cost) + "/t" : "—" }));
   const docAdvice = doc
@@ -2053,7 +2060,7 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
     hasRecoveryUndo: !!S.recoveryUndo,
     recoveryUndoText: S.recoveryUndo ? S.recoveryUndo.label + " was added from the feasibility suggestions." : "",
     undoRecovery,
-    view, dimOpacity: S.running || stale ? "0.5" : "1", emptyTitle: activeCount ? "Ready to formulate" : "Before you can formulate", checklist, blockErrs, hasWarns: warns.length > 0 && !S.running && !inf, warns, inf,
+    view, dimOpacity: S.running || stale ? "0.5" : "1", emptyTitle: activeCount ? "Ready to formulate" : "Before you can formulate", checklist, blockErrs, hasWarns: warns.length > 0 && !S.running && !inf && !opt, warns, inf, notesTab, tabNotes: S.tab === "notes",
     opt, manufacturerResult, showSolver: showSolverDetails, tabs, tabRecipe: S.tab === "recipe", tabNutrients: S.tab === "nutrients", tabWhy: S.tab === "why", tabHistory: S.tab === "history",
     // The drawer holds the nutritionist's notes; result advisories live in the Advisories tab.
     advisoriesOpen: S.advisoriesOpen && docAdvice.length > 0,
