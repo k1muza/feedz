@@ -136,7 +136,7 @@ export default function StudioTourPlayer() {
             loop
             playsInline
             aria-label="Actual FeedSport Studio walkthrough"
-            aria-describedby="walkthrough-description walkthrough-cost-note"
+            aria-describedby="walkthrough-description"
             onCanPlay={() => setPlaybackFailed(false)}
             onLoadedMetadata={(event) => setDuration(event.currentTarget.duration)}
             onPlay={() => setIsPlaying(true)}
@@ -201,26 +201,16 @@ export default function StudioTourPlayer() {
         </div>
       </div>
 
-      <div className="grid gap-6 py-6 md:grid-cols-[minmax(0,1fr)_minmax(260px,0.65fr)] md:items-start">
-        <div>
-          <p className="mb-2 font-mono text-xs font-semibold uppercase tracking-widest text-[#2f5a3f]">
-            Actual Studio walkthrough · 33 seconds
-          </p>
-          <h3 className="mb-2 text-[clamp(24px,3vw,36px)] font-bold leading-tight tracking-[-.025em]">
-            From feeding stage to saved formulation
-          </h3>
-          <p id="walkthrough-description" className="m-0 max-w-[680px] text-[15px] leading-7 text-[#4f524b]">
-            Watch a real FeedSport Studio session select a 47–74 kg grower pig stage, use suggested ingredients, formulate a
-            1-tonne simpler recipe, review its nutrition and advisories, then name and save it.
-          </p>
-        </div>
-        <p
-          id="walkthrough-cost-note"
-          className="m-0 rounded-lg border border-[#dfc98e] bg-[#fff8e8] px-4 py-3 text-[13px] leading-6 text-[#5c4b25]"
-        >
-          <strong className="font-semibold text-[#3f341d]">Cost context.</strong> The $508.46/t result includes the entered
-          Caremix premix price. Planning prices are indicative; review the nutrient analysis, missing premix documentation and
-          advisories before manufacturing.
+      <div className="py-6">
+        <p className="mb-2 font-mono text-xs font-semibold uppercase tracking-widest text-[#2f5a3f]">
+          Actual Studio walkthrough · 33 seconds
+        </p>
+        <h3 className="mb-2 text-[clamp(24px,3vw,36px)] font-bold leading-tight tracking-[-.025em]">
+          From feeding stage to saved formulation
+        </h3>
+        <p id="walkthrough-description" className="m-0 max-w-[680px] text-[15px] leading-7 text-[#4f524b]">
+          Watch a real FeedSport Studio session select a 47–74 kg grower pig stage, use suggested ingredients, formulate a
+          1-tonne simpler recipe, review its nutrition and advisories, then name and save it.
         </p>
       </div>
     </div>
