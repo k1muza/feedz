@@ -945,7 +945,7 @@ function prepareRequest(
   const selectedPremixes = ingredientIds.flatMap((id) => {
     const premix = commercialPremixById(id);
     if (!premix) return [];
-    if (!commercialPremixCompatibleWithProgramme(premix, programmeId)) throw new FeedSportInputError(`${premix.name} is not assigned to ${programmeId}.`);
+    if (!commercialPremixCompatibleWithProgramme(premix, programmeId, resolved.phase.id)) throw new FeedSportInputError(`${premix.name} is not assigned to ${programmeId}.`);
     return [premix];
   });
   if (selectedPremixes.length > 1) throw new FeedSportInputError("Use one commercial premix at a time.");

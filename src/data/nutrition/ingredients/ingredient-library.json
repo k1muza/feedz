@@ -24228,7 +24228,13 @@
             "The CSV notes the Vitamin C right-hand value is difficult to read; preserve the note verbatim."
           ],
           "csvPath": "src/data/nutrition/premixes/aeci-v1736-pig-weaner-label.csv"
-        }
+        },
+        "simulationOnlyPhases": [
+          {
+            "programmeId": "grow-finish-pig",
+            "phaseClass": "grower"
+          }
+        ]
       }
     },
     {
