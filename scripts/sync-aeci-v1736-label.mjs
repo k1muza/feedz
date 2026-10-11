@@ -59,14 +59,23 @@ if (EXPECTED_HEADER.some((name) => header[name] !== name)) {
   throw new Error("Unexpected AECI CSV header");
 }
 const rows = lines.filter((line) => line.length).map(parseCsvRow);
+const names = rows.map((row) => row.nutrient);
 if (rows.length !== 24) throw new Error("Expected 24 AECI V1736 label rows; got " + rows.length);
 if (rows.some((row) => !["Vitamin", "Mineral", "Additive"].includes(row.category) || !row.nutrient)) {
   throw new Error("Invalid category or missing nutrient in AECI CSV");
+}
+// One canonical name per label entry, without legacy 'Vit' abbreviations or
+// alternate names. Ambiguous printed rows remain explicitly unresolved.
+if (new Set(names).size !== names.length || names.some((name) => /^Vit(?:amin)?\s+[A-Z]\d?$/.test(name) && !name.startsWith("Vitamin"))) {
+  throw new Error("AECI CSV contains duplicate or non-canonical nutrient names");
 }
 const ingredient = lib.ingredients.find((item) => item.id === "aeci-v1736-pig-weaner-premix");
 if (!ingredient?.premix?.labelTranscription) {
   throw new Error("AECI V1736 record missing premix.labelTranscription");
 }
+// All other catalogue ingredients retain their own search aliases. This
+// single premix uses only its canonical product name and canonical CSV names.
+delete ingredient.aliases;
 const transcript = ingredient.premix.labelTranscription;
 transcript.csvPath = csvPath;
 transcript.source = "User-supplied pig_weaner_premix_label.csv (authoritative transcription); photograph retained as secondary visual evidence";
@@ -78,7 +87,7 @@ transcript.cautions = [
   "The CSV is authoritative for the transcription, not a laboratory analysis or nutrient guarantee.",
   "Neither numeric column has an established measurement basis; do not infer guaranteed as-fed concentrations.",
   "Choline chloride is not the same as elemental or total choline; do not convert without product specification.",
-  "The row 'Magnesium (2nd row, likely lysine)' explicitly notes a possible label error; do not map it to digestible lysine.",
+  "The row 'Magnesium (second row; identity unverified)' explicitly notes a possible label error; do not map it to digestible lysine.",
   "The phytase activity unit and basis are not established; do not infer FTU/kg from a bare 10000.",
   "Vitamin E activity/form, selenium content and pantothenic acid are not independently verified.",
   "The CSV notes the Vitamin C right-hand value is difficult to read; preserve the note verbatim.",
