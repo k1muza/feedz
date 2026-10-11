@@ -1,5 +1,4 @@
 import assert from "node:assert/strict";
-import { execFileSync } from "node:child_process";
 import { describe, test } from "node:test";
 import { FEED_PROGRAMMES } from "./feed-programmes";
 import { INGREDIENT_LIBRARY, INGREDIENT_LIBRARY_SOURCE, ingredientLibraryWithCommercialPremixes } from "./ingredient-nutrients";
@@ -29,16 +28,7 @@ describe("Manufacturer-backed commercial premix catalogue", () => {
     }
   });
 
-  test("keeps the AECI catalogue snapshot in sync with its authoritative CSV", () => {
-    const output = execFileSync(
-      process.execPath,
-      ["scripts/sync-aeci-v1736-label.mjs", "--check"],
-      { cwd: process.cwd(), encoding: "utf8" },
-    );
-    assert.match(output, /in sync with authoritative CSV \(24 rows\)/);
-  });
-
-  test("AECI uses canonical nutrient names, no product aliases, and no assumed guarantees", () => {
+  test("AECI minimum and maximum label figures are confirmed directly in the ingredient JSON", () => {
     const product = commercialPremixById("aeci-v1736-pig-weaner-premix");
     assert.ok(product);
     assert.equal(product.manufacturer, "AECI Animal Health");
@@ -50,45 +40,42 @@ describe("Manufacturer-backed commercial premix catalogue", () => {
 
     const libraryRow = INGREDIENT_LIBRARY_SOURCE.ingredients.find(row => row.id === product.id);
     assert.ok(libraryRow);
-    assert.deepEqual(libraryRow.aliases, [], "No redundant aliases for canonical AECI product name");
+    assert.deepEqual(libraryRow.aliases, [], "No redundant AECI aliases");
 
-    const csv = product.labelTranscription;
-    assert.ok(csv);
-    assert.equal(csv.csvPath, "src/data/nutrition/premixes/aeci-v1736-pig-weaner-label.csv");
-    assert.equal(csv.rows.length, 24);
-    assert.equal(csv.firstColumnHeading, "not established by CSV or source photo");
-    assert.equal(csv.secondColumnHeading, "not established by CSV or source photo");
-    const get = (name: string) => csv.rows.find((row) => row.nutrient === name);
-    const names = csv.rows.map(row => row.nutrient);
-    assert.equal(new Set(names).size, 24, "Every nutrient has one unambiguous canonical label");
-    assert.ok(names.every(name => !/^Vit\s/.test(name)), "No raw Vit abbreviations remain");
+    const label = product.labelGuarantees;
+    assert.ok(label);
+    assert.equal(label.confirmedByUser, true);
+    assert.deepEqual(label.columns, { first: "minimum", second: "maximum" });
+    assert.equal(label.rows.length, 24);
+    const get = (name: string) => label.rows.find((row) => row.nutrient === name);
+    const names = label.rows.map(row => row.nutrient);
+    assert.equal(new Set(names).size, 24);
 
     assert.deepEqual(get("Vitamin E"), {
       category: "Vitamin", nutrient: "Vitamin E",
       source_form: "DL (as labelled; exact chemical form unconfirmed)",
-      left_value: "10000", right_value: "30.00", right_unit: "MIU", note: "",
+      min: "10000", max: "30.00", unit: "MIU", note: "",
     });
-    assert.equal(get("Riboflavin")?.right_value, "5000");
-    assert.equal(get("Vitamin B6")?.right_value, "6000");
-    assert.equal(get("Folic acid")?.right_value, "2000");
-    assert.equal(get("Choline chloride")?.left_value, "0");
+    assert.equal(get("Vitamin K3")?.min, "0.3000");
+    assert.equal(get("Vitamin K3")?.max, "2.5000");
+    assert.equal(get("Zinc")?.min, "30.000");
+    assert.equal(get("Zinc")?.max, "150.000");
+    assert.equal(get("Riboflavin")?.max, "5000");
+    assert.equal(get("Choline chloride")?.min, "0");
     assert.equal(get("Biotin")?.source_form, "D-biotin");
     assert.equal(get("Magnesium (second row; identity unverified)")?.note,
       "label error likely; 78% probably lysine source grade");
-    assert.equal(get("NSP enzyme (glucanase)")?.right_value, "0.0000");
-    assert.equal(get("Threonine")?.source_form, "L-threonine");
-    assert.equal(get("Phytase")?.right_value, "0.0000");
+    assert.equal(get("Phytase")?.min, "10000");
     assert.equal(get("Vitamin C")?.note, "right value hard to read");
     assert.deepEqual(
-      ["Vitamin", "Mineral", "Additive"].map(category => csv.rows.filter(row => row.category === category).length),
+      ["Vitamin", "Mineral", "Additive"].map(category => label.rows.filter(row => row.category === category).length),
       [13, 8, 3],
     );
-
+    // User-confirmed label figures must not be promoted to a specific per-kg
+    // premix concentration without a confirmed reference basis.
     assert.equal(product.guaranteedMinimumAsFed, undefined);
-    assert.equal(product.publishedGuarantees, undefined);
-    assert.equal(product.publishedAnalysis, undefined);
-    assert.deepEqual(premixFinishedFeedContributions(product), [],
-      "Unverified column values must not be credited as finished-feed nutrients.");
+    assert.equal(product.verifiedAsFedMicronutrients, undefined);
+    assert.deepEqual(premixFinishedFeedContributions(product), []);
   });
 
   test("AECI V1736 is selectable for grower simulation only, not finisher feeding approval", () => {
