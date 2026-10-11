@@ -86,17 +86,17 @@ test("incomplete nutrient data reports adequacy as unknown, not met", async () =
   }
 });
 
-test("Studio can send a default fixed Sustar premix without inventing its purchase price", async () => {
+test("Studio can send a default fixed Caremix premix without inventing its purchase price", async () => {
   const originalFetch = globalThis.fetch;
   const pool = poolWithProgrammePremix({ corn: { role: "available" } }, "grow-finish-pig");
   const ctx = {
     catalogue: new Map([
       ["corn", { id: "corn", name: "Corn", price: { usdPerTonne: 300 } }],
-      ["sustar-glypro-x912", { id: "sustar-glypro-x912", name: "Sustar X912", price: null }],
+      ["caremix-pig-grower", { id: "caremix-pig-grower", name: "Caremix Pig Grower", price: null }],
     ]),
     programmes: {
       requirementFields: [],
-      programmes: [{ id: "grow-finish-pig", name: "Grower", species: "swine", phases: [{ id: "grower", label: "Grower", limitsKey: null }] }],
+      programmes: [{ id: "grow-finish-pig", name: "Grower", species: "swine", phases: [{ id: "br2024-5-43-63-91d-26-47kg", label: "Grower", limitsKey: null }] }],
       limits: {},
     },
   } as unknown as EngineContext;
@@ -104,9 +104,9 @@ test("Studio can send a default fixed Sustar premix without inventing its purcha
   globalThis.fetch = async (_url, init) => {
     calls += 1;
     const request = JSON.parse(String(init?.body));
-    const premix = request.ingredients.find((row: { ingredientId: string }) => row.ingredientId === "sustar-glypro-x912");
-    assert.equal(premix.minInclusionPct, 0.2);
-    assert.equal(premix.maxInclusionPct, 0.2);
+    const premix = request.ingredients.find((row: { ingredientId: string }) => row.ingredientId === "caremix-pig-grower");
+    assert.equal(premix.minInclusionPct, 3.2);
+    assert.equal(premix.maxInclusionPct, 3.2);
     assert.equal(premix.pricePerKg, 0, "LP-only neutral fixed cost, not supplier quote");
     return new Response(JSON.stringify({
       status: "infeasible",
@@ -118,7 +118,7 @@ test("Studio can send a default fixed Sustar premix without inventing its purcha
   };
   try {
     const result = await formulate({
-      programmeId: "grow-finish-pig", phaseId: "grower", goal: "least_cost", batch: 100, pool,
+      programmeId: "grow-finish-pig", phaseId: "br2024-5-43-63-91d-26-47kg", goal: "least_cost", batch: 100, pool,
     }, ctx);
     assert.equal(result.status, "infeasible", "Formulation must reach the solver, not block over premix price");
     assert.equal(calls, 1);

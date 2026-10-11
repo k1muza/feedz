@@ -189,7 +189,7 @@ const rangeSchema = z.object({ min: z.number(), max: z.number().optional() }).st
 /** A supplier product; its fields are documented on CommercialPremix. */
 const commercialPremixSchema = z
   .object({
-    manufacturer: z.enum(["AECI Animal Health", "Chengdu Sustar Feed", "CJ (Tianjin) Feed"]),
+    manufacturer: z.enum(["Trouw Nutrition", "Chengdu Sustar Feed", "CJ (Tianjin) Feed"]),
     sku: z.string(),
     species: z.enum(["pig", "broiler", "layer"]),
     application: z.string(),
@@ -199,6 +199,7 @@ const commercialPremixSchema = z
       programmeId: z.string(),
       phaseClass: z.literal("grower"),
     }).strict()).optional(),
+    eligiblePhaseClasses: z.array(z.enum(["pre-starter", "starter", "grower", "finisher"])).optional(),
     defaultForEligibleProgrammes: z.boolean().optional(),
     inclusionPct: z.number().positive(),
     inclusionKgPerTonne: z.number().positive(),
@@ -215,6 +216,8 @@ const commercialPremixSchema = z
       }).strict())
       .optional(),
     guaranteedMinimumAsFed: premixMicronutrientProfileSchema.optional(),
+    /** Model-derived target equivalent, NOT a manufacturer-assayed profile. */
+    estimatedAsFedMicronutrients: premixMicronutrientProfileSchema.optional(),
     verifiedAsFedMicronutrients: premixMicronutrientProfileSchema.extend({ reference: z.string() }).strict().optional(),
     verifiedAsFedAminoAcids: z
       .object({
@@ -543,11 +546,11 @@ export function ingredientLibraryWithCommercialPremixes(
 ): IngredientLibrary {
   if (premixes.length === 0) return library;
   const result = ingredientLibraryWithCustomPremixes(
-    premixes.map(({ id, name, verifiedAsFedAminoAcids, guaranteedMinimumAsFed, verifiedAsFedMicronutrients }) => ({
+    premixes.map(({ id, name, verifiedAsFedAminoAcids, guaranteedMinimumAsFed, verifiedAsFedMicronutrients, estimatedAsFedMicronutrients }) => ({
       id,
       name,
-      vitamins: (verifiedAsFedMicronutrients ?? guaranteedMinimumAsFed)?.vitamins ?? {},
-      traceMineralsPpm: (verifiedAsFedMicronutrients ?? guaranteedMinimumAsFed)?.traceMineralsPpm ?? {},
+      vitamins: (verifiedAsFedMicronutrients ?? guaranteedMinimumAsFed ?? estimatedAsFedMicronutrients)?.vitamins ?? {},
+      traceMineralsPpm: (verifiedAsFedMicronutrients ?? guaranteedMinimumAsFed ?? estimatedAsFedMicronutrients)?.traceMineralsPpm ?? {},
       ...(verifiedAsFedAminoAcids ? { aminoAcids: {
         totalPct: verifiedAsFedAminoAcids.totalPct ?? {},
         sidPct: verifiedAsFedAminoAcids.sidPct ?? {},
@@ -561,7 +564,7 @@ export function ingredientLibraryWithCommercialPremixes(
     ingredients: result.ingredients.map((record) => {
       if (!ids.has(record.id)) return record;
       const product = premixes.find((p) => p.id === record.id)!;
-      const micronutrientProfile = product.verifiedAsFedMicronutrients ?? product.guaranteedMinimumAsFed;
+      const micronutrientProfile = product.verifiedAsFedMicronutrients ?? product.guaranteedMinimumAsFed ?? product.estimatedAsFedMicronutrients;
       const micronutrientProfileVerified = product.verificationStatus === "verified" && !!product.verifiedAsFedMicronutrients;
       return {
         ...record,
@@ -569,7 +572,7 @@ export function ingredientLibraryWithCommercialPremixes(
           ...record.provenance,
           source: {
             publisher: product.manufacturer,
-            title: product.name + " — manufacturer product specification",
+            title: product.estimatedAsFedMicronutrients ? product.name + " — modelled from complete-feed specification, not a manufacturer premix analysis" : product.name + " — manufacturer product specification",
             url: product.specificationUrl,
             priority: "supplier",
             basis: "as-fed",
@@ -583,10 +586,10 @@ export function ingredientLibraryWithCommercialPremixes(
                 `vitamins.${name}`,
                 {
                   publisher: product.manufacturer,
-                  title: `${product.name} — guaranteed nutritional composition`,
+                  title: product.estimatedAsFedMicronutrients ? `${product.name} — estimated complete-feed target equivalent` : `${product.name} — guaranteed nutritional composition`,
                   url: micronutrientProfile!.sourceUrl,
                   priority: "supplier" as const,
-                  basis: micronutrientProfileVerified ? "verified as-fed analysis" : "as-fed label minimum",
+                  basis: product.estimatedAsFedMicronutrients ? "derived target equivalent; not assayed" : micronutrientProfileVerified ? "verified as-fed analysis" : "as-fed label minimum",
                 },
               ]),
             ),
@@ -595,7 +598,7 @@ export function ingredientLibraryWithCommercialPremixes(
                 `traceMineralsPpm.${name}`,
                 {
                   publisher: product.manufacturer,
-                  title: `${product.name} — guaranteed nutritional composition`,
+                  title: product.estimatedAsFedMicronutrients ? `${product.name} — estimated complete-feed target equivalent` : `${product.name} — guaranteed nutritional composition`,
                   url: micronutrientProfile!.sourceUrl,
                   priority: "supplier" as const,
                   basis: micronutrientProfileVerified ? "verified as-fed analysis" : "as-fed label minimum",
@@ -630,6 +633,8 @@ export function ingredientLibraryWithCommercialPremixes(
               `Micronutrient values use the approved exact as-fed profile: ${product.verifiedAsFedMicronutrients!.reference}.`,
             ] : product.guaranteedMinimumAsFed ? [
               "Micronutrient values are conservative manufacturer label minima. FeedSport calculates their finished-feed contribution but does not treat them as independently verified.",
+            ] : product.estimatedAsFedMicronutrients ? [
+              "MODELLED ONLY: published numbers describe finished feed, not the premix. FeedSport back-calculates theoretical premix target equivalents assuming zero basal contributions. This is not guaranteed premix composition or proof of nutrient adequacy.",
             ] : []),
             ...(product.verifiedAsFedAminoAcids ? [
               `Exact manufacturer as-fed amino-acid values only: ${product.verifiedAsFedAminoAcids.reference}. Total and SID are separate; incomplete fields are not inferred.`,

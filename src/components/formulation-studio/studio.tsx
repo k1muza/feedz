@@ -2023,7 +2023,7 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
         selected,
         disabled: !allowed,
         application: product.application,
-        detail: "Dose " + product.inclusionKgPerTonne + " kg/t" + (documented ? " · Documented vitamin and trace-mineral values" : " · Limited documented profile"),
+        detail: "Dose " + product.inclusionKgPerTonne + " kg/t" + (product.estimatedAsFedMicronutrients ? " · Modelled from complete-feed targets (not verified)" : documented ? " · Documented vitamin and trace-mineral values" : " · Limited documented profile"),
         detailColor: documented ? "#2f7a4a" : "#8a5f18",
         warning: product.verifiedAsFedAminoAcids ? "" : "No SID amino-acid analysis",
         dose: fmt(product.inclusionPct, product.inclusionPct < 1 ? 1 : 0) + "%",

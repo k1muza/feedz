@@ -17,13 +17,12 @@ const expectedPremixPlanningPrices: Record<string, number> = {
 };
 
 describe("commercial premix planning prices", () => {
-  test("uses the user-provided AECI V1736 supplier price without a planning multiplier", () => {
-    const source = ingredientDefaultPrice("aeci-v1736-pig-weaner-premix");
-    assert.ok(source);
-    assert.equal(source.usdPerTonne, 2200);
-    assert.equal(source.planningMultiplier, undefined);
-    assert.equal(ingredientDefaultPlanningPricePerTonne(source.ingredientId), 2200);
-    assert.equal(ingredientDefaultPricePerKg(source.ingredientId), 2.2);
+  test("does not invent Caremix premix prices", () => {
+    for (const id of ["caremix-pig-weaner", "caremix-pig-grower", "caremix-pig-finisher"]) {
+      assert.equal(ingredientDefaultPrice(id), undefined);
+      assert.equal(ingredientDefaultPlanningPricePerTonne(id), undefined);
+      assert.equal(ingredientDefaultPricePerKg(id), undefined);
+    }
   });
 
   test("uses Alibaba listing midpoints multiplied by two", () => {

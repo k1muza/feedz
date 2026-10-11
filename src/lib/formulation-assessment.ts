@@ -1,4 +1,5 @@
 import type { DietFormula } from "./diet-formula";
+import { commercialPremixById } from "./commercial-premixes";
 import {
   evaluateFormulation,
   formulationRequirements,
@@ -219,9 +220,25 @@ export function buildFormulationAssessment(
   const unmet = nutrientChecks.filter((check) => check.status === "below_target" || check.status === "above_limit");
   const unknown = nutrientChecks.filter((check) => check.status === "unknown");
   const notAssessed = categories.filter((category) => category.status === "not_assessed");
+  const estimatedPremixes = formula.ingredients.flatMap((line) => {
+    if (!(line.inclusionPct > 0)) return [];
+    const premix = commercialPremixById(line.ingredientId);
+    return premix?.estimatedAsFedMicronutrients ? [premix.name] : [];
+  });
+  const hasEstimatedPremix = estimatedPremixes.length > 0;
+  // A per-kg COMPLETE-FEED target cannot establish the composition of the
+  // commercial premix. A modelled target-equivalent profile may help
+  // exploratory calculations but must never give a "ready to mix" verdict.
+  if (hasEstimatedPremix) {
+    for (const category of categories) {
+      if (category.id === "vitamins" || category.id === "trace-minerals") {
+        category.note += " This is a projected whole-feed nutrient equivalent, not a verified premix contribution.";
+      }
+    }
+  }
   const verdict: FormulationVerdict = !optimizerFeasible
     ? "infeasible"
-    : unmet.length || unknown.length || notAssessed.length || consistencyErrors.length
+    : unmet.length || unknown.length || notAssessed.length || consistencyErrors.length || hasEstimatedPremix
       ? "needs_verification"
       : "verified";
 
@@ -238,14 +255,17 @@ export function buildFormulationAssessment(
           unmetLabels.length ? `${joinLabels(unmetLabels)} ${unmetLabels.length === 1 ? "is" : "are"} outside the selected programme target.` : "",
           unknownLabels.length ? `${joinLabels(unknownLabels)} cannot be verified because published ingredient data are missing.` : "",
           unassessedLabels.length ? `No targets are loaded for ${joinLabels(unassessedLabels)}.` : "",
+          hasEstimatedPremix ? `The selected ${joinLabels(estimatedPremixes)} micronutrient figures were back-calculated from COMPLETE-FEED specifications and are NOT a manufacturer-confirmed premix analysis. The actual supplementation cannot be verified from this document.` : "",
         ].filter(Boolean).join(" ");
   const guidance = verdict === "verified"
     ? "Use the exact ingredients and amounts shown. Ingredient quality, weighing, mixing, storage and animal-specific health needs are outside this calculation."
     : verdict === "infeasible"
       ? "Review ingredient availability, inclusion limits and nutrient requirements, then reformulate."
-      : unknown.length
-        ? "Obtain the manufacturer's nutrient specification or select ingredients or a premix with a documented profile, then reformulate. Confirm any unresolved result with a qualified livestock nutritionist before manufacture or feeding."
-        : "Review the affected ingredient or premix selection and reformulate. Confirm the result with a qualified livestock nutritionist before manufacture or feeding.";
+      : hasEstimatedPremix
+        ? "These Caremix values are planning estimates derived by assigning the finished-feed specification entirely to the premix. Obtain the actual premix composition or a manufacturer-approved basal ration before mixing or feeding."
+        : unknown.length
+          ? "Obtain the manufacturer's nutrient specification or select ingredients or a premix with a documented profile, then reformulate. Confirm any unresolved result with a qualified livestock nutritionist before manufacture or feeding."
+          : "Review the affected ingredient or premix selection and reformulate. Confirm the result with a qualified livestock nutritionist before manufacture or feeding.";
 
   return {
     schemaVersion: 1,

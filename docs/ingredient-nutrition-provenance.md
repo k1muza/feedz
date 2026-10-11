@@ -51,39 +51,52 @@ with its own attribution. Price provenance is separate from nutrient provenance.
 5. Retain product-level verification warnings until all relevant nutrient
    guarantees, practical dosage restrictions and compatibility are verified.
 
-## AECI V1736: supplier-label minimums per tonne of finished feed
+## Caremix Maxipacks: reversing finished-feed targets for exploratory formulation
 
-AECI V1736's 24 label entries live exclusively in
-`src/data/nutrition/ingredients/ingredient-library.json` under
-`premix.labelGuarantees`. The former CSV and synchronisation script have
-been removed. The user confirmed that the first column is **minimum** and the
-second is **maximum**, expressed for **one tonne of finished feed** when
-V1736 is included at **10 kg premix per tonne (1%)**.
+The user-provided one-page Caremix / Trouw Nutrition sheet describes **nutrient
+ranges per kilogram of finished feed** for three *different* products:
+PigWeaner 28 kg/t (2.8%; 14 kg bag), Pig Grower 32 kg/t (3.2%; 16 kg bag)
+and Pig Finisher 26 kg/t (2.6%; 13 kg bag). The original AECI V1736 product
+has been replaced with those stage-specific SKUs. The 30 printed nutrient
+rows per product are preserved under `premix.labelGuarantees` in the canonical
+`ingredient-library.json` file.
 
-For positive minimums whose identity and activity/mass units are recognisable,
-`premix.guaranteedMinimumAsFed` stores the equivalent minimum
-**per kilogram of premix**, derived by dividing the finished-feed requirement
-by the 1% dose. For example:
+The original sheet contains numerical Min/Max reversals. Following the user's
+explicit direction, these are sorted into ascending bounds. Each reversed
+row has a note recording the originally printed values, so normalization is
+traceable. Unknown, unreadable or overlapping cells are recorded explicitly
+and **not** silently fabricated.
 
-- Vitamin A minimum 5,000,000 IU/t feed = 5,000 IU/kg feed =
-  500,000 IU/kg premix.
-- Vitamin E minimum 10,000 IU/t feed = 10 IU/kg feed =
-  1,000 IU/kg premix.
-- Zinc minimum 30 g/t feed = 30 mg/kg feed =
-  3,000 ppm in premix.
-- Vitamin B12 minimum 0.015 g/t feed = 15 mcg/kg feed =
-  1,500 mcg/kg premix.
+### Modelled nutrient equivalents (not a supplier premix assay)
 
-These are **labelled lower bounds**, not exact nutrient concentrations or a
-batch certificate. Printed maximums remain in the original unit strings in
-`labelGuarantees` and are not treated as exact laboratory concentrations;
-several upper-bound transcriptions have suspicious unit magnitudes.
+The only mathematically possible inversion from the provided document is a
+**target-equivalent** nutrient profile: if one attributes *all* of a finished-feed
+minimum to the premix and assumes zero contribution from the basal ingredients,
+then:
 
-The label gives zero minima for choline chloride and biotin, does not
-declare selenium or pantothenic acid, and does not establish total choline
-from choline chloride. Do not silently mark those supplementation targets as
-met. The anomalous second magnesium/lysine row and phytase activity are not
-mapped into SID amino acids or other quantitative constraints.
+`estimated amount per kg premix = finished feed minimum per kg / (premix kg per tonne / 1000)`.
+
+For example, PigWeaner vitamin A is 12,000 IU/kg finished feed; the
+2.8%-inclusion theoretical premix equivalent is 428,571.43 IU/kg premix.
+It is **not evidence** the manufacturer actually puts that concentration
+in the product. For nutrients with significant basal contributions, this
+assumption may overestimate actual premix supplementation. The estimates are
+held in `premix.estimatedAsFedMicronutrients` rather than
+`guaranteedMinimumAsFed` or `verifiedAsFedMicronutrients`.
+
+Some table rows are visibly ambiguous or anomalous. The extra, unlabelled
+vitamin E-equivalent IU row is not double-counted; calcium pantothenate is not
+treated as identical to pantothenic acid; choline with no positive minimum
+remains unknown; grower iodine and selenium appear shifted by a row and are
+not credited. Whole-feed calcium, phosphorus and sodium values are preserved
+but are **not** converted into premix macro-mineral contributions. No total-
+or SID-amino-acid concentrations are manufactured from the completed-feed
+lysine/methionine/threonine ranges.
+
+Studio and its APIs may show numerical planning equivalents, but their
+assessment **must remain `needs_verification`**, even if a modelled recipe
+passes every numerical check. A supplier premix analysis (and consideration of
+basal contributions) is required for a truly verified feed formula.
 
 ## Formulation versus complete-feed validation
 

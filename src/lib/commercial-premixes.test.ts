@@ -15,10 +15,10 @@ import {
 
 describe("Manufacturer-backed commercial premix catalogue", () => {
   test("all entries are identifiable and unverified, with no fabricated supplier quotes", () => {
-    assert.equal(COMMERCIAL_PREMIXES.length, 7);
+    assert.equal(COMMERCIAL_PREMIXES.length, 9);
     assert.equal(new Set(COMMERCIAL_PREMIXES.map((product) => product.id)).size, COMMERCIAL_PREMIXES.length);
     for (const product of COMMERCIAL_PREMIXES) {
-      assert.ok(["AECI Animal Health", "Chengdu Sustar Feed", "CJ (Tianjin) Feed"].includes(product.manufacturer));
+      assert.ok(["Trouw Nutrition", "Chengdu Sustar Feed", "CJ (Tianjin) Feed"].includes(product.manufacturer));
       assert.equal(product.verificationStatus, "unverified");
       assert.ok(["unconfirmed", "manufacturer_recipe_only"].includes(product.formulationCompatibility));
       assert.equal(product.pricePerTonne, null);
@@ -28,120 +28,73 @@ describe("Manufacturer-backed commercial premix catalogue", () => {
     }
   });
 
-  test("AECI minimum and maximum label figures are confirmed directly in the ingredient JSON", () => {
-    const product = commercialPremixById("aeci-v1736-pig-weaner-premix");
-    assert.ok(product);
-    assert.equal(product.manufacturer, "AECI Animal Health");
-    assert.equal(product.sku, "V1736");
-    assert.equal(product.inclusionPct, 1);
-    assert.equal(product.inclusionKgPerTonne, 10);
-    assert.equal(commercialPremixCompatibleWithProgramme(product, "nursery-pig"), true);
-    assert.equal(commercialPremixCompatibleWithProgramme(product, "grow-finish-pig"), false);
-
-    const libraryRow = INGREDIENT_LIBRARY_SOURCE.ingredients.find(row => row.id === product.id);
-    assert.ok(libraryRow);
-    assert.deepEqual(libraryRow.aliases, [], "No redundant AECI aliases");
-
-    const label = product.labelGuarantees;
-    assert.ok(label);
-    assert.equal(label.confirmedByUser, true);
-    assert.deepEqual(label.columns, { first: "minimum", second: "maximum" });
-    assert.equal(label.rows.length, 24);
-    const get = (name: string) => label.rows.find((row) => row.nutrient === name);
-    const names = label.rows.map(row => row.nutrient);
-    assert.equal(new Set(names).size, 24);
-
-    assert.deepEqual(get("Vitamin E"), {
-      category: "Vitamin", nutrient: "Vitamin E",
-      source_form: "DL (as labelled; exact chemical form unconfirmed)",
-      min: "10000", max: "30.00", unit: "MIU", note: "",
-    });
-    assert.equal(get("Vitamin K3")?.min, "0.3000");
-    assert.equal(get("Vitamin K3")?.max, "2.5000");
-    assert.equal(get("Zinc")?.min, "30.000");
-    assert.equal(get("Zinc")?.max, "150.000");
-    assert.equal(get("Riboflavin")?.max, "5000");
-    assert.equal(get("Choline chloride")?.min, "0");
-    assert.equal(get("Biotin")?.source_form, "D-biotin");
-    assert.equal(get("Magnesium (second row; identity unverified)")?.note,
-      "label error likely; 78% probably lysine source grade");
-    assert.equal(get("Phytase")?.min, "10000");
-    assert.equal(get("Vitamin C")?.note, "right value hard to read");
-    assert.deepEqual(
-      ["Vitamin", "Mineral", "Additive"].map(category => label.rows.filter(row => row.category === category).length),
-      [13, 8, 3],
-    );
-    assert.match(label.concentrationBasis, /per tonne of finished feed/i);
-    const minimum = product.guaranteedMinimumAsFed;
-    assert.ok(minimum, "Confirmed per-tonne minima must feed the nutrient engine");
-    assert.equal(minimum.vitamins.vitaminAIuKg, 500_000);
-    assert.equal(minimum.vitamins.vitaminDIuKg, 200_000);
-    assert.equal(minimum.vitamins.vitaminEIuKg, 1_000);
-    assert.equal(minimum.vitamins.vitaminKMgKg, 30);
-    assert.equal(minimum.vitamins.vitaminB1MgKg, 150);
-    assert.equal(minimum.vitamins.riboflavinMgKg, 300);
-    assert.equal(minimum.vitamins.vitaminB6MgKg, 100);
-    assert.equal(minimum.vitamins.vitaminB12McgKg, 1_500);
-    assert.equal(minimum.vitamins.niacinMgKg, 1_500);
-    assert.equal(minimum.vitamins.folicAcidMgKg, 10);
-    assert.equal(minimum.traceMineralsPpm.zinc, 3_000);
-    assert.equal(minimum.traceMineralsPpm.manganese, 1_500);
-    assert.equal(minimum.traceMineralsPpm.iron, 2_500);
-    assert.equal(minimum.traceMineralsPpm.copper, 100);
-    assert.equal(minimum.traceMineralsPpm.iodine, 30);
-    const contributions = premixFinishedFeedContributions(product);
-    assert.equal(contributions.length, 15);
-    const getContribution = (name: string) => contributions.find((entry) => entry.nutrient === name)?.finishedFeedContribution;
-    assert.equal(getContribution("Vitamin A"), 5_000);
-    assert.equal(getContribution("Vitamin D3"), 2_000);
-    assert.equal(getContribution("Vitamin E"), 10);
-    assert.equal(getContribution("Vitamin K3"), 0.3);
-    assert.equal(getContribution("Vitamin B12"), 15);
-    assert.equal(getContribution("Zinc"), 30);
-    assert.equal(getContribution("Copper"), 1);
-    assert.equal(getContribution("Iron"), 25);
-    assert.ok(contributions.every((entry) => entry.basis === "minimum_guarantee"));
-    // A label range is not an exact, lot-tested value.
-    assert.equal(product.verifiedAsFedMicronutrients, undefined);
-    assert.equal(minimum.vitamins.totalCholineMgKg, undefined);
-    assert.equal(minimum.vitamins.biotinMgKg, undefined);
-    assert.equal(minimum.vitamins.pantothenicAcidMgKg, undefined);
-    assert.equal(minimum.traceMineralsPpm.selenium, undefined);
+  test("Caremix finished-feed ranges are embedded with corrected reversed bounds", () => {
+    assert.equal(commercialPremixById("aeci-v1736-pig-weaner-premix"), undefined);
+    const cases = [
+      { id: "caremix-pig-weaner", dose: 28, vitaminA: 12000, zinc: 0.6, iron: 2.5, selenium: 0.1, missing: ["totalCholineMgKg", "pantothenicAcidMgKg"] },
+      { id: "caremix-pig-grower", dose: 32, vitaminA: 10000, zinc: 20, iron: 90, selenium: null, missing: ["totalCholineMgKg", "pantothenicAcidMgKg"] },
+      { id: "caremix-pig-finisher", dose: 26, vitaminA: 6000, zinc: 0.4, iron: 1.5, selenium: 0.1, missing: ["totalCholineMgKg", "pantothenicAcidMgKg"] },
+    ] as const;
+    for (const item of cases) {
+      const product = commercialPremixById(item.id)!;
+      assert.ok(product, item.id);
+      assert.equal(product.manufacturer, "Trouw Nutrition");
+      assert.equal(product.inclusionKgPerTonne, item.dose);
+      assert.equal(product.inclusionPct, item.dose / 10);
+      assert.equal(product.guaranteedMinimumAsFed, undefined);
+      assert.equal(product.verifiedAsFedMicronutrients, undefined);
+      assert.equal(product.labelGuarantees?.rows.length, 30);
+      assert.match(product.labelGuarantees?.concentrationBasis ?? "", /per kg of FINISHED FEED/i);
+      const estimate = product.estimatedAsFedMicronutrients!;
+      assert.ok(estimate);
+      assert.ok(Math.abs(estimate.vitamins.vitaminAIuKg! * product.inclusionPct / 100 - item.vitaminA) < 1e-6);
+      const contributions = premixFinishedFeedContributions(product);
+      assert.ok(contributions.every((entry) => entry.basis === "estimated_from_complete_feed"));
+      const byName = (name: string) => contributions.find((entry) => entry.nutrient === name)?.finishedFeedContribution;
+      assert.ok(Math.abs((byName("Zinc") ?? NaN) - item.zinc) < 1e-6);
+      assert.ok(Math.abs((byName("Iron") ?? NaN) - item.iron) < 1e-6);
+      if (item.selenium === null) assert.equal(byName("Selenium"), undefined);
+      else assert.ok(Math.abs((byName("Selenium") ?? NaN) - item.selenium) < 1e-6);
+      for (const name of item.missing) assert.equal(estimate.vitamins[name], undefined);
+      const calcium = product.labelGuarantees?.rows.find((r) => r.nutrient === "Calcium");
+      assert.ok(calcium?.note.includes("reversed"), item.id);
+      assert.ok(Number(calcium?.min) <= Number(calcium?.max));
+      assert.equal(INGREDIENT_LIBRARY_SOURCE.ingredients.find((r) => r.id === item.id)?.category, "vitamin_mineral_premix");
+    }
   });
 
-  test("AECI V1736 is selectable for grower simulation only, not finisher feeding approval", () => {
-    const aeci = commercialPremixById("aeci-v1736-pig-weaner-premix")!;
-    const growerPhase = "br2024-5-43-63-91d-26-47kg";
-    const laterGrowerPhase = "br2024-5-43-91-119d-47-74kg";
-    const finisherPhase = "br2024-5-43-119-147d-74-103kg";
-    assert.equal(commercialPremixCompatibleWithProgramme(aeci, "nursery-pig"), true);
-    assert.equal(commercialPremixCompatibleWithProgramme(aeci, "grow-finish-pig"), false,
-      "A generic grow-finish programme must not imply manufacturer approval");
-    assert.equal(commercialPremixCompatibleWithProgramme(aeci, "grow-finish-pig", growerPhase), true);
-    assert.equal(commercialPremixCompatibleWithProgramme(aeci, "grow-finish-pig", laterGrowerPhase), true);
-    assert.equal(commercialPremixCompatibleWithProgramme(aeci, "grow-finish-pig", finisherPhase), false);
-    assert.equal(commercialPremixCompatibleWithProgramme(aeci, "broiler-standard", growerPhase), false);
-    assert.equal(commercialPremixCompatibleWithProgramme(aeci, "gestating-gilt-sow", growerPhase), false);
-    assert.equal(commercialPremixForProgramme("grow-finish-pig")?.id, "sustar-glypro-x912",
-      "Exploratory products must never become a programme default");
-    assert.equal(aeci.simulationOnlyPhases?.[0]?.phaseClass, "grower");
-    assert.equal(aeci.verificationStatus, "unverified");
+  test("Caremix stage selection respects nursery, grower and finisher phases", () => {
+    const grower = "br2024-5-43-63-91d-26-47kg";
+    const finisher = "br2024-5-43-119-147d-74-103kg";
+    const w = commercialPremixById("caremix-pig-weaner")!;
+    const g = commercialPremixById("caremix-pig-grower")!;
+    const f = commercialPremixById("caremix-pig-finisher")!;
+    assert.equal(commercialPremixCompatibleWithProgramme(w, "nursery-pig"), true);
+    assert.equal(commercialPremixCompatibleWithProgramme(w, "grow-finish-pig", grower), false);
+    assert.equal(commercialPremixCompatibleWithProgramme(g, "grow-finish-pig", grower), true);
+    assert.equal(commercialPremixCompatibleWithProgramme(g, "grow-finish-pig", finisher), false);
+    assert.equal(commercialPremixCompatibleWithProgramme(f, "grow-finish-pig", finisher), true);
+    assert.equal(commercialPremixCompatibleWithProgramme(f, "grow-finish-pig", grower), false);
+    assert.equal(commercialPremixForProgramme("nursery-pig")?.id, w.id);
+    assert.equal(commercialPremixForProgramme("grow-finish-pig", grower)?.id, g.id);
+    assert.equal(commercialPremixForProgramme("grow-finish-pig", finisher)?.id, f.id);
+    assert.equal(commercialPremixCompatibleWithProgramme(g, "broiler-standard", grower), false);
   });
 
   test("selects the stage-specific commercial product, never one universal premix", () => {
     const phases: Record<string, string> = {
-      "nursery-pig": "X911",
-      "grow-finish-pig": "X912",
-      "gestating-gilt-sow": "X913",
-      "lactating-gilt-sow": "X913",
-      "growing-entire-immunocastrated-males-standard": "X912",
-      "growing-entire-immunocastrated-males-high-performance-hot": "X912",
-      "broiler-standard": "X812",
-      "layer-standard": "X811",
+      "nursery-pig": "Caremix PigWeaner",
+      "grow-finish-pig": "Caremix Pig Grower",
+      "gestating-gilt-sow": "GlyPro X913",
+      "lactating-gilt-sow": "GlyPro X913",
+      "growing-entire-immunocastrated-males-standard": "Caremix Pig Grower",
+      "growing-entire-immunocastrated-males-high-performance-hot": "Caremix Pig Grower",
+      "broiler-standard": "GlyPro X812",
+      "layer-standard": "GlyPro X811",
     };
     for (const [programme, sku] of Object.entries(phases)) {
       const selected = commercialPremixForProgramme(programme);
-      assert.equal(selected?.sku, `GlyPro ${sku}`);
+      assert.equal(selected?.sku, sku);
       assert.ok(selected && commercialPremixCompatibleWithProgramme(selected, programme));
     }
     assert.equal(commercialPremixForProgramme("cattle-growth"), undefined);

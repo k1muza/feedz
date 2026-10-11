@@ -84,6 +84,43 @@ describe("canonical formulation assessment", () => {
     assert.equal(result.verdict, "verified");
   });
 
+  test("Caremix derived finished-feed targets can NEVER yield a verified premix verdict", () => {
+    const product = commercialPremixById("caremix-pig-grower");
+    assert.ok(product);
+    const library = ingredientLibraryWithCommercialPremixes([product], ingredientLibraryForPhase(phase));
+    const requirements = formulationRequirements(phase, "ME", {
+      includeSupplementationTargets: true,
+      traceMineralBasis: "inorganic",
+    });
+    const evaluation = {
+      analysis: {} as FormulationEvaluation["analysis"],
+      nutrientProfile: requirements.map((row) => ({
+        id: row.id,
+        label: row.label,
+        unit: row.unit,
+        relation: row.relation,
+        requirement: row.bound,
+        actual: row.bound,
+        margin: 0,
+        marginPct: 0,
+        binding: true,
+      })),
+      incompleteRequirements: [],
+      unsupportedRequirements: [],
+    } satisfies FormulationEvaluation;
+    const result = buildCompleteFeedValidation(
+      phase,
+      "ME",
+      { ingredients: [{ ingredientId: product.id, inclusionPct: product.inclusionPct }] },
+      library,
+      evaluation,
+    );
+    assert.equal(result.optimizerFeasible, true);
+    assert.equal(result.verdict, "needs_verification");
+    assert.match(result.summary, /back-calculated from COMPLETE-FEED specifications/i);
+    assert.match(result.guidance, /actual premix composition/i);
+  });
+
   test("manufacturer-recommended X912 inclusion remains unknown where its label is silent", () => {
     const library = ingredientLibraryWithCommercialPremixes([premix], ingredientLibraryForPhase(phase));
     const result = buildCompleteFeedValidation(

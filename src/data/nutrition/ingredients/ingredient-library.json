@@ -23951,321 +23951,6 @@
       }
     },
     {
-      "id": "aeci-v1736-pig-weaner-premix",
-      "name": "AECI V1736 — Pig Weaner premix",
-      "category": "vitamin_mineral_premix",
-      "provenance": {
-        "source": {
-          "publisher": "AECI Animal Health",
-          "title": "AECI V1736 Pig Weaner — user-confirmed minimum/maximum label transcription, batch 25254-07.2024",
-          "url": "https://www.aeciworld.net/animal-health.html",
-          "basis": "as-fed",
-          "priority": "supplier",
-          "note": "AECI bag label (batch 25254-07.2024), min/max amounts per tonne of FINISHED feed, first=min second=max, confirmed by user. Converted positive, clearly identified minima to the equivalent per-kg premix concentrations at 10kg premix/t; ambiguous maxima remain stored in labelGuarantees. Public AECI website is manufacturer context, not the original bag label."
-        },
-        "nutrientSources": {},
-        "notes": [
-          "The 24 user-confirmed label rows are the sole source of AECI nutrient minimum/maximum values.",
-          "Positive, clearly identified label minima are calculated as conservative nutrient contributions. This is a transcribed manufacturer guarantee, not a lot-specific laboratory assay.",
-          "Nutrients absent from the label, with zero minimum, or with uncertain identity remain unknown rather than assumed supplied."
-        ],
-        "verificationStatus": "manufacturer_unverified",
-        "profileBasis": "as-fed"
-      },
-      "premix": {
-        "manufacturer": "AECI Animal Health",
-        "sku": "V1736",
-        "species": "pig",
-        "application": "Weaner pigs",
-        "eligibleProgrammePrefixes": [
-          "nursery-pig"
-        ],
-        "inclusionPct": 1,
-        "inclusionKgPerTonne": 10,
-        "inclusionInstructions": "Use 10 kg per tonne of final feed. Do not feed undiluted; mix thoroughly with the basal ingredients.",
-        "verificationStatus": "unverified",
-        "formulationCompatibility": "unconfirmed",
-        "pricePerTonne": null,
-        "specificationUrl": "https://www.aeciworld.net/animal-health.html",
-        "note": "Registration V1736 under Act 36 of 1947. The photographed label specifies 10 kg/t and a 20 kg pack (2 x 10 kg). No supplier price was provided.",
-        "notes": [
-          "All 24 min/max label records are embedded in ingredient-library.json.",
-          "The label guarantees are per tonne of FINISHED feed at the fixed dosage of 10 kg/t.",
-          "The positive minima for recognizable vitamins and trace minerals are credited via guaranteedMinimumAsFed, equivalent to an as-fed premix concentration.",
-          "Vitamin E minimum is expressed in IU on the label; the second column is retained separately, not used as an analytical upper limit.",
-          "Pantothenic acid, selenium and total choline cannot be confirmed from this label; zero minimum means no guaranteed contribution.",
-          "Label minima are not a batch COA or an exact analytical assay."
-        ],
-        "simulationOnlyPhases": [
-          {
-            "programmeId": "grow-finish-pig",
-            "phaseClass": "grower"
-          }
-        ],
-        "labelGuarantees": {
-          "source": "User-supplied AECI V1736 label transcription, confirmed by user (batch 25254-07.2024)",
-          "batch": "25254-07.2024",
-          "inclusionPrinted": "10Kgs Per 1 Tonne Of Final Feed",
-          "columns": {
-            "first": "minimum",
-            "second": "maximum"
-          },
-          "confirmedByUser": true,
-          "concentrationBasis": "Values per tonne of finished feed at the supplier dosage of 10 kg/t (confirmed by user); minima are converted to as-fed concentrations per kg premix for the formulation engine.",
-          "rows": [
-            {
-              "category": "Vitamin",
-              "nutrient": "Vitamin A",
-              "source_form": "",
-              "min": "5000000",
-              "max": "14.5",
-              "unit": "MIU",
-              "note": ""
-            },
-            {
-              "category": "Vitamin",
-              "nutrient": "Vitamin D3",
-              "source_form": "",
-              "min": "2000000",
-              "max": "400",
-              "unit": "MIU",
-              "note": ""
-            },
-            {
-              "category": "Vitamin",
-              "nutrient": "Vitamin E",
-              "source_form": "DL (as labelled; exact chemical form unconfirmed)",
-              "min": "10000",
-              "max": "30.00",
-              "unit": "MIU",
-              "note": ""
-            },
-            {
-              "category": "Vitamin",
-              "nutrient": "Choline chloride",
-              "source_form": "",
-              "min": "0",
-              "max": "500.000",
-              "unit": "g",
-              "note": ""
-            },
-            {
-              "category": "Vitamin",
-              "nutrient": "Niacin",
-              "source_form": "",
-              "min": "15.0000",
-              "max": "20.000",
-              "unit": "g",
-              "note": ""
-            },
-            {
-              "category": "Vitamin",
-              "nutrient": "Riboflavin",
-              "source_form": "",
-              "min": "3.0000",
-              "max": "5000",
-              "unit": "g",
-              "note": ""
-            },
-            {
-              "category": "Vitamin",
-              "nutrient": "Vitamin B6",
-              "source_form": "pyridoxine",
-              "min": "1.00",
-              "max": "6000",
-              "unit": "g",
-              "note": ""
-            },
-            {
-              "category": "Vitamin",
-              "nutrient": "Vitamin B1",
-              "source_form": "",
-              "min": "1.5000",
-              "max": "3.5000",
-              "unit": "g",
-              "note": ""
-            },
-            {
-              "category": "Vitamin",
-              "nutrient": "Vitamin K3",
-              "source_form": "",
-              "min": "0.3000",
-              "max": "2.5000",
-              "unit": "g",
-              "note": ""
-            },
-            {
-              "category": "Vitamin",
-              "nutrient": "Folic acid",
-              "source_form": "",
-              "min": "0.1",
-              "max": "2000",
-              "unit": "g",
-              "note": ""
-            },
-            {
-              "category": "Vitamin",
-              "nutrient": "Biotin",
-              "source_form": "D-biotin",
-              "min": "0.0000",
-              "max": "0.2000",
-              "unit": "g",
-              "note": ""
-            },
-            {
-              "category": "Vitamin",
-              "nutrient": "Vitamin B12",
-              "source_form": "",
-              "min": "0.0150",
-              "max": "0.2000",
-              "unit": "g",
-              "note": ""
-            },
-            {
-              "category": "Vitamin",
-              "nutrient": "Vitamin C",
-              "source_form": "ascorbic acid",
-              "min": "0.0000",
-              "max": "0",
-              "unit": "g",
-              "note": "right value hard to read"
-            },
-            {
-              "category": "Mineral",
-              "nutrient": "Zinc",
-              "source_form": "zinc oxide",
-              "min": "30.000",
-              "max": "150.000",
-              "unit": "g",
-              "note": ""
-            },
-            {
-              "category": "Mineral",
-              "nutrient": "Manganese",
-              "source_form": "manganese oxide",
-              "min": "15.000",
-              "max": "150.0000",
-              "unit": "g",
-              "note": ""
-            },
-            {
-              "category": "Mineral",
-              "nutrient": "Iron",
-              "source_form": "iron sulphate",
-              "min": "25.0000",
-              "max": "1000",
-              "unit": "g",
-              "note": ""
-            },
-            {
-              "category": "Mineral",
-              "nutrient": "Copper",
-              "source_form": "copper sulphate",
-              "min": "1.0000",
-              "max": "20.0000",
-              "unit": "g",
-              "note": ""
-            },
-            {
-              "category": "Mineral",
-              "nutrient": "Magnesium",
-              "source_form": "oxide",
-              "min": "0.0000",
-              "max": "4.5000",
-              "unit": "g",
-              "note": ""
-            },
-            {
-              "category": "Mineral",
-              "nutrient": "Iodine",
-              "source_form": "",
-              "min": "0.3000",
-              "max": "2.000",
-              "unit": "g",
-              "note": ""
-            },
-            {
-              "category": "Mineral",
-              "nutrient": "Sodium",
-              "source_form": "",
-              "min": "0.000",
-              "max": "0.4000",
-              "unit": "g",
-              "note": ""
-            },
-            {
-              "category": "Mineral",
-              "nutrient": "Magnesium (second row; identity unverified)",
-              "source_form": "",
-              "min": "78% L-Lysine",
-              "max": "0",
-              "unit": "g",
-              "note": "label error likely; 78% probably lysine source grade"
-            },
-            {
-              "category": "Additive",
-              "nutrient": "Threonine",
-              "source_form": "L-threonine",
-              "min": "98.5%",
-              "max": "0.000",
-              "unit": "g",
-              "note": ""
-            },
-            {
-              "category": "Additive",
-              "nutrient": "NSP enzyme (glucanase)",
-              "source_form": "glucanase",
-              "min": "",
-              "max": "0.0000",
-              "unit": "g",
-              "note": ""
-            },
-            {
-              "category": "Additive",
-              "nutrient": "Phytase",
-              "source_form": "",
-              "min": "10000",
-              "max": "0.0000",
-              "unit": "g",
-              "note": ""
-            }
-          ],
-          "notes": [
-            "Both label columns represent amounts per tonne of finished feed, at 10 kg premix per tonne; user confirmed the basis.",
-            "First column is minimum, second is maximum. Minima in IU/t or g/t are converted to per-kg premix only where nutrient identity and units are sufficiently clear.",
-            "For vitamin A, D3 and E, the first-column figures are in IU/t; the second-column units are transcribed as MIU and not used for calculation.",
-            "Maxima retained as printed, including ambiguous decimal points and units; they do not replace minimum guarantees.",
-            "A zero guaranteed minimum is not evidence of a positive choline or biotin contribution.",
-            "Choline chloride is not the same as elemental or total choline; neither selenium nor pantothenic acid is declared.",
-            "The second magnesium row appears to be lysine text and cannot be credited as a SID amino acid.",
-            "The phytase activity basis is not established and cannot be credited from the printed figure."
-          ]
-        },
-        "guaranteedMinimumAsFed": {
-          "sourceUrl": "https://www.aeciworld.net/animal-health.html",
-          "vitamins": {
-            "vitaminAIuKg": 500000,
-            "vitaminDIuKg": 200000,
-            "vitaminEIuKg": 1000,
-            "vitaminKMgKg": 30,
-            "vitaminB1MgKg": 150,
-            "riboflavinMgKg": 300,
-            "vitaminB6MgKg": 100,
-            "vitaminB12McgKg": 1500,
-            "niacinMgKg": 1500,
-            "folicAcidMgKg": 10
-          },
-          "traceMineralsPpm": {
-            "zinc": 3000,
-            "manganese": 1500,
-            "iron": 2500,
-            "copper": 100,
-            "iodine": 30
-          }
-        }
-      }
-    },
-    {
       "id": "cj-s174-boar-premix",
       "name": "CJ Feed S174 — Breeding boar premix",
       "aliases": [
@@ -24468,7 +24153,7 @@
         "sku": "GlyPro X911",
         "species": "pig",
         "application": "Piglets, approximately 5–25 kg",
-        "defaultForEligibleProgrammes": true,
+        "defaultForEligibleProgrammes": false,
         "eligibleProgrammePrefixes": [
           "nursery-pig"
         ],
@@ -24556,7 +24241,7 @@
         "sku": "GlyPro X912",
         "species": "pig",
         "application": "Growing and finishing pigs over 25 kg",
-        "defaultForEligibleProgrammes": true,
+        "defaultForEligibleProgrammes": false,
         "eligibleProgrammePrefixes": [
           "grow-finish-pig",
           "growing-barrows",
@@ -24884,6 +24569,1108 @@
         },
         "notes": [
           "Vitamin E is published by mass (g/kg). It is not credited as IU until the vitamin form and activity are confirmed. Choline is not declared."
+        ]
+      }
+    },
+    {
+      "id": "caremix-pig-weaner",
+      "name": "Caremix PigWeaner — 2.8% Maxipack",
+      "category": "vitamin_mineral_premix",
+      "provenance": {
+        "source": {
+          "publisher": "Trouw Nutrition / Caremix",
+          "title": "Caremix Pig Grower Specification Range (user-supplied one-page PDF; finished-feed targets)",
+          "url": "https://www.trouwnutrition.com/",
+          "basis": "per kg complete feed, modelled back to premix",
+          "priority": "supplier",
+          "note": "Manufacturer-branded target sheet was supplied by user, not a laboratory-tested premix composition. Values are estimates from stated complete-feed specs; model assumes entire amount supplied by premix and ignores basal sources."
+        },
+        "nutrientSources": {},
+        "notes": [
+          "Back-calculated contribution models, not verified manufacturer premix assays.",
+          "Min/max inverted pairs sorted by numeric size as explicitly requested, with original values retained in each row note.",
+          "Some cells overlap or are misaligned in the PDF; anomalous iodine/selenium inputs are excluded.",
+          "Basal feed also contributes some nutrients; this entire-feed upper-bound attribution can overstate premix supplementation."
+        ],
+        "verificationStatus": "manufacturer_unverified",
+        "profileBasis": "as-fed"
+      },
+      "premix": {
+        "manufacturer": "Trouw Nutrition",
+        "sku": "Caremix PigWeaner",
+        "species": "pig",
+        "application": "Pig weaners",
+        "eligibleProgrammePrefixes": [
+          "nursery-pig"
+        ],
+        "eligiblePhaseClasses": [
+          "pre-starter",
+          "starter"
+        ],
+        "defaultForEligibleProgrammes": true,
+        "inclusionPct": 2.8,
+        "inclusionKgPerTonne": 28,
+        "inclusionInstructions": "Add 28 kg per tonne of complete feed (2.8%); pack shown as 14 kg. Do not feed premix undiluted.",
+        "verificationStatus": "unverified",
+        "formulationCompatibility": "unconfirmed",
+        "pricePerTonne": null,
+        "specificationUrl": "https://www.trouwnutrition.com/",
+        "note": "Modelled from a supplier-branded finished-feed range; no per-kg premix analysis or live supplier quotation provided.",
+        "estimatedAsFedMicronutrients": {
+          "sourceUrl": "https://www.trouwnutrition.com/",
+          "vitamins": {
+            "vitaminAIuKg": 428571.428571,
+            "vitaminDIuKg": 53571.428571,
+            "vitaminEIuKg": 571.428571,
+            "vitaminKMgKg": 35.714286,
+            "vitaminB1MgKg": 35.714286,
+            "riboflavinMgKg": 142.857143,
+            "vitaminB6MgKg": 71.428571,
+            "niacinMgKg": 1071.428571,
+            "biotinMgKg": 5.357143,
+            "folicAcidMgKg": 35.714286,
+            "vitaminB12McgKg": 1250
+          },
+          "traceMineralsPpm": {
+            "copper": 4285.714286,
+            "iron": 89.285714,
+            "iodine": 35.714286,
+            "manganese": 714.285714,
+            "zinc": 21.428571,
+            "selenium": 3.571429
+          }
+        },
+        "labelGuarantees": {
+          "source": "User-supplied Caremix Swine Specifications Grower(1).pdf, page 1",
+          "batch": "not provided",
+          "inclusionPrinted": "28 kg premix per tonne of feed",
+          "columns": {
+            "first": "minimum",
+            "second": "maximum"
+          },
+          "confirmedByUser": true,
+          "concentrationBasis": "Specifications per kg of FINISHED FEED, not per kg of premix. Estimated premix profile is back-calculated by dividing each positive finished-feed minimum by the product inclusion fraction; this disregards basal ingredient contributions and must not be treated as an independently verified premix concentration.",
+          "rows": [
+            {
+              "category": "Vitamin",
+              "nutrient": "Vitamin A",
+              "source_form": "",
+              "min": "12000",
+              "max": "16000",
+              "unit": "IU",
+              "note": ""
+            },
+            {
+              "category": "Vitamin",
+              "nutrient": "Vitamin D3",
+              "source_form": "",
+              "min": "1500",
+              "max": "3000",
+              "unit": "IU",
+              "note": ""
+            },
+            {
+              "category": "Vitamin",
+              "nutrient": "Vitamin E",
+              "source_form": "",
+              "min": "16",
+              "max": "48",
+              "unit": "IU",
+              "note": ""
+            },
+            {
+              "category": "Vitamin",
+              "nutrient": "Vitamin E equivalent (unlabelled supplementary row)",
+              "source_form": "",
+              "min": "49",
+              "max": "90",
+              "unit": "IU",
+              "note": "The second IU row lacks a clear nutrient identity; no double counting."
+            },
+            {
+              "category": "Vitamin",
+              "nutrient": "Vitamin K3",
+              "source_form": "",
+              "min": "1",
+              "max": "5",
+              "unit": "mg",
+              "note": ""
+            },
+            {
+              "category": "Vitamin",
+              "nutrient": "Vitamin B1",
+              "source_form": "",
+              "min": "1",
+              "max": "5",
+              "unit": "mg",
+              "note": ""
+            },
+            {
+              "category": "Vitamin",
+              "nutrient": "Vitamin B2",
+              "source_form": "",
+              "min": "4",
+              "max": "8",
+              "unit": "mg",
+              "note": ""
+            },
+            {
+              "category": "Vitamin",
+              "nutrient": "Vitamin B6",
+              "source_form": "",
+              "min": "2",
+              "max": "6",
+              "unit": "mg",
+              "note": ""
+            },
+            {
+              "category": "Vitamin",
+              "nutrient": "Niacin",
+              "source_form": "",
+              "min": "30",
+              "max": "60",
+              "unit": "mg",
+              "note": ""
+            },
+            {
+              "category": "Vitamin",
+              "nutrient": "Calcium pantothenate",
+              "source_form": "",
+              "min": "15",
+              "max": "35",
+              "unit": "mg",
+              "note": "Calcium pantothenate mass is not directly pantothenic acid mass."
+            },
+            {
+              "category": "Vitamin",
+              "nutrient": "Biotin",
+              "source_form": "",
+              "min": "150",
+              "max": "250",
+              "unit": "mcg",
+              "note": ""
+            },
+            {
+              "category": "Vitamin",
+              "nutrient": "Folic acid",
+              "source_form": "",
+              "min": "1",
+              "max": "3 55",
+              "unit": "mg",
+              "note": "Maximum shown as '3 55'; not interpreted numerically."
+            },
+            {
+              "category": "Vitamin",
+              "nutrient": "Vitamin B12",
+              "source_form": "",
+              "min": "35",
+              "max": "250",
+              "unit": "mcg",
+              "note": ""
+            },
+            {
+              "category": "Vitamin",
+              "nutrient": "Choline",
+              "source_form": "",
+              "min": "",
+              "max": "1000",
+              "unit": "mg",
+              "note": ""
+            },
+            {
+              "category": "Additive",
+              "nutrient": "Phytase",
+              "source_form": "",
+              "min": "",
+              "max": "200",
+              "unit": "FTU",
+              "note": ""
+            },
+            {
+              "category": "Mineral",
+              "nutrient": "Copper",
+              "source_form": "",
+              "min": "120",
+              "max": "150",
+              "unit": "mg",
+              "note": ""
+            },
+            {
+              "category": "Mineral",
+              "nutrient": "Iron",
+              "source_form": "",
+              "min": "2.5",
+              "max": "80",
+              "unit": "mg",
+              "note": "Printed min=80 exceeds max=2.5; numeric bounds reversed with user approval."
+            },
+            {
+              "category": "Mineral",
+              "nutrient": "Iodine",
+              "source_form": "",
+              "min": "1",
+              "max": "60",
+              "unit": "mg",
+              "note": ""
+            },
+            {
+              "category": "Mineral",
+              "nutrient": "Manganese",
+              "source_form": "",
+              "min": "20",
+              "max": "200",
+              "unit": "mg",
+              "note": ""
+            },
+            {
+              "category": "Mineral",
+              "nutrient": "Zinc",
+              "source_form": "",
+              "min": "0.6",
+              "max": "100",
+              "unit": "mg",
+              "note": "Printed min=100 exceeds max=0.6; numeric bounds reversed with user approval."
+            },
+            {
+              "category": "Mineral",
+              "nutrient": "Selenium",
+              "source_form": "",
+              "min": "0.1",
+              "max": "0.3",
+              "unit": "mg",
+              "note": "Printed min=0.3 exceeds max=0.1; numeric bounds reversed with user approval."
+            },
+            {
+              "category": "Additive",
+              "nutrient": "Antioxidant",
+              "source_form": "",
+              "min": "0",
+              "max": "4.29",
+              "unit": "g",
+              "note": ""
+            },
+            {
+              "category": "Additive",
+              "nutrient": "Lysine",
+              "source_form": "",
+              "min": "0.39",
+              "max": "2.28",
+              "unit": "g",
+              "note": ""
+            },
+            {
+              "category": "Additive",
+              "nutrient": "Methionine",
+              "source_form": "",
+              "min": "0.2",
+              "max": "",
+              "unit": "g",
+              "note": ""
+            },
+            {
+              "category": "Additive",
+              "nutrient": "Threonine",
+              "source_form": "",
+              "min": "0.2",
+              "max": "2.46",
+              "unit": "g",
+              "note": ""
+            },
+            {
+              "category": "Additive",
+              "nutrient": "Tryptophan",
+              "source_form": "",
+              "min": "",
+              "max": "1.27",
+              "unit": "g",
+              "note": ""
+            },
+            {
+              "category": "Additive",
+              "nutrient": "Valine",
+              "source_form": "",
+              "min": "",
+              "max": "1.26",
+              "unit": "g",
+              "note": ""
+            },
+            {
+              "category": "Mineral",
+              "nutrient": "Sodium",
+              "source_form": "",
+              "min": "0.96",
+              "max": "2.8",
+              "unit": "g",
+              "note": "Complete-feed macro mineral target, not assumed to be entirely provided by premix."
+            },
+            {
+              "category": "Mineral",
+              "nutrient": "Phosphorus",
+              "source_form": "",
+              "min": "0.32",
+              "max": "0.59",
+              "unit": "g",
+              "note": "Complete-feed macro mineral target, not assumed to be entirely provided by premix."
+            },
+            {
+              "category": "Mineral",
+              "nutrient": "Calcium",
+              "source_form": "",
+              "min": "0.82",
+              "max": "7.8",
+              "unit": "g",
+              "note": "Printed min=7.8 exceeds max=0.82; numeric bounds reversed with user approval. Complete-feed macro mineral target, not assumed to be entirely provided by premix."
+            }
+          ],
+          "notes": [
+            "Minimum and maximum values are normalized in numeric-reversed cells at user's direction; row notes retain the originally printed order.",
+            "Three separate Caremix products with fixed doses of 28, 32 and 26 kg/t.",
+            "This is a finished-feed specification range, not premix composition or a guaranteed premix label.",
+            "The second E equivalent IU line is not counted a second time as vitamin E.",
+            "Overlapping/unusually large iodine and selenium entries are not credited for grower; unknowns remain.",
+            "Missing/zero guarantees are not filled with assumptions; supplementary choline and calcium pantothenate require additional composition data."
+          ]
+        },
+        "notes": [
+          "Estimated theoretical per-kg-premix profile from published per-kg-FINISHED-FEED requirements, assuming all declared levels came from the Maxipack.",
+          "Not a guaranteed minimum of the Maxipack; basal feed contribution can be nonzero, so projected values may overstate actual product micronutrients.",
+          "Dose fixed at 28 kg per tonne of feed."
+        ]
+      }
+    },
+    {
+      "id": "caremix-pig-grower",
+      "name": "Caremix Pig Grower — 3.2% Maxipack",
+      "category": "vitamin_mineral_premix",
+      "provenance": {
+        "source": {
+          "publisher": "Trouw Nutrition / Caremix",
+          "title": "Caremix Pig Grower Specification Range (user-supplied one-page PDF; finished-feed targets)",
+          "url": "https://www.trouwnutrition.com/",
+          "basis": "per kg complete feed, modelled back to premix",
+          "priority": "supplier",
+          "note": "Manufacturer-branded target sheet was supplied by user, not a laboratory-tested premix composition. Values are estimates from stated complete-feed specs; model assumes entire amount supplied by premix and ignores basal sources."
+        },
+        "nutrientSources": {},
+        "notes": [
+          "Back-calculated contribution models, not verified manufacturer premix assays.",
+          "Min/max inverted pairs sorted by numeric size as explicitly requested, with original values retained in each row note.",
+          "Some cells overlap or are misaligned in the PDF; anomalous iodine/selenium inputs are excluded.",
+          "Basal feed also contributes some nutrients; this entire-feed upper-bound attribution can overstate premix supplementation."
+        ],
+        "verificationStatus": "manufacturer_unverified",
+        "profileBasis": "as-fed"
+      },
+      "premix": {
+        "manufacturer": "Trouw Nutrition",
+        "sku": "Caremix Pig Grower",
+        "species": "pig",
+        "application": "Growing pigs",
+        "eligibleProgrammePrefixes": [
+          "grow-finish-pig",
+          "growing-barrows",
+          "growing-entire-immunocastrated-males",
+          "developing-gilt"
+        ],
+        "eligiblePhaseClasses": [
+          "grower"
+        ],
+        "defaultForEligibleProgrammes": true,
+        "inclusionPct": 3.2,
+        "inclusionKgPerTonne": 32,
+        "inclusionInstructions": "Add 32 kg per tonne of complete feed (3.2%); pack shown as 16 kg. Do not feed premix undiluted.",
+        "verificationStatus": "unverified",
+        "formulationCompatibility": "unconfirmed",
+        "pricePerTonne": null,
+        "specificationUrl": "https://www.trouwnutrition.com/",
+        "note": "Modelled from a supplier-branded finished-feed range; no per-kg premix analysis or live supplier quotation provided.",
+        "estimatedAsFedMicronutrients": {
+          "sourceUrl": "https://www.trouwnutrition.com/",
+          "vitamins": {
+            "vitaminAIuKg": 312500,
+            "vitaminDIuKg": 46875,
+            "vitaminEIuKg": 343.75,
+            "vitaminKMgKg": 31.25,
+            "vitaminB1MgKg": 31.25,
+            "riboflavinMgKg": 93.75,
+            "vitaminB6MgKg": 31.25,
+            "niacinMgKg": 625,
+            "biotinMgKg": 3.125,
+            "folicAcidMgKg": 15.625,
+            "vitaminB12McgKg": 937.5
+          },
+          "traceMineralsPpm": {
+            "copper": 2812.5,
+            "iron": 2812.5,
+            "manganese": 15.625,
+            "zinc": 625
+          }
+        },
+        "labelGuarantees": {
+          "source": "User-supplied Caremix Swine Specifications Grower(1).pdf, page 1",
+          "batch": "not provided",
+          "inclusionPrinted": "32 kg premix per tonne of feed",
+          "columns": {
+            "first": "minimum",
+            "second": "maximum"
+          },
+          "confirmedByUser": true,
+          "concentrationBasis": "Specifications per kg of FINISHED FEED, not per kg of premix. Estimated premix profile is back-calculated by dividing each positive finished-feed minimum by the product inclusion fraction; this disregards basal ingredient contributions and must not be treated as an independently verified premix concentration.",
+          "rows": [
+            {
+              "category": "Vitamin",
+              "nutrient": "Vitamin A",
+              "source_form": "",
+              "min": "10000",
+              "max": "14000",
+              "unit": "IU",
+              "note": ""
+            },
+            {
+              "category": "Vitamin",
+              "nutrient": "Vitamin D3",
+              "source_form": "",
+              "min": "1500",
+              "max": "3000",
+              "unit": "IU",
+              "note": ""
+            },
+            {
+              "category": "Vitamin",
+              "nutrient": "Vitamin E",
+              "source_form": "",
+              "min": "11",
+              "max": "33",
+              "unit": "IU",
+              "note": ""
+            },
+            {
+              "category": "Vitamin",
+              "nutrient": "Vitamin E equivalent (unlabelled supplementary row)",
+              "source_form": "",
+              "min": "19",
+              "max": "70",
+              "unit": "IU",
+              "note": "The second IU row lacks a clear nutrient identity; no double counting."
+            },
+            {
+              "category": "Vitamin",
+              "nutrient": "Vitamin K3",
+              "source_form": "",
+              "min": "1",
+              "max": "5",
+              "unit": "mg",
+              "note": ""
+            },
+            {
+              "category": "Vitamin",
+              "nutrient": "Vitamin B1",
+              "source_form": "",
+              "min": "1",
+              "max": "5",
+              "unit": "mg",
+              "note": ""
+            },
+            {
+              "category": "Vitamin",
+              "nutrient": "Vitamin B2",
+              "source_form": "",
+              "min": "3",
+              "max": "7",
+              "unit": "mg",
+              "note": ""
+            },
+            {
+              "category": "Vitamin",
+              "nutrient": "Vitamin B6",
+              "source_form": "",
+              "min": "1",
+              "max": "5",
+              "unit": "mg",
+              "note": ""
+            },
+            {
+              "category": "Vitamin",
+              "nutrient": "Niacin",
+              "source_form": "",
+              "min": "20",
+              "max": "40",
+              "unit": "mg",
+              "note": ""
+            },
+            {
+              "category": "Vitamin",
+              "nutrient": "Calcium pantothenate",
+              "source_form": "",
+              "min": "10",
+              "max": "30",
+              "unit": "mg",
+              "note": "Calcium pantothenate mass is not directly pantothenic acid mass."
+            },
+            {
+              "category": "Vitamin",
+              "nutrient": "Biotin",
+              "source_form": "",
+              "min": "100",
+              "max": "200",
+              "unit": "mcg",
+              "note": ""
+            },
+            {
+              "category": "Vitamin",
+              "nutrient": "Folic acid",
+              "source_form": "",
+              "min": "0.5",
+              "max": "1.5",
+              "unit": "mg",
+              "note": ""
+            },
+            {
+              "category": "Vitamin",
+              "nutrient": "Vitamin B12",
+              "source_form": "",
+              "min": "30",
+              "max": "50",
+              "unit": "mcg",
+              "note": ""
+            },
+            {
+              "category": "Vitamin",
+              "nutrient": "Choline",
+              "source_form": "",
+              "min": "0",
+              "max": "250",
+              "unit": "mg",
+              "note": ""
+            },
+            {
+              "category": "Additive",
+              "nutrient": "Phytase",
+              "source_form": "",
+              "min": "0",
+              "max": "1000",
+              "unit": "FTU",
+              "note": ""
+            },
+            {
+              "category": "Mineral",
+              "nutrient": "Copper",
+              "source_form": "",
+              "min": "90",
+              "max": "225",
+              "unit": "mg",
+              "note": ""
+            },
+            {
+              "category": "Mineral",
+              "nutrient": "Iron",
+              "source_form": "",
+              "min": "90",
+              "max": "225",
+              "unit": "mg",
+              "note": ""
+            },
+            {
+              "category": "Mineral",
+              "nutrient": "Iodine",
+              "source_form": "",
+              "min": "80",
+              "max": "150",
+              "unit": "mg",
+              "note": "The 80–150 mg/kg entry appears displaced or mislabeled in this source; do not credit as iodine."
+            },
+            {
+              "category": "Mineral",
+              "nutrient": "Manganese",
+              "source_form": "",
+              "min": "0.5",
+              "max": "2",
+              "unit": "mg",
+              "note": ""
+            },
+            {
+              "category": "Mineral",
+              "nutrient": "Zinc",
+              "source_form": "",
+              "min": "20",
+              "max": "60",
+              "unit": "mg",
+              "note": ""
+            },
+            {
+              "category": "Mineral",
+              "nutrient": "Selenium",
+              "source_form": "",
+              "min": "80",
+              "max": "160",
+              "unit": "mg",
+              "note": "The 80–160 mg/kg entry appears displaced or mislabeled in this source; do not credit as selenium."
+            },
+            {
+              "category": "Additive",
+              "nutrient": "Antioxidant",
+              "source_form": "",
+              "min": "0.2",
+              "max": "0.4",
+              "unit": "g",
+              "note": ""
+            },
+            {
+              "category": "Additive",
+              "nutrient": "Lysine",
+              "source_form": "",
+              "min": "0.39",
+              "max": "3.51",
+              "unit": "g",
+              "note": ""
+            },
+            {
+              "category": "Additive",
+              "nutrient": "Methionine",
+              "source_form": "",
+              "min": "",
+              "max": "2.48",
+              "unit": "g",
+              "note": ""
+            },
+            {
+              "category": "Additive",
+              "nutrient": "Threonine",
+              "source_form": "",
+              "min": "",
+              "max": "2.46",
+              "unit": "g",
+              "note": ""
+            },
+            {
+              "category": "Additive",
+              "nutrient": "Tryptophan",
+              "source_form": "",
+              "min": "",
+              "max": "1.47",
+              "unit": "g",
+              "note": ""
+            },
+            {
+              "category": "Additive",
+              "nutrient": "Valine",
+              "source_form": "",
+              "min": "",
+              "max": "1",
+              "unit": "g",
+              "note": ""
+            },
+            {
+              "category": "Mineral",
+              "nutrient": "Sodium",
+              "source_form": "",
+              "min": "1.54",
+              "max": "3.57",
+              "unit": "g",
+              "note": "Complete-feed macro mineral target, not assumed to be entirely provided by premix."
+            },
+            {
+              "category": "Mineral",
+              "nutrient": "Phosphorus",
+              "source_form": "",
+              "min": "0.42",
+              "max": "1.37",
+              "unit": "g",
+              "note": "Complete-feed macro mineral target, not assumed to be entirely provided by premix."
+            },
+            {
+              "category": "Mineral",
+              "nutrient": "Calcium",
+              "source_form": "",
+              "min": "1.94",
+              "max": "8.72",
+              "unit": "g",
+              "note": "Printed min=8.72 exceeds max=1.94; numeric bounds reversed with user approval. Complete-feed macro mineral target, not assumed to be entirely provided by premix."
+            }
+          ],
+          "notes": [
+            "Minimum and maximum values are normalized in numeric-reversed cells at user's direction; row notes retain the originally printed order.",
+            "Three separate Caremix products with fixed doses of 28, 32 and 26 kg/t.",
+            "This is a finished-feed specification range, not premix composition or a guaranteed premix label.",
+            "The second E equivalent IU line is not counted a second time as vitamin E.",
+            "Overlapping/unusually large iodine and selenium entries are not credited for grower; unknowns remain.",
+            "Missing/zero guarantees are not filled with assumptions; supplementary choline and calcium pantothenate require additional composition data."
+          ]
+        },
+        "notes": [
+          "Estimated theoretical per-kg-premix profile from published per-kg-FINISHED-FEED requirements, assuming all declared levels came from the Maxipack.",
+          "Not a guaranteed minimum of the Maxipack; basal feed contribution can be nonzero, so projected values may overstate actual product micronutrients.",
+          "Dose fixed at 32 kg per tonne of feed.",
+          "Excluded Iodine source misalignment.",
+          "Excluded Selenium source misalignment."
+        ]
+      }
+    },
+    {
+      "id": "caremix-pig-finisher",
+      "name": "Caremix Pig Finisher — 2.6% Maxipack",
+      "category": "vitamin_mineral_premix",
+      "provenance": {
+        "source": {
+          "publisher": "Trouw Nutrition / Caremix",
+          "title": "Caremix Pig Grower Specification Range (user-supplied one-page PDF; finished-feed targets)",
+          "url": "https://www.trouwnutrition.com/",
+          "basis": "per kg complete feed, modelled back to premix",
+          "priority": "supplier",
+          "note": "Manufacturer-branded target sheet was supplied by user, not a laboratory-tested premix composition. Values are estimates from stated complete-feed specs; model assumes entire amount supplied by premix and ignores basal sources."
+        },
+        "nutrientSources": {},
+        "notes": [
+          "Back-calculated contribution models, not verified manufacturer premix assays.",
+          "Min/max inverted pairs sorted by numeric size as explicitly requested, with original values retained in each row note.",
+          "Some cells overlap or are misaligned in the PDF; anomalous iodine/selenium inputs are excluded.",
+          "Basal feed also contributes some nutrients; this entire-feed upper-bound attribution can overstate premix supplementation."
+        ],
+        "verificationStatus": "manufacturer_unverified",
+        "profileBasis": "as-fed"
+      },
+      "premix": {
+        "manufacturer": "Trouw Nutrition",
+        "sku": "Caremix Pig Finisher",
+        "species": "pig",
+        "application": "Finishing pigs",
+        "eligibleProgrammePrefixes": [
+          "grow-finish-pig",
+          "growing-barrows",
+          "growing-entire-immunocastrated-males",
+          "developing-gilt"
+        ],
+        "eligiblePhaseClasses": [
+          "finisher"
+        ],
+        "defaultForEligibleProgrammes": true,
+        "inclusionPct": 2.6,
+        "inclusionKgPerTonne": 26,
+        "inclusionInstructions": "Add 26 kg per tonne of complete feed (2.6%); pack shown as 13 kg. Do not feed premix undiluted.",
+        "verificationStatus": "unverified",
+        "formulationCompatibility": "unconfirmed",
+        "pricePerTonne": null,
+        "specificationUrl": "https://www.trouwnutrition.com/",
+        "note": "Modelled from a supplier-branded finished-feed range; no per-kg premix analysis or live supplier quotation provided.",
+        "estimatedAsFedMicronutrients": {
+          "sourceUrl": "https://www.trouwnutrition.com/",
+          "vitamins": {
+            "vitaminAIuKg": 230769.230769,
+            "vitaminDIuKg": 38461.538462,
+            "vitaminEIuKg": 423.076923,
+            "vitaminKMgKg": 38.461538,
+            "vitaminB1MgKg": 38.461538,
+            "riboflavinMgKg": 76.923077,
+            "vitaminB6MgKg": 38.461538,
+            "niacinMgKg": 384.615385,
+            "biotinMgKg": 3.076923,
+            "vitaminB12McgKg": 769.230769
+          },
+          "traceMineralsPpm": {
+            "copper": 3076.923077,
+            "iron": 57.692308,
+            "iodine": 19.230769,
+            "manganese": 769.230769,
+            "zinc": 15.384615,
+            "selenium": 3.846154
+          }
+        },
+        "labelGuarantees": {
+          "source": "User-supplied Caremix Swine Specifications Grower(1).pdf, page 1",
+          "batch": "not provided",
+          "inclusionPrinted": "26 kg premix per tonne of feed",
+          "columns": {
+            "first": "minimum",
+            "second": "maximum"
+          },
+          "confirmedByUser": true,
+          "concentrationBasis": "Specifications per kg of FINISHED FEED, not per kg of premix. Estimated premix profile is back-calculated by dividing each positive finished-feed minimum by the product inclusion fraction; this disregards basal ingredient contributions and must not be treated as an independently verified premix concentration.",
+          "rows": [
+            {
+              "category": "Vitamin",
+              "nutrient": "Vitamin A",
+              "source_form": "",
+              "min": "6000",
+              "max": "10000",
+              "unit": "IU",
+              "note": ""
+            },
+            {
+              "category": "Vitamin",
+              "nutrient": "Vitamin D3",
+              "source_form": "",
+              "min": "1000",
+              "max": "2000",
+              "unit": "IU",
+              "note": ""
+            },
+            {
+              "category": "Vitamin",
+              "nutrient": "Vitamin E",
+              "source_form": "",
+              "min": "11",
+              "max": "33",
+              "unit": "IU",
+              "note": ""
+            },
+            {
+              "category": "Vitamin",
+              "nutrient": "Vitamin E equivalent (unlabelled supplementary row)",
+              "source_form": "",
+              "min": "14",
+              "max": "70",
+              "unit": "IU",
+              "note": "The second IU row lacks a clear nutrient identity; no double counting."
+            },
+            {
+              "category": "Vitamin",
+              "nutrient": "Vitamin K3",
+              "source_form": "",
+              "min": "1",
+              "max": "3",
+              "unit": "mg",
+              "note": ""
+            },
+            {
+              "category": "Vitamin",
+              "nutrient": "Vitamin B1",
+              "source_form": "",
+              "min": "1",
+              "max": "4",
+              "unit": "mg",
+              "note": ""
+            },
+            {
+              "category": "Vitamin",
+              "nutrient": "Vitamin B2",
+              "source_form": "",
+              "min": "2",
+              "max": "6",
+              "unit": "mg",
+              "note": ""
+            },
+            {
+              "category": "Vitamin",
+              "nutrient": "Vitamin B6",
+              "source_form": "",
+              "min": "1",
+              "max": "3",
+              "unit": "mg",
+              "note": ""
+            },
+            {
+              "category": "Vitamin",
+              "nutrient": "Niacin",
+              "source_form": "",
+              "min": "10",
+              "max": "30",
+              "unit": "mg",
+              "note": ""
+            },
+            {
+              "category": "Vitamin",
+              "nutrient": "Calcium pantothenate",
+              "source_form": "",
+              "min": "10",
+              "max": "30",
+              "unit": "mg",
+              "note": "Calcium pantothenate mass is not directly pantothenic acid mass."
+            },
+            {
+              "category": "Vitamin",
+              "nutrient": "Biotin",
+              "source_form": "",
+              "min": "80",
+              "max": "150 1",
+              "unit": "mcg",
+              "note": "Maximum shown as '150 1' (possible footnote); not interpreted numerically."
+            },
+            {
+              "category": "Vitamin",
+              "nutrient": "Folic acid",
+              "source_form": "",
+              "min": "",
+              "max": "40",
+              "unit": "mg",
+              "note": ""
+            },
+            {
+              "category": "Vitamin",
+              "nutrient": "Vitamin B12",
+              "source_form": "",
+              "min": "20",
+              "max": "150",
+              "unit": "mcg",
+              "note": ""
+            },
+            {
+              "category": "Vitamin",
+              "nutrient": "Choline",
+              "source_form": "",
+              "min": "",
+              "max": "1000",
+              "unit": "mg",
+              "note": ""
+            },
+            {
+              "category": "Additive",
+              "nutrient": "Phytase",
+              "source_form": "",
+              "min": "",
+              "max": "150",
+              "unit": "FTU",
+              "note": ""
+            },
+            {
+              "category": "Mineral",
+              "nutrient": "Copper",
+              "source_form": "",
+              "min": "80",
+              "max": "125",
+              "unit": "mg",
+              "note": ""
+            },
+            {
+              "category": "Mineral",
+              "nutrient": "Iron",
+              "source_form": "",
+              "min": "1.5",
+              "max": "50",
+              "unit": "mg",
+              "note": "Printed min=50 exceeds max=1.5; numeric bounds reversed with user approval."
+            },
+            {
+              "category": "Mineral",
+              "nutrient": "Iodine",
+              "source_form": "",
+              "min": "0.5",
+              "max": "40",
+              "unit": "mg",
+              "note": ""
+            },
+            {
+              "category": "Mineral",
+              "nutrient": "Manganese",
+              "source_form": "",
+              "min": "20",
+              "max": "120",
+              "unit": "mg",
+              "note": ""
+            },
+            {
+              "category": "Mineral",
+              "nutrient": "Zinc",
+              "source_form": "",
+              "min": "0.4",
+              "max": "60",
+              "unit": "mg",
+              "note": "Printed min=60 exceeds max=0.4; numeric bounds reversed with user approval."
+            },
+            {
+              "category": "Mineral",
+              "nutrient": "Selenium",
+              "source_form": "",
+              "min": "0.1",
+              "max": "0.2",
+              "unit": "mg",
+              "note": "Printed min=0.2 exceeds max=0.1; numeric bounds reversed with user approval."
+            },
+            {
+              "category": "Additive",
+              "nutrient": "Antioxidant",
+              "source_form": "",
+              "min": "0",
+              "max": "3.51",
+              "unit": "g",
+              "note": ""
+            },
+            {
+              "category": "Additive",
+              "nutrient": "Lysine",
+              "source_form": "",
+              "min": "0.39",
+              "max": "1.98",
+              "unit": "g",
+              "note": ""
+            },
+            {
+              "category": "Additive",
+              "nutrient": "Methionine",
+              "source_form": "",
+              "min": "",
+              "max": "",
+              "unit": "g",
+              "note": ""
+            },
+            {
+              "category": "Additive",
+              "nutrient": "Threonine",
+              "source_form": "",
+              "min": "",
+              "max": "1.97",
+              "unit": "g",
+              "note": ""
+            },
+            {
+              "category": "Additive",
+              "nutrient": "Tryptophan",
+              "source_form": "",
+              "min": "",
+              "max": "0.98",
+              "unit": "g",
+              "note": ""
+            },
+            {
+              "category": "Additive",
+              "nutrient": "Valine",
+              "source_form": "",
+              "min": "0",
+              "max": "0.5",
+              "unit": "g",
+              "note": ""
+            },
+            {
+              "category": "Mineral",
+              "nutrient": "Sodium",
+              "source_form": "",
+              "min": "1.16",
+              "max": "2.89",
+              "unit": "g",
+              "note": "Complete-feed macro mineral target, not assumed to be entirely provided by premix."
+            },
+            {
+              "category": "Mineral",
+              "nutrient": "Phosphorus",
+              "source_form": "",
+              "min": "",
+              "max": "0.42",
+              "unit": "g",
+              "note": "Complete-feed macro mineral target, not assumed to be entirely provided by premix."
+            },
+            {
+              "category": "Mineral",
+              "nutrient": "Calcium",
+              "source_form": "",
+              "min": "1.59",
+              "max": "7.5",
+              "unit": "g",
+              "note": "Printed min=7.5 exceeds max=1.59; numeric bounds reversed with user approval. Complete-feed macro mineral target, not assumed to be entirely provided by premix."
+            }
+          ],
+          "notes": [
+            "Minimum and maximum values are normalized in numeric-reversed cells at user's direction; row notes retain the originally printed order.",
+            "Three separate Caremix products with fixed doses of 28, 32 and 26 kg/t.",
+            "This is a finished-feed specification range, not premix composition or a guaranteed premix label.",
+            "The second E equivalent IU line is not counted a second time as vitamin E.",
+            "Overlapping/unusually large iodine and selenium entries are not credited for grower; unknowns remain.",
+            "Missing/zero guarantees are not filled with assumptions; supplementary choline and calcium pantothenate require additional composition data."
+          ]
+        },
+        "notes": [
+          "Estimated theoretical per-kg-premix profile from published per-kg-FINISHED-FEED requirements, assuming all declared levels came from the Maxipack.",
+          "Not a guaranteed minimum of the Maxipack; basal feed contribution can be nonzero, so projected values may overstate actual product micronutrients.",
+          "Dose fixed at 26 kg per tonne of feed.",
+          "Excluded Folic acid missing/zero."
         ]
       }
     }
