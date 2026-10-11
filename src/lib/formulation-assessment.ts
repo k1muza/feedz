@@ -285,6 +285,17 @@ export function buildFormulationAssessment(
   };
 }
 
+/**
+ * Bad optional recipes cannot invalidate an independently feasible primary
+ * solution. This only rejects the alternatives; it never forgives the same
+ * consistency failures on the primary solution.
+ */
+export function keepConsistentAlternatives<T extends { assessment: FormulationAssessment }>(
+  alternatives: readonly T[],
+): T[] {
+  return alternatives.filter((alternative) => alternative.assessment.consistencyErrors.length === 0);
+}
+
 export function buildInfeasibleFormulationAssessment(
   message: string,
   diagnostics: readonly FormulationDiagnostic[] = [],
