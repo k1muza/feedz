@@ -68,18 +68,24 @@ export type CommercialPremix = {
   note?: string;
   /** Uninterpreted, unheaded label columns. Never used as formulation nutrients. */
   labelTranscription?: {
+    csvPath: string;
     source: string;
     batch: string;
     inclusionPrinted: string;
     firstColumnHeading: string;
     secondColumnHeading: string;
     basis: string;
+    /** Fields mirror the CSV; never treat either value column as an analysed
+     * nutrient concentration without a manufacturer-confirmed basis.
+     */
     rows: readonly {
-      category: "vitamins" | "minerals" | "additives";
-      label: string;
-      column1Raw: string | null;
-      column2Raw: string | null;
-      uncertain?: boolean;
+      category: "Vitamin" | "Mineral" | "Additive";
+      nutrient: string;
+      source_form: string;
+      left_value: string;
+      right_value: string;
+      right_unit: string;
+      note: string;
     }[];
     cautions: readonly string[];
   };
