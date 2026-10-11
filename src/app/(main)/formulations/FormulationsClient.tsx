@@ -10,7 +10,7 @@ import type { FormulationAlternative, FormulationAlternativeKind, FormulationIng
 import { feedProgrammeById, feedProgrammePhaseById } from '@/lib/feed-programmes';
 import { INGREDIENT_LIBRARY, ingredientLibraryForPhase } from '@/lib/ingredient-nutrients';
 import { commercialPremixForProgramme, eligibleCommercialPremixes, premixNutrientContributions } from '@/lib/commercial-premixes';
-import { documentationGapLine, supplementationCounts, type FormulationAssessment, type PremixComparison } from '@/lib/formulation-assessment-model';
+import type { FormulationAssessment } from '@/lib/formulation-assessment-model';
 import { initialFeedMix } from '@/lib/public-formulation-defaults';
 import { FEED_PROGRAMMES } from '@/lib/feed-programmes';
 import { resolveNutritionTargets } from '@/lib/nutrition-targets';
@@ -73,7 +73,6 @@ type DownloadableFormulation = {
 
 type AssessedResult = {
   assessment: FormulationAssessment;
-  premixComparison: PremixComparison | null;
 };
 
 const compactNumber = (value: number, maximumFractionDigits = 3) =>
@@ -189,11 +188,6 @@ export default function FormulationsClient({ ingredientPrices, ingredientPackSiz
   const premixContributions = selectedPremix ? premixNutrientContributions(selectedPremix) : [];
   const failedRequirements = assessed?.assessment.requirements.filter((check) => check.status === 'not_met') ?? [];
   const assessmentFails = !!assessed && (assessed.assessment.verdict !== 'meets_requirements' || failedRequirements.length > 0);
-  const gapLine = assessed ? documentationGapLine(assessed.assessment) : null;
-  const chapter7 = assessed ? supplementationCounts(assessed.assessment) : null;
-  const suggestedPremix = assessed?.premixComparison?.suggestedPremixId
-    ? assessed.premixComparison.options.find((option) => option.premixId === assessed.premixComparison!.suggestedPremixId)
-    : undefined;
   const ingredientByEngineId = new Map(INGREDIENT_LIBRARY.ingredients.map((ingredient) => [ingredient.id, ingredient]));
   const mix = [
     ...rows.filter((row) => inclusions[row.id] > 0).map((row) => ({ name: row.name, value: inclusions[row.id], colour: colours[row.id] })),
@@ -366,7 +360,6 @@ export default function FormulationsClient({ ingredientPrices, ingredientPackSiz
         message?: string;
         assessment?: FormulationAssessment;
         alternatives?: AssessedAlternative[];
-        premixComparison?: PremixComparison | null;
       }) | {
         status: 'manufacturer_recipe'; recipe: DietFormula; warning: string;
         cost_per_kg: number | null;
@@ -384,7 +377,7 @@ export default function FormulationsClient({ ingredientPrices, ingredientPackSiz
         setExtraVisibleIngredientIds(extras.map((row) => row.ingredientId));
         setExtraInclusions(Object.fromEntries(extras.map((row) => [row.ingredientId, row.inclusionPct])));
         setDownloadableFormulation({ formula: result.recipe, priority: 'least-cost', costIncreasePct: 0 });
-        setAssessed(result.assessment ? { assessment: result.assessment, premixComparison: null } : null);
+        setAssessed(result.assessment ? { assessment: result.assessment } : null);
         setFormulationNote(`Manufacturer's original recipe, not independently optimised. ${costIncomplete ? `Cost excludes ${selectedPremix.name}; enter a price for the full cost. ` : ''}${result.warning}`);
         return;
       }
@@ -404,7 +397,7 @@ export default function FormulationsClient({ ingredientPrices, ingredientPackSiz
       setExtraInclusions(Object.fromEntries(extraIds.map((id) => [id, amounts.get(id) ?? 0])));
       setDownloadableFormulation({ formula: chosen.formula, priority: alternative?.id ?? 'least-cost', costIncreasePct: alternative?.costIncreasePct ?? 0 });
       const chosenAssessment = alternative ? alternative.assessment : result.assessment;
-      setAssessed(chosenAssessment ? { assessment: chosenAssessment, premixComparison: result.premixComparison ?? null } : null);
+      setAssessed(chosenAssessment ? { assessment: chosenAssessment } : null);
       setFormulationNote((costIncomplete ? `Cost excludes ${selectedPremix.name}; enter a price for the full cost. ` : "") + (alternative
         ? `${alternative.label} applied · ${alternative.costIncreasePct.toFixed(2)}% above least cost.`
         : 'Nutrient optimisation completed.'));
@@ -578,33 +571,6 @@ export default function FormulationsClient({ ingredientPrices, ingredientPackSiz
                   </ul>
                 ) : null}
               </div>
-              {gapLine || (chapter7 && chapter7.total) || suggestedPremix ? (
-                <div className="grid gap-1.5 rounded-[4px] border border-[#f0c97f] bg-[#fdf6e8] px-3.5 py-3 text-[13px] leading-5 text-[#6d4b12]">
-                  <p className="fs-label m-0 text-[#7a5414]">Advisories · optional, never block the recipe</p>
-                  {gapLine ? <p className="m-0">{gapLine}</p> : null}
-                  {chapter7 && chapter7.total ? (
-                    <details>
-                      <summary className="cursor-pointer">Chapter 7 vitamins and trace minerals: {chapter7.at} of {chapter7.total} at recommendation (recommendations, not requirements)</summary>
-                      <ul className="m-0 mt-1 list-none p-0">
-                        {assessed.assessment.supplementation!.rows.map((row) => (
-                          <li key={row.id} className="flex justify-between gap-3">
-                            <span>{row.label}</span>
-                            <span className="tabular-nums">{row.status === 'no_data' ? 'No data' : row.pctOfRecommendation === null ? '—' : `${Math.round(row.pctOfRecommendation)}% of recommendation`}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </details>
-                  ) : null}
-                  {suggestedPremix && assessed.premixComparison ? (
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <p className="m-0">Replace premix with {suggestedPremix.name}: the re-run with your ingredients and limits shows {assessed.premixComparison.reasons.join('; ')}.</p>
-                      {premixChoices.some((product) => product.id === suggestedPremix.premixId) ? (
-                        <button type="button" onClick={() => changePremix(suggestedPremix.premixId)} className="h-8 rounded-[4px] border border-[#7a5414] px-3 text-[13px] font-semibold text-[#6d4b12]">Replace premix</button>
-                      ) : null}
-                    </div>
-                  ) : null}
-                </div>
-              ) : null}
             </div>
           ) : null}
           <div className="mt-4 rounded-[4px] bg-[#f3f0e8] p-3 text-[12px] leading-5 text-[#4f524b]"><b className="text-[#191b18]">What this check covers:</b> energy, protein, two key SID amino-acid measures, calcium and available phosphorus. The selected named premix uses its published dose.</div>
