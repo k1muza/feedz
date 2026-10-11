@@ -96,7 +96,7 @@ test("Studio can send a default fixed Caremix premix without inventing its purch
     ]),
     programmes: {
       requirementFields: [],
-      programmes: [{ id: "grow-finish-pig", name: "Grower", species: "swine", phases: [{ id: "grower", label: "Grower", limitsKey: null }] }],
+      programmes: [{ id: "grow-finish-pig", name: "Grower", species: "swine", phases: [{ id: "br2024-5-43-63-91d-26-47kg", label: "Grower", limitsKey: null }] }],
       limits: {},
     },
   } as unknown as EngineContext;
@@ -118,7 +118,7 @@ test("Studio can send a default fixed Caremix premix without inventing its purch
   };
   try {
     const result = await formulate({
-      programmeId: "grow-finish-pig", phaseId: "grower", goal: "least_cost", batch: 100, pool,
+      programmeId: "grow-finish-pig", phaseId: "br2024-5-43-63-91d-26-47kg", goal: "least_cost", batch: 100, pool,
     }, ctx);
     assert.equal(result.status, "infeasible", "Formulation must reach the solver, not block over premix price");
     assert.equal(calls, 1);
