@@ -143,7 +143,7 @@ export function commercialPremixCompatibleWithProgramme(
   const matchesPhase = !premix.eligiblePhaseClasses?.length || !phaseId ||
     (() => {
       const phase = feedProgrammePhaseById(programmeId, phaseId);
-      return !!phase && premix.eligiblePhaseClasses!.includes(phase.phaseClass);
+      return !!phase && premix.eligiblePhaseClasses!.some((allowed) => allowed === phase.phaseClass);
     })();
   return (matchesFamily && matchesPhase) || commercialPremixSimulationOnlyForPhase(premix, programmeId, phaseId);
 }
