@@ -87,9 +87,9 @@ export default function FormulationsClient({ ingredientPrices, ingredientPackSiz
   const selectedProgramme = programmeChoices.find((choice) => choice.id === programmeId) ?? programmeChoices[0];
   const [phaseId, setPhaseId] = useState(selectedProgramme.programme.phases[0]?.id ?? '');
   const [premixByProgramme, setPremixByProgramme] = useState<Record<string, string>>({});
-  const premixChoices = eligibleCommercialPremixes(programmeId);
+  const premixChoices = eligibleCommercialPremixes(programmeId, phaseId);
   const selectedPremix = premixChoices.find((product) => product.id === premixByProgramme[programmeId])
-    ?? commercialPremixForProgramme(programmeId);
+    ?? commercialPremixForProgramme(programmeId, phaseId);
   const [premixPrices, setPremixPrices] = useState<Record<string, string>>({});
   const premixDefaultPriceRecord = selectedPremix
     ? ingredientDefaultPrice(selectedPremix.id, ingredientPrices)
@@ -200,9 +200,10 @@ export default function FormulationsClient({ ingredientPrices, ingredientPackSiz
     const nextProgramme = programmeChoices.find((choice) => choice.id === nextProgrammeId) ?? programmeChoices[0];
     setProgrammeId(nextProgramme.id);
     setPhaseId(nextProgramme.programme.phases[0]?.id ?? '');
-    const eligible = eligibleCommercialPremixes(nextProgramme.id);
+    const nextPhaseId = nextProgramme.programme.phases[0]?.id;
+    const eligible = eligibleCommercialPremixes(nextProgramme.id, nextPhaseId);
     const nextProduct = eligible.find((item) => item.id === premixByProgramme[nextProgramme.id])
-      ?? commercialPremixForProgramme(nextProgramme.id);
+      ?? commercialPremixForProgramme(nextProgramme.id, nextPhaseId);
     const published = nextProduct?.manufacturerRecipe;
     if (published) {
       const mix = new Map(published.map((item) => [item.ingredientId, item.percent]));
@@ -246,6 +247,12 @@ export default function FormulationsClient({ ingredientPrices, ingredientPackSiz
   }
 
   function changePhase(nextPhaseId: string) {
+    const available = eligibleCommercialPremixes(programmeId, nextPhaseId);
+    const nextProduct = available.find((product) => product.id === premixByProgramme[programmeId])
+      ?? commercialPremixForProgramme(programmeId, nextPhaseId);
+    // A grower-to-finisher change changes the manufacturer dose, so rebalance
+    // the existing basal percentages rather than leaving the total invalid.
+    setInclusions((current) => initialFeedMix(current, "sorghum", nextProduct?.inclusionPct ?? 0));
     setPhaseId(nextPhaseId);
     setFormulationNote(null);
     setBalanceError(null);
