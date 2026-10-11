@@ -224,8 +224,34 @@ const commercialPremixSchema = z
     specificationUrl: z.string().url(),
     publishedAnalysis: z
       .object({ zincMgKg: rangeSchema, copperMgKg: rangeSchema, vitaminAIuKg: rangeSchema })
-      .strict(),
+      .strict()
+      .optional(),
     note: z.string().optional(),
+    /** Literal transcription of an unheaded/unverified supplier bag-label table.
+     * This metadata is never a nutrient matrix and cannot enter the optimizer.
+     */
+    labelTranscription: z.object({
+      csvPath: z.string(),
+      source: z.string(),
+      batch: z.string(),
+      inclusionPrinted: z.string(),
+      firstColumnHeading: z.string(),
+      secondColumnHeading: z.string(),
+      basis: z.string(),
+      /** Exact string fields from the authoritative CSV. Preserve precision,
+       * spelling, ambiguous chemical forms and unresolved label notes.
+       */
+      rows: z.array(z.object({
+        category: z.enum(["Vitamin", "Mineral", "Additive"]),
+        nutrient: z.string(),
+        source_form: z.string(),
+        left_value: z.string(),
+        right_value: z.string(),
+        right_unit: z.string(),
+        note: z.string(),
+      }).strict()),
+      cautions: z.array(z.string()),
+    }).strict().optional(),
     /** Data caveats that used to live as code comments beside the values. */
     notes: z.array(z.string()).optional(),
   })
