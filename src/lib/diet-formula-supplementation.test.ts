@@ -10,12 +10,24 @@ import {
 
 const cornId = "corn-yellow-dent";
 const soybeanId = "soybean-meal-solvent-extracted";
-const weanerPremixId = "aeci-v1736-pig-weaner-premix";
+// Use an explicitly synthetic known-analysis fixture for the numeric accounting
+// tests. AECI V1736 now contains raw CSV label values with unverified units and
+// must NOT be credited as a proven copper/vitamin K source.
+const aeciPremix = commercialPremixById("aeci-v1736-pig-weaner-premix");
+if (!aeciPremix) throw new Error("Missing AECI V1736 premix record");
 
-const premix = commercialPremixById(weanerPremixId);
-if (!premix) throw new Error("Missing AECI V1736 fixture");
-
-const library = ingredientLibraryWithCommercialPremixes([premix], INGREDIENT_LIBRARY);
+const weanerPremixId = "test-known-micronutrient-premix";
+const knownPremix = {
+  ...aeciPremix,
+  id: weanerPremixId,
+  name: "Synthetic known-micronutrient premix (test fixture only)",
+  guaranteedMinimumAsFed: {
+    sourceUrl: "https://example.com/test-fixture-only",
+    vitamins: { vitaminKMgKg: 300 },
+    traceMineralsPpm: { copper: 1_000 },
+  },
+};
+const library = ingredientLibraryWithCommercialPremixes([knownPremix], INGREDIENT_LIBRARY);
 
 function near(actual: number, expected: number): void {
   assert.ok(Math.abs(actual - expected) < 1e-9, `Expected ${actual} to equal ${expected}`);
@@ -38,7 +50,7 @@ describe("supplemented micronutrients versus total dietary micronutrients", () =
     assert.equal(analysis.supplementation.vitamins.vitaminKMgKg.complete, true);
   });
 
-  test("AECI V1736 at the label dose supplies 10 ppm copper and 3 mg/kg vitamin K3, not basal contributions", () => {
+  test("synthetic known premix supplies 10 ppm copper and 3 mg/kg vitamin K3, not basal contributions", () => {
     const analysis = analyzeDiet({
       ingredients: [
         { ingredientId: cornId, inclusionPct: 59 },
@@ -62,6 +74,24 @@ describe("supplemented micronutrients versus total dietary micronutrients", () =
     assert.ok(analysis.supplementation.vitamins.totalCholineMgKg.missingIngredientIds.includes(weanerPremixId));
     assert.equal(analysis.supplementation.traceMineralsPpm.selenium.complete, false);
     assert.ok(analysis.supplementation.traceMineralsPpm.selenium.missingIngredientIds.includes(weanerPremixId));
+  });
+
+  test("AECI V1736 CSV-only label values remain unknown, never guessed from unheaded columns", () => {
+    const actualLibrary = ingredientLibraryWithCommercialPremixes([aeciPremix], INGREDIENT_LIBRARY);
+    const analysis = analyzeDiet({
+      ingredients: [
+        { ingredientId: cornId, inclusionPct: 59 },
+        { ingredientId: soybeanId, inclusionPct: 40 },
+        { ingredientId: aeciPremix.id, inclusionPct: 1 },
+      ],
+    }, [], actualLibrary);
+    assert.equal(aeciPremix.guaranteedMinimumAsFed, undefined);
+    assert.equal(analysis.supplementation.traceMineralsPpm.copper.complete, false);
+    assert.ok(analysis.supplementation.traceMineralsPpm.copper.missingIngredientIds.includes(aeciPremix.id));
+    assert.equal(analysis.supplementation.vitamins.vitaminKMgKg.complete, false);
+    assert.ok(analysis.supplementation.vitamins.vitaminKMgKg.missingIngredientIds.includes(aeciPremix.id));
+    assert.equal(analysis.supplementation.vitamins.totalCholineMgKg.complete, false);
+    assert.ok(analysis.supplementation.vitamins.totalCholineMgKg.missingIngredientIds.includes(aeciPremix.id));
   });
 
   test("a separately added mineral source with a declared trace nutrient still counts as supplementation", () => {
