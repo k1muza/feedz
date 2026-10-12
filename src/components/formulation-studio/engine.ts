@@ -1,6 +1,7 @@
 import type { CatalogueIngredient } from "@/lib/studio-catalogue";
 import { commercialPremixById } from "@/lib/commercial-premixes";
 import { studioPremixProblems } from "@/lib/studio-commercial-premix";
+import { INCLUSION_TOTAL_TOLERANCE_PCT } from "@/lib/inclusion-total";
 import type { IngredientListItem } from "@/lib/ingredient-lists";
 import type { StudioPhase, StudioProgramme, StudioProgrammeData } from "@/lib/studio-programmes";
 import type {
@@ -519,7 +520,6 @@ export interface ManualRecipeValidity {
   issues: Issue[];
 }
 
-const MANUAL_TOTAL_TOLERANCE = 0.05;
 const MANUAL_BOUND_TOLERANCE = 1e-6;
 
 /** Checks that a manual recipe is complete and obeys every configured hard ingredient bound. */
@@ -539,7 +539,7 @@ export function validateManualRecipe(snap: Snapshot, pct: Record<string, number>
       issues.push({ id, title: nameOf(ctx, id) + " is not in the selected ingredient pool", body: "Add it to the pool before using it in this recipe." });
     }
   }
-  if (Math.abs(total - 100) > MANUAL_TOTAL_TOLERANCE) {
+  if (Math.abs(total - 100) > INCLUSION_TOTAL_TOLERANCE_PCT) {
     issues.push({ title: "Recipe total is " + fmt(total, 2) + "%", body: "A complete manual recipe must add to 100%." });
   }
 

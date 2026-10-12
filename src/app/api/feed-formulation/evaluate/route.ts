@@ -6,6 +6,7 @@ import { feedProgrammePhaseById } from "@/lib/feed-programmes";
 import { commercialPremixById } from "@/lib/commercial-premixes";
 import { ingredientLibraryForPhase } from "@/lib/ingredient-nutrients";
 import { buildFormulationAssessment } from "@/lib/formulation-assessment";
+import { normaliseInclusionTotal } from "@/lib/inclusion-total";
 
 export const runtime = "nodejs";
 
@@ -45,7 +46,9 @@ export async function POST(request: Request) {
     });
     if (premixes.length > 1) throw new Error("Select only one premix for a formulation.");
     const library = ingredientLibraryForPhase(phase);
-    const formula = { ingredients };
+    // Typed or rounded amounts may miss 100% by a few hundredths; those are
+    // rescaled, while a material deviation is still rejected.
+    const formula = { ingredients: normaliseInclusionTotal(ingredients) };
     const evaluation = evaluateFormulation(phase, energySystem, formula, library);
     return NextResponse.json({
       status: "evaluated",

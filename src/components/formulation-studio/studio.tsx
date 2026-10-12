@@ -12,6 +12,7 @@ import type { CatalogueIngredient, CatalogueNutrientId } from "@/lib/studio-cata
 import type { StudioNutrientData } from "@/lib/studio-nutrients";
 import type { StudioProgrammeData } from "@/lib/studio-programmes";
 import { canAddStudioIngredient, selectStudioIngredient, poolWithCarriedPremixSelection, poolWithPremixPrice, poolWithPremixSelection, poolWithProgrammePremix, poolWithoutPremix } from "@/lib/studio-commercial-premix";
+import { roundInclusionsTo100 } from "@/lib/inclusion-total";
 import { commercialPremixById, commercialPremixCompatibleWithProgramme, commercialPremixSimulationOnlyForPhase } from "@/lib/commercial-premixes";
 import {
   DATA_STATUS_LABELS,
@@ -866,7 +867,13 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
       const m = manualRecipe(S, catalogueById);
       evaluateManual(snapOf(S), m.pct, engine)
         .then((check) => update((s) => (s.mode === "manual" ? { manualCheck: { ...check, sig: m.sig } } : {})))
-        .catch((error) => flash(error instanceof Error ? error.message : "Couldn’t check this recipe."));
+        .catch((error) => {
+          const message = error instanceof Error ? error.message : "Couldn’t check this recipe.";
+          // Record the failure against these amounts so the recipe stops showing as being checked.
+          const failed: ManualCheck = { recipeValidity: { valid: false, total: m.total, issues: [{ title: "Couldn’t check this recipe", body: message }] }, nutrientAdequacy: "not-checked", nutrients: [], incompleteRequirements: [], advisories: [], cost: m.cost, assessment: null };
+          update((s) => (s.mode === "manual" ? { manualCheck: { ...failed, sig: m.sig } } : {}));
+          flash(message);
+        });
     }, 400);
     return () => clearTimeout(t);
     // The typed amounts (manualKey) and the phase decide what to check.
@@ -2119,7 +2126,9 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
     editManually: () => {
       if (S.mode === "manual" || !optimal) return;
       const m: Record<string, string> = {};
-      poolIds.filter((id) => S.pool[id].role !== "excluded" && isEligible(id)).forEach((id) => { const r = optimal.recipe.find((x) => x.id === id); m[id] = r ? String(+r.pct.toFixed(2)) : "0"; });
+      // Rounded to two decimals so they're editable, and still adding to exactly 100%.
+      const rounded = new Map(roundInclusionsTo100(optimal.recipe.map((x) => ({ ingredientId: x.id, inclusionPct: x.pct }))).map((x) => [x.ingredientId, x.inclusionPct]));
+      poolIds.filter((id) => S.pool[id].role !== "excluded" && isEligible(id)).forEach((id) => { const pct = rounded.get(id); m[id] = pct ? String(pct) : "0"; });
       update({ mode: "manual", manual: m, manualCheck: null });
     },
     isManual: !!manualView, notManual: !manualView, optimiseFromHere: () => update({ mode: "optimised", manual: {}, manualCheck: null }),
