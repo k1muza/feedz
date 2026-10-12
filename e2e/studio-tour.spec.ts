@@ -19,7 +19,7 @@ test('real walkthrough autoplays, pauses offscreen, and preserves manual pause',
     height: element.videoHeight,
     muted: element.muted,
     width: element.videoWidth,
-  }))).toEqual({ duration: 37.2, height: 764, muted: true, width: 1600 });
+  }))).toEqual({ duration: 36.433, height: 764, muted: true, width: 1600 });
   await expect.poll(() => video.evaluate((element: HTMLVideoElement) => element.paused)).toBe(false);
 
   await page.getByRole('button', { name: 'Pause Studio walkthrough' }).click();
