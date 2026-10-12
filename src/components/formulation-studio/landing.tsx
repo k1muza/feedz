@@ -89,7 +89,7 @@ export function StudioLanding({ featured }: { featured: LandingFeatured[] }) {
         <section style={sx("max-width:1240px;margin:0 auto;padding:64px 24px 40px;display:flex;flex-direction:column;gap:40px")}>
           <div style={sx("display:flex;flex-direction:column;gap:20px;max-width:820px")}>
             <span style={sx(EYEBROW)}>Formulation · FeedSport Studio · Free with an account</span>
-            <h1 style={sx("margin:0;font:600 clamp(36px,5vw,56px)/1.05 'IBM Plex Sans',sans-serif;letter-spacing:-0.03em;text-wrap:balance")}>Formulate feed from the ingredients you actually have.</h1>
+            <h1 style={sx("margin:0;font:600 clamp(36px,5vw,56px)/1.05 'IBM Plex Sans',sans-serif;letter-spacing:-0.03em;text-wrap:balance")}>Formulate feed with ingredients you already have on your farm.</h1>
             <p style={sx("margin:0;font:400 19px/1.55 'IBM Plex Sans',sans-serif;color:#45473f;max-width:680px;text-wrap:pretty")}>Choose the animal and stage, tell Studio what&apos;s in your store and what you paid, and get a least-cost recipe that meets the nutritional requirements. Change anything and re-run without starting over.</p>
             <div style={sx("display:flex;gap:12px;flex-wrap:wrap;padding-top:4px")}>
               <Link href={SIGNUP} className="fsl-green" style={sx("font:600 16px/1 'IBM Plex Sans',sans-serif;padding:16px 22px;border-radius:8px;background:#2f5a3f;color:#fff;text-decoration:none")}>Create a free account</Link>
