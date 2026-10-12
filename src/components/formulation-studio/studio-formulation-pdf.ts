@@ -145,7 +145,9 @@ const compact = (value: number, maximumFractionDigits = 3) =>
   value.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits });
 
 /** Data tag: Published / Assumed 0 / Missing, plus "total only" when a TOTAL value is not counted toward SID. */
-export function requirementDataTag(check: Pick<RequirementCheck, "data" | "totalOnlyIngredientIds">) {
+export function requirementDataTag(check: Pick<RequirementCheck, "data" | "totalOnlyIngredientIds" | "aggregate">) {
+  // A combined ceiling's tag says where the ceiling comes from.
+  if (check.aggregate) return check.aggregate.source.type === "published" ? "Published limit" : "FeedSport policy";
   return `${DATA_STATUS_LABELS[check.data]}${check.totalOnlyIngredientIds.length ? " · total only" : ""}`;
 }
 

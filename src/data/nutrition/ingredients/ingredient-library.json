@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "id": "brazilian-tables-2024-ingredient-library",
   "name": "Brazilian Tables 2024 swine feed ingredient nutrient library",
   "basis": {
@@ -27,7 +27,1029 @@
     "Ingredients without a defensible Brazilian Tables identity were removed from the canonical formulation library rather than silently retaining another database.",
     "Ingredient identity and provenance are stored once; species-specific nutrient values live under nutrition.swine and nutrition.poultry.",
     "Table 1.01 coverage: all 102 feedstuffs, with swine and poultry profiles populated wherever the source publishes species-specific values.",
-    "Vitamin-mineral premixes are manufacturer products stored as ingredients with a `premix` block (product, dose, eligibility and declared values) instead of species nutrition profiles. They are added to a formulation only when selected."
+    "Vitamin-mineral premixes are manufacturer products stored as ingredients with a `premix` block (product, dose, eligibility and declared values) instead of species nutrition profiles. They are added to a formulation only when selected.",
+    "Schema 3: every ingredient belongs to exactly one primary family (`familyId`). A family's optional `aggregateLimit` caps the combined inclusion of its members; a missing limit means the family adds no restriction. `constraintGroups` cap combinations that span several families. Every limit records its source, derivation and justification."
+  ],
+  "families": [
+    {
+      "id": "albumin",
+      "name": "Albumin"
+    },
+    {
+      "id": "spirulina",
+      "name": "Algae (Spirulina platensis)"
+    },
+    {
+      "id": "algaroba-flour",
+      "name": "Algaroba, Flour"
+    },
+    {
+      "id": "babassu-meal",
+      "name": "Babassu, Meal"
+    },
+    {
+      "id": "babassu-starch-flour",
+      "name": "Babassu, Starch Flour"
+    },
+    {
+      "id": "bakery-by-products",
+      "name": "Bakery, By-products"
+    },
+    {
+      "id": "barley-grain",
+      "name": "Barley, Grain"
+    },
+    {
+      "id": "blood-meal",
+      "name": "Blood, Meal"
+    },
+    {
+      "id": "blood-plasma",
+      "name": "Blood, Plasma"
+    },
+    {
+      "id": "blood-red-cells",
+      "name": "Blood, Red Cells"
+    },
+    {
+      "id": "bovine-meat-and-bone-meal",
+      "name": "Bovine meat and bone meal",
+      "description": "Rendered bovine meat and bone meal at 38%, 43%, 48%, 52% and 58% CP.",
+      "notes": [
+        "CP grades of one rendered product; lower-CP grades contain proportionally more bone (ash, calcium and phosphorus).",
+        "Pork meat and bone meal is a separate family: species of origin matters for feed-ban regulation of ruminant-derived protein. Whether the two should share a ceiling is unresolved (see the animal-protein-meals constraint group)."
+      ],
+      "aggregateLimit": {
+        "maxInclusionPct": {
+          "swine": {
+            "starter": 6,
+            "grower": 7,
+            "finisher": 8,
+            "gestation": 8,
+            "lactation": 8
+          },
+          "broiler": {
+            "starter": 8,
+            "grower": 10
+          }
+        },
+        "source": {
+          "type": "feedsport_policy",
+          "reference": "Brazilian Tables 2024, Table 1.01",
+          "url": "https://editorascienza.com.br/pdfs/UFV/poultry_swine_en_chapter_1.pdf",
+          "derivation": "most_permissive_member_maximum",
+          "justification": "Every grade carries the factors that limit meat and bone meal (high, variable ash, Ca and P; variable amino-acid digestibility), and they add up in the diet. A mixture of grades is no better than the best grade, so the combined amount may not exceed the most permissive grade's ceiling (48–58% CP). The lower individual ceilings of the 38% and 43% CP grades still apply.",
+          "addresses": "Total bovine meat and bone meal: mineral (ash, Ca, P) load and quality variability.",
+          "supportingReferences": [
+            {
+              "title": "Brazilian Tables for Poultry and Swine 2024 (5th ed.), Table 1.01 — practical and maximum inclusion recommendations",
+              "url": "https://editorascienza.com.br/pdfs/UFV/poultry_swine_en_chapter_1.pdf",
+              "note": "Per-ingredient maximum inclusion values from which the family ceiling is derived."
+            },
+            {
+              "title": "Zijlstra & Patience, Prairie Swine Centre — Exploring opportunities in using alternative feedstuffs",
+              "url": "https://www.thepigsite.com/articles/exploring-opportunities-in-using-alternative-feedstuffs",
+              "note": "Variability in nutrient content is the most important factor for meat and bone meal; Ca 8-16% and P 4-6%."
+            },
+            {
+              "title": "Miles & Jacob, University of Florida IFAS — Using meat and bone meal in poultry diets",
+              "url": "https://en.engormix.com/poultry-industry/poultry-nutrition-other-additives/using-meat-bone-meal_a34074/",
+              "note": "Higher levels of meat and bone meal cause calcium and phosphorus imbalances."
+            }
+          ],
+          "notes": [
+            "Table 1.01 publishes ingredient-level recommendations only; it does not publish a family maximum. Applying a member ceiling to the combined inclusion is a FeedSport formulation policy. Chapter 1 describes the values only as maximum inclusion levels \"which do not negatively affect animal performance\" (p. 6)."
+          ]
+        }
+      }
+    },
+    {
+      "id": "bread-by-products",
+      "name": "Bread, By-products"
+    },
+    {
+      "id": "canola-meal",
+      "name": "Canola, Meal"
+    },
+    {
+      "id": "canola-oil",
+      "name": "Canola, Oil"
+    },
+    {
+      "id": "casein",
+      "name": "Casein"
+    },
+    {
+      "id": "cassava",
+      "name": "Cassava, Whole"
+    },
+    {
+      "id": "castor-meal",
+      "name": "Castor Plant, Meal"
+    },
+    {
+      "id": "citrus-pulp",
+      "name": "Citrus Pulp"
+    },
+    {
+      "id": "coconut-meal",
+      "name": "Coconut, Meal"
+    },
+    {
+      "id": "coconut-oil",
+      "name": "Coconut, Oil"
+    },
+    {
+      "id": "corn-bran-with-solubles",
+      "name": "Corn, Bran with Solubles"
+    },
+    {
+      "id": "corn-ddgs",
+      "name": "Corn, DDGS - 6 to 9% of EE",
+      "notes": [
+        "Corn HP-DDG is made by a different process (fibre removed before fermentation; about 42% CP against 30%) and is a separate family. See the corn-ethanol-co-products constraint group."
+      ]
+    },
+    {
+      "id": "corn-hp-ddg",
+      "name": "Corn, HP-DDG",
+      "notes": [
+        "Corn DDGS is made by a different process and is a separate family. See the corn-ethanol-co-products constraint group."
+      ]
+    },
+    {
+      "id": "corn-germ",
+      "name": "Corn, Germ"
+    },
+    {
+      "id": "corn-gluten-feed",
+      "name": "Corn, Gluten Feed 21% CP"
+    },
+    {
+      "id": "corn-gluten-meal",
+      "name": "Corn, Gluten Meal 60% CP"
+    },
+    {
+      "id": "corn-grain",
+      "name": "Corn grain",
+      "description": "Whole yellow corn (maize) grain: the average grain, the same grain at −1 SD and +1 SD dry matter, and the high-lysine and high-oil hybrids.",
+      "notes": [
+        "The −1 SD, average and +1 SD entries describe one grain at different dry matter; combining them is not a real ingredient choice.",
+        "High-lysine and high-oil corn are distinct hybrids of the same whole-grain feedstuff. Table 1.01 gives them the same maximum as ordinary corn in every column; high-oil corn differs only in its (advisory) practical level.",
+        "Pre-cooked corn (a processed, degermed product with no published maximum) and the corn co-products are separate families."
+      ],
+      "aggregateLimit": {
+        "maxInclusionPct": {
+          "swine": {
+            "starter": 60,
+            "grower": 65,
+            "finisher": 70,
+            "gestation": 65,
+            "lactation": 70
+          },
+          "broiler": {
+            "starter": 65,
+            "grower": 65
+          }
+        },
+        "source": {
+          "type": "feedsport_policy",
+          "reference": "Brazilian Tables 2024, Table 1.01",
+          "url": "https://editorascienza.com.br/pdfs/UFV/poultry_swine_en_chapter_1.pdf",
+          "derivation": "identical_member_maximum",
+          "justification": "Table 1.01 publishes the same maximum for all five corn grain entries in every column, so it sets one ceiling for whole corn grain. Three of the entries are the same grain at different dry matter, and blending entries cannot produce a grain the ceiling does not cover.",
+          "addresses": "Total whole corn grain in the diet, kept within the corn-grain ceiling Table 1.01 publishes for each phase.",
+          "supportingReferences": [
+            {
+              "title": "Brazilian Tables for Poultry and Swine 2024 (5th ed.), Table 1.01 — practical and maximum inclusion recommendations",
+              "url": "https://editorascienza.com.br/pdfs/UFV/poultry_swine_en_chapter_1.pdf",
+              "note": "Per-ingredient maximum inclusion values from which the family ceiling is derived."
+            }
+          ],
+          "notes": [
+            "Table 1.01 publishes ingredient-level recommendations only; it does not publish a family maximum. Applying a member ceiling to the combined inclusion is a FeedSport formulation policy. Chapter 1 describes the values only as maximum inclusion levels \"which do not negatively affect animal performance\" (p. 6)."
+          ]
+        }
+      }
+    },
+    {
+      "id": "pre-cooked-corn",
+      "name": "Corn, Pre-cooked",
+      "notes": [
+        "A gelatinised, degermed corn product (about 1.6% EE against 3.7% for whole corn) used as a starter cereal; Table 1.01 publishes no maximum. Not a member of the corn-grain family."
+      ]
+    },
+    {
+      "id": "corn-oil",
+      "name": "Corn, Oil"
+    },
+    {
+      "id": "cottonseed-meal",
+      "name": "Cottonseed meal",
+      "description": "Cottonseed meal at 28%, 38% and 43% CP.",
+      "notes": [
+        "Grades of one oilseed meal differing in hull (fibre) content."
+      ],
+      "aggregateLimit": {
+        "maxInclusionPct": {
+          "swine": {
+            "starter": 5,
+            "grower": 8,
+            "finisher": 10,
+            "gestation": 10,
+            "lactation": 8
+          },
+          "broiler": {
+            "starter": 7,
+            "grower": 8
+          }
+        },
+        "source": {
+          "type": "feedsport_policy",
+          "reference": "Brazilian Tables 2024, Table 1.01",
+          "url": "https://editorascienza.com.br/pdfs/UFV/poultry_swine_en_chapter_1.pdf",
+          "derivation": "most_permissive_member_maximum",
+          "justification": "Free gossypol, the main factor limiting cottonseed meal, comes from every grade and accumulates in the diet regardless of which grade supplies it. The combined amount may not exceed the most permissive grade's ceiling (38% and 43% CP); the 28% CP grade keeps its lower individual ceiling.",
+          "addresses": "Total cottonseed meal, and so dietary free gossypol.",
+          "supportingReferences": [
+            {
+              "title": "Brazilian Tables for Poultry and Swine 2024 (5th ed.), Table 1.01 — practical and maximum inclusion recommendations",
+              "url": "https://editorascienza.com.br/pdfs/UFV/poultry_swine_en_chapter_1.pdf",
+              "note": "Per-ingredient maximum inclusion values from which the family ceiling is derived."
+            },
+            {
+              "title": "Zeng et al. (2015). Poultry Science 94:1277 — cottonseed meal and free gossypol",
+              "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC4988552",
+              "note": "Gossypol toxicity is the primary concern limiting cottonseed meal; free gossypol tolerance is expressed per kg of diet, independent of meal grade."
+            }
+          ],
+          "notes": [
+            "Table 1.01 publishes ingredient-level recommendations only; it does not publish a family maximum. Applying a member ceiling to the combined inclusion is a FeedSport formulation policy. Chapter 1 describes the values only as maximum inclusion levels \"which do not negatively affect animal performance\" (p. 6).",
+            "A dietary free-gossypol limit would be more precise, but free gossypol is not in the ingredient data, so the mass ceiling stands in for it."
+          ]
+        }
+      }
+    },
+    {
+      "id": "palm-oil",
+      "name": "Dendê Palm, Oil"
+    },
+    {
+      "id": "feather-meal",
+      "name": "Feather meal",
+      "description": "Hydrolysed feather meal at 76% and 84% CP.",
+      "notes": [
+        "Poultry feather and by-product meal is a blend with offal and is classified separately."
+      ],
+      "aggregateLimit": {
+        "maxInclusionPct": {
+          "swine": {
+            "starter": 2,
+            "grower": 4,
+            "finisher": 5,
+            "gestation": 5,
+            "lactation": 4
+          },
+          "broiler": {
+            "starter": 2,
+            "grower": 4
+          }
+        },
+        "source": {
+          "type": "feedsport_policy",
+          "reference": "Brazilian Tables 2024, Table 1.01",
+          "url": "https://editorascienza.com.br/pdfs/UFV/poultry_swine_en_chapter_1.pdf",
+          "derivation": "identical_member_maximum",
+          "justification": "Table 1.01 publishes the same maximum for both grades in every column. Both are hydrolysed keratin whose poor amino-acid balance and variable digestibility limit inclusion, whichever grade supplies it.",
+          "addresses": "Total hydrolysed feather meal: keratin amino-acid imbalance and variable digestibility.",
+          "supportingReferences": [
+            {
+              "title": "Brazilian Tables for Poultry and Swine 2024 (5th ed.), Table 1.01 — practical and maximum inclusion recommendations",
+              "url": "https://editorascienza.com.br/pdfs/UFV/poultry_swine_en_chapter_1.pdf",
+              "note": "Per-ingredient maximum inclusion values from which the family ceiling is derived."
+            },
+            {
+              "title": "University of Illinois Stein Monogastric Nutrition Laboratory — amino acids in feather meal (transcript)",
+              "url": "https://nutrition.ansci.illinois.edu/sites/nutrition.ansci.illinois.edu/files/TranscriptAminoAcidsInFeatherMeal.txt",
+              "note": "Limited and variable amino-acid digestibility of keratin limits feather meal use."
+            }
+          ],
+          "notes": [
+            "Table 1.01 publishes ingredient-level recommendations only; it does not publish a family maximum. Applying a member ceiling to the combined inclusion is a FeedSport formulation policy. Chapter 1 describes the values only as maximum inclusion levels \"which do not negatively affect animal performance\" (p. 6)."
+          ]
+        }
+      }
+    },
+    {
+      "id": "fish-meal",
+      "name": "Fish meal",
+      "description": "Fish meal at 54% and 62% CP.",
+      "notes": [
+        "Protein grades of one product."
+      ],
+      "aggregateLimit": {
+        "maxInclusionPct": {
+          "swine": {
+            "starter": 12,
+            "grower": 10,
+            "finisher": 5,
+            "gestation": 10,
+            "lactation": 10
+          },
+          "broiler": {
+            "starter": 7,
+            "grower": 5
+          }
+        },
+        "source": {
+          "type": "feedsport_policy",
+          "reference": "Brazilian Tables 2024, Table 1.01",
+          "url": "https://editorascienza.com.br/pdfs/UFV/poultry_swine_en_chapter_1.pdf",
+          "derivation": "most_permissive_member_maximum",
+          "justification": "Both grades are the same product at different protein concentration, and the factors that limit fish meal (fishy taint of pork and poultry meat at higher levels, salt) come from both and add up. The combined amount may not exceed the most permissive grade's ceiling; the grades differ only in the pig starter column (10% vs 12%).",
+          "addresses": "Total fish meal: carcass/meat taint, notably the 5% finishing-pig ceiling.",
+          "supportingReferences": [
+            {
+              "title": "Brazilian Tables for Poultry and Swine 2024 (5th ed.), Table 1.01 — practical and maximum inclusion recommendations",
+              "url": "https://editorascienza.com.br/pdfs/UFV/poultry_swine_en_chapter_1.pdf",
+              "note": "Per-ingredient maximum inclusion values from which the family ceiling is derived."
+            },
+            {
+              "title": "Valaja et al. (1992). Agricultural Science in Finland 1:21-26 — fish meal and pork flavour",
+              "url": "https://journal.fi/afs/article/download/72426/34222/96512",
+              "note": "Off-flavour of pork increased linearly with dietary fish meal content."
+            }
+          ],
+          "notes": [
+            "Table 1.01 publishes ingredient-level recommendations only; it does not publish a family maximum. Applying a member ceiling to the combined inclusion is a FeedSport formulation policy. Chapter 1 describes the values only as maximum inclusion levels \"which do not negatively affect animal performance\" (p. 6)."
+          ]
+        }
+      }
+    },
+    {
+      "id": "glucose",
+      "name": "Glucose"
+    },
+    {
+      "id": "lactose",
+      "name": "Lactose"
+    },
+    {
+      "id": "lard",
+      "name": "Lard"
+    },
+    {
+      "id": "lecithin",
+      "name": "Lecithin"
+    },
+    {
+      "id": "skim-milk-powder",
+      "name": "Milk Skimmed, Powder"
+    },
+    {
+      "id": "whey-powder",
+      "name": "Milk Whey, Powder"
+    },
+    {
+      "id": "whey-permeate",
+      "name": "Milk Whey, Permeate"
+    },
+    {
+      "id": "whole-milk-powder",
+      "name": "Milk Whole, Powder"
+    },
+    {
+      "id": "millet-grain",
+      "name": "Millet, Grain"
+    },
+    {
+      "id": "oats-grain",
+      "name": "Oats, Grain"
+    },
+    {
+      "id": "ouricuri-meal",
+      "name": "Ouricuri (Syagrus coronata), Meal"
+    },
+    {
+      "id": "pasta-by-product",
+      "name": "Pasta/Spaghetti, By-product"
+    },
+    {
+      "id": "peanut-meal",
+      "name": "Peanuts, Meal"
+    },
+    {
+      "id": "pork-meat-and-bone-meal",
+      "name": "Pork Meat and Bone, Meal",
+      "notes": [
+        "Kept separate from bovine meat and bone meal because species of origin matters for feed-ban regulation. See the animal-protein-meals constraint group."
+      ]
+    },
+    {
+      "id": "poultry-by-product-meal",
+      "name": "Poultry by-product meal",
+      "description": "Rendered poultry by-product meal, regular and high-fat.",
+      "notes": [
+        "Poultry feather and by-product meal contains feathers and is classified separately."
+      ],
+      "aggregateLimit": {
+        "maxInclusionPct": {
+          "swine": {
+            "starter": 5,
+            "grower": 7,
+            "finisher": 8,
+            "gestation": 8,
+            "lactation": 8
+          },
+          "broiler": {
+            "starter": 7,
+            "grower": 8
+          }
+        },
+        "source": {
+          "type": "feedsport_policy",
+          "reference": "Brazilian Tables 2024, Table 1.01",
+          "url": "https://editorascienza.com.br/pdfs/UFV/poultry_swine_en_chapter_1.pdf",
+          "derivation": "identical_member_maximum",
+          "justification": "Table 1.01 publishes the same maximum for both products in every column. They are the same rendered material differing in fat content, and their ash and quality variability add up.",
+          "addresses": "Total poultry by-product meal: mineral load and quality variability.",
+          "supportingReferences": [
+            {
+              "title": "Brazilian Tables for Poultry and Swine 2024 (5th ed.), Table 1.01 — practical and maximum inclusion recommendations",
+              "url": "https://editorascienza.com.br/pdfs/UFV/poultry_swine_en_chapter_1.pdf",
+              "note": "Per-ingredient maximum inclusion values from which the family ceiling is derived."
+            }
+          ],
+          "notes": [
+            "Table 1.01 publishes ingredient-level recommendations only; it does not publish a family maximum. Applying a member ceiling to the combined inclusion is a FeedSport formulation policy. Chapter 1 describes the values only as maximum inclusion levels \"which do not negatively affect animal performance\" (p. 6)."
+          ]
+        }
+      }
+    },
+    {
+      "id": "poultry-fat",
+      "name": "Poultry, Fat"
+    },
+    {
+      "id": "poultry-feather-and-by-product-meal",
+      "name": "Poultry Feather and By-product Meal",
+      "notes": [
+        "A blend of feathers and poultry offal; neither feather meal nor poultry by-product meal."
+      ]
+    },
+    {
+      "id": "rice-bran",
+      "name": "Rice bran",
+      "description": "Full-fat rice bran and the same bran after oil extraction.",
+      "notes": [
+        "Processing variants of one milling fraction: defatted bran is rice bran after solvent extraction of its oil."
+      ],
+      "aggregateLimit": {
+        "maxInclusionPct": {
+          "swine": {
+            "starter": 10,
+            "grower": 15,
+            "finisher": 20,
+            "gestation": 20,
+            "lactation": 15
+          },
+          "broiler": {
+            "starter": 8,
+            "grower": 12
+          }
+        },
+        "source": {
+          "type": "feedsport_policy",
+          "reference": "Brazilian Tables 2024, Table 1.01",
+          "url": "https://editorascienza.com.br/pdfs/UFV/poultry_swine_en_chapter_1.pdf",
+          "derivation": "most_permissive_member_maximum",
+          "justification": "The fibre, phytate phosphorus and non-starch polysaccharides of rice bran are present in both forms (more concentrated after oil extraction) and add up in the diet. The combined amount may not exceed the full-fat bran ceiling, the most permissive; defatted bran keeps its lower individual ceilings. Oil rancidity applies only to full-fat bran and remains covered by its own ceiling.",
+          "addresses": "Total rice bran: fibre, phytate and non-starch polysaccharide load.",
+          "supportingReferences": [
+            {
+              "title": "Brazilian Tables for Poultry and Swine 2024 (5th ed.), Table 1.01 — practical and maximum inclusion recommendations",
+              "url": "https://editorascienza.com.br/pdfs/UFV/poultry_swine_en_chapter_1.pdf",
+              "note": "Per-ingredient maximum inclusion values from which the family ceiling is derived."
+            },
+            {
+              "title": "Jacob, eXtension Poultry — Feeding rice bran to poultry",
+              "url": "https://poultry.extension.org/articles/feeds-and-feeding-of-poultry/feed-ingredients-for-poultry/cereals-in-poultry-diets/feeding-rice-bran-to-poultry/",
+              "note": "Rice bran is high in fibre and phytate and prone to rancidity; no more than 10-20% of broiler diets."
+            }
+          ],
+          "notes": [
+            "Table 1.01 publishes ingredient-level recommendations only; it does not publish a family maximum. Applying a member ceiling to the combined inclusion is a FeedSport formulation policy. Chapter 1 describes the values only as maximum inclusion levels \"which do not negatively affect animal performance\" (p. 6)."
+          ]
+        }
+      }
+    },
+    {
+      "id": "broken-rice",
+      "name": "Rice, Broken"
+    },
+    {
+      "id": "rye-grain",
+      "name": "Rye, Grain"
+    },
+    {
+      "id": "shrimp-meal",
+      "name": "Shrimp, By-product Meal"
+    },
+    {
+      "id": "sorghum-grain",
+      "name": "Sorghum grain",
+      "description": "Sorghum grain, regular (low-tannin) and high-tannin.",
+      "notes": [
+        "One grain species differing in condensed-tannin content.",
+        "No combined maximum is defined. The regular sorghum ceiling (60–70%) is the general cereal ceiling, while the high-tannin ceiling (30–35%) addresses condensed tannins; the two limits address different factors and no source publishes a combined sorghum ceiling. High-tannin sorghum keeps its individual ceiling."
+      ]
+    },
+    {
+      "id": "soybean-acid-oil",
+      "name": "Soybean, Acid Oil",
+      "notes": [
+        "A refining by-product with high free fatty acids and its own lower ceilings; distinct from degummed soybean oil. Counted in the total-added-fat constraint group."
+      ]
+    },
+    {
+      "id": "soybean-degummed-oil",
+      "name": "Soybean, Degummed Oil",
+      "notes": [
+        "Counted in the total-added-fat constraint group."
+      ]
+    },
+    {
+      "id": "full-fat-soybean",
+      "name": "Full-fat soybean",
+      "description": "Whole soybeans heat-processed by extrusion, micronization or roasting.",
+      "notes": [
+        "Processing variants of one product. Processing changes residual trypsin-inhibitor activity, which is why roasted beans have lower ceilings in some columns.",
+        "Semi-defatted soybean has about half the oil and is a separate family."
+      ],
+      "aggregateLimit": {
+        "maxInclusionPct": {
+          "swine": {
+            "starter": 25,
+            "grower": 25,
+            "finisher": 25,
+            "gestation": 25,
+            "lactation": 30
+          },
+          "broiler": {
+            "starter": 15,
+            "grower": 20
+          }
+        },
+        "source": {
+          "type": "feedsport_policy",
+          "reference": "Brazilian Tables 2024, Table 1.01",
+          "url": "https://editorascienza.com.br/pdfs/UFV/poultry_swine_en_chapter_1.pdf",
+          "derivation": "most_permissive_member_maximum",
+          "justification": "All three supply the same soybean oil and soy proteins; residual antinutritional factors differ only in degree. The combined amount may not exceed the most permissive variant's ceiling (extruded/micronized); roasted beans keep their lower individual ceilings.",
+          "addresses": "Total full-fat soybean: soybean oil (unsaturated fat) load and residual antinutritional factors.",
+          "supportingReferences": [
+            {
+              "title": "Brazilian Tables for Poultry and Swine 2024 (5th ed.), Table 1.01 — practical and maximum inclusion recommendations",
+              "url": "https://editorascienza.com.br/pdfs/UFV/poultry_swine_en_chapter_1.pdf",
+              "note": "Per-ingredient maximum inclusion values from which the family ceiling is derived."
+            }
+          ],
+          "notes": [
+            "Table 1.01 publishes ingredient-level recommendations only; it does not publish a family maximum. Applying a member ceiling to the combined inclusion is a FeedSport formulation policy. Chapter 1 describes the values only as maximum inclusion levels \"which do not negatively affect animal performance\" (p. 6)."
+          ]
+        }
+      }
+    },
+    {
+      "id": "soybean-hulls",
+      "name": "Soybean, Hulls"
+    },
+    {
+      "id": "soybean-meal",
+      "name": "Soybean meal",
+      "description": "Solvent-extracted soybean meal at the four protein grades published in Table 1.01 (44.5%, 45.6% average, 46.5% and 48% CP).",
+      "notes": [
+        "Grades of one feedstuff: toasted, solvent-extracted soybean meal whose CP differs mainly with hull content.",
+        "Full-fat and semi-defatted soybean, soy protein concentrate and isolate, soybean oils and soybean hulls are different products with their own recommendations and are not members."
+      ],
+      "aggregateLimit": {
+        "maxInclusionPct": {
+          "swine": {
+            "starter": 30,
+            "grower": 25,
+            "finisher": 20,
+            "gestation": 15,
+            "lactation": 25
+          },
+          "broiler": {
+            "starter": 35,
+            "grower": 35
+          }
+        },
+        "source": {
+          "type": "feedsport_policy",
+          "reference": "Brazilian Tables 2024, Table 1.01",
+          "url": "https://editorascienza.com.br/pdfs/UFV/poultry_swine_en_chapter_1.pdf",
+          "derivation": "identical_member_maximum",
+          "justification": "Table 1.01 publishes the same maximum for all four grades in every column: one soybean-meal ceiling that does not depend on grade. A blend of two grades is physically a soybean meal of intermediate CP, so the ceiling has to apply to the combined amount; applied per grade, mixing grades could exceed it several times over.",
+          "addresses": "Total soybean meal in the diet, kept within the single grade-independent ceiling Table 1.01 publishes for each phase (in young pigs, soy antigenic proteins and oligosaccharides).",
+          "supportingReferences": [
+            {
+              "title": "Brazilian Tables for Poultry and Swine 2024 (5th ed.), Table 1.01 — practical and maximum inclusion recommendations",
+              "url": "https://editorascienza.com.br/pdfs/UFV/poultry_swine_en_chapter_1.pdf",
+              "note": "Per-ingredient maximum inclusion values from which the family ceiling is derived."
+            },
+            {
+              "title": "University of Illinois Stein Monogastric Nutrition Laboratory — amino acids in soybean and rapeseed products (transcript)",
+              "url": "https://origin.nutrition.ansci.illinois.edu/sites/nutrition.ansci.illinois.edu/files/TranscriptAAinSoybeanRapeseedProducts.txt",
+              "note": "Glycinin, beta-conglycinin and soy oligosaccharides trigger a transient hypersensitivity in young pigs, limiting soybean meal inclusion in their diets."
+            },
+            {
+              "title": "Atoo et al. (2025). Frontiers in Veterinary Science 12, doi:10.3389/fvets.2025.1589827",
+              "url": "https://doi.org/10.3389/fvets.2025.1589827",
+              "note": "In newly weaned pigs, soybean meal inclusion has usually been limited to about 20%."
+            }
+          ],
+          "notes": [
+            "Table 1.01 publishes ingredient-level recommendations only; it does not publish a family maximum. Applying a member ceiling to the combined inclusion is a FeedSport formulation policy. Chapter 1 describes the values only as maximum inclusion levels \"which do not negatively affect animal performance\" (p. 6).",
+            "Brazilian Tables 2024 chapter 1 (p. 4) describes the extra soybean meal entries as the same meal with a higher or lower hull proportion than average soybean meal."
+          ]
+        }
+      }
+    },
+    {
+      "id": "soy-protein-concentrate",
+      "name": "Soybean, Protein Concentrate"
+    },
+    {
+      "id": "soy-protein-isolate",
+      "name": "Soybean, Protein Isolate"
+    },
+    {
+      "id": "semi-defatted-soybean",
+      "name": "Semi-defatted soybean",
+      "description": "Partially de-oiled whole soybean, extruded or roasted.",
+      "notes": [
+        "Processing variants of one product with identical published composition."
+      ],
+      "aggregateLimit": {
+        "maxInclusionPct": {
+          "swine": {
+            "starter": 25,
+            "grower": 25,
+            "finisher": 25,
+            "gestation": 25,
+            "lactation": 30
+          },
+          "broiler": {
+            "starter": 20,
+            "grower": 22
+          }
+        },
+        "source": {
+          "type": "feedsport_policy",
+          "reference": "Brazilian Tables 2024, Table 1.01",
+          "url": "https://editorascienza.com.br/pdfs/UFV/poultry_swine_en_chapter_1.pdf",
+          "derivation": "most_permissive_member_maximum",
+          "justification": "The two variants have identical published composition and differ only in heat treatment. The combined amount may not exceed the most permissive variant's ceiling (extruded); roasted keeps its lower individual ceilings.",
+          "addresses": "Total semi-defatted soybean: residual antinutritional factors and soybean oil.",
+          "supportingReferences": [
+            {
+              "title": "Brazilian Tables for Poultry and Swine 2024 (5th ed.), Table 1.01 — practical and maximum inclusion recommendations",
+              "url": "https://editorascienza.com.br/pdfs/UFV/poultry_swine_en_chapter_1.pdf",
+              "note": "Per-ingredient maximum inclusion values from which the family ceiling is derived."
+            }
+          ],
+          "notes": [
+            "Table 1.01 publishes ingredient-level recommendations only; it does not publish a family maximum. Applying a member ceiling to the combined inclusion is a FeedSport formulation policy. Chapter 1 describes the values only as maximum inclusion levels \"which do not negatively affect animal performance\" (p. 6)."
+          ]
+        }
+      }
+    },
+    {
+      "id": "starch",
+      "name": "Starch"
+    },
+    {
+      "id": "sugar",
+      "name": "Sugar"
+    },
+    {
+      "id": "sugarcane-juice",
+      "name": "Sugarcane, Juice"
+    },
+    {
+      "id": "sugarcane-molasses",
+      "name": "Sugarcane molasses",
+      "description": "Liquid cane molasses and dried cane molasses.",
+      "notes": [
+        "The same product, liquid or dried onto a carrier."
+      ],
+      "aggregateLimit": {
+        "maxInclusionPct": {
+          "swine": {
+            "starter": 3,
+            "grower": 5,
+            "finisher": 5,
+            "gestation": 5,
+            "lactation": 5
+          },
+          "broiler": {
+            "starter": 2,
+            "grower": 3
+          }
+        },
+        "source": {
+          "type": "feedsport_policy",
+          "reference": "Brazilian Tables 2024, Table 1.01",
+          "url": "https://editorascienza.com.br/pdfs/UFV/poultry_swine_en_chapter_1.pdf",
+          "derivation": "most_permissive_member_maximum",
+          "justification": "Both forms supply the sugars and potassium of cane molasses, whose laxative effect limits its use and is additive. The combined amount may not exceed the most permissive member's ceiling in each column; liquid molasses keeps its 1% broiler starter ceiling and dried molasses its lower pig ceilings.",
+          "addresses": "Total cane molasses: laxative effect (sugars, potassium) and wet litter.",
+          "supportingReferences": [
+            {
+              "title": "Brazilian Tables for Poultry and Swine 2024 (5th ed.), Table 1.01 — practical and maximum inclusion recommendations",
+              "url": "https://editorascienza.com.br/pdfs/UFV/poultry_swine_en_chapter_1.pdf",
+              "note": "Per-ingredient maximum inclusion values from which the family ceiling is derived."
+            }
+          ],
+          "notes": [
+            "Table 1.01 publishes ingredient-level recommendations only; it does not publish a family maximum. Applying a member ceiling to the combined inclusion is a FeedSport formulation policy. Chapter 1 describes the values only as maximum inclusion levels \"which do not negatively affect animal performance\" (p. 6)."
+          ]
+        }
+      }
+    },
+    {
+      "id": "sunflower-meal",
+      "name": "Sunflower, Meal"
+    },
+    {
+      "id": "sweet-potato-flour",
+      "name": "Sweet Potato, Flour"
+    },
+    {
+      "id": "tallow",
+      "name": "Tallow"
+    },
+    {
+      "id": "triticale-grain",
+      "name": "Triticale, Grain"
+    },
+    {
+      "id": "wheat-bran",
+      "name": "Wheat, Bran"
+    },
+    {
+      "id": "wheat-dark-flour",
+      "name": "Wheat, Dark Flour",
+      "notes": [
+        "Wheat flour is a different milling fraction (endosperm only) and is a separate family."
+      ]
+    },
+    {
+      "id": "wheat-flour",
+      "name": "Wheat, Flour",
+      "notes": [
+        "Wheat dark flour is a different milling fraction (about 8% crude fibre against 0.1%) and is a separate family."
+      ]
+    },
+    {
+      "id": "wheat-germ",
+      "name": "Wheat, Germ"
+    },
+    {
+      "id": "wheat-gluten",
+      "name": "Wheat, Gluten"
+    },
+    {
+      "id": "wheat-grain",
+      "name": "Wheat, Grain",
+      "notes": [
+        "Wheat screenings (broken and shrivelled grain with dockage) and the milling fractions (flour, dark flour, bran, germ, gluten) are distinct products with their own recommendations and are not members."
+      ]
+    },
+    {
+      "id": "wheat-screenings",
+      "name": "Wheat, Screenings"
+    },
+    {
+      "id": "inactive-yeast",
+      "name": "Inactive yeast",
+      "description": "Dried, inactivated Saccharomyces yeast recovered from brewing or from ethanol (alcohol) distillation.",
+      "notes": [
+        "The same organism and product type from two fermentation processes.",
+        "No combined maximum is defined. Nucleic-acid content and palatability are the suspected shared limiting factors, but no reviewed pig or poultry source quantifies them; evidence is insufficient for a combined ceiling. Each keeps its own Table 1.01 ceiling."
+      ]
+    },
+    {
+      "id": "calcium-carbonate",
+      "name": "Calcium carbonate",
+      "description": "Calcium carbonate sources: ground limestone and calcium carbonate.",
+      "notes": [
+        "Both supply calcium as calcium carbonate and are interchangeable calcium sources.",
+        "No combined maximum is defined: Table 1.01 publishes none, and dietary calcium is already controlled by the calcium requirement. A mass ceiling would duplicate that nutrient constraint without evidence."
+      ]
+    },
+    {
+      "id": "dicalcium-phosphate",
+      "name": "Dicalcium Phosphate",
+      "notes": [
+        "A distinct compound from monocalcium phosphate, with a different Ca:P ratio and phosphorus digestibility; phosphorus and calcium supply are governed by nutrient constraints."
+      ]
+    },
+    {
+      "id": "monocalcium-phosphate",
+      "name": "Monocalcium Phosphate",
+      "notes": [
+        "A distinct compound from dicalcium phosphate, with a different Ca:P ratio and phosphorus digestibility; phosphorus and calcium supply are governed by nutrient constraints."
+      ]
+    },
+    {
+      "id": "salt",
+      "name": "Salt"
+    },
+    {
+      "id": "l-lysine-hcl",
+      "name": "Lysine - HCl"
+    },
+    {
+      "id": "dl-methionine",
+      "name": "Methionine, crystalline"
+    },
+    {
+      "id": "l-threonine",
+      "name": "Threonine, crystalline"
+    },
+    {
+      "id": "l-tryptophan",
+      "name": "Tryptophan, crystalline"
+    },
+    {
+      "id": "l-valine",
+      "name": "Valine, crystalline"
+    },
+    {
+      "id": "l-isoleucine",
+      "name": "Isoleucine, crystalline"
+    },
+    {
+      "id": "cj-s174-boar-premix",
+      "name": "CJ Feed S174 — Breeding boar premix",
+      "notes": [
+        "Commercial premix product. Its manufacturer dose is enforced separately; no aggregate premix ceiling applies."
+      ]
+    },
+    {
+      "id": "sustar-glypro-x911",
+      "name": "Sustar GlyPro X911 — Piglet vitamin-mineral premix",
+      "notes": [
+        "Commercial premix product. Its manufacturer dose is enforced separately; no aggregate premix ceiling applies."
+      ]
+    },
+    {
+      "id": "sustar-glypro-x912",
+      "name": "Sustar GlyPro X912 — Grower-finisher pig premix",
+      "notes": [
+        "Commercial premix product. Its manufacturer dose is enforced separately; no aggregate premix ceiling applies."
+      ]
+    },
+    {
+      "id": "sustar-glypro-x913",
+      "name": "Sustar GlyPro X913 — Sow vitamin-mineral premix",
+      "notes": [
+        "Commercial premix product. Its manufacturer dose is enforced separately; no aggregate premix ceiling applies."
+      ]
+    },
+    {
+      "id": "sustar-glypro-x812",
+      "name": "Sustar GlyPro X812 — Broiler vitamin-mineral premix",
+      "notes": [
+        "Commercial premix product. Its manufacturer dose is enforced separately; no aggregate premix ceiling applies."
+      ]
+    },
+    {
+      "id": "sustar-glypro-x811",
+      "name": "Sustar GlyPro X811 — Layer vitamin-mineral premix",
+      "notes": [
+        "Commercial premix product. Its manufacturer dose is enforced separately; no aggregate premix ceiling applies."
+      ]
+    },
+    {
+      "id": "caremix-pig-weaner",
+      "name": "Caremix PigWeaner — 2.8% Maxipack",
+      "notes": [
+        "Commercial premix product. Its manufacturer dose is enforced separately; no aggregate premix ceiling applies."
+      ]
+    },
+    {
+      "id": "caremix-pig-grower",
+      "name": "Caremix Pig Grower — 3.2% Maxipack",
+      "notes": [
+        "Commercial premix product. Its manufacturer dose is enforced separately; no aggregate premix ceiling applies."
+      ]
+    },
+    {
+      "id": "caremix-pig-finisher",
+      "name": "Caremix Pig Finisher — 2.6% Maxipack",
+      "notes": [
+        "Commercial premix product. Its manufacturer dose is enforced separately; no aggregate premix ceiling applies."
+      ]
+    }
+  ],
+  "constraintGroups": [
+    {
+      "id": "total-added-fat",
+      "name": "Total added fats and oils",
+      "description": "Free fats and oils added at the mixer. Fat contained in other ingredients (full-fat soybean, rice bran, high-fat by-product meals) is not added fat and is not counted.",
+      "members": {
+        "familyIds": [
+          "canola-oil",
+          "coconut-oil",
+          "corn-oil",
+          "palm-oil",
+          "lard",
+          "lecithin",
+          "poultry-fat",
+          "soybean-acid-oil",
+          "soybean-degummed-oil",
+          "tallow"
+        ],
+        "ingredientIds": []
+      },
+      "aggregateLimit": {
+        "maxInclusionPct": {
+          "swine": {
+            "starter": 5,
+            "grower": 5,
+            "finisher": 5,
+            "gestation": 4,
+            "lactation": 5
+          },
+          "broiler": {
+            "starter": 6,
+            "grower": 7
+          }
+        },
+        "source": {
+          "type": "feedsport_policy",
+          "reference": "Brazilian Tables 2024, Table 1.01",
+          "url": "https://editorascienza.com.br/pdfs/UFV/poultry_swine_en_chapter_1.pdf",
+          "derivation": "most_permissive_member_maximum",
+          "justification": "Table 1.01 publishes essentially the same ceiling for every added fat and oil (5% for growing pigs and lactating sows, 4% for gestating sows, 6–7% for broilers): a generic added-fat ceiling rather than a property of one oil. The total, whichever oils supply it, therefore may not exceed the most permissive member's ceiling. Tallow and soybean acid oil keep their lower individual ceilings.",
+          "addresses": "Total free fat and oil added at the mixer: pellet durability, feed handling and rancidity risk.",
+          "supportingReferences": [
+            {
+              "title": "Brazilian Tables for Poultry and Swine 2024 (5th ed.), Table 1.01 — practical and maximum inclusion recommendations",
+              "url": "https://editorascienza.com.br/pdfs/UFV/poultry_swine_en_chapter_1.pdf",
+              "note": "Per-ingredient maximum inclusion values from which the family ceiling is derived."
+            },
+            {
+              "title": "Mohammadi Ghasem Abadi et al. (2019). Poultry Science — mixer-added fat and pellet durability",
+              "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC6748744",
+              "note": "Mixer-added fat reduces pellet durability; raising soybean oil from 1.5% to 3% lowered durability by 12 percentage points."
+            }
+          ],
+          "notes": [
+            "Table 1.01 publishes ingredient-level recommendations only; it does not publish a family maximum. Applying a member ceiling to the combined inclusion is a FeedSport formulation policy. Chapter 1 describes the values only as maximum inclusion levels \"which do not negatively affect animal performance\" (p. 6)."
+          ]
+        }
+      },
+      "notes": [
+        "Each fat or oil keeps its own primary family and its own Table 1.01 ceiling."
+      ]
+    },
+    {
+      "id": "animal-protein-meals",
+      "name": "Rendered animal protein meals",
+      "description": "Rendered meat, bone and poultry meals that share mineral load and quality variability.",
+      "members": {
+        "familyIds": [
+          "bovine-meat-and-bone-meal",
+          "pork-meat-and-bone-meal",
+          "poultry-by-product-meal",
+          "poultry-feather-and-by-product-meal"
+        ],
+        "ingredientIds": []
+      },
+      "notes": [
+        "Investigated, not enforced. No reviewed source publishes a combined ceiling for rendered animal protein meals, and their Table 1.01 ceilings differ by product. Each product family keeps its own ceiling."
+      ]
+    },
+    {
+      "id": "corn-ethanol-co-products",
+      "name": "Corn ethanol co-products",
+      "description": "Corn distillers' grains from ethanol production (DDGS and HP-DDG).",
+      "members": {
+        "familyIds": [
+          "corn-ddgs",
+          "corn-hp-ddg"
+        ],
+        "ingredientIds": []
+      },
+      "notes": [
+        "Investigated, not enforced. Their shared limiting factors (unsaturated fat raising pork-fat iodine value; concentrated mycotoxins) are better expressed as a dietary iodine-value or mycotoxin limit than as a mass ceiling, and no reviewed source publishes a combined DDGS + HP-DDG maximum (Stein & Shurson 2009, J. Anim. Sci. 87:1292, discuss DDGS alone). Each keeps its own Table 1.01 ceiling."
+      ]
+    }
   ],
   "ingredients": [
     {
@@ -35,6 +1057,7 @@
       "name": "Albumin",
       "aliases": [],
       "category": "protein_meal",
+      "familyId": "albumin",
       "provenance": {
         "sourceIngredientName": "Albumin",
         "sourcePage": 11,
@@ -177,6 +1200,7 @@
       "name": "Algae (Spirulina platensis)",
       "aliases": [],
       "category": "protein_meal",
+      "familyId": "spirulina",
       "provenance": {
         "sourceIngredientName": "Algae (Spirulina platensis)",
         "sourcePage": 13,
@@ -389,6 +1413,7 @@
       "name": "Algaroba, Flour",
       "aliases": [],
       "category": "cereal",
+      "familyId": "algaroba-flour",
       "provenance": {
         "sourceIngredientName": "Algaroba, Flour",
         "sourcePage": 15,
@@ -536,6 +1561,7 @@
       "name": "Babassu, Meal",
       "aliases": [],
       "category": "protein_meal",
+      "familyId": "babassu-meal",
       "provenance": {
         "sourceIngredientName": "Babassu, Meal",
         "sourcePage": 17,
@@ -746,6 +1772,7 @@
       "name": "Babassu, Starch Flour",
       "aliases": [],
       "category": "cereal",
+      "familyId": "babassu-starch-flour",
       "provenance": {
         "sourceIngredientName": "Babassu, Starch Flour",
         "sourcePage": 19,
@@ -859,6 +1886,7 @@
         "Bakery Waste, Dehydrated"
       ],
       "category": "byproduct",
+      "familyId": "bakery-by-products",
       "provenance": {
         "sourceIngredientName": "Bakery, By-products",
         "sourcePage": 21,
@@ -1135,6 +2163,7 @@
         "Barley, Two Row"
       ],
       "category": "cereal",
+      "familyId": "barley-grain",
       "provenance": {
         "sourceIngredientName": "Barley, Grain",
         "sourcePage": 23,
@@ -1416,6 +2445,7 @@
       "name": "Blood, Meal",
       "aliases": [],
       "category": "protein_meal",
+      "familyId": "blood-meal",
       "provenance": {
         "sourceIngredientName": "Blood, Meal",
         "sourcePage": 25,
@@ -1678,6 +2708,7 @@
       "name": "Blood, Plasma",
       "aliases": [],
       "category": "protein_meal",
+      "familyId": "blood-plasma",
       "provenance": {
         "sourceIngredientName": "Blood, Plasma",
         "sourcePage": 27,
@@ -1917,6 +2948,7 @@
       "name": "Blood, Red Cells",
       "aliases": [],
       "category": "protein_meal",
+      "familyId": "blood-red-cells",
       "provenance": {
         "sourceIngredientName": "Blood, Red Cells",
         "sourcePage": 29,
@@ -2149,6 +3181,7 @@
       "name": "Bovine Meat and Bone, Meal 38% CP",
       "aliases": [],
       "category": "protein_meal",
+      "familyId": "bovine-meat-and-bone-meal",
       "provenance": {
         "sourceIngredientName": "Bovine Meat and Bone, Meal 38% CP",
         "sourcePage": 31,
@@ -2416,6 +3449,7 @@
       "name": "Bovine Meat and Bone, Meal 43% CP",
       "aliases": [],
       "category": "protein_meal",
+      "familyId": "bovine-meat-and-bone-meal",
       "provenance": {
         "sourceIngredientName": "Bovine Meat and Bone, Meal 43% CP",
         "sourcePage": 33,
@@ -2683,6 +3717,7 @@
       "name": "Bovine Meat and Bone, Meal 48% CP",
       "aliases": [],
       "category": "protein_meal",
+      "familyId": "bovine-meat-and-bone-meal",
       "provenance": {
         "sourceIngredientName": "Bovine Meat and Bone, Meal 48% CP",
         "sourcePage": 35,
@@ -2949,6 +3984,7 @@
       "name": "Bovine Meat and Bone, Meal 52% CP",
       "aliases": [],
       "category": "protein_meal",
+      "familyId": "bovine-meat-and-bone-meal",
       "provenance": {
         "sourceIngredientName": "Bovine Meat and Bone, Meal 52% CP",
         "sourcePage": 37,
@@ -3216,6 +4252,7 @@
       "name": "Bovine Meat and Bone, Meal 58% CP",
       "aliases": [],
       "category": "protein_meal",
+      "familyId": "bovine-meat-and-bone-meal",
       "provenance": {
         "sourceIngredientName": "Bovine Meat and Bone, Meal 58% CP",
         "sourcePage": 39,
@@ -3453,6 +4490,7 @@
       "name": "Bread, By-products",
       "aliases": [],
       "category": "byproduct",
+      "familyId": "bread-by-products",
       "provenance": {
         "sourceIngredientName": "Bread, By-products",
         "sourcePage": 41,
@@ -3711,6 +4749,7 @@
         "Canola Meal"
       ],
       "category": "protein_meal",
+      "familyId": "canola-meal",
       "provenance": {
         "sourceIngredientName": "Canola, Meal",
         "sourcePage": 43,
@@ -3974,6 +5013,7 @@
       "name": "Canola, Oil",
       "aliases": [],
       "category": "oil_fat",
+      "familyId": "canola-oil",
       "provenance": {
         "sourceIngredientName": "Canola, Oil",
         "sourcePage": 45,
@@ -4083,6 +5123,7 @@
       "name": "Casein",
       "aliases": [],
       "category": "protein_meal",
+      "familyId": "casein",
       "provenance": {
         "sourceIngredientName": "Casein",
         "sourcePage": 47,
@@ -4309,6 +5350,7 @@
         "whole cassava"
       ],
       "category": "cereal",
+      "familyId": "cassava",
       "provenance": {
         "sourceIngredientName": "Cassava, Whole",
         "sourcePage": 49,
@@ -4547,6 +5589,7 @@
       "name": "Castor Plant, Meal",
       "aliases": [],
       "category": "protein_meal",
+      "familyId": "castor-meal",
       "provenance": {
         "sourceIngredientName": "Castor Plant, Meal",
         "sourcePage": 51,
@@ -4678,6 +5721,7 @@
       "name": "Citrus Pulp",
       "aliases": [],
       "category": "other",
+      "familyId": "citrus-pulp",
       "provenance": {
         "sourceIngredientName": "Citrus Pulp",
         "sourcePage": 53,
@@ -4881,6 +5925,7 @@
       "name": "Coconut, Meal",
       "aliases": [],
       "category": "protein_meal",
+      "familyId": "coconut-meal",
       "provenance": {
         "sourceIngredientName": "Coconut, Meal",
         "sourcePage": 55,
@@ -5149,6 +6194,7 @@
       "name": "Coconut, Oil",
       "aliases": [],
       "category": "oil_fat",
+      "familyId": "coconut-oil",
       "provenance": {
         "sourceIngredientName": "Coconut, Oil",
         "sourcePage": 57,
@@ -5257,6 +6303,7 @@
       "name": "Corn, Bran with Solubles",
       "aliases": [],
       "category": "byproduct",
+      "familyId": "corn-bran-with-solubles",
       "provenance": {
         "sourceIngredientName": "Corn, Bran with Solubles",
         "sourcePage": 59,
@@ -5527,6 +6574,7 @@
         "Corn Distillers Dried Grains with Solubles"
       ],
       "category": "byproduct",
+      "familyId": "corn-ddgs",
       "provenance": {
         "sourceIngredientName": "Corn, DDGS - 6 to 9% of EE",
         "sourcePage": 61,
@@ -5808,6 +6856,7 @@
         "Corn Distillers Dried Grains, High Protein"
       ],
       "category": "protein_meal",
+      "familyId": "corn-hp-ddg",
       "provenance": {
         "sourceIngredientName": "Corn, HP-DDG",
         "sourcePage": 63,
@@ -6077,6 +7126,7 @@
         "Corn Germ"
       ],
       "category": "byproduct",
+      "familyId": "corn-germ",
       "provenance": {
         "sourceIngredientName": "Corn, Germ",
         "sourcePage": 65,
@@ -6355,6 +7405,7 @@
         "Corn Gluten Feed"
       ],
       "category": "byproduct",
+      "familyId": "corn-gluten-feed",
       "provenance": {
         "sourceIngredientName": "Corn, Gluten Feed 21% CP",
         "sourcePage": 67,
@@ -6634,6 +7685,7 @@
         "Corn Gluten Meal, 60% CP"
       ],
       "category": "protein_meal",
+      "familyId": "corn-gluten-meal",
       "provenance": {
         "sourceIngredientName": "Corn, Gluten Meal 60% CP",
         "sourcePage": 69,
@@ -6909,6 +7961,7 @@
       "name": "Corn, Grain (- 1 SD of DM)",
       "aliases": [],
       "category": "cereal",
+      "familyId": "corn-grain",
       "provenance": {
         "sourceIngredientName": "Corn, Grain (- 1 SD of DM)",
         "sourcePage": 71,
@@ -7188,6 +8241,7 @@
         "Corn, Yellow Dent"
       ],
       "category": "cereal",
+      "familyId": "corn-grain",
       "provenance": {
         "sourceIngredientName": "Corn, Grain (Average)",
         "sourcePage": 73,
@@ -7463,6 +8517,7 @@
       "name": "Corn, Grain (+ 1 SD of DM)",
       "aliases": [],
       "category": "cereal",
+      "familyId": "corn-grain",
       "provenance": {
         "sourceIngredientName": "Corn, Grain (+ 1 SD of DM)",
         "sourcePage": 75,
@@ -7741,6 +8796,7 @@
         "high-lysine corn"
       ],
       "category": "cereal",
+      "familyId": "corn-grain",
       "provenance": {
         "sourceIngredientName": "Corn, High-lysine Gran",
         "sourcePage": 77,
@@ -7995,6 +9051,7 @@
         "high-oil corn"
       ],
       "category": "cereal",
+      "familyId": "corn-grain",
       "provenance": {
         "sourceIngredientName": "Corn, High-oil Gran",
         "sourcePage": 79,
@@ -8272,6 +9329,7 @@
       "name": "Corn, Pre-cooked",
       "aliases": [],
       "category": "cereal",
+      "familyId": "pre-cooked-corn",
       "provenance": {
         "sourceIngredientName": "Corn, Pre-cooked",
         "sourcePage": 81,
@@ -8510,6 +9568,7 @@
         "Corn Oil"
       ],
       "category": "oil_fat",
+      "familyId": "corn-oil",
       "provenance": {
         "sourceIngredientName": "Corn, Oil",
         "sourcePage": 83,
@@ -8619,6 +9678,7 @@
       "name": "Cottonseed, Meal 28% CP",
       "aliases": [],
       "category": "protein_meal",
+      "familyId": "cottonseed-meal",
       "provenance": {
         "sourceIngredientName": "Cottonseed, Meal 28% CP",
         "sourcePage": 85,
@@ -8893,6 +9953,7 @@
         "cotton meal 38%"
       ],
       "category": "protein_meal",
+      "familyId": "cottonseed-meal",
       "provenance": {
         "sourceIngredientName": "Cottonseed, Meal 38% CP",
         "sourcePage": 87,
@@ -9166,6 +10227,7 @@
       "name": "Cottonseed, Meal 43% CP",
       "aliases": [],
       "category": "protein_meal",
+      "familyId": "cottonseed-meal",
       "provenance": {
         "sourceIngredientName": "Cottonseed, Meal 43% CP",
         "sourcePage": 89,
@@ -9429,6 +10491,7 @@
       "name": "Dendê Palm, Oil",
       "aliases": [],
       "category": "oil_fat",
+      "familyId": "palm-oil",
       "provenance": {
         "sourceIngredientName": "Dendê Palm, Oil",
         "sourcePage": 91,
@@ -9537,6 +10600,7 @@
       "name": "Feather, Meal 76% CP",
       "aliases": [],
       "category": "protein_meal",
+      "familyId": "feather-meal",
       "provenance": {
         "sourceIngredientName": "Feather, Meal 76% CP",
         "sourcePage": 93,
@@ -9803,6 +10867,7 @@
       "name": "Feather, Meal 84% CP",
       "aliases": [],
       "category": "protein_meal",
+      "familyId": "feather-meal",
       "provenance": {
         "sourceIngredientName": "Feather, Meal 84% CP",
         "sourcePage": 95,
@@ -10068,6 +11133,7 @@
         "fishmeal 54%"
       ],
       "category": "protein_meal",
+      "familyId": "fish-meal",
       "provenance": {
         "sourceIngredientName": "Fish, Meal 54% CP",
         "sourcePage": 97,
@@ -10327,6 +11393,7 @@
       "name": "Fish, Meal 62% CP",
       "aliases": [],
       "category": "protein_meal",
+      "familyId": "fish-meal",
       "provenance": {
         "sourceIngredientName": "Fish, Meal 62% CP",
         "sourcePage": 99,
@@ -10591,6 +11658,7 @@
       "name": "Glucose",
       "aliases": [],
       "category": "other",
+      "familyId": "glucose",
       "provenance": {
         "sourceIngredientName": "Glucose",
         "sourcePage": 101,
@@ -10659,6 +11727,7 @@
         "milk sugar"
       ],
       "category": "other",
+      "familyId": "lactose",
       "provenance": {
         "sourceIngredientName": "Lactose",
         "sourcePage": 103,
@@ -10732,6 +11801,7 @@
       "name": "Lard",
       "aliases": [],
       "category": "oil_fat",
+      "familyId": "lard",
       "provenance": {
         "sourceIngredientName": "Lard",
         "sourcePage": 105,
@@ -10840,6 +11910,7 @@
       "name": "Lecithin",
       "aliases": [],
       "category": "oil_fat",
+      "familyId": "lecithin",
       "provenance": {
         "sourceIngredientName": "Lecithin",
         "sourcePage": 107,
@@ -10953,6 +12024,7 @@
         "Skim Milk, Dried"
       ],
       "category": "protein_meal",
+      "familyId": "skim-milk-powder",
       "provenance": {
         "sourceIngredientName": "Milk Skimmed, Powder",
         "sourcePage": 109,
@@ -11135,6 +12207,7 @@
         "Whey, Dried"
       ],
       "category": "byproduct",
+      "familyId": "whey-powder",
       "provenance": {
         "sourceIngredientName": "Milk Whey, Powder",
         "sourcePage": 111,
@@ -11325,6 +12398,7 @@
       "name": "Milk Whey, Permeate",
       "aliases": [],
       "category": "byproduct",
+      "familyId": "whey-permeate",
       "provenance": {
         "sourceIngredientName": "Milk Whey, Permeate",
         "sourcePage": 113,
@@ -11447,6 +12521,7 @@
       "name": "Milk Whole, Powder",
       "aliases": [],
       "category": "protein_meal",
+      "familyId": "whole-milk-powder",
       "provenance": {
         "sourceIngredientName": "Milk Whole, Powder",
         "sourcePage": 115,
@@ -11627,6 +12702,7 @@
         "Millet, Proso"
       ],
       "category": "cereal",
+      "familyId": "millet-grain",
       "provenance": {
         "sourceIngredientName": "Millet, Grain",
         "sourcePage": 117,
@@ -11904,6 +12980,7 @@
         "oats"
       ],
       "category": "cereal",
+      "familyId": "oats-grain",
       "provenance": {
         "sourceIngredientName": "Oats, Grain",
         "sourcePage": 119,
@@ -12162,6 +13239,7 @@
       "name": "Ouricuri (Syagrus coronata), Meal",
       "aliases": [],
       "category": "protein_meal",
+      "familyId": "ouricuri-meal",
       "provenance": {
         "sourceIngredientName": "Ouricuri (Syagrus coronata), Meal",
         "sourcePage": 121,
@@ -12332,6 +13410,7 @@
       "name": "Pasta/Spaghetti, By-product",
       "aliases": [],
       "category": "byproduct",
+      "familyId": "pasta-by-product",
       "provenance": {
         "sourceIngredientName": "Pasta/Spaghetti, By-product",
         "sourcePage": 123,
@@ -12594,6 +13673,7 @@
       "name": "Peanuts, Meal",
       "aliases": [],
       "category": "protein_meal",
+      "familyId": "peanut-meal",
       "provenance": {
         "sourceIngredientName": "Peanuts, Meal",
         "sourcePage": 125,
@@ -12863,6 +13943,7 @@
       "name": "Pork Meat and Bone, Meal",
       "aliases": [],
       "category": "protein_meal",
+      "familyId": "pork-meat-and-bone-meal",
       "provenance": {
         "sourceIngredientName": "Pork Meat and Bone, Meal",
         "sourcePage": 127,
@@ -13121,6 +14202,7 @@
       "name": "Poultry, By-product Meal",
       "aliases": [],
       "category": "protein_meal",
+      "familyId": "poultry-by-product-meal",
       "provenance": {
         "sourceIngredientName": "Poultry, By-product Meal",
         "sourcePage": 129,
@@ -13388,6 +14470,7 @@
       "name": "Poultry, By-product High-fat Meal",
       "aliases": [],
       "category": "protein_meal",
+      "familyId": "poultry-by-product-meal",
       "provenance": {
         "sourceIngredientName": "Poultry, By-product High-fat Meal",
         "sourcePage": 131,
@@ -13643,6 +14726,7 @@
       "name": "Poultry, Fat",
       "aliases": [],
       "category": "oil_fat",
+      "familyId": "poultry-fat",
       "provenance": {
         "sourceIngredientName": "Poultry, Fat",
         "sourcePage": 133,
@@ -13752,6 +14836,7 @@
       "name": "Poultry Feather and By-product Meal",
       "aliases": [],
       "category": "protein_meal",
+      "familyId": "poultry-feather-and-by-product-meal",
       "provenance": {
         "sourceIngredientName": "Poultry Feather and By-prod., Meal",
         "sourcePage": 135,
@@ -14021,6 +15106,7 @@
         "rice bran"
       ],
       "category": "byproduct",
+      "familyId": "rice-bran",
       "provenance": {
         "sourceIngredientName": "Rice, Bran",
         "sourcePage": 137,
@@ -14302,6 +15388,7 @@
         "rice brokens"
       ],
       "category": "cereal",
+      "familyId": "broken-rice",
       "provenance": {
         "sourceIngredientName": "Rice, Broken",
         "sourcePage": 139,
@@ -14577,6 +15664,7 @@
       "name": "Rice, Defatted Bran",
       "aliases": [],
       "category": "byproduct",
+      "familyId": "rice-bran",
       "provenance": {
         "sourceIngredientName": "Rice, Defatted Bran",
         "sourcePage": 141,
@@ -14852,6 +15940,7 @@
         "Rye"
       ],
       "category": "cereal",
+      "familyId": "rye-grain",
       "provenance": {
         "sourceIngredientName": "Rye, Grain",
         "sourcePage": 143,
@@ -15076,6 +16165,7 @@
       "name": "Shrimp, By-product Meal",
       "aliases": [],
       "category": "protein_meal",
+      "familyId": "shrimp-meal",
       "provenance": {
         "sourceIngredientName": "Shrimp, By-product Meal",
         "sourcePage": 145,
@@ -15232,6 +16322,7 @@
         "Sorghum, Grain (Milo)"
       ],
       "category": "cereal",
+      "familyId": "sorghum-grain",
       "provenance": {
         "sourceIngredientName": "Sorghum, Grain",
         "sourcePage": 147,
@@ -15510,6 +16601,7 @@
         "high tannin sorghum"
       ],
       "category": "cereal",
+      "familyId": "sorghum-grain",
       "provenance": {
         "sourceIngredientName": "Sorghum, Grain High Tannin",
         "sourcePage": 149,
@@ -15767,6 +16859,7 @@
       "name": "Soybean, Acid Oil",
       "aliases": [],
       "category": "oil_fat",
+      "familyId": "soybean-acid-oil",
       "provenance": {
         "sourceIngredientName": "Soybean, Acid Oil",
         "sourcePage": 151,
@@ -15871,6 +16964,7 @@
         "degummed soybean oil"
       ],
       "category": "oil_fat",
+      "familyId": "soybean-degummed-oil",
       "provenance": {
         "sourceIngredientName": "Soybean, Degummed Oil",
         "sourcePage": 153,
@@ -15984,6 +17078,7 @@
         "full-fat soybean"
       ],
       "category": "protein_meal",
+      "familyId": "full-fat-soybean",
       "provenance": {
         "sourceIngredientName": "Soybean, Full-fat Extruded",
         "sourcePage": 155,
@@ -16259,6 +17354,7 @@
       "name": "Soybean, Full-fat Micronized",
       "aliases": [],
       "category": "other",
+      "familyId": "full-fat-soybean",
       "provenance": {
         "sourceIngredientName": "Soybean, Full-fat Micronized",
         "sourcePage": 157,
@@ -16526,6 +17622,7 @@
       "name": "Soybean, Full-fat Roasted",
       "aliases": [],
       "category": "other",
+      "familyId": "full-fat-soybean",
       "provenance": {
         "sourceIngredientName": "Soybean, Full-fat Roasted",
         "sourcePage": 159,
@@ -16805,6 +17902,7 @@
         "Soybean Hulls"
       ],
       "category": "byproduct",
+      "familyId": "soybean-hulls",
       "provenance": {
         "sourceIngredientName": "Soybean, Hulls",
         "sourcePage": 161,
@@ -17067,6 +18165,7 @@
       "name": "Soybean, Meal 44.5% CP",
       "aliases": [],
       "category": "protein_meal",
+      "familyId": "soybean-meal",
       "provenance": {
         "sourceIngredientName": "Soybean, Meal 44.5% CP",
         "sourcePage": 163,
@@ -17344,6 +18443,7 @@
         "Soybean Meal, Solvent Extracted"
       ],
       "category": "protein_meal",
+      "familyId": "soybean-meal",
       "provenance": {
         "sourceIngredientName": "Soybean, Meal 45.6% CP (Average)",
         "sourcePage": 165,
@@ -17619,6 +18719,7 @@
       "name": "Soybean, Meal 46.5% CP",
       "aliases": [],
       "category": "protein_meal",
+      "familyId": "soybean-meal",
       "provenance": {
         "sourceIngredientName": "Soybean, Meal 46.5% CP",
         "sourcePage": 167,
@@ -17896,6 +18997,7 @@
         "Soybean Meal, Dehulled, Solvent Extracted"
       ],
       "category": "protein_meal",
+      "familyId": "soybean-meal",
       "provenance": {
         "sourceIngredientName": "Soybean, Meal 48% CP",
         "sourcePage": 169,
@@ -18171,6 +19273,7 @@
       "name": "Soybean, Protein Concentrate",
       "aliases": [],
       "category": "protein_meal",
+      "familyId": "soy-protein-concentrate",
       "provenance": {
         "sourceIngredientName": "Soybean, Protein Concentrate",
         "sourcePage": 171,
@@ -18404,6 +19507,7 @@
       "name": "Soybean, Protein Isolate",
       "aliases": [],
       "category": "protein_meal",
+      "familyId": "soy-protein-isolate",
       "provenance": {
         "sourceIngredientName": "Soybean, Protein Isolate",
         "sourcePage": 173,
@@ -18604,6 +19708,7 @@
       "name": "Soybean, Semi-defatted Extruded",
       "aliases": [],
       "category": "other",
+      "familyId": "semi-defatted-soybean",
       "provenance": {
         "sourceIngredientName": "Soybean, Semi-defatted Extruded",
         "sourcePage": 175,
@@ -18878,6 +19983,7 @@
       "name": "Soybean, Semi-defatted Roasted",
       "aliases": [],
       "category": "other",
+      "familyId": "semi-defatted-soybean",
       "provenance": {
         "sourceIngredientName": "Soybean, Semi-defatted Roasted",
         "sourcePage": 177,
@@ -19152,6 +20258,7 @@
       "name": "Starch",
       "aliases": [],
       "category": "other",
+      "familyId": "starch",
       "provenance": {
         "sourceIngredientName": "Starch",
         "sourcePage": 179,
@@ -19239,6 +20346,7 @@
       "name": "Sugar",
       "aliases": [],
       "category": "other",
+      "familyId": "sugar",
       "provenance": {
         "sourceIngredientName": "Sugar",
         "sourcePage": 181,
@@ -19341,6 +20449,7 @@
       "name": "Sugarcane, Juice",
       "aliases": [],
       "category": "other",
+      "familyId": "sugarcane-juice",
       "provenance": {
         "sourceIngredientName": "Sugarcane, Juice",
         "sourcePage": 183,
@@ -19425,6 +20534,7 @@
         "Molasses, Cane"
       ],
       "category": "byproduct",
+      "familyId": "sugarcane-molasses",
       "provenance": {
         "sourceIngredientName": "Sugarcane, Molasses",
         "sourcePage": 185,
@@ -19901,6 +21011,7 @@
       "name": "Sugarcane, Molasses Dried",
       "aliases": [],
       "category": "byproduct",
+      "familyId": "sugarcane-molasses",
       "provenance": {
         "sourceIngredientName": "Sugarcane, Molasses Dried",
         "sourcePage": 187,
@@ -20029,6 +21140,7 @@
         "Sunflower Meal, Solvent Extracted"
       ],
       "category": "protein_meal",
+      "familyId": "sunflower-meal",
       "provenance": {
         "sourceIngredientName": "Sunflower, Meal",
         "sourcePage": 189,
@@ -20303,6 +21415,7 @@
       "name": "Sweet Potato, Flour",
       "aliases": [],
       "category": "cereal",
+      "familyId": "sweet-potato-flour",
       "provenance": {
         "sourceIngredientName": "Sweet Potato, Flour",
         "sourcePage": 191,
@@ -20475,6 +21588,7 @@
       "name": "Tallow",
       "aliases": [],
       "category": "oil_fat",
+      "familyId": "tallow",
       "provenance": {
         "sourceIngredientName": "Tallow",
         "sourcePage": 193,
@@ -20587,6 +21701,7 @@
         "Triticale"
       ],
       "category": "cereal",
+      "familyId": "triticale-grain",
       "provenance": {
         "sourceIngredientName": "Triticale, Gran",
         "sourcePage": 195,
@@ -20863,6 +21978,7 @@
         "Wheat Bran"
       ],
       "category": "byproduct",
+      "familyId": "wheat-bran",
       "provenance": {
         "sourceIngredientName": "Wheat, Bran",
         "sourcePage": 197,
@@ -21138,6 +22254,7 @@
       "name": "Wheat, Dark Flour",
       "aliases": [],
       "category": "cereal",
+      "familyId": "wheat-dark-flour",
       "provenance": {
         "sourceIngredientName": "Wheat, Dark Flour",
         "sourcePage": 199,
@@ -21402,6 +22519,7 @@
       "name": "Wheat, Flour",
       "aliases": [],
       "category": "cereal",
+      "familyId": "wheat-flour",
       "provenance": {
         "sourceIngredientName": "Wheat, Flour",
         "sourcePage": 201,
@@ -21671,6 +22789,7 @@
       "name": "Wheat, Germ",
       "aliases": [],
       "category": "byproduct",
+      "familyId": "wheat-germ",
       "provenance": {
         "sourceIngredientName": "Wheat, Germ",
         "sourcePage": 203,
@@ -21944,6 +23063,7 @@
       "name": "Wheat, Gluten",
       "aliases": [],
       "category": "protein_meal",
+      "familyId": "wheat-gluten",
       "provenance": {
         "sourceIngredientName": "Wheat, Gluten",
         "sourcePage": 205,
@@ -22165,6 +23285,7 @@
         "Wheat, Hard Red Winter"
       ],
       "category": "cereal",
+      "familyId": "wheat-grain",
       "provenance": {
         "sourceIngredientName": "Wheat, Grain",
         "sourcePage": 207,
@@ -22438,6 +23559,7 @@
       "name": "Wheat, Screenings",
       "aliases": [],
       "category": "byproduct",
+      "familyId": "wheat-screenings",
       "provenance": {
         "sourceIngredientName": "Wheat, Screenings",
         "sourcePage": 209,
@@ -22663,6 +23785,7 @@
       "name": "Yeast, Alcohol Distiller's",
       "aliases": [],
       "category": "byproduct",
+      "familyId": "inactive-yeast",
       "provenance": {
         "sourceIngredientName": "Yeast, Alcohol Distiller’s",
         "sourcePage": 211,
@@ -22914,6 +24037,7 @@
       "name": "Yeast, Brewer's",
       "aliases": [],
       "category": "byproduct",
+      "familyId": "inactive-yeast",
       "provenance": {
         "sourceIngredientName": "Yeast, Brewer’s",
         "sourcePage": 213,
@@ -23164,6 +24288,7 @@
         "Limestone, Ground"
       ],
       "category": "mineral",
+      "familyId": "calcium-carbonate",
       "provenance": {
         "sourceIngredientName": "Limestone",
         "sourcePage": 223,
@@ -23230,6 +24355,7 @@
         "Calcium Carbonate (Feed-Grade Limestone)"
       ],
       "category": "mineral",
+      "familyId": "calcium-carbonate",
       "provenance": {
         "sourceIngredientName": "Calcium Carbonate",
         "sourcePage": 223,
@@ -23294,6 +24420,7 @@
         "Calcium Phosphate (Dicalcium)"
       ],
       "category": "mineral",
+      "familyId": "dicalcium-phosphate",
       "provenance": {
         "sourceIngredientName": "Dicalcium Phosphate",
         "sourcePage": 223,
@@ -23361,6 +24488,7 @@
         "MCP"
       ],
       "category": "mineral",
+      "familyId": "monocalcium-phosphate",
       "provenance": {
         "sourceIngredientName": "Monocalcium Phosphate",
         "sourcePage": 223,
@@ -23430,6 +24558,7 @@
         "Sodium Chloride"
       ],
       "category": "mineral",
+      "familyId": "salt",
       "provenance": {
         "sourceIngredientName": "Salt",
         "sourcePage": 223,
@@ -23496,6 +24625,7 @@
         "L-Lysine HCl"
       ],
       "category": "amino_acid",
+      "familyId": "l-lysine-hcl",
       "provenance": {
         "sourceIngredientName": "Lysine - HCl",
         "sourcePage": 222,
@@ -23576,6 +24706,7 @@
         "DL-Methionine"
       ],
       "category": "amino_acid",
+      "familyId": "dl-methionine",
       "provenance": {
         "sourceIngredientName": "Methionine",
         "sourcePage": 222,
@@ -23652,6 +24783,7 @@
         "L-Threonine"
       ],
       "category": "amino_acid",
+      "familyId": "l-threonine",
       "provenance": {
         "sourceIngredientName": "Threonine",
         "sourcePage": 222,
@@ -23728,6 +24860,7 @@
         "L-Tryptophan"
       ],
       "category": "amino_acid",
+      "familyId": "l-tryptophan",
       "provenance": {
         "sourceIngredientName": "Tryptophan",
         "sourcePage": 222,
@@ -23805,6 +24938,7 @@
         "L-Valine"
       ],
       "category": "amino_acid",
+      "familyId": "l-valine",
       "provenance": {
         "sourceIngredientName": "Valine",
         "sourcePage": 222,
@@ -23882,6 +25016,7 @@
         "L-Isoleucine"
       ],
       "category": "amino_acid",
+      "familyId": "l-isoleucine",
       "provenance": {
         "sourceIngredientName": "Isoleucine",
         "sourcePage": 222,
@@ -23958,6 +25093,7 @@
         "CJ (Tianjin) Feed"
       ],
       "category": "vitamin_mineral_premix",
+      "familyId": "cj-s174-boar-premix",
       "provenance": {
         "source": {
           "publisher": "CJ (Tianjin) Feed",
@@ -24170,6 +25306,7 @@
         "Chengdu Sustar Feed"
       ],
       "category": "vitamin_mineral_premix",
+      "familyId": "sustar-glypro-x911",
       "provenance": {
         "source": {
           "publisher": "Chengdu Sustar Feed",
@@ -24276,6 +25413,7 @@
         "Chengdu Sustar Feed"
       ],
       "category": "vitamin_mineral_premix",
+      "familyId": "sustar-glypro-x912",
       "provenance": {
         "source": {
           "publisher": "Chengdu Sustar Feed",
@@ -24386,6 +25524,7 @@
         "Chengdu Sustar Feed"
       ],
       "category": "vitamin_mineral_premix",
+      "familyId": "sustar-glypro-x913",
       "provenance": {
         "source": {
           "publisher": "Chengdu Sustar Feed",
@@ -24493,6 +25632,7 @@
         "Chengdu Sustar Feed"
       ],
       "category": "vitamin_mineral_premix",
+      "familyId": "sustar-glypro-x812",
       "provenance": {
         "source": {
           "publisher": "Chengdu Sustar Feed",
@@ -24599,6 +25739,7 @@
         "Chengdu Sustar Feed"
       ],
       "category": "vitamin_mineral_premix",
+      "familyId": "sustar-glypro-x811",
       "provenance": {
         "source": {
           "publisher": "Chengdu Sustar Feed",
@@ -24701,6 +25842,7 @@
       "id": "caremix-pig-weaner",
       "name": "Caremix PigWeaner — 2.8% Maxipack",
       "category": "vitamin_mineral_premix",
+      "familyId": "caremix-pig-weaner",
       "provenance": {
         "source": {
           "publisher": "Trouw Nutrition / Caremix",
@@ -25058,6 +26200,7 @@
       "id": "caremix-pig-grower",
       "name": "Caremix Pig Grower — 3.2% Maxipack",
       "category": "vitamin_mineral_premix",
+      "familyId": "caremix-pig-grower",
       "provenance": {
         "source": {
           "publisher": "Trouw Nutrition / Caremix",
@@ -25417,6 +26560,7 @@
       "id": "caremix-pig-finisher",
       "name": "Caremix Pig Finisher — 2.6% Maxipack",
       "category": "vitamin_mineral_premix",
+      "familyId": "caremix-pig-finisher",
       "provenance": {
         "source": {
           "publisher": "Trouw Nutrition / Caremix",

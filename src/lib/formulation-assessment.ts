@@ -12,10 +12,12 @@ import {
   type FormulationIngredientOption,
   type LeastCostFormulationResult,
 } from "./feed-optimizer";
+import { aggregateLabel, aggregateTolerancePct, checkAggregateInclusion, describeAggregateSource } from "./ingredient-inclusion-limits";
 import type { IngredientLibrary, IngredientNutrientRecord } from "./ingredient-nutrients";
 import type { NutritionPhase } from "./nutrition";
 import type { EnergySystem } from "./nutrition-targets";
 import {
+  INCLUSION_POLICY_VERSION,
   assessmentHeadline,
   requirementCounts,
   supplementationCounts,
@@ -86,6 +88,17 @@ const joinLabels = (labels: string[]) =>
     ? labels[0] ?? ""
     : `${labels.slice(0, -1).join(", ")} and ${labels.at(-1)}`;
 
+/** "SID lysine is not met. Soybean meal family exceeds its combined maximum (35% > 25%)." */
+function failureSummary(failed: readonly RequirementCheck[]): string {
+  const requirements = failed.filter((check) => !check.aggregate);
+  const ceilings = failed.filter((check) => check.aggregate);
+  const pct = (value: number) => `${+value.toFixed(2)}%`;
+  return [
+    requirements.length ? `${joinLabels(requirements.map((check) => check.label))} ${requirements.length === 1 ? "is" : "are"} not met.` : "",
+    ...ceilings.map((check) => `${check.label} exceeds its combined maximum (${pct(check.actual)} > ${pct(check.bound)}).`),
+  ].filter(Boolean).join(" ");
+}
+
 function premixesIn(formula: DietFormula, library: IngredientLibrary): IngredientNutrientRecord[] {
   return formula.ingredients.flatMap((row) => {
     if (!(row.inclusionPct > 0)) return [];
@@ -143,6 +156,41 @@ export function buildFormulationAssessment(
       enforcedByOptimizer: true,
     };
   });
+
+  // Family and constraint-group ceilings cap the members' combined inclusion,
+  // checked from canonical membership exactly as the optimizer enforces them.
+  for (const { rule, actualPct, contributions, exceeds } of checkAggregateInclusion(formula.ingredients, phase, library)) {
+    requirements.push({
+      id: rule.key,
+      label: aggregateLabel(rule),
+      unit: "%",
+      relation: "max",
+      bound: rule.maxPct,
+      actual: actualPct,
+      status: exceeds ? "not_met" : "met",
+      limiting: !exceeds && Math.abs(actualPct - rule.maxPct) <= aggregateTolerancePct(rule.maxPct),
+      data: "published",
+      missingIngredientIds: [],
+      assumedZeroIngredientIds: [],
+      totalOnlyIngredientIds: [],
+      contributions: contributions.map((row) => ({ ingredientId: row.ingredientId, value: row.inclusionPct })),
+      enforcedByOptimizer: true,
+      aggregate: {
+        kind: rule.kind,
+        id: rule.id,
+        name: rule.name,
+        memberIngredientIds: [...rule.memberIngredientIds],
+        source: {
+          type: rule.source.type,
+          reference: rule.source.reference,
+          ...(rule.source.url ? { url: rule.source.url } : {}),
+          derivation: rule.source.derivation,
+          justification: rule.source.justification,
+          description: describeAggregateSource(rule),
+        },
+      },
+    });
+  }
 
   const premixes = premixesIn(formula, library);
   // The manufacturer's dose is a hard requirement like any inclusion limit.
@@ -219,6 +267,7 @@ export function buildFormulationAssessment(
     : null;
   const assessment: FormulationAssessment = {
     schemaVersion: 2,
+    inclusionPolicy: INCLUSION_POLICY_VERSION,
     optimizerFeasible,
     verdict,
     requirements,
@@ -230,7 +279,7 @@ export function buildFormulationAssessment(
       verdict === "infeasible"
         ? "No recipe from these ingredients and limits meets every hard requirement; the closest recipe is assessed. Do not mix it."
         : failed.length
-          ? `${joinLabels(failed.map((check) => check.label))} ${failed.length === 1 ? "is" : "are"} not met.`
+          ? failureSummary(failed)
           : "Every hard requirement of the selected programme is met.",
       assumed.length
         ? `Premix values that are not documented are counted as 0 (${assumed.length} requirement${assumed.length === 1 ? "" : "s"}); that is conservative and labelled as an assumption, not a verified value.`
@@ -239,7 +288,7 @@ export function buildFormulationAssessment(
         ? `Vitamin and trace-mineral supplementation is compared with Chapter 7 recommendations as an advisory; it does not affect this result.`
         : "",
     ].filter(Boolean).join(" "),
-    scope: "Hard requirements: the programme's energy, protein, SID amino-acid and mineral requirements, practical ingredient limits and the manufacturer's premix dose. FeedSport does not verify ingredient quality, manufacturing accuracy, storage or animal health.",
+    scope: "Hard requirements: the programme's energy, protein, SID amino-acid and mineral requirements, practical ingredient limits, combined ingredient-family and added-fat ceilings and the manufacturer's premix dose. FeedSport does not verify ingredient quality, manufacturing accuracy, storage or animal health.",
   };
   assessment.headline = assessmentHeadline(assessment);
   return assessment;
@@ -249,6 +298,7 @@ export function buildFormulationAssessment(
 export function buildInfeasibleFormulationAssessment(message: string): FormulationAssessment {
   return {
     schemaVersion: 2,
+    inclusionPolicy: INCLUSION_POLICY_VERSION,
     optimizerFeasible: false,
     verdict: "infeasible",
     requirements: [],

@@ -27,7 +27,29 @@ export interface RequirementContribution {
   value: number;
 }
 
-/** One hard requirement: energy, protein, SID amino acids, minerals, practical limits and the premix dose. */
+/**
+ * A family or constraint-group ceiling: the combined inclusion of its members.
+ * Distinct from an ingredient's own maximum and from advisory practical levels.
+ */
+export interface AggregateRequirementDetail {
+  kind: "family" | "group";
+  id: string;
+  name: string;
+  /** Every catalogue ingredient counted toward the ceiling. */
+  memberIngredientIds: string[];
+  source: {
+    /** `published` limit, or a `feedsport_policy` derived from a reference. */
+    type: "published" | "feedsport_policy";
+    reference: string;
+    url?: string;
+    derivation: string;
+    justification: string;
+    /** "Brazilian Tables 2024, Table 1.01, grower column" style label. */
+    description: string;
+  };
+}
+
+/** One hard requirement: energy, protein, SID amino acids, minerals, practical limits, family and group inclusion ceilings and the premix dose. */
 export interface RequirementCheck {
   id: string;
   label: string;
@@ -46,6 +68,8 @@ export interface RequirementCheck {
   contributions: RequirementContribution[];
   /** True when the optimizer enforced this bound for the recipe. */
   enforcedByOptimizer: boolean;
+  /** Present on family and constraint-group ceilings; contributions are then inclusion %. */
+  aggregate?: AggregateRequirementDetail;
 }
 
 export type SupplementationStatus = "at_recommendation" | "below_recommendation" | "no_data";
@@ -74,8 +98,17 @@ export interface DocumentationGap {
   reason: "total_only" | "not_documented";
 }
 
+/**
+ * Version of the inclusion rules an assessment applied. Saved assessments
+ * without it were made before family and constraint-group ceilings existed;
+ * they are shown as saved, never silently re-scored.
+ */
+export const INCLUSION_POLICY_VERSION = "aggregate-limits-1";
+
 export interface FormulationAssessment {
   schemaVersion: 2;
+  /** Absent on assessments saved before aggregate inclusion ceilings. */
+  inclusionPolicy?: typeof INCLUSION_POLICY_VERSION;
   optimizerFeasible: boolean;
   verdict: FormulationVerdict;
   requirements: RequirementCheck[];
@@ -139,6 +172,14 @@ export function isFormulationAssessment(value: unknown): value is FormulationAss
 export function isLegacyAssessment(value: unknown): boolean {
   return !!value && typeof value === "object" && (value as { schemaVersion?: unknown }).schemaVersion === 1;
 }
+
+/** A schema-2 assessment made before family and constraint-group ceilings. */
+export function predatesAggregateLimits(value: unknown): boolean {
+  return isFormulationAssessment(value) && value.inclusionPolicy !== INCLUSION_POLICY_VERSION;
+}
+
+export const PRE_AGGREGATE_LIMITS_NOTE =
+  "Assessed before ingredient-family limits. This saved result is shown as it was assessed then; combined family and added-fat ceilings were not checked. Re-formulate or re-check to apply them.";
 
 export const LEGACY_PREMIX_NOTE =
   "Premix data updated. This version was assessed before commercial premixes counted as full ingredients. Its saved result is shown as it was; re-formulate to assess it with the current premix data.";

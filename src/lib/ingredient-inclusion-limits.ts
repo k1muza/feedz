@@ -9,7 +9,14 @@
  * recipe analysis) resolves limits through this module.
  */
 import { broilerInclusionLimitClassForPhase } from "./brazilian-poultry";
-import { INGREDIENT_LIBRARY, POULTRY_INGREDIENT_LIBRARY } from "./ingredient-nutrients";
+import {
+  INGREDIENT_LIBRARY,
+  INGREDIENT_LIBRARY_SOURCE,
+  POULTRY_INGREDIENT_LIBRARY,
+  type AggregateLimit,
+  type AggregateLimitSource,
+  type IngredientLibrarySource,
+} from "./ingredient-nutrients";
 import type { NutritionPhase, NutritionPhaseClass, NutritionSpecies } from "./nutrition";
 
 export type BrazilianInclusionColumn = "starter" | "grower" | "finisher" | "gestation" | "lactation";
@@ -237,4 +244,131 @@ export function describeMaxSource(limits: FeedSportInclusionLimits): string {
     return `${limits.phase.source} ${inclusionColumnLabel(limits.phase)} maximum`;
   }
   return limits.maxSource === "ingredient" ? "FeedSport ingredient limit" : "no limit";
+}
+
+// ---------------------------------------------------------------------------
+// Aggregate (family and constraint-group) limits
+//
+// A family's or constraint group's ceiling caps the SUM of its members'
+// inclusions. Definitions and values live in the canonical ingredient library;
+// this is the only place they are resolved for a phase, so the optimizer,
+// assessments, MCP and Studio apply identical rules.
+
+export type AggregateInclusionKind = "family" | "group";
+
+/** The parts of a library that define aggregate rules. */
+export type AggregateRuleLibrary = Pick<IngredientLibrarySource, "families" | "constraintGroups"> & {
+  ingredients: readonly { id: string; familyId: string }[];
+};
+
+export type AggregateInclusionRule = {
+  /** Unique across kinds, e.g. "family:soybean-meal" or "group:total-added-fat". */
+  key: string;
+  kind: AggregateInclusionKind;
+  id: string;
+  name: string;
+  species: NutritionSpecies;
+  column: BrazilianInclusionColumn;
+  maxPct: number;
+  source: AggregateLimitSource;
+  /** Every library ingredient counted toward the ceiling, each once. */
+  memberIngredientIds: readonly string[];
+};
+
+export function aggregateRuleKey(kind: AggregateInclusionKind, id: string): string {
+  return `${kind}:${id}`;
+}
+
+/** Members of every family and constraint group, from explicit family IDs only. */
+export function aggregateMembership(library: AggregateRuleLibrary = INGREDIENT_LIBRARY_SOURCE) {
+  const families = new Map<string, string[]>();
+  for (const ingredient of library.ingredients) {
+    families.set(ingredient.familyId, [...(families.get(ingredient.familyId) ?? []), ingredient.id]);
+  }
+  const groups = new Map(library.constraintGroups.map((group) => [
+    group.id,
+    [...new Set([
+      ...group.members.familyIds.flatMap((familyId) => families.get(familyId) ?? []),
+      ...group.members.ingredientIds,
+    ])],
+  ]));
+  return { families, groups };
+}
+
+function columnMax(limit: AggregateLimit | undefined, species: NutritionSpecies, column: BrazilianInclusionColumn): number | undefined {
+  const bySpecies = limit?.maxInclusionPct[species] as Partial<Record<BrazilianInclusionColumn, number>> | undefined;
+  return bySpecies?.[column];
+}
+
+/**
+ * The family and group ceilings that apply to a phase. A family or group
+ * without a value for the phase's column adds no restriction (never zero).
+ * Phases without a Table 1.01 column (boars) have no aggregate ceilings.
+ */
+export function aggregateInclusionRules(
+  ref: InclusionPhaseRef | undefined,
+  library: AggregateRuleLibrary = INGREDIENT_LIBRARY_SOURCE,
+): AggregateInclusionRule[] {
+  const resolved = resolvePhaseRef(ref);
+  const column = brazilianInclusionColumn(ref);
+  if (!resolved || !column) return [];
+  const membership = aggregateMembership(library);
+  const rules: AggregateInclusionRule[] = [];
+  const add = (kind: AggregateInclusionKind, id: string, name: string, limit: AggregateLimit | undefined, members: readonly string[]) => {
+    const maxPct = columnMax(limit, resolved.species, column);
+    if (maxPct === undefined || !limit || members.length === 0) return;
+    rules.push({ key: aggregateRuleKey(kind, id), kind, id, name, species: resolved.species, column, maxPct, source: limit.source, memberIngredientIds: members });
+  };
+  for (const family of library.families) add("family", family.id, family.name, family.aggregateLimit, membership.families.get(family.id) ?? []);
+  for (const group of library.constraintGroups) add("group", group.id, group.name, group.aggregateLimit, membership.groups.get(group.id) ?? []);
+  return rules;
+}
+
+/** "FeedSport policy (Brazilian Tables 2024, Table 1.01), grower column". */
+export function describeAggregateSource(rule: Pick<AggregateInclusionRule, "source" | "species" | "column">): string {
+  const type = rule.source.type === "published" ? "Published limit" : "FeedSport policy";
+  return `${type} (${rule.source.reference}), ${inclusionColumnLabel(rule)} column`;
+}
+
+/** "Soybean meal family" / "Total added fats and oils". */
+export function aggregateLabel(rule: Pick<AggregateInclusionRule, "kind" | "name">): string {
+  return rule.kind === "family" ? `${rule.name} family` : rule.name;
+}
+
+/** Feasibility tolerance for a combined-inclusion ceiling, in percentage points. */
+export function aggregateTolerancePct(maxPct: number): number {
+  return Math.max(Math.abs(maxPct) * 1e-5, 1e-6);
+}
+
+export type AggregateInclusionCheck = {
+  rule: AggregateInclusionRule;
+  /** Combined inclusion of the members present, in %. */
+  actualPct: number;
+  contributions: { ingredientId: string; inclusionPct: number }[];
+  exceeds: boolean;
+};
+
+/**
+ * Combined inclusions of every applicable family and group with at least one
+ * member in the recipe. Used for manual recipes, saved versions, MCP analysis
+ * and to re-verify optimizer output.
+ */
+export function checkAggregateInclusion(
+  rows: readonly { ingredientId: string; inclusionPct: number }[],
+  ref: InclusionPhaseRef | undefined,
+  library: AggregateRuleLibrary = INGREDIENT_LIBRARY_SOURCE,
+): AggregateInclusionCheck[] {
+  const inclusion = new Map<string, number>();
+  for (const row of rows) {
+    if (row.inclusionPct > 0) inclusion.set(row.ingredientId, (inclusion.get(row.ingredientId) ?? 0) + row.inclusionPct);
+  }
+  return aggregateInclusionRules(ref, library).flatMap((rule) => {
+    const contributions = rule.memberIngredientIds.flatMap((ingredientId) => {
+      const inclusionPct = inclusion.get(ingredientId);
+      return inclusionPct === undefined ? [] : [{ ingredientId, inclusionPct }];
+    });
+    if (contributions.length === 0) return [];
+    const actualPct = contributions.reduce((sum, row) => sum + row.inclusionPct, 0);
+    return [{ rule, actualPct, contributions, exceeds: actualPct > rule.maxPct + aggregateTolerancePct(rule.maxPct) }];
+  });
 }

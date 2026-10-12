@@ -14,7 +14,7 @@ import {
 } from "./ingredient-nutrients";
 
 test("ingredient library is the single canonical ingredient dataset", () => {
-  assert.equal(INGREDIENT_LIBRARY_SOURCE.schemaVersion, 2);
+  assert.equal(INGREDIENT_LIBRARY_SOURCE.schemaVersion, 3);
   // 113 feedstuffs plus 9 manufacturer premixes (7 pig, 2 poultry), each an ordinary ingredient.
   assert.equal(INGREDIENT_LIBRARY_SOURCE.ingredients.length, 122);
   assert.equal(INGREDIENT_LIBRARY.ingredients.length, 120);

@@ -2,6 +2,7 @@ import "server-only";
 
 import {
   INGREDIENT_LIBRARY,
+  INGREDIENT_LIBRARY_SOURCE,
   POULTRY_INGREDIENT_LIBRARY,
   ingredientProfileAttribution,
   nutrientValueSource,
@@ -16,6 +17,7 @@ import { analyzeDiet } from "@/lib/diet-formula";
 import { FEED_PROGRAMMES } from "@/lib/feed-programmes";
 import type { IngredientLibrary } from "@/lib/ingredient-nutrients";
 import { studioNutrientConstraints } from "@/lib/studio-programmes";
+import { aggregateLabel, aggregateMembership } from "@/lib/ingredient-inclusion-limits";
 
 // The ingredient catalogue shown in the formulation studio (/studio/catalogue):
 // Brazilian Tables 2024 composition from the checked-in library, priced with
@@ -35,6 +37,13 @@ export interface CatalogueIngredient {
   /** Nutrients this kind of ingredient should have; a gap here is real missing data. */
   expected: CatalogueNutrientId[];
   limits: { stage: string; maxPct: number; practicalPct?: number }[];
+  /** Primary family; `combinedLimits` cap the SUM of the family's (or a group's) members. */
+  family: {
+    id: string;
+    name: string;
+    memberIds: string[];
+    combinedLimits: { stage: string; label: string; maxPct: number; sourceType: "published" | "feedsport_policy" }[];
+  };
   manufacturerSpecificationUrl?: string;
   verificationStatus?: "unverified" | "verified";
   premix?: {
@@ -108,6 +117,38 @@ const STAGES: [string, (r: IngredientNutrientRecord["recommendedInclusionPct"]) 
   ["Broiler starter", (r) => r?.broilers?.starter],
   ["Broiler grower", (r) => r?.broilers?.grower],
 ];
+
+const AGGREGATE_STAGES: [string, "swine" | "broiler", "starter" | "grower" | "finisher" | "gestation" | "lactation"][] = [
+  ["Pig starter", "swine", "starter"],
+  ["Pig grower", "swine", "grower"],
+  ["Pig finisher", "swine", "finisher"],
+  ["Gestating sow", "swine", "gestation"],
+  ["Lactating sow", "swine", "lactation"],
+  ["Broiler starter", "broiler", "starter"],
+  ["Broiler grower", "broiler", "grower"],
+];
+
+const MEMBERSHIP = aggregateMembership(INGREDIENT_LIBRARY_SOURCE);
+
+/** The ingredient's family and every combined ceiling (family or group) that counts it. */
+function familyOf(ingredient: { id: string; familyId: string }): CatalogueIngredient["family"] {
+  const family = INGREDIENT_LIBRARY_SOURCE.families.find((item) => item.id === ingredient.familyId);
+  const owners = [
+    ...(family ? [{ kind: "family" as const, name: family.name, limit: family.aggregateLimit }] : []),
+    ...INGREDIENT_LIBRARY_SOURCE.constraintGroups
+      .filter((group) => MEMBERSHIP.groups.get(group.id)?.includes(ingredient.id))
+      .map((group) => ({ kind: "group" as const, name: group.name, limit: group.aggregateLimit })),
+  ];
+  return {
+    id: ingredient.familyId,
+    name: family?.name ?? ingredient.familyId,
+    memberIds: MEMBERSHIP.families.get(ingredient.familyId) ?? [ingredient.id],
+    combinedLimits: owners.flatMap((owner) => !owner.limit ? [] : AGGREGATE_STAGES.flatMap(([stage, species, column]) => {
+      const maxPct = (owner.limit!.maxInclusionPct[species] as Partial<Record<string, number>> | undefined)?.[column];
+      return maxPct === undefined ? [] : [{ stage, label: aggregateLabel(owner), maxPct, sourceType: owner.limit!.source.type }];
+    })),
+  };
+}
 
 /** Every nutrient constraint any loaded phase of the species enforces, once each. */
 function speciesConstraints(species: "swine" | "broiler") {
@@ -220,6 +261,7 @@ export async function getStudioCatalogue(): Promise<CatalogueIngredient[]> {
       nutrients,
       expected: product ? [] : EXPECTED[ingredient.category],
       limits,
+      family: familyOf(ingredient),
       ...(product ? { manufacturerSpecificationUrl: product.specificationUrl,
         verificationStatus: product.verificationStatus,
         premix: {

@@ -26,6 +26,7 @@ import {
 import { FEED_PROGRAMMES, feedProgrammeById, type FeedProgrammeDefinition } from "@/lib/feed-programmes";
 import {
   INGREDIENT_LIBRARY,
+  INGREDIENT_LIBRARY_SOURCE,
   ingredientLibraryForPhase,
   ingredientLibraryForSpecies,
   ingredientProfileAttribution,
@@ -37,6 +38,11 @@ import {
 import type { FormulationScenario } from "@/lib/feed-formulation-diagnostics";
 import {
   BRAZILIAN_INCLUSION_SOURCE,
+  aggregateInclusionRules,
+  aggregateLabel,
+  aggregateMembership,
+  checkAggregateInclusion,
+  describeAggregateSource,
   brazilianInclusionRecommendations,
   describeMaxSource,
   effectiveInclusionLimits,
@@ -292,7 +298,23 @@ export function nutritionalValidationReport(assessment: FormulationAssessment) {
       ...(check.assumedZeroIngredientIds.length ? { assumed_zero_for: check.assumedZeroIngredientIds } : {}),
       ...(check.totalOnlyIngredientIds.length ? { total_only_for: check.totalOnlyIngredientIds } : {}),
       ...(check.missingIngredientIds.length ? { missing_data_for: check.missingIngredientIds } : {}),
+      ...(check.aggregate
+        ? {
+            aggregate: {
+              kind: check.aggregate.kind,
+              id: check.aggregate.id,
+              name: check.aggregate.name,
+              combined_percent: round(check.actual, 4),
+              max_percent: check.bound,
+              contributions: check.contributions.map((row) => ({ ingredient: row.ingredientId, percent: round(row.value, 4) })),
+              source_type: check.aggregate.source.type,
+              source: check.aggregate.source.description,
+              justification: check.aggregate.source.justification,
+            },
+          }
+        : {}),
     })),
+    inclusion_policy: assessment.inclusionPolicy ?? "pre_aggregate_limits",
     advisories: {
       supplementation: assessment.supplementation
         ? {
@@ -419,13 +441,108 @@ function phaseIngredientLimits(phase: NutritionPhase) {
         }]
       : [];
   });
-  if (!column || limits.length === 0) return {};
+  const aggregate = aggregateLimitRows(phase);
+  if (!column || limits.length === 0) return aggregate.length ? { aggregate_inclusion_limits: aggregateLimitsBlock(aggregate) } : {};
   return {
+    ...(aggregate.length ? { aggregate_inclusion_limits: aggregateLimitsBlock(aggregate) } : {}),
     ingredient_inclusion_limits: {
       source: `${BRAZILIAN_INCLUSION_SOURCE}, ${inclusionColumnLabel({ species: phase.species, column })} column${phase.phaseClass === "pre-starter" ? " (no separate pre-starter column is published)" : ""}`,
       note: "max_percent is enforced when formulating; practical_percent is advisory. Ingredients not listed keep their default limits.",
       limits,
     },
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Ingredient families and aggregate (combined) inclusion limits
+
+function aggregateLimitRows(phase: NutritionPhase) {
+  return aggregateInclusionRules(phase, ingredientLibraryForPhase(phase)).map((rule) => ({
+    kind: rule.kind,
+    id: rule.id,
+    name: aggregateLabel(rule),
+    max_percent: rule.maxPct,
+    members: [...rule.memberIngredientIds],
+    source_type: rule.source.type,
+    source: describeAggregateSource(rule),
+  }));
+}
+
+function aggregateLimitsBlock(limits: ReturnType<typeof aggregateLimitRows>) {
+  return {
+    note: "max_percent caps the COMBINED inclusion of all members and is enforced when formulating, alongside each ingredient's own maximum. source_type feedsport_policy means FeedSport derived the combined ceiling from per-ingredient recommendations; it is not a published family maximum.",
+    limits,
+  };
+}
+
+/** A family or group as stored, with its ceilings for every column. */
+function aggregateDefinition(
+  kind: "family" | "group",
+  definition: { id: string; name: string; description?: string; notes: string[]; aggregateLimit?: { maxInclusionPct: unknown; source: { type: string; reference: string; url?: string; derivation: string; justification: string; addresses: string; supportingReferences: { title: string; url: string }[] } } },
+  members: readonly string[],
+) {
+  const limit = definition.aggregateLimit;
+  return {
+    kind,
+    id: definition.id,
+    name: definition.name,
+    ...(definition.description ? { description: definition.description } : {}),
+    members: [...members],
+    max_inclusion_percent: limit ? limit.maxInclusionPct : null,
+    ...(limit
+      ? {
+          limit_source: {
+            type: limit.source.type,
+            reference: limit.source.reference,
+            ...(limit.source.url ? { url: limit.source.url } : {}),
+            derivation: limit.source.derivation,
+            justification: limit.source.justification,
+            addresses: limit.source.addresses,
+            supporting_references: limit.source.supportingReferences.map((reference) => ({ title: reference.title, url: reference.url })),
+          },
+        }
+      : { limit_status: "No combined maximum: the family adds no restriction beyond each member's own limits." }),
+    ...(definition.notes.length ? { notes: definition.notes } : {}),
+  };
+}
+
+/** The ingredient's primary family and any constraint groups it counts toward. */
+function ingredientFamilyInfo(ingredientId: string, familyId: string, phase?: NutritionPhase) {
+  const membership = aggregateMembership(INGREDIENT_LIBRARY_SOURCE);
+  const family = INGREDIENT_LIBRARY_SOURCE.families.find((item) => item.id === familyId);
+  const groups = INGREDIENT_LIBRARY_SOURCE.constraintGroups.filter((group) => membership.groups.get(group.id)?.includes(ingredientId));
+  return {
+    // Null for a user-entered premix, which belongs to no canonical family.
+    family: family ? aggregateDefinition("family", family, membership.families.get(family.id) ?? []) : null,
+    constraint_groups: groups.map((group) => aggregateDefinition("group", group, membership.groups.get(group.id) ?? [])),
+    /** Only with a programme phase; undefined (omitted from JSON) otherwise. */
+    applicable_aggregate_limits: phase
+      ? aggregateInclusionRules(phase).filter((rule) => rule.memberIngredientIds.includes(ingredientId)).map((rule) => ({
+          kind: rule.kind,
+          id: rule.id,
+          name: aggregateLabel(rule),
+          max_percent: rule.maxPct,
+          source: describeAggregateSource(rule),
+        }))
+      : undefined,
+  };
+}
+
+/**
+ * Every ingredient family and constraint group, with members and stored
+ * ceilings. With a programme phase, also the ceilings that apply to it.
+ */
+export function getIngredientFamilies(input: { programme_id?: string; multi_member_only?: boolean } = {}) {
+  const membership = aggregateMembership(INGREDIENT_LIBRARY_SOURCE);
+  const families = INGREDIENT_LIBRARY_SOURCE.families
+    .map((family) => aggregateDefinition("family", family, membership.families.get(family.id) ?? []))
+    .filter((family) => !input.multi_member_only || family.members.length > 1);
+  const resolved = input.programme_id ? resolvePhase(input.programme_id) : undefined;
+  return {
+    note: "Every ingredient belongs to exactly one family. Membership alone imposes no limit; only families or constraint groups with max_inclusion_percent cap their members' combined inclusion. Columns follow Brazilian Tables 2024 Table 1.01 (pre-starter phases use the starter column; broiler finisher uses the grower column; boars have no column).",
+    families,
+    constraint_groups: INGREDIENT_LIBRARY_SOURCE.constraintGroups.map((group) => aggregateDefinition("group", group, membership.groups.get(group.id) ?? [])),
+    ...(resolved ? { programme: programmeHeader(resolved), applicable_limits: aggregateLimitRows(resolved.phase) } : {}),
   };
 }
 
@@ -680,6 +797,7 @@ export function getIngredient(
       ? "Values are per kg of premix, as fed, as documented by the manufacturer (label minima unless stated). Values the manufacturer does not document are not listed; in a formulation they count as 0 and are labelled assumed_zero. Total amino acids are never counted as SID."
       : "Only published values are listed. Missing values are never assumed; FeedSport treats them as unknown.",
     ...(ingredient.constraints.notes.length > 0 ? { constraint_notes: ingredient.constraints.notes } : {}),
+    ...ingredientFamilyInfo(ingredient.id, ingredient.familyId, programmeId ? resolvePhase(programmeId).phase : undefined),
     source: provenance.source?.title ??
       (provenance.verificationStatus === "user_supplied_unverified"
         ? "User-provided nutrient data; source not supplied"
@@ -1517,6 +1635,19 @@ export function analyseFormulation(input: AnalyseInput, context: FeedSportServic
     }
     return [];
   });
+  // Combined ceilings from the same resolver the optimizer uses.
+  const aggregateInclusions = checkAggregateInclusion(formula.ingredients, resolved.phase, library).map((check) => ({
+    kind: check.rule.kind,
+    id: check.rule.id,
+    name: aggregateLabel(check.rule),
+    combined_percent: round(check.actualPct, 4),
+    max_percent: check.rule.maxPct,
+    passes: !check.exceeds,
+    contributions: check.contributions.map((row) => ({ ingredient: row.ingredientId, percent: round(row.inclusionPct, 4) })),
+    source_type: check.rule.source.type,
+    source: describeAggregateSource(check.rule),
+  }));
+  const aggregateViolations = aggregateInclusions.filter((row) => !row.passes);
   const practicalInclusionAdvisories = practicalAdvisories(formula, resolved.phase);
 
   const unverifiable = evaluation.incompleteRequirements.map((requirement) => ({
@@ -1532,7 +1663,8 @@ export function analyseFormulation(input: AnalyseInput, context: FeedSportServic
     deficiencies.length === 0 &&
     excesses.length === 0 &&
     unverifiable.length === 0 &&
-    inclusionLimitViolations.length === 0;
+    inclusionLimitViolations.length === 0 &&
+    aggregateViolations.length === 0;
 
   const notes = formulationNotes(request);
   if (unverifiable.length > 0) {
@@ -1564,6 +1696,8 @@ export function analyseFormulation(input: AnalyseInput, context: FeedSportServic
     excesses,
     unverifiable_requirements: unverifiable,
     inclusion_limit_violations: inclusionLimitViolations,
+    aggregate_inclusions: aggregateInclusions,
+    aggregate_limit_violations: aggregateViolations,
     ...(practicalInclusionAdvisories.length > 0
       ? { above_practical_inclusion: practicalInclusionAdvisories }
       : {}),
