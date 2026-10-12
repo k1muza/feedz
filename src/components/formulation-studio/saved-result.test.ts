@@ -4,7 +4,7 @@ import { test } from "node:test";
 import { buildInfeasibleFormulationAssessment } from "@/lib/formulation-assessment";
 import { predatesAggregateLimits, type FormulationAssessment } from "@/lib/formulation-assessment-model";
 
-import { evaluateManual, formulate, restoreVersion, summarise, type EngineContext, type ManualResult, type SavedVersion, type Snapshot, type Summary } from "./engine";
+import { evaluateManual, formulate, manualAmounts, manualPct, restoreVersion, savedStateSig, summarise, type EngineContext, type ManualResult, type SavedVersion, type Snapshot, type Summary } from "./engine";
 
 // Saved versions reopen exactly as saved (BUG-001): the stored result and, for
 // manual recipes, the typed amounts and their check come back without the
@@ -140,7 +140,8 @@ test("A: a saved manual recipe reopens in manual mode with its exact amounts, ch
   assert.equal(requests, 0, "no optimisation or evaluation on reopening");
   assert.equal(restored.mode, "manual");
   if (restored.mode !== "manual") return;
-  assert.deepEqual(Object.fromEntries(Object.entries(restored.manual).map(([id, value]) => [id, +value])), amounts);
+  assert.deepEqual(manualPct(restored.manual), amounts);
+  assert.equal(restored.manual.typed.corn, "57.13", "shown to two decimals, with the exact amount kept behind it");
   assert.equal(restored.check.assessment?.summary, "manual · at save");
   assert.equal(restored.check.nutrients[0].value, 18.4);
   assert.equal(restored.check.recipeValidity.valid, true);
@@ -161,15 +162,14 @@ test("B: editing a reopened manual recipe saves a new version and leaves the ori
   const opened = reopen(store, v1).restored;
   assert.equal(opened.mode, "manual");
   if (opened.mode !== "manual") return;
-  const edited = { ...opened.manual, corn: "57.5", soy: "37.5" };
-  const pct = Object.fromEntries(Object.entries(edited).map(([id, value]) => [id, +value]).filter(([, value]) => value !== 0));
+  const pct = manualPct({ ...opened.manual, typed: { ...opened.manual.typed, corn: "57.5", soy: "37.5" } });
   const v2 = await withFetch(service.fetch, async () => store.save(snapshot, summarise(opened.result, await checkedManual(snapshot, pct, ctx))));
   assert.equal(service.calls.optimize, 1, "continuing to edit never re-optimises");
 
   const amountsOf = (v: number) => {
     const restored = reopen(store, v).restored;
     assert.equal(restored.mode, "manual");
-    return restored.mode === "manual" ? Object.fromEntries(Object.entries(restored.manual).map(([id, value]) => [id, +value])) : null;
+    return restored.mode === "manual" ? manualPct(restored.manual) : null;
   };
   assert.deepEqual(amountsOf(v1), first);
   assert.deepEqual(amountsOf(v2), { corn: 57.5, soy: 37.5, premix: 5 });
@@ -206,7 +206,7 @@ test("C: a historical version keeps its recipe, cost and assessment after prices
   assert.equal(manual.requests, 0);
   assert.equal(manual.restored.mode, "manual");
   if (manual.restored.mode === "manual") {
-    assert.equal(+manual.restored.manual.corn, 60);
+    assert.equal(manualPct(manual.restored.manual).corn, 60);
     assert.equal(manual.restored.check.cost, (60 * 300 + 35 * 500 + 5 * 900) / 100, "the saved cost, not today's prices");
     assert.equal(manual.restored.check.assessment?.summary, "manual · old data");
     assert.equal(manual.restored.check.nutrients[0].value, 18.4);
@@ -245,7 +245,7 @@ test("E: versions saved before results were stored re-run explicitly and never i
   // A manual version keeps its saved percentages to re-enter over the re-run.
   const manual = restoreVersion(legacy({ status: "manual", costT: 410, recipe: [{ id: "corn", pct: 58.25 }, { id: "soy", pct: 36.75 }, { id: "premix", pct: 5 }], assessment: { schemaVersion: 1 } }));
   assert.equal(manual.mode, "rerun");
-  if (manual.mode === "rerun") assert.deepEqual(manual.manual, { corn: "58.25", soy: "36.75", premix: "5" });
+  if (manual.mode === "rerun") assert.deepEqual(manual.manual?.typed, { corn: "58.25", soy: "36.75", premix: "5" });
 
   // A manual version without its amounts says so instead of fabricating any.
   assert.deepEqual(restoreVersion(legacy({ status: "manual" })), { mode: "rerun", manual: null, wasManual: true });
@@ -275,4 +275,39 @@ test("a version saved before ingredient-family limits reopens with its original 
   assert.equal(restored.result.assessment.verdict, "meets_requirements", "the saved verdict is kept");
   assert.equal(predatesAggregateLimits(restored.result.assessment), true);
   assert.equal(predatesAggregateLimits(assessment("current")), false);
+});
+
+test("a recipe copied into manual mode keeps its exact amounts until one is retyped", () => {
+  const recipe = [{ id: "corn", pct: 57.12345678 }, { id: "soy", pct: 37.87654322 }, { id: "premix", pct: 5 }];
+  const manual = manualAmounts(recipe, ["corn", "soy", "premix", "wheat"]);
+  assert.deepEqual(manual.typed, { corn: "57.12", soy: "37.88", premix: "5", wheat: "0" });
+  assert.deepEqual(manualPct(manual), { corn: 57.12345678, soy: 37.87654322, premix: 5 }, "unchanged, it is the recipe as calculated");
+
+  const retyped = manualPct({ ...manual, typed: { ...manual.typed, corn: "57.1", wheat: "0.02" } });
+  assert.deepEqual(retyped, { corn: 57.1, soy: 37.87654322, premix: 5, wheat: 0.02 }, "only retyped amounts change");
+});
+
+test("reopened versions match what was saved, so they show no unsaved changes", async () => {
+  const ctx = makeContext();
+  const service = fakeService({ corn: 62.5, protein: 18.4, label: "v" });
+  const store = fakeStore();
+  const ids = Object.keys(snapshot.pool);
+  // As in the studio: an optimised recipe copied into manual mode, then one amount retyped as "37.50".
+  const copied = manualAmounts([{ id: "corn", pct: 57.4999999 }, { id: "soy", pct: 37.5000001 }, { id: "premix", pct: 5 }], ids);
+  const atSave = { ...copied, typed: { ...copied.typed, soy: "37.50" } };
+
+  const [vOpt, vManual] = await withFetch(service.fetch, async () => {
+    const optimised = await formulate(snapshot, ctx);
+    return [store.save(snapshot, summarise(optimised, null)), store.save(snapshot, summarise(optimised, await checkedManual(snapshot, manualPct(atSave), ctx)))];
+  });
+
+  const opt = reopen(store, vOpt).restored;
+  assert.equal(opt.mode, "optimised");
+  assert.equal(savedStateSig(store.load(vOpt).snap, "optimised", { typed: {}, exact: {} }), savedStateSig(snapshot, "optimised", copied), "manual amounts don't count for an optimised version");
+
+  const manual = reopen(store, vManual).restored;
+  assert.equal(manual.mode, "manual");
+  if (manual.mode !== "manual") return;
+  assert.equal(savedStateSig(store.load(vManual).snap, "manual", manual.manual), savedStateSig(snapshot, "manual", atSave));
+  assert.notEqual(savedStateSig(snapshot, "manual", { ...manual.manual, typed: { ...manual.manual.typed, soy: "37.4" } }), savedStateSig(snapshot, "manual", atSave), "a real edit is still an unsaved change");
 });

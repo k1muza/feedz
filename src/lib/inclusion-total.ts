@@ -20,26 +20,7 @@ export function normaliseInclusionTotal<T extends Inclusion>(rows: readonly T[])
   if (!Number.isFinite(total) || Math.abs(total - 100) > INCLUSION_TOTAL_TOLERANCE_PCT) {
     throw new Error(`Diet inclusions must sum to 100%; received ${Number.isFinite(total) ? +total.toFixed(4) : total}.`);
   }
+  // Already 100% to floating-point precision: leave exact amounts untouched.
+  if (Math.abs(total - 100) <= 1e-9) return rows.map((row) => ({ ...row }));
   return rows.map((row) => ({ ...row, inclusionPct: (row.inclusionPct * 100) / total }));
-}
-
-/**
- * Rounds inclusions that sum to 100% to `decimals` places while keeping the
- * rounded total at exactly 100% (largest-remainder method), so a recipe can
- * be shown or edited in rounded amounts without drifting off 100%.
- */
-export function roundInclusionsTo100<T extends Inclusion>(rows: readonly T[], decimals = 2): T[] {
-  const scale = 10 ** decimals;
-  const total = sumOf(rows);
-  if (!(total > 0)) return rows.map((row) => ({ ...row }));
-  const units = rows.map((row) => (Math.max(0, row.inclusionPct) * 100 * scale) / total);
-  const floors = units.map(Math.floor);
-  let spare = Math.round(100 * scale - floors.reduce((sum, unit) => sum + unit, 0));
-  const order = units.map((_, i) => i).sort((a, b) => units[b] - floors[b] - (units[a] - floors[a]));
-  for (const i of order) {
-    if (spare <= 0) break;
-    floors[i] += 1;
-    spare -= 1;
-  }
-  return rows.map((row, i) => ({ ...row, inclusionPct: floors[i] / scale }));
 }

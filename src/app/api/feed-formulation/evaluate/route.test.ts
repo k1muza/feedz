@@ -5,7 +5,7 @@ import { POST } from "./route";
 import { ingredientDefaultPricePerKg } from "@/lib/feed-ingredient-prices";
 import { formulateLeastCostDiet, suggestFormulationIngredients } from "@/lib/feed-optimizer";
 import { feedProgrammePhaseById } from "@/lib/feed-programmes";
-import { roundInclusionsTo100 } from "@/lib/inclusion-total";
+import { buildFormulationAssessment } from "@/lib/formulation-assessment";
 import { ingredientLibraryForPhase } from "@/lib/ingredient-nutrients";
 
 const PROGRAMME_ID = "grow-finish-pig";
@@ -33,16 +33,21 @@ test("an optimised grower pig recipe switched to manual amounts, unchanged, is e
   assert.equal(result.status, "optimal");
   if (result.status !== "optimal") return;
 
-  // What "Adjust amounts manually" fills in: the optimised recipe at two decimals.
+  // "Adjust amounts manually" keeps the exact optimised amounts behind the
+  // rounded inputs, so an unchanged copy is checked as the optimised recipe itself.
   const optimised = result.solution.formula.ingredients.filter((row) => row.inclusionPct > 1e-6);
-  const manual = roundInclusionsTo100(optimised);
-  const response = await evaluate(manual);
+  const response = await evaluate(optimised);
   assert.equal(response.status, 200, JSON.stringify(await response.clone().json()));
-  assert.equal((await response.json()).status, "evaluated");
+  const body = await response.json();
+  assert.equal(body.status, "evaluated");
+  const asOptimised = buildFormulationAssessment(phase, "ME", { ingredients: optimised }, library);
+  assert.equal(asOptimised.verdict, "meets_requirements");
+  assert.equal(body.assessment.verdict, asOptimised.verdict, "the unchanged copy is exactly as valid as the optimised recipe");
+  assert.deepEqual(body.assessment.requirements, JSON.parse(JSON.stringify(asOptimised.requirements)));
 
-  // Amounts rounded one by one (as before) can miss 100% by a few hundredths; they are still checked.
-  const naive = optimised.map((row) => ({ ...row, inclusionPct: +row.inclusionPct.toFixed(2) }));
-  assert.equal((await evaluate(naive)).status, 200);
+  // Amounts retyped at two decimals can miss 100% by a few hundredths; they are still checked, not rejected.
+  const retyped = optimised.map((row) => ({ ...row, inclusionPct: +row.inclusionPct.toFixed(2) }));
+  assert.equal((await evaluate(retyped)).status, 200);
 });
 
 test("a manual recipe materially off 100% is still rejected", async () => {

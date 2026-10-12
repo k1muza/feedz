@@ -12,7 +12,6 @@ import type { CatalogueIngredient, CatalogueNutrientId } from "@/lib/studio-cata
 import type { StudioNutrientData } from "@/lib/studio-nutrients";
 import type { StudioProgrammeData } from "@/lib/studio-programmes";
 import { canAddStudioIngredient, selectStudioIngredient, poolWithCarriedPremixSelection, poolWithPremixPrice, poolWithPremixSelection, poolWithProgrammePremix, poolWithoutPremix } from "@/lib/studio-commercial-premix";
-import { roundInclusionsTo100 } from "@/lib/inclusion-total";
 import { commercialPremixById, commercialPremixCompatibleWithProgramme, commercialPremixSimulationOnlyForPhase } from "@/lib/commercial-premixes";
 import {
   DATA_STATUS_LABELS,
@@ -33,14 +32,21 @@ import {
   formulate,
   fsLimit,
   guideline,
+  manualAmounts,
+  manualPct,
+  manualSig,
+  NO_MANUAL_AMOUNTS,
   phaseOf,
   poolEntryFromListItem,
   priceOf,
   restoreVersion,
+  savedStateSig,
+  settingsSig,
   summarise,
   type EngineContext,
   type FormulateResult,
   type GoalKey,
+  type ManualAmounts,
   type ManualCheck,
   type NutrientResult,
   type OptimalResult,
@@ -244,10 +250,10 @@ interface State {
   premixFilter: "matches" | "species" | "documented";
   premixPick: string | null;
   mode: "optimised" | "manual";
-  manual: Record<string, string>;
+  manual: ManualAmounts;
   manualCheck: (ManualCheck & { sig: string }) | null;
   /** Manual amounts of a version saved before results were stored, re-entered once its re-run lands. */
-  restoreManual: Record<string, string> | null;
+  restoreManual: ManualAmounts | null;
   rulesOpen: boolean;
   history: RunEntry[];
   sel: string[];
@@ -255,6 +261,8 @@ interface State {
   toast: string | null;
   dismissed: Record<string, boolean>;
   savedSig: string | null;
+  /** The saved version the workspace was saved as or reopened from. */
+  savedV: number | null;
   saving: boolean;
   exporting: boolean;
   suggestion: Suggestion | null;
@@ -454,7 +462,7 @@ function poolFromList(list: IngredientList | null): Pool {
   return pool;
 }
 
-const RESET_RESULT: Partial<State> = { result: null, runSig: null, runSnap: null, history: [], mode: "optimised", manual: {}, manualCheck: null, restoreManual: null, tab: "recipe", dismissed: {}, savedSig: null, drawer: null, advisoriesOpen: false, recoveryUndo: null };
+const RESET_RESULT: Partial<State> = { result: null, runSig: null, runSnap: null, history: [], mode: "optimised", manual: NO_MANUAL_AMOUNTS, manualCheck: null, restoreManual: null, tab: "recipe", dismissed: {}, savedSig: null, savedV: null, drawer: null, advisoriesOpen: false, recoveryUndo: null };
 
 function freshDoc(programmeId: string, phaseId: string, species: Species, pool: Pool, docName: string): Partial<State> {
   return { ...RESET_RESULT, programmeId, phaseId, species, pool: poolWithProgrammePremix(pool, programmeId, undefined, phaseId), goal: "least_cost", batch: 100, batchMode: "100", customBatch: "", docName, docId: null, pendingDoc: null };
@@ -477,10 +485,13 @@ function versionState(doc: SavedDoc, programmes: StudioProgrammeData, v?: number
   const settings = settingsState(doc, ver.snap, programmes);
   const restored = restoreVersion(ver);
   const reopened = "Reopened v" + ver.v;
+  // Reopened as saved, so it has no unsaved changes until something is edited.
+  const saved = (mode: State["mode"], manual: ManualAmounts) => ({ savedSig: savedStateSig(settings, mode, manual), savedV: ver.v });
   if (restored.mode === "rerun")
     return {
       patch: {
         ...settings,
+        ...saved(restored.manual ? "manual" : "optimised", restored.manual ?? NO_MANUAL_AMOUNTS),
         restoreManual: restored.manual,
         toast: reopened + (restored.manual
           ? " · saved manual amounts restored; nutrients re-checked against current data"
@@ -494,8 +505,8 @@ function versionState(doc: SavedDoc, programmes: StudioProgrammeData, v?: number
   // the result shows as out of date rather than as the replacement phase's.
   const runSnap = snapOf({ ...ver.snap, batch: settings.batch });
   const landed = { ...settings, result: restored.result, runSig: sigOf(runSnap), runSnap };
-  if (restored.mode === "optimised") return { patch: { ...landed, toast: reopened + " · saved result restored" }, run: false };
-  return { patch: { ...landed, mode: "manual", manual: restored.manual, manualCheck: { ...restored.check, sig: manualSig(restored.manual) }, toast: reopened + " · manual recipe restored as saved" }, run: false };
+  if (restored.mode === "optimised") return { patch: { ...landed, ...saved("optimised", NO_MANUAL_AMOUNTS), toast: reopened + " · saved result restored" }, run: false };
+  return { patch: { ...landed, ...saved("manual", restored.manual), mode: "manual", manual: restored.manual, manualCheck: { ...restored.check, sig: manualSig(restored.manual) }, toast: reopened + " · manual recipe restored as saved" }, run: false };
 }
 
 const guidedStart = (s: State, programmes: StudioProgrammeData): Partial<State> => {
@@ -567,19 +578,8 @@ function enterRoute(s: State, route: Route | null, ctx: RouteContext, url: strin
 const clone = <T,>(v: T): T => JSON.parse(JSON.stringify(v));
 const day = 864e5;
 
-const sigOf = (S: Pick<State, "programmeId" | "phaseId" | "pool" | "goal">) => JSON.stringify({ programmeId: S.programmeId, phaseId: S.phaseId, pool: S.pool, goal: S.goal });
+const sigOf = settingsSig;
 const snapOf = (S: Pick<State, "programmeId" | "phaseId" | "pool" | "goal" | "batch">): Snapshot => clone({ programmeId: S.programmeId, phaseId: S.phaseId, pool: S.pool, goal: S.goal, batch: S.batch });
-
-/** The typed-in amounts that count: numbers other than zero. */
-function manualPct(manual: Record<string, string>) {
-  const pct: Record<string, number> = {};
-  Object.keys(manual).forEach((id) => {
-    const v = +manual[id];
-    if (Number.isFinite(v) && v !== 0) pct[id] = v;
-  });
-  return pct;
-}
-const manualSig = (manual: Record<string, string>) => JSON.stringify(manualPct(manual));
 
 /** Typed-in amounts for manual mode, with cost and total worked out here and nutrients from the engine. */
 function manualRecipe(S: State, catalogue: Map<string, CatalogueIngredient>) {
@@ -659,7 +659,7 @@ function draftErr(d: Draft, fs: number) {
 }
 
 const INITIAL: State = {
-  w: 1400, screen: "home", step: 1, species: "swine", programmeId: DEFAULT_PROGRAMME, phaseId: "", setKey: "none", setupListId: null, pool: {}, goal: "least_cost", batch: 100, batchMode: "100", customBatch: "", unit: "t", docName: "Untitled formulation", docId: null, pendingDoc: null, pendingCmp: null, result: null, runSig: null, runSnap: null, running: false, runToken: 0, tab: "recipe", drawer: null, advisoriesOpen: false, addOpen: false, addQ: "", addCategory: null, addPick: [], premixOpen: false, premixFilter: "matches", premixPick: null, mode: "optimised", manual: {}, manualCheck: null, restoreManual: null, rulesOpen: false, history: [], sel: [], cmp: null, toast: null, dismissed: {}, savedSig: null, saving: false, exporting: false, suggestion: null, completionSuggestion: null, compareOpen: false, recoveryUndo: null, ingQ: "", catQ: "", catSel: null, catPage: 1, catPageSize: CAT_DEFAULT_PAGE_SIZE, progSel: null, progPhase: null, progAllLimits: false, addTarget: "pool", auth: null, authNext: null, af: { email: "", password: "", name: "", org: "", role: "farmer" }, aShow: false, aErr: {}, aBusy: false, aGoogleBusy: false, aSent: null, myListSel: null, listRename: null, listCreate: null, sq: "", sOpen: false, sIdx: 0, uOpen: false, nOpen: false, featFilter: "all", cOpen: false, cTopic: "review", cPhone: "", cMsg: "", cAttach: true, cBusy: false, cSent: false, cErr: "",
+  w: 1400, screen: "home", step: 1, species: "swine", programmeId: DEFAULT_PROGRAMME, phaseId: "", setKey: "none", setupListId: null, pool: {}, goal: "least_cost", batch: 100, batchMode: "100", customBatch: "", unit: "t", docName: "Untitled formulation", docId: null, pendingDoc: null, pendingCmp: null, result: null, runSig: null, runSnap: null, running: false, runToken: 0, tab: "recipe", drawer: null, advisoriesOpen: false, addOpen: false, addQ: "", addCategory: null, addPick: [], premixOpen: false, premixFilter: "matches", premixPick: null, mode: "optimised", manual: NO_MANUAL_AMOUNTS, manualCheck: null, restoreManual: null, rulesOpen: false, history: [], sel: [], cmp: null, toast: null, dismissed: {}, savedSig: null, savedV: null, saving: false, exporting: false, suggestion: null, completionSuggestion: null, compareOpen: false, recoveryUndo: null, ingQ: "", catQ: "", catSel: null, catPage: 1, catPageSize: CAT_DEFAULT_PAGE_SIZE, progSel: null, progPhase: null, progAllLimits: false, addTarget: "pool", auth: null, authNext: null, af: { email: "", password: "", name: "", org: "", role: "farmer" }, aShow: false, aErr: {}, aBusy: false, aGoogleBusy: false, aSent: null, myListSel: null, listRename: null, listCreate: null, sq: "", sOpen: false, sIdx: 0, uOpen: false, nOpen: false, featFilter: "all", cOpen: false, cTopic: "review", cPhone: "", cMsg: "", cAttach: true, cBusy: false, cSent: false, cErr: "",
 };
 
 const spinnerStyle = (track: string, head: string): CSSProperties => ({ width: 16, height: 16, borderRadius: "50%", border: "2px solid " + track, borderTopColor: head, display: "inline-block", animation: "fsspin .8s linear infinite", flex: "none" });
@@ -700,7 +700,7 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
       const h: RunEntry = { t: new Date(), status: r.status, cost: r.status === "optimal" && !r.costExcludesPremix ? r.costT : undefined, goal: snap.goal, n: (r.status === "optimal" || r.status === "manufacturer_recipe") ? r.recipe.length : 0, verdict: r.status === "optimal" || r.status === "infeasible" || r.status === "manufacturer_recipe" ? r.assessment.verdict : undefined, headline: r.status === "optimal" || r.status === "infeasible" || r.status === "manufacturer_recipe" ? r.assessment.headline : "" };
       update((s) => {
         if (s.runToken !== token) return {};
-        const landed: Partial<State> = { running: false, result: r, runSig: sig, runSnap: snap, history: [h, ...s.history].slice(0, 12), mode: "optimised", manual: {}, manualCheck: null, restoreManual: null, dismissed: {} };
+        const landed: Partial<State> = { running: false, result: r, runSig: sig, runSnap: snap, history: [h, ...s.history].slice(0, 12), mode: "optimised", manual: NO_MANUAL_AMOUNTS, manualCheck: null, restoreManual: null, dismissed: {} };
         // An older saved manual recipe goes back over the re-run it needed for context.
         if (!s.restoreManual) return landed;
         return r.status === "optimal" ? { ...landed, mode: "manual", manual: s.restoreManual } : { ...landed, toast: "Couldn’t restore the saved manual amounts: these settings no longer give a valid recipe" };
@@ -1264,7 +1264,7 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
         : null;
       const saved = await formulations.save(S.docId, name, snapOf(S), summarise(S.result, manual));
       if (!S.docId) replaceNext.current = true;
-      update({ saving: false, docId: saved.id, docName: name, savedSig: sigOf(S) + S.mode + JSON.stringify(S.manual) });
+      update({ saving: false, docId: saved.id, docName: name, savedSig: savedStateSig(S, S.mode, S.manual), savedV: saved.version });
       flash("Saved as v" + saved.version + " · programme, ingredients, prices, limits, goal and result stored");
     } catch (error) {
       console.error("Failed to save formulation:", error);
@@ -1749,9 +1749,9 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
     ? { label: "SAVING…", color: "#64665c" }
     : !doc
       ? { label: "DRAFT · NOT SAVED", color: "#64665c" }
-      : S.savedSig === sigOf(S) + S.mode + JSON.stringify(S.manual)
-        ? { label: "SAVED · v" + doc.versions.length, color: "#2b6a42" }
-        : { label: "v" + doc.versions.length + " · UNSAVED CHANGES", color: "#8a5f18" };
+      : S.savedSig === savedStateSig(S, S.mode, S.manual)
+        ? { label: "SAVED · v" + (S.savedV ?? doc.versions.length), color: "#2b6a42" }
+        : { label: "v" + (S.savedV ?? doc.versions.length) + " · UNSAVED CHANGES", color: "#8a5f18" };
   const warns = (R ? R.warns.filter((w) => !w.soft || view.optimal) : []).map((w) => ({ soft: !!w.soft, title: w.title, body: w.body, bg: w.soft ? "#fff" : "#fdf6e8", bd: w.soft ? "#e2dfd6" : "#f0c97f", dot: w.soft ? "#b9b6ab" : "#c98a1e", r: w.soft ? "50%" : "0", rot: w.soft ? "0deg" : "45deg", fg: w.soft ? "#222420" : "#5c4012", hasEdit: !!w.id && !!S.pool[w.id], edit: () => w.id && openDrawer(w.id), name: w.id ? ingredientName(w.id) : "", price: w.id ? priceTxt(priceOf(w.id, S.pool, catalogueById)) : "" }));
   // With a recipe on screen, notes live in their own tab: planning prices as one
   // table, anything that needs attention as cards above it.
@@ -2125,13 +2125,13 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
     closeAdvisories: () => update({ advisoriesOpen: false }),
     editManually: () => {
       if (S.mode === "manual" || !optimal) return;
-      const m: Record<string, string> = {};
-      // Rounded to two decimals so they're editable, and still adding to exactly 100%.
-      const rounded = new Map(roundInclusionsTo100(optimal.recipe.map((x) => ({ ingredientId: x.id, inclusionPct: x.pct }))).map((x) => [x.ingredientId, x.inclusionPct]));
-      poolIds.filter((id) => S.pool[id].role !== "excluded" && isEligible(id)).forEach((id) => { const pct = rounded.get(id); m[id] = pct ? String(pct) : "0"; });
+      // Shown to two decimals for editing; the exact optimised amounts stay behind
+      // them, so an unchanged copy is checked as exactly the recipe that was optimised.
+      const ids = poolIds.filter((id) => S.pool[id].role !== "excluded" && isEligible(id));
+      const m = manualAmounts(optimal.recipe.filter((x) => ids.includes(x.id)), ids);
       update({ mode: "manual", manual: m, manualCheck: null });
     },
-    isManual: !!manualView, notManual: !manualView, optimiseFromHere: () => update({ mode: "optimised", manual: {}, manualCheck: null }),
+    isManual: !!manualView, notManual: !manualView, optimiseFromHere: () => update({ mode: "optimised", manual: NO_MANUAL_AMOUNTS, manualCheck: null }),
     goNutrients: () => update({ tab: "nutrients" }),
     whyLoading: false, whyReady: !!optimal, why, runs, docVersions, noVersions: docVersions.length === 0, docAdvice, hasAdvice: docAdvice.length > 0,
     listRows, selText: S.sel.length + " of 2 selected", cmpDisabled: S.sel.length !== 2, cmpBg: S.sel.length === 2 ? "#e3aa45" : "#64665c", doCompare: () => S.sel.length === 2 && update({ screen: "compare", cmp: S.sel.slice() }), cmp,
@@ -2190,7 +2190,7 @@ function optimalVals(
   const name = (id: string) => engine.catalogue.get(id)?.name ?? id;
   const costT = mc ? mc.cost : R.costT;
   const partialCost = R.costExcludesPremix;
-  const baseRows = mc ? ctx.poolIds.filter((id) => S.pool[id].role !== "excluded" && ctx.isEligible(id)).map((id) => ({ id, pct: +S.manual[id] || 0 })) : R.recipe.map((r) => ({ id: r.id, pct: r.pct }));
+  const baseRows = mc ? ctx.poolIds.filter((id) => S.pool[id].role !== "excluded" && ctx.isEligible(id)).map((id) => ({ id, pct: mc.pct[id] ?? 0 })) : R.recipe.map((r) => ({ id: r.id, pct: r.pct }));
   const premixIngredient = baseRows.filter((row) => row.pct > 0).map((row) => engine.catalogue.get(row.id)).find((ingredient) => ingredient?.premix);
   const premixProduct = premixIngredient ? commercialPremixById(premixIngredient.id) ?? null : null;
   const assessment = mc ? mc.assessment : R.assessment;
@@ -2229,8 +2229,8 @@ function optimalVals(
       isPremix: !!premix,
       sub: premix ? premix.application + " · manufacturer dose " + premix.inclusionKgPerTonne + " kg/t" : savingNote(r.id),
       fixed: e.role === "fixed",
-      manual: S.manual[r.id] ?? "",
-      onManual: (ev: InputEvent) => update((s) => ({ manual: { ...s.manual, [r.id]: ev.target.value } })),
+      manual: S.manual.typed[r.id] ?? "",
+      onManual: (ev: InputEvent) => update((s) => ({ manual: { ...s.manual, typed: { ...s.manual.typed, [r.id]: ev.target.value } } })),
       open: () => ctx.openDrawer(r.id),
     };
   });

@@ -623,17 +623,59 @@ export function summarise(r: FormulateResult, manual: ManualResult | null): Summ
 
 export type RestoredVersion =
   | { mode: "optimised"; result: FormulateResult }
-  | { mode: "manual"; result: OptimalResult; manual: Record<string, string>; check: ManualCheck }
+  | { mode: "manual"; result: OptimalResult; manual: ManualAmounts; check: ManualCheck }
   /** Saved before results were stored: re-run its settings, then re-enter any saved manual amounts. */
-  | { mode: "rerun"; manual: Record<string, string> | null; wasManual: boolean };
+  | { mode: "rerun"; manual: ManualAmounts | null; wasManual: boolean };
 
-/** Manual-mode amounts for a saved recipe: its own percentages, and 0 for the rest of the pool. */
-function manualAmounts(recipe: { id: string; pct: number }[], pool: Pool): Record<string, string> {
-  const manual: Record<string, string> = {};
-  for (const line of recipe) manual[line.id] = String(line.pct);
-  for (const id of Object.keys(pool)) if (pool[id].role !== "excluded" && !(id in manual)) manual[id] = "0";
-  return manual;
+/**
+ * Manual-mode amounts. `typed` is what each input shows; `exact` keeps the
+ * full-precision value behind an amount filled in from a recipe, which counts
+ * for as long as its input still shows it unchanged. A recipe copied into
+ * manual mode is therefore checked exactly as calculated, not as its rounding.
+ */
+export interface ManualAmounts {
+  typed: Record<string, string>;
+  exact: Record<string, number>;
 }
+
+export const NO_MANUAL_AMOUNTS: ManualAmounts = { typed: {}, exact: {} };
+
+/** How a calculated amount is shown for editing. */
+export const shownAmount = (pct: number) => String(+pct.toFixed(2));
+
+/** The amounts that count: exact values not retyped since, then typed numbers, leaving out zeros. */
+export function manualPct({ typed, exact }: ManualAmounts): Record<string, number> {
+  const pct: Record<string, number> = {};
+  for (const id of Object.keys(typed)) {
+    const v = id in exact && typed[id] === shownAmount(exact[id]) ? exact[id] : +typed[id];
+    if (Number.isFinite(v) && v !== 0) pct[id] = v;
+  }
+  return pct;
+}
+
+/** Identifies a set of manual amounts by the values that count, however they are written. */
+export const manualSig = (manual: ManualAmounts) => JSON.stringify(manualPct(manual));
+
+/** Manual-mode amounts for a recipe: its own percentages, and 0 for the other `ids`. */
+export function manualAmounts(recipe: readonly { id: string; pct: number }[], ids: Iterable<string>): ManualAmounts {
+  const typed: Record<string, string> = {};
+  const exact: Record<string, number> = {};
+  for (const line of recipe) {
+    typed[line.id] = shownAmount(line.pct);
+    exact[line.id] = line.pct;
+  }
+  for (const id of ids) if (!(id in typed)) typed[id] = "0";
+  return { typed, exact };
+}
+
+const poolIdsOf = (pool: Pool) => Object.keys(pool).filter((id) => pool[id].role !== "excluded");
+
+/** The settings a result is calculated from. */
+export const settingsSig = (s: Pick<Snapshot, "programmeId" | "phaseId" | "pool" | "goal">) => JSON.stringify({ programmeId: s.programmeId, phaseId: s.phaseId, pool: s.pool, goal: s.goal });
+
+/** What saving records, compared with the workspace to tell whether it has unsaved changes. */
+export const savedStateSig = (s: Pick<Snapshot, "programmeId" | "phaseId" | "pool" | "goal">, mode: "optimised" | "manual", manual: ManualAmounts) =>
+  settingsSig(s) + mode + (mode === "manual" ? manualSig(manual) : "");
 
 /**
  * How to reopen a saved version: exactly as saved when its result was stored,
@@ -645,7 +687,7 @@ export function restoreVersion(version: SavedVersion): RestoredVersion {
   const saved = sum.result;
   const isManual = sum.status === "manual";
   if (isManual && saved?.mode === "manual" && saved.base?.status === "optimal" && saved.check && sum.recipe && typeof sum.costT === "number" && isFormulationAssessment(sum.assessment))
-    return { mode: "manual", result: saved.base, manual: manualAmounts(sum.recipe, snap.pool), check: { ...saved.check, cost: sum.costT, assessment: sum.assessment } };
+    return { mode: "manual", result: saved.base, manual: manualAmounts(sum.recipe, poolIdsOf(snap.pool)), check: { ...saved.check, cost: sum.costT, assessment: sum.assessment } };
   if (!isManual && saved?.mode === "optimised" && saved.result?.status === sum.status) return { mode: "optimised", result: saved.result };
-  return { mode: "rerun", manual: isManual && sum.recipe?.length ? manualAmounts(sum.recipe, snap.pool) : null, wasManual: isManual };
+  return { mode: "rerun", manual: isManual && sum.recipe?.length ? manualAmounts(sum.recipe, poolIdsOf(snap.pool)) : null, wasManual: isManual };
 }
