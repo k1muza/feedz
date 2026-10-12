@@ -9,13 +9,21 @@ import {
 } from "./diet-formula";
 import {
   INGREDIENT_LIBRARY,
+  SOYBEAN_MEAL_FAMILY_ID,
   type IngredientLibrary,
 } from "./ingredient-nutrients";
 import {
   ingredientDefaultPrice,
   ingredientDefaultPricePerKg,
 } from "./feed-ingredient-prices";
-import { describeMaxSource, effectiveInclusionLimits } from "./ingredient-inclusion-limits";
+import {
+  aggregateInclusionRules,
+  aggregateLabel,
+  describeAggregateSource,
+  describeMaxSource,
+  effectiveInclusionLimits,
+  type AggregateInclusionRule,
+} from "./ingredient-inclusion-limits";
 import { resolveNutritionTargets, type EnergySystem } from "./nutrition-targets";
 import type { NutritionPhase } from "./nutrition";
 import type { FormulationAssessment } from "./formulation-assessment-model";
@@ -286,9 +294,12 @@ export type ConstraintSpec = {
 export type PreparedIngredient = {
   option: FormulationIngredientOption;
   variable: string;
+  familyId: string;
   minFraction: number;
   maxFraction: number;
   coefficients: Map<string, number>;
+  /** Family and constraint-group ceilings this ingredient counts toward. */
+  aggregateRules: readonly AggregateInclusionRule[];
 };
 
 export function unsupportedRequirementsForPhase(
@@ -839,7 +850,8 @@ export function prepareIngredients(
   library: IngredientLibrary,
   phase: NutritionPhase,
 ): PreparedIngredient[] {
-  return options.map((option, index) => {
+  const rules = aggregateInclusionRules(phase, library);
+  const prepared = options.map((option, index): PreparedIngredient => {
     const ingredient = library.ingredients.find(
       (candidate) => candidate.id === option.ingredientId,
     );
@@ -882,10 +894,75 @@ export function prepareIngredients(
     return {
       option,
       variable: `x_${index}`,
+      familyId: ingredient.familyId,
       minFraction: minPct / 100,
       maxFraction: maxPct / 100,
       coefficients,
+      aggregateRules: rules.filter((rule) => rule.memberIngredientIds.includes(ingredient.id)),
     };
+  });
+  assertAggregateMinimumsFit(prepared, library);
+  return prepared;
+}
+
+/**
+ * Fixed or minimum inclusions that alone exceed a family or group ceiling
+ * can never be feasible. Report them plainly; the ceiling is never relaxed.
+ */
+function assertAggregateMinimumsFit(
+  ingredients: readonly PreparedIngredient[],
+  library: IngredientLibrary,
+): void {
+  for (const { rule, members } of aggregateRowsOf(ingredients)) {
+    const required = members.filter((ingredient) => ingredient.minFraction > 1e-12);
+    const minPct = required.reduce((sum, ingredient) => sum + ingredient.minFraction, 0) * 100;
+    if (minPct <= rule.maxPct + 1e-9) continue;
+    const parts = required.map((ingredient) =>
+      `${library.ingredients.find((record) => record.id === ingredient.option.ingredientId)?.name ?? ingredient.option.ingredientId} ${+(ingredient.minFraction * 100).toFixed(4)}%`);
+    throw new Error(
+      `${aggregateLabel(rule)}: fixed or minimum inclusions add up to ${+minPct.toFixed(4)}% (${parts.join(", ")}), above its combined maximum of ${rule.maxPct}% (${describeAggregateSource(rule)}).`,
+    );
+  }
+}
+
+/** LP row (and dual) name of a family or group ceiling. */
+export function aggregateRowName(rule: Pick<AggregateInclusionRule, "key">): string {
+  return `aggregate_${rule.key.replace(":", "_")}`;
+}
+
+/** Each applicable ceiling with the members present in this model. */
+function aggregateRowsOf(ingredients: readonly PreparedIngredient[]) {
+  const rows = new Map<string, { rule: AggregateInclusionRule; members: PreparedIngredient[] }>();
+  for (const ingredient of ingredients) {
+    for (const rule of ingredient.aggregateRules) {
+      const row = rows.get(rule.key) ?? { rule, members: [] };
+      row.members.push(ingredient);
+      rows.set(rule.key, row);
+    }
+  }
+  return [...rows.values()];
+}
+
+/**
+ * One row per family or group ceiling: the members' combined inclusion is at
+ * most the ceiling. Rows derive from the ingredients actually in the model,
+ * so every LP (least cost, alternatives, completion, diagnostics) carries the
+ * same ceilings. A row that cannot bind (members' own maxima already sum
+ * below the ceiling) is omitted.
+ */
+export function aggregateInclusionRows(
+  glpk: GLPK,
+  ingredients: readonly PreparedIngredient[],
+) {
+  return aggregateRowsOf(ingredients).flatMap(({ rule, members }) => {
+    const bound = rule.maxPct / 100;
+    const reachable = members.reduce((sum, ingredient) => sum + ingredient.maxFraction, 0);
+    if (reachable <= bound + 1e-12) return [];
+    return [{
+      name: aggregateRowName(rule),
+      vars: members.map((ingredient) => ({ name: ingredient.variable, coef: 1 })),
+      bnds: { type: glpk.GLP_UP, lb: 0, ub: bound },
+    }];
   });
 }
 
@@ -939,7 +1016,7 @@ export async function solveStrict(
   | {
       status: "optimal";
       vars: Record<string, number>;
-      /** Row duals keyed by row name (`total_inclusion`, `nutrient_<id>`). */
+      /** Row duals keyed by row name (`total_inclusion`, `nutrient_<id>`, `aggregate_<kind>_<id>`). */
       dual: Record<string, number>;
     }
   | { status: "infeasible" }
@@ -982,6 +1059,7 @@ export async function solveStrict(
             ? { type: GLP_LO, lb: constraint.bound, ub: 0 }
             : { type: glpk.GLP_UP, lb: 0, ub: constraint.bound },
       })),
+      ...aggregateInclusionRows(glpk, ingredients),
     ],
     bounds: ingredients.map((ingredient) => ({
       name: ingredient.variable,
@@ -1063,6 +1141,7 @@ async function solveMinimumAdditions(
             ? { type: GLP_LO, lb: constraint.bound, ub: 0 }
             : { type: GLP_UP, lb: 0, ub: constraint.bound },
       })),
+      ...aggregateInclusionRows(glpk, ingredients),
       ...optional.flatMap((ingredient) => [
         {
           name: `enable_${ingredient.variable}`,
@@ -1173,6 +1252,7 @@ async function solveAlternativeObjective(
             ? { type: GLP_LO, lb: constraint.bound, ub: 0 }
             : { type: GLP_UP, lb: 0, ub: constraint.bound },
       })),
+      ...aggregateInclusionRows(glpk, ingredients),
     ],
     bounds: ingredients.map((ingredient) => ({
       name: ingredient.variable,
@@ -1432,7 +1512,7 @@ async function buildAlternativeFormulations(
       objective: {
         name: "low_soy",
         coefficient: (ingredient) =>
-          ingredient.option.ingredientId.startsWith("soybean-meal-") ? 1 : 0,
+          ingredient.familyId === SOYBEAN_MEAL_FAMILY_ID ? 1 : 0,
       },
     },
     {
@@ -1567,6 +1647,9 @@ export async function solveDiagnostic(
             ? { type: GLP_LO, lb: constraint.bound, ub: 0 }
             : { type: GLP_UP, lb: 0, ub: constraint.bound },
       })),
+      // Inclusion ceilings stay hard: the best-effort diet relaxes only
+      // nutrient requirements, never ingredient, family or group limits.
+      ...aggregateInclusionRows(glpk, ingredients),
     ],
     bounds: [
       ...ingredients.map((ingredient) => ({

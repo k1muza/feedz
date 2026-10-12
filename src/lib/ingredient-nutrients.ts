@@ -207,11 +207,107 @@ const commercialPremixSchema = z
 
 export type CommercialPremixRecord = z.infer<typeof commercialPremixSchema>;
 
+/** Canonical family and group IDs; never contain ":", which marks derived keys. */
+const canonicalIdSchema = z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/);
+
+const percentSchema = z.number().min(0).max(100);
+
+/**
+ * Combined-inclusion ceilings by species and Table 1.01 column, the same
+ * columns `recommendedInclusionPct` uses. A missing column is unrestricted.
+ */
+const aggregateMaxInclusionSchema = z
+  .object({
+    swine: z
+      .object({
+        starter: percentSchema.optional(),
+        grower: percentSchema.optional(),
+        finisher: percentSchema.optional(),
+        gestation: percentSchema.optional(),
+        lactation: percentSchema.optional(),
+      })
+      .strict()
+      .optional(),
+    broiler: z
+      .object({
+        starter: percentSchema.optional(),
+        grower: percentSchema.optional(),
+      })
+      .strict()
+      .optional(),
+  })
+  .strict();
+
+const aggregateLimitSourceSchema = z
+  .object({
+    /** `published`: a source publishes this combined ceiling. `feedsport_policy`: FeedSport derived it. */
+    type: z.enum(["published", "feedsport_policy"]),
+    reference: z.string().min(1),
+    url: z.string().url().optional(),
+    /** How the values were obtained from the reference. */
+    derivation: z.enum(["published_aggregate", "identical_member_maximum", "most_permissive_member_maximum"]),
+    /** Why the members share one ceiling. */
+    justification: z.string().min(1),
+    /** The nutritional or practical limitation the ceiling addresses. */
+    addresses: z.string().min(1),
+    supportingReferences: z.array(z.object({ title: z.string().min(1), url: z.string().url(), note: z.string().min(1) }).strict()).default([]),
+    notes: z.array(z.string()).default([]),
+  })
+  .strict()
+  .refine((source) => (source.type === "published") === (source.derivation === "published_aggregate"), {
+    message: "Only a published limit may use the published_aggregate derivation, and it must.",
+  });
+
+const aggregateLimitSchema = z
+  .object({
+    maxInclusionPct: aggregateMaxInclusionSchema,
+    source: aggregateLimitSourceSchema,
+  })
+  .strict();
+
+const ingredientFamilySchema = z
+  .object({
+    id: canonicalIdSchema,
+    name: z.string().min(1),
+    description: z.string().optional(),
+    /** Optional combined ceiling; family membership alone imposes none. */
+    aggregateLimit: aggregateLimitSchema.optional(),
+    notes: z.array(z.string()).default([]),
+  })
+  .strict();
+
+/** A ceiling spanning several primary families, e.g. total added fat. */
+const constraintGroupSchema = z
+  .object({
+    id: canonicalIdSchema,
+    name: z.string().min(1),
+    description: z.string().optional(),
+    members: z
+      .object({
+        familyIds: z.array(z.string()).default([]),
+        ingredientIds: z.array(z.string()).default([]),
+      })
+      .strict(),
+    aggregateLimit: aggregateLimitSchema.optional(),
+    notes: z.array(z.string()).default([]),
+  })
+  .strict();
+
+export type AggregateLimitSource = z.infer<typeof aggregateLimitSourceSchema>;
+export type AggregateLimit = z.infer<typeof aggregateLimitSchema>;
+export type IngredientFamily = z.infer<typeof ingredientFamilySchema>;
+export type InclusionConstraintGroup = z.infer<typeof constraintGroupSchema>;
+
+/** The canonical family the "Lower soy" goal and soybean-meal reporting count. */
+export const SOYBEAN_MEAL_FAMILY_ID = "soybean-meal";
+
 const ingredientSourceSchema = z
   .object({
     id: z.string(),
     name: z.string(),
     aliases: z.array(z.string()).default([]),
+    /** Exactly one primary family; see `families` on the library. */
+    familyId: z.string().min(1),
     category: z.enum([
       "cereal",
       "protein_meal",
@@ -256,7 +352,7 @@ const ingredientSourceSchema = z
 
 const ingredientLibrarySourceSchema = z
   .object({
-    schemaVersion: z.literal(2),
+    schemaVersion: z.literal(3),
     id: z.string(),
     name: z.string(),
     basis: z.object({
@@ -282,9 +378,71 @@ const ingredientLibrarySourceSchema = z
         .optional(),
     }),
     notes: z.array(z.string()).default([]),
+    families: z.array(ingredientFamilySchema),
+    constraintGroups: z.array(constraintGroupSchema).default([]),
     ingredients: z.array(ingredientSourceSchema),
   })
-  .strict();
+  .strict()
+  .superRefine((library, context) => {
+    const issue = (message: string) => context.addIssue({ code: "custom", message });
+    const familyIds = new Set<string>();
+    for (const family of library.families) {
+      if (familyIds.has(family.id)) issue(`Duplicate ingredient family ID "${family.id}".`);
+      familyIds.add(family.id);
+    }
+    const membersOf = new Map<string, string[]>();
+    for (const ingredient of library.ingredients) {
+      if (!familyIds.has(ingredient.familyId)) {
+        issue(`Ingredient "${ingredient.id}" references unknown family "${ingredient.familyId}".`);
+      }
+      membersOf.set(ingredient.familyId, [...(membersOf.get(ingredient.familyId) ?? []), ingredient.id]);
+    }
+    const ingredientById = new Map(library.ingredients.map((ingredient) => [ingredient.id, ingredient]));
+    for (const family of library.families) {
+      const members = membersOf.get(family.id) ?? [];
+      if (members.length === 0) issue(`Ingredient family "${family.id}" has no members.`);
+      // Manufacturer dose rules govern premixes; no aggregate premix ceiling.
+      if (family.aggregateLimit && members.some((id) => ingredientById.get(id)?.category === "vitamin_mineral_premix")) {
+        issue(`Ingredient family "${family.id}" contains a commercial premix and may not carry an aggregate limit.`);
+      }
+    }
+    const groupIds = new Set<string>();
+    for (const group of library.constraintGroups) {
+      if (groupIds.has(group.id)) issue(`Duplicate constraint group ID "${group.id}".`);
+      groupIds.add(group.id);
+      const resolved: string[] = [];
+      for (const familyId of group.members.familyIds) {
+        if (!familyIds.has(familyId)) issue(`Constraint group "${group.id}" references unknown family "${familyId}".`);
+        resolved.push(...(membersOf.get(familyId) ?? []));
+      }
+      for (const ingredientId of group.members.ingredientIds) {
+        if (!ingredientById.has(ingredientId)) issue(`Constraint group "${group.id}" references unknown ingredient "${ingredientId}".`);
+        resolved.push(ingredientId);
+      }
+      // Each member counts once; listing an ingredient and its family is ambiguous.
+      const duplicates = resolved.filter((id, index) => resolved.indexOf(id) !== index);
+      if (duplicates.length) issue(`Constraint group "${group.id}" counts ${[...new Set(duplicates)].join(", ")} more than once.`);
+      if (resolved.length === 0) issue(`Constraint group "${group.id}" has no members.`);
+    }
+  });
+
+/**
+ * Schema 2 predates ingredient families. Each ingredient becomes its own
+ * family with no aggregate limit, which reproduces schema-2 behaviour
+ * exactly; membership is never inferred from IDs or categories.
+ */
+function migrateIngredientLibraryInput(input: unknown): unknown {
+  if (!input || typeof input !== "object" || (input as { schemaVersion?: unknown }).schemaVersion !== 2) return input;
+  const legacy = input as { ingredients?: unknown };
+  const ingredients = Array.isArray(legacy.ingredients) ? (legacy.ingredients as { id: string; name: string }[]) : [];
+  return {
+    ...legacy,
+    schemaVersion: 3,
+    families: ingredients.map((ingredient) => ({ id: ingredient.id, name: ingredient.name })),
+    constraintGroups: [],
+    ingredients: ingredients.map((ingredient) => ({ ...ingredient, familyId: ingredient.id })),
+  };
+}
 
 export type NutrientValueSource = z.infer<typeof nutrientSourceSchema>;
 export type IngredientSpecies = "swine" | "poultry";
@@ -304,7 +462,7 @@ export type IngredientLibrary = Omit<IngredientLibrarySource, "ingredients"> & {
 };
 
 export function loadIngredientLibrarySource(input: unknown): IngredientLibrarySource {
-  const library = ingredientLibrarySourceSchema.parse(input);
+  const library = ingredientLibrarySourceSchema.parse(migrateIngredientLibraryInput(input));
   assertUniqueIds(library.ingredients, "FeedSport ingredient library");
   // Expand the canonical database-level citation into each ingredient record.
   // The checked-in JSON can retain one shared publication citation, but
@@ -350,6 +508,7 @@ function materializeIngredient(
     id: ingredient.id,
     name: ingredient.name,
     aliases: ingredient.aliases,
+    familyId: ingredient.familyId,
     category: ingredient.category,
     ...(ingredient.premix ? { premix: ingredient.premix } : {}),
     provenance: {
@@ -458,6 +617,9 @@ export function ingredientLibraryWithCustomPremixes(
       id: premix.id,
       name: premix.name,
       aliases: [],
+      // An implicit family of its own, outside the canonical families, so a
+      // user-entered profile never counts toward a canonical aggregate limit.
+      familyId: `custom-premix:${premix.id}`,
       category: "vitamin_mineral_premix",
       provenance: {
         nutrientSources: {},

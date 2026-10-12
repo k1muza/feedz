@@ -18,6 +18,8 @@ import {
   documentationGapLine,
   isFormulationAssessment,
   isLegacyAssessment,
+  predatesAggregateLimits,
+  PRE_AGGREGATE_LIMITS_NOTE,
   requirementCounts,
   supplementationCounts,
   type FormulationVerdict,
@@ -2268,6 +2270,10 @@ function optimalVals(
       fill: Math.min(100, (check.actual / hi) * 100) + "%",
       marker: Math.min(100, (check.bound / hi) * 100) + "%",
       data: check.data === "published" ? null : DATA_TAGS[check.data],
+      // A family/group ceiling names what was combined and where the ceiling comes from.
+      detail: check.aggregate
+        ? "Combined: " + check.contributions.map((c) => shortName(name(c.ingredientId)) + " " + fmt(c.value, 1) + "%").join(" + ") + " · " + check.aggregate.source.description
+        : "",
       replace: fixes ? { label: "Replace premix", note: shortName(fixes.name) + " meets it in a re-run", go: () => ctx.replacePremix(fixes.premixId) } : null,
     };
   });
@@ -2288,11 +2294,14 @@ function optimalVals(
             state: assessment.verdict === "meets_requirements" ? "ok" as const : "fail" as const,
           };
   const documentation = assessment && !mc?.checking ? documentationGapLine(assessment) ?? "" : "";
+  // A saved result keeps the rules it was assessed under; say when those predate family ceilings.
+  const policyNote = assessment && !mc?.checking && predatesAggregateLimits(assessment) ? PRE_AGGREGATE_LIMITS_NOTE : "";
   const summary = {
     headline,
     metNote: counts && counts.failed.length ? counts.met + " met" : "",
     failedRows,
     documentation,
+    policyNote,
     advisoriesLabel,
     hasAdvisories: advisoryTotal > 0,
     openAdvisories: goAdvisories,
@@ -2397,7 +2406,7 @@ function optimalVals(
         marker: (check.bound / scale) * 100 + "%",
         met: check.status === "met",
         status: check.status === "met" ? "Met" + (check.limiting ? " · limiting" : "") : "Not met",
-        data: DATA_TAGS[check.data],
+        data: check.aggregate ? { label: check.aggregate.source.type === "published" ? "Published limit" : "FeedSport policy", dashed: false } : DATA_TAGS[check.data],
       };
     });
   const analysis = {
@@ -2968,6 +2977,8 @@ function libraryVals(
   const reqNum = (v: number) => v.toLocaleString("en-US", { maximumFractionDigits: 3 });
   const progLimRows = [
     ...phase.programmeLimits.map((l) => ({ name: l.name, limit: "max " + l.maxPct + "%", guide: "programme limit", guideColor: "#8a5f18" })),
+    // Combined ceilings cap the sum of several ingredients, so they come before single-ingredient rows.
+    ...(phase.limitsKey ? ctx.programmes.aggregateLimits?.[phase.limitsKey] ?? [] : []).map((l) => ({ name: l.name + " (combined)", limit: "max " + l.maxPct + "%", guide: l.sourceType === "published" ? "published combined limit" : "combined · FeedSport policy", guideColor: "#45473f" })),
     ...(phase.limitsKey ? ctx.programmes.limits[phase.limitsKey] : []).map((l) => ({ name: l.name, limit: "max " + l.maxPct + "%", guide: l.practicalPct != null ? "up to " + l.practicalPct + "%" : "—", guideColor: l.practicalPct != null ? "#8a5f18" : "#8d8a80" })),
   ];
   const LIMITS_PREVIEW = 12;
@@ -3020,8 +3031,11 @@ function libraryVals(
             attribution: catSel.nutrientSources[n.id] ?? null,
           };
         }),
-        limits: catSel.limits.map((l) => ({ name: l.stage, limit: "max " + l.maxPct + "%", guide: l.practicalPct != null ? "guideline " + l.practicalPct + "%" : "" })),
-        noLimits: catSel.limits.length === 0,
+        limits: [
+          ...catSel.limits.map((l) => ({ name: l.stage, limit: "max " + l.maxPct + "%", guide: l.practicalPct != null ? "guideline " + l.practicalPct + "%" : "" })),
+          ...(catSel.family?.combinedLimits ?? []).map((l) => ({ name: l.stage + " · " + l.label, limit: "max " + l.maxPct + "% combined", guide: l.sourceType === "published" ? "published" : "FeedSport policy" })),
+        ],
+        noLimits: catSel.limits.length === 0 && !catSel.family?.combinedLimits.length,
         sets:
           !canAddStudioIngredient(catSel.id, S.programmeId, S.pool, S.phaseId) || myLists.status !== "ready"
             ? []

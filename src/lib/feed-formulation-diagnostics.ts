@@ -11,6 +11,7 @@ type GLPK = Awaited<ReturnType<typeof import("glpk.js/node")["default"]>>;
 import {
   buildConstraintSpecs,
   buildNutrientProfile,
+  aggregateRowName,
   buildSolution,
   collectMissingData,
   describeDiagnostics,
@@ -105,17 +106,24 @@ async function solveScenario(
   return solveModel(glpk, buildModel(scenario, options), scenario.library);
 }
 
-/** Price minus the shadow value of everything the ingredient supplies. */
+/**
+ * Price minus the shadow value of everything the ingredient supplies, and of
+ * the family or group ceilings it counts toward.
+ */
 function reducedCostPerKg(
   pricePerKg: number,
-  coefficients: ReadonlyMap<string, number>,
+  ingredient: Pick<PreparedIngredient, "coefficients" | "aggregateRules">,
   constraints: readonly ConstraintSpec[],
   dual: Duals,
 ): number {
+  const aggregates = ingredient.aggregateRules.reduce(
+    (sum, rule) => sum + (dual[aggregateRowName(rule)] ?? 0),
+    0,
+  );
   return constraints.reduce(
     (sum, constraint) =>
-      sum - (coefficients.get(constraint.id) ?? 0) * (dual[`nutrient_${constraint.id}`] ?? 0),
-    pricePerKg - (dual.total_inclusion ?? 0),
+      sum - (ingredient.coefficients.get(constraint.id) ?? 0) * (dual[`nutrient_${constraint.id}`] ?? 0),
+    pricePerKg - (dual.total_inclusion ?? 0) - aggregates,
   );
 }
 
@@ -261,7 +269,7 @@ export async function explainFormulation(
       const fraction = Math.max(0, solved.vars[ingredient.variable] ?? 0);
       const reducedCost = reducedCostPerKg(
         ingredient.option.pricePerKg,
-        ingredient.coefficients,
+        ingredient,
         constraints,
         solved.dual,
       );
@@ -329,7 +337,7 @@ export async function explainFormulation(
             pricePerKg: option.pricePerKg,
             reducedCostPerKg: reducedCostPerKg(
               option.pricePerKg,
-              candidate.coefficients,
+              candidate,
               constraints,
               solved.dual,
             ),
@@ -718,7 +726,7 @@ export async function findIngredientOpportunities(
         skippedForMissingData.push(candidate.ingredientId);
         continue;
       }
-      const reducedCost = reducedCostPerKg(candidate.pricePerKg, prepared.coefficients, constraints, base.dual);
+      const reducedCost = reducedCostPerKg(candidate.pricePerKg, prepared, constraints, base.dual);
       priced.push({
         ingredientId: candidate.ingredientId,
         pricePerKg: candidate.pricePerKg,

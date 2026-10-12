@@ -2,7 +2,14 @@ import "server-only";
 
 import { FEED_PROGRAMMES } from "@/lib/feed-programmes";
 import { buildConstraintSpecs } from "@/lib/feed-optimizer";
-import { BRAZILIAN_INCLUSION_SOURCE, brazilianInclusionColumn, phaseInclusionRecommendation } from "@/lib/ingredient-inclusion-limits";
+import {
+  BRAZILIAN_INCLUSION_SOURCE,
+  aggregateInclusionRules,
+  aggregateLabel,
+  brazilianInclusionColumn,
+  describeAggregateSource,
+  phaseInclusionRecommendation,
+} from "@/lib/ingredient-inclusion-limits";
 import { INGREDIENT_LIBRARY } from "@/lib/ingredient-nutrients";
 import type { NutritionPhase, NutritionPhaseClass } from "@/lib/nutrition";
 
@@ -55,11 +62,25 @@ export interface StudioIngredientLimit {
   practicalPct?: number;
 }
 
+/** A family or constraint-group ceiling on the members' combined inclusion. */
+export interface StudioAggregateLimit {
+  kind: "family" | "group";
+  id: string;
+  /** "Soybean meal family" / "Total added fats and oils". */
+  name: string;
+  maxPct: number;
+  memberIds: string[];
+  sourceType: "published" | "feedsport_policy";
+  source: string;
+}
+
 export interface StudioProgrammeData {
   /** Shared by every phase, so the 94 phases carry only their numbers. */
   requirementFields: StudioRequirementField[];
   programmes: StudioProgramme[];
   limits: Record<string, StudioIngredientLimit[]>;
+  /** Combined ceilings per limits key, from the same resolver as the optimiser. */
+  aggregateLimits: Record<string, StudioAggregateLimit[]>;
   limitsSource: string;
   /** Label and unit of every optimiser constraint, per species (labels differ slightly). */
   constraintMeta: Record<"swine" | "broiler", Record<string, { label: string; unit: string }>>;
@@ -120,10 +141,20 @@ function sourceLabel(source: string, version: string): string {
 
 export function getStudioProgrammes(): StudioProgrammeData {
   const limits: Record<string, StudioIngredientLimit[]> = {};
+  const aggregateLimits: Record<string, StudioAggregateLimit[]> = {};
   const limitsFor = (phase: NutritionPhase) => {
     const column = brazilianInclusionColumn(phase);
     if (!column) return null;
     const key = phase.species + ":" + column;
+    aggregateLimits[key] ??= aggregateInclusionRules(phase).map((rule) => ({
+      kind: rule.kind,
+      id: rule.id,
+      name: aggregateLabel(rule),
+      maxPct: rule.maxPct,
+      memberIds: [...rule.memberIngredientIds],
+      sourceType: rule.source.type,
+      source: describeAggregateSource(rule),
+    }));
     limits[key] ??= INGREDIENT_LIBRARY.ingredients
       .flatMap((ingredient) => {
         const rec = phaseInclusionRecommendation(ingredient.id, phase);
@@ -177,6 +208,7 @@ export function getStudioProgrammes(): StudioProgrammeData {
     requirementFields: REQUIREMENTS.map(({ name, broilerName, unit, kind }) => ({ name, ...(broilerName ? { broilerName } : {}), unit, kind })),
     programmes,
     limits,
+    aggregateLimits,
     limitsSource: BRAZILIAN_INCLUSION_SOURCE,
   };
 }

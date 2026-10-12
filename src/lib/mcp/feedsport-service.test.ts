@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { analyseFormulation, formulate, getIngredient, ingredientNutrients, FeedSportInputError, type FeedSportServiceContext } from "./feedsport-service";
+import { analyseFormulation, formulate, getIngredient, getIngredientFamilies, ingredientNutrients, FeedSportInputError, type FeedSportServiceContext } from "./feedsport-service";
 import { INGREDIENT_LIBRARY, ingredientLibraryWithCustomPremixes } from "@/lib/ingredient-nutrients";
 import { INGREDIENT_DEFAULT_PRICES } from "@/lib/feed-ingredient-prices";
 import { diagnoseInfeasibilityTool } from "./feedsport-diagnostics";
@@ -286,5 +286,58 @@ describe("CJ S174 manufacturer-only mature-boar workflow", () => {
     assert.ok(result.checked_shortfalls.every((row) =>
       typeof row.nutrient === "string" && !row.nutrient.includes("Pct") &&
       Number.isFinite(row.actual) && Number.isFinite(row.requirement)));
+  });
+});
+
+describe("MCP ingredient families and aggregate limits", () => {
+  const grower = "grow-finish-pig:br2024-5-43-63-91d-26-47kg";
+  const recipe = [
+    { ingredient: "soybean-meal-solvent-extracted", percentage: 20 },
+    { ingredient: "soybean-meal-dehulled-solvent-extracted", percentage: 15 },
+    { ingredient: "corn-yellow-dent", percentage: 65 },
+  ];
+
+  it("reports a family violation in analysis exactly as the shared assessment (Studio) does", () => {
+    const result = analyseFormulation({ programme_id: grower, recipe }, context);
+    assert.equal(result.passes, false);
+    assert.ok("aggregate_limit_violations" in result);
+    const [violation] = result.aggregate_limit_violations;
+    assert.equal(violation.id, "soybean-meal");
+    assert.equal(violation.name, "Soybean meal family");
+    assert.equal(violation.combined_percent, 35);
+    assert.equal(violation.max_percent, 25);
+    assert.equal(violation.source_type, "feedsport_policy");
+    assert.deepEqual(violation.contributions, [
+      { ingredient: "soybean-meal-solvent-extracted", percent: 20 },
+      { ingredient: "soybean-meal-dehulled-solvent-extracted", percent: 15 },
+    ]);
+    const row = result.nutritional_validation.hard_requirements.find((check) => check.aggregate?.id === "soybean-meal");
+    assert.equal(row?.status, "not_met");
+    assert.equal(row?.aggregate?.combined_percent, violation.combined_percent);
+    assert.equal(result.nutritional_validation.inclusion_policy, "aggregate-limits-1");
+  });
+
+  it("exposes family membership and limits through get_ingredient and get_ingredient_families", () => {
+    const sbm = getIngredient("soybean-meal-46-5", context, grower);
+    assert.equal(sbm.family?.id, "soybean-meal");
+    assert.equal(sbm.family?.members.length, 4);
+    assert.deepEqual(sbm.applicable_aggregate_limits?.map((limit) => [limit.id, limit.max_percent]), [["soybean-meal", 25]]);
+    const oil = getIngredient("soybean-degummed-oil", context, grower);
+    assert.equal(oil.family?.members.length, 1);
+    assert.deepEqual(oil.constraint_groups?.map((group) => group.id), ["total-added-fat"]);
+
+    const all = getIngredientFamilies({ programme_id: grower });
+    assert.equal(all.families.reduce((sum, item) => sum + item.members.length, 0), 122);
+    const sorghum = all.families.find((item) => item.id === "sorghum-grain")!;
+    assert.equal(sorghum.max_inclusion_percent, null);
+    assert.ok(all.applicable_limits?.some((limit) => limit.id === "total-added-fat" && limit.max_percent === 5));
+  });
+
+  it("formulates within family ceilings in automatic mode", async () => {
+    const result = await formulate({ programme_id: "nursery-pig:br2024-5-43-49-63d-16-26kg", energy_system: "ME" }, context);
+    assert.equal(result.status, "optimal");
+    const rows = "nutritional_validation" in result ? result.nutritional_validation.hard_requirements.filter((row) => row.aggregate) : [];
+    assert.ok(rows.length > 0, "combined inclusions are reported");
+    assert.ok(rows.every((row) => row.status === "met"));
   });
 });

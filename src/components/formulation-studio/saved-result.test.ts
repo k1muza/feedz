@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import { buildInfeasibleFormulationAssessment } from "@/lib/formulation-assessment";
-import type { FormulationAssessment } from "@/lib/formulation-assessment-model";
+import { predatesAggregateLimits, type FormulationAssessment } from "@/lib/formulation-assessment-model";
 
 import { evaluateManual, formulate, restoreVersion, summarise, type EngineContext, type ManualResult, type SavedVersion, type Snapshot, type Summary } from "./engine";
 
@@ -253,4 +253,26 @@ test("E: versions saved before results were stored re-run explicitly and never i
   // A stored result that doesn't match its summary is not trusted.
   assert.equal(restoreVersion(legacy({ status: "manual", recipe: [{ id: "corn", pct: 100 }], result: { mode: "optimised", result: { status: "error", warns: [], message: "x" } } })).mode, "rerun");
   assert.equal(restoreVersion(legacy({ status: "optimal", result: { mode: "optimised", result: { status: "error", warns: [], message: "x" } } })).mode, "rerun");
+});
+
+test("a version saved before ingredient-family limits reopens with its original result, flagged as assessed under the old rules", async () => {
+  const ctx = makeContext();
+  // The formulation service as it answered before family ceilings: no inclusionPolicy.
+  const old = fakeService({ corn: 62.5, protein: 18.4, label: "before family limits" });
+  const legacyFetch = (async (url: string | URL | Request) => {
+    const response = await old.fetch(url);
+    const body = await response.json();
+    delete body.assessment.inclusionPolicy;
+    return Response.json(body);
+  }) as typeof globalThis.fetch;
+  const store = fakeStore();
+  const v = await withFetch(legacyFetch, async () => store.save(snapshot, summarise(await formulate(snapshot, ctx), null)));
+
+  const { restored, requests } = reopen(store, v);
+  assert.equal(requests, 0, "never re-scored on reopening");
+  assert.equal(restored.mode, "optimised");
+  if (restored.mode !== "optimised" || restored.result.status !== "optimal") return assert.fail("optimised result");
+  assert.equal(restored.result.assessment.verdict, "meets_requirements", "the saved verdict is kept");
+  assert.equal(predatesAggregateLimits(restored.result.assessment), true);
+  assert.equal(predatesAggregateLimits(assessment("current")), false);
 });

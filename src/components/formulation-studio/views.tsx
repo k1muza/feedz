@@ -1232,6 +1232,7 @@ function ResultHeadline({ s, showSolver }: { s: OptVals["summary"]; showSolver: 
                 </span>
                 {row.data && <DataTag label={row.data.label} dashed={row.data.dashed} />}
               </span>
+              {row.detail && <span role="cell" style={sx("flex:1 1 100%;color:#64665c;font-size:12px")}>{row.detail}</span>}
               {row.replace && (
                 <button role="cell" type="button" onClick={row.replace.go} title={row.replace.note} className={hv("chip")} style={sx(`${CHIP};border:1px solid #d0cdc3;background:#fff;color:#222420`)}>⇄ {row.replace.label}<span style={sx("font-weight:400;color:#64665c")}>{row.replace.note}</span></button>
               )}
@@ -1244,6 +1245,12 @@ function ResultHeadline({ s, showSolver }: { s: OptVals["summary"]; showSolver: 
           <DataTag label="Missing" dashed />
           <span style={sx("flex:1 1 300px")}>{s.documentation}</span>
           <button type="button" onClick={s.openAdvisories} style={sx(ADV_LINK + ";color:#222420")}>Details</button>
+        </div>
+      )}
+      {s.policyNote && (
+        <div style={sx("display:flex;align-items:center;gap:10px 14px;padding:11px 18px;border-top:1px solid #ece8df;background:#fcfbf8;font:400 13px/1.45 'IBM Plex Sans',sans-serif;color:#45473f;flex-wrap:wrap")}>
+          <DataTag label="Saved result" dashed={false} />
+          <span style={sx("flex:1 1 300px")}>{s.policyNote}</span>
         </div>
       )}
       {showSolver && s.solver && <div style={sx("padding:8px 18px;border-top:1px solid #ece8df;font:400 12px/1 'IBM Plex Mono',monospace;color:#64665c")}>{s.solver}</div>}

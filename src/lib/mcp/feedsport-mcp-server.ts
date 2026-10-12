@@ -9,6 +9,7 @@ import {
   analyseFormulation,
   formulate,
   getIngredient,
+  getIngredientFamilies,
   getProgramme,
   getProgrammes,
   searchIngredients,
@@ -52,8 +53,9 @@ Rules:
 - Commercial premix dosage is fixed at the manufacturer's published inclusion for the SKU. Never alter that dose or substitute a premix across species.
 - Supplier label minima are credited conservatively at the SKU's fixed dose, with their provenance, and count towards vitamin and trace-mineral targets. A nutrient the label does not declare remains unknown; it is never treated as zero or as a pass.
 - Automatic mode selects priced basal ingredients only. Its optimal recipes do NOT include a premix and are NOT complete feeds.
-- In selected mode, use a real SKU and a supplier price if available. A commercial premix is a full ingredient: every nutrient it documents (amino acids, minerals, vitamins, protein, energy) counts once toward the formulation, so it can reduce crystalline amino acids. Total amino acids are never counted as SID. Values a premix does not document count as 0 and are labelled data_status="assumed_zero". Always read nutritional_validation: overall_status meets_requirements / fails_requirements / infeasible covers HARD requirements only (energy, protein, SID amino acids, minerals, ingredient limits, premix dose). Chapter 7 vitamin and trace-mineral comparisons and premix documentation gaps are under nutritional_validation.advisories: recommendations, never deficiencies. premix_advisory lists re-run alternatives; replacing means removing the current SKU, never adding a second one. Never claim a feed is ready to manufacture, manufacturer approval or feeding safety.
+- In selected mode, use a real SKU and a supplier price if available. A commercial premix is a full ingredient: every nutrient it documents (amino acids, minerals, vitamins, protein, energy) counts once toward the formulation, so it can reduce crystalline amino acids. Total amino acids are never counted as SID. Values a premix does not document count as 0 and are labelled data_status="assumed_zero". Always read nutritional_validation: overall_status meets_requirements / fails_requirements / infeasible covers HARD requirements only (energy, protein, SID amino acids, minerals, ingredient limits, combined ingredient-family and constraint-group limits, premix dose). Chapter 7 vitamin and trace-mineral comparisons and premix documentation gaps are under nutritional_validation.advisories: recommendations, never deficiencies. premix_advisory lists re-run alternatives; replacing means removing the current SKU, never adding a second one. Never claim a feed is ready to manufacture, manufacturer approval or feeding safety.
 - FeedSport programme requirements and ingredient inclusion ceilings cannot be relaxed; caller constraints can only tighten them.
+- Several grades of one feedstuff (e.g. soybean meal 44.5–48% CP) form an ingredient family; where a family or constraint group (e.g. total added fat) has a combined maximum, the SUM of its members is capped in addition to each ingredient's own maximum. get_ingredient_families lists them with their provenance; most are FeedSport policies derived from Brazilian Tables 2024 Table 1.01, not published family maxima.
 - Status "manufacturer_recipe" is a reproducible manufacturer-provided mixing recipe for costing/review, NOT a least-cost formulation. Read premix_analysis, incomplete_requirements, checked_shortfalls and unsupported_requirements. diagnose_infeasibility returns status "manufacturer_recipe" with data gaps/shortfalls for CJ S174 and no substitution fixes. Status "infeasible", "missing_data", "error" or "fail" is not a valid nutrition pass.
 - For a generic request, let automatic mode choose basal ingredients; do not arbitrarily shrink the ingredient pool. Clearly distinguish Alibaba-derived planning defaults from product-backed supplier quotations.
 - Prices are FeedSport planning prices (USD/t) for priced ingredients, or the caller's explicitly supplied prices.`;
@@ -233,6 +235,21 @@ export function createFeedSportMcpServer(
       annotations: READ_ONLY,
     },
     async ({ id, programme_id }) => run(async () => getIngredient(id, await context(), programme_id)),
+  );
+
+  server.registerTool(
+    "get_ingredient_families",
+    {
+      title: "Get ingredient families",
+      description:
+        "Ingredient families (substantially equivalent grades or processing variants, e.g. the four soybean-meal grades) and cross-family constraint groups (e.g. total added fat), with members and any combined maximum inclusion and its provenance. A combined maximum caps the SUM of members and is enforced in formulate and checked in analyse_formulation, alongside each ingredient's own maximum.",
+      inputSchema: z.object({
+        programme_id: programmeId.optional().describe("Optional phase; also returns the combined limits that apply to it."),
+        multi_member_only: z.boolean().default(false).describe("Omit single-ingredient families."),
+      }),
+      annotations: READ_ONLY,
+    },
+    async (args) => run(() => getIngredientFamilies(args)),
   );
 
   server.registerTool(

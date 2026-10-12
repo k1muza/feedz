@@ -1,5 +1,6 @@
 import {
   INGREDIENT_LIBRARY,
+  SOYBEAN_MEAL_FAMILY_ID,
   sidAminoAcidPct,
   sttdPhosphorusPctOf,
   type IngredientLibrary,
@@ -102,6 +103,7 @@ export type DietAnalysis = {
     traceMineralsPpm: Record<TraceMineral, AnalyzedNutrient>;
     vitamins: Record<VitaminKey, AnalyzedNutrient>;
   };
+  /** Combined inclusion of the canonical soybean-meal family (every grade). */
   soybeanMealPct: number;
   lLysineHclPct: number;
   costPerKg?: number;
@@ -224,7 +226,7 @@ export function analyzeDiet(
       addSupplemented(result.supplementation.vitamins[key], ingredient, share, ingredient.vitamins[key]);
     }
 
-    if (ingredient.id.startsWith("soybean-meal-")) result.soybeanMealPct += row.inclusionPct;
+    if (ingredient.familyId === SOYBEAN_MEAL_FAMILY_ID) result.soybeanMealPct += row.inclusionPct;
     if (ingredient.id === "l-lysine-hcl") result.lLysineHclPct += row.inclusionPct;
 
     const price = priceById.get(row.ingredientId);
