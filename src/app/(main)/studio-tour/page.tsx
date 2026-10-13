@@ -11,7 +11,8 @@ export const metadata = createPageMetadata({
   description: "Formulate pig and poultry feed from the ingredients you actually have. Choose the animal and stage, enter your prices, and get a least-cost recipe that meets every hard requirement. Free with a FeedSport account.",
   path: "/studio-tour",
   keywords: ["feed formulation software", "least-cost feed formulation", "pig feed formulation", "poultry feed formulation", "feed formulation Zimbabwe", "FeedSport Studio"],
-  image: { url: "/videos/studio-walkthrough-poster.jpg", alt: "FeedSport Studio feed formulation walkthrough", width: 1600, height: 764 },
+  // 1200×630 JPEG: the size WhatsApp and Facebook render as a large preview without cropping.
+  image: { url: "/images/studio/studio-tour-og.jpg", alt: "FeedSport Studio feed formulation workspace", width: 1200, height: 630, type: "image/jpeg" },
 });
 
 export const revalidate = 3600;

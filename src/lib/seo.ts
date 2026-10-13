@@ -34,7 +34,7 @@ type PageMetadataOptions = {
   path: string;
   // Bypass the "| FeedSport International" title template, for titles that already name the brand.
   absoluteTitle?: boolean;
-  image?: { url: string; alt: string; width?: number; height?: number };
+  image?: { url: string; alt: string; width?: number; height?: number; type?: string };
   keywords?: string[];
   noIndex?: boolean;
   article?: {
