@@ -287,8 +287,11 @@ function addValue(
 }
 
 /**
- * A digestible measure (SID amino acid, STTD/available phosphorus). A premix
+ * A digestible phosphorus measure (STTD/digestible or available). A premix
  * that publishes only the TOTAL is credited 0 here and flagged total-only.
+ * An ingredient known to contain phosphorus but with no published digestible
+ * value is missing, never a structural zero: a phosphate without a poultry
+ * value must not silently contribute nothing.
  */
 function addDigestible(
   target: AnalyzedNutrient,
@@ -300,6 +303,10 @@ function addDigestible(
   if (digestible === undefined && total !== undefined && isPremix(ingredient)) {
     markAssumedZero(target, ingredient.id);
     if (!target.totalOnlyIngredientIds.includes(ingredient.id)) target.totalOnlyIngredientIds.push(ingredient.id);
+    return;
+  }
+  if (digestible === undefined && total !== undefined && total > 0) {
+    markMissing(target, ingredient.id);
     return;
   }
   addValue(target, ingredient, share, digestible, "macroMineral");
