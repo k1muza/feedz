@@ -73,10 +73,14 @@ describe("broiler programmes", () => {
     assert.equal(phase.requirements.aminoAcids.methionineCysteineToLysPct, 73);
   });
 
-  test("digestible phosphorus is not enforced because inorganic phosphates lack poultry values", () => {
+  test("published digestible phosphorus is enforced alongside available phosphorus", () => {
+    const phase = broilerPhase("broiler-standard", 0);
+    assert.equal(phase.requirements.minerals.sttdPhosphorusPct, 0.474);
+    assert.equal(phase.requirements.minerals.availablePhosphorusPct, 0.524);
     for (const programme of BROILER_PROGRAMMES) {
       for (const phase of programme.phases) {
-        assert.equal(phase.requirements.minerals.sttdPhosphorusPct, undefined);
+        assert.ok(phase.requirements.minerals.sttdPhosphorusPct !== undefined, phase.id);
+        assert.ok(phase.requirements.minerals.availablePhosphorusPct !== undefined, phase.id);
       }
     }
   });
@@ -110,7 +114,8 @@ describe("broiler ingredient values", () => {
     assert.ok(dcp);
     assert.equal(dcp.macroMinerals.availablePhosphorusPct, 18.5);
     assert.equal(dcp.macroMinerals.sttdPhosphorusPct, undefined);
-    assert.equal(sttdPhosphorusPctOf(dcp), undefined);
+    // Table 1.10 "Dig. Broilers", not the swine STTD value (13.9%).
+    assert.equal(sttdPhosphorusPctOf(dcp), 12.9);
 
     const methionine = POULTRY_INGREDIENT_LIBRARY.ingredients.find((ingredient) => ingredient.id === "dl-methionine");
     assert.equal(methionine?.aminoAcids.sidPct.methionine, 99.5);

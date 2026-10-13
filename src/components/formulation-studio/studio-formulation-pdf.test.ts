@@ -172,3 +172,18 @@ test("shows the legacy note for a schema-1 assessment without re-scoring it", as
   assert.doesNotMatch(all, /hard requirement/i);
   assert.doesNotMatch(all, /\bverified\b|needs_verification/i);
 });
+
+test("a saved broiler result assessed before the digestible-phosphorus minimum is not shown as a pass", async () => {
+  const saved = assessmentFixture();
+  saved.requirements.push(requirement({ id: "available-phosphorus", label: "Available phosphorus", unit: "%", bound: 0.484, actual: 0.497 }));
+  const { text } = await renderStudioFormulationPdf(input({ assessment: saved }));
+  assert.match(joined(text), /Assessed before poultry digestible phosphorus was enforced/);
+
+  const current = assessmentFixture();
+  current.requirements.push(
+    requirement({ id: "sttd-phosphorus", label: "Standardized digestible phosphorus", unit: "%", bound: 0.438, actual: 0.438 }),
+    requirement({ id: "available-phosphorus", label: "Available phosphorus", unit: "%", bound: 0.484, actual: 0.534 }),
+  );
+  const fresh = await renderStudioFormulationPdf(input({ assessment: current }));
+  assert.doesNotMatch(joined(fresh.text), /Assessed before poultry digestible phosphorus/);
+});

@@ -19,7 +19,9 @@ import {
   isFormulationAssessment,
   isLegacyAssessment,
   predatesAggregateLimits,
+  predatesPoultryDigestiblePhosphorus,
   PRE_AGGREGATE_LIMITS_NOTE,
+  PRE_POULTRY_DIGESTIBLE_PHOSPHORUS_NOTE,
   requirementCounts,
   supplementationCounts,
   type FormulationVerdict,
@@ -2303,8 +2305,14 @@ function optimalVals(
             state: assessment.verdict === "meets_requirements" ? "ok" as const : "fail" as const,
           };
   const documentation = assessment && !mc?.checking ? documentationGapLine(assessment) ?? "" : "";
-  // A saved result keeps the rules it was assessed under; say when those predate family ceilings.
-  const policyNote = assessment && !mc?.checking && predatesAggregateLimits(assessment) ? PRE_AGGREGATE_LIMITS_NOTE : "";
+  // A saved result keeps the rules it was assessed under; say when those predate
+  // family ceilings or the poultry digestible-phosphorus minimum.
+  const policyNote = assessment && !mc?.checking
+    ? [
+        predatesAggregateLimits(assessment) ? PRE_AGGREGATE_LIMITS_NOTE : "",
+        predatesPoultryDigestiblePhosphorus(assessment) ? PRE_POULTRY_DIGESTIBLE_PHOSPHORUS_NOTE : "",
+      ].filter(Boolean).join(" ")
+    : "";
   const summary = {
     headline,
     metNote: counts && counts.failed.length ? counts.met + " met" : "",

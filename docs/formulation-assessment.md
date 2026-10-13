@@ -15,8 +15,13 @@ Hard requirements are exactly the constraints the optimizer enforces
 
 - energy (ME or NE), crude and digestible protein;
 - SID amino acids;
-- calcium, digestible/available phosphorus, sodium, chloride, potassium and
-  other modelled minerals;
+- calcium, standardized digestible phosphorus, available phosphorus, sodium,
+  chloride, potassium and other modelled minerals. Digestible and available
+  phosphorus are independent minimums whenever the programme publishes both
+  (every Brazilian swine and broiler phase does); one never substitutes for
+  the other. Broilers use the poultry digestible-phosphorus values (Table 1.01
+  "Std. Dig. P Poultry"; Table 1.10 "Dig. Broilers" for phosphates), never the
+  swine STTD values;
 - practical constraints the programme publishes as limits (NDF minimum,
   L-lysine HCl maximum);
 - per-ingredient inclusion limits (enforced as variable bounds); and
@@ -48,6 +53,12 @@ A value a premix does not document is counted as 0, which is conservative for
 a minimum, and labelled `assumed_zero` with the premix ID. It is never shown
 as published. A value missing from an ordinary ingredient stays `missing`; the
 optimizer sets that ingredient aside instead of guessing.
+
+Some ingredient classes are structural zeros for a nutrient family (limestone
+has no energy; oil has no amino acids). That never covers digestible or
+available phosphorus for an ingredient whose total phosphorus is published
+above zero: a phosphate without a published digestible value is `missing`,
+not 0.
 
 ## Canonical model
 
@@ -98,3 +109,11 @@ premix supplies SID lysine".
 New saved versions store the schema-2 assessment. Versions saved with the
 schema-1 model (`verified` / `needs_verification`) are never re-scored: they
 show "Premix data updated · re-formulate" until the user re-runs them.
+
+Saved assessments are never silently re-scored when the rules change; they
+carry a note instead. A schema-2 assessment without `inclusionPolicy`
+predates family ceilings (`predatesAggregateLimits`). A broiler assessment
+that checked available phosphorus but has no `sttd-phosphorus` row predates
+the poultry digestible-phosphorus minimum
+(`predatesPoultryDigestiblePhosphorus`): Studio and the Studio PDF say only
+available phosphorus was checked, and the PDF does not show it as a pass.

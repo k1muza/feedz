@@ -178,6 +178,21 @@ export function predatesAggregateLimits(value: unknown): boolean {
   return isFormulationAssessment(value) && value.inclusionPolicy !== INCLUSION_POLICY_VERSION;
 }
 
+/**
+ * A broiler assessment made before the poultry digestible-phosphorus minimum
+ * was enforced: it checked available phosphorus only. Every current programme
+ * phase publishes both, so an available-P check without a digestible-P check
+ * identifies it. It is shown as saved, never silently re-scored or trusted.
+ */
+export function predatesPoultryDigestiblePhosphorus(value: unknown): boolean {
+  return isFormulationAssessment(value) &&
+    value.requirements.some((check) => check.id === "available-phosphorus") &&
+    !value.requirements.some((check) => check.id === "sttd-phosphorus");
+}
+
+export const PRE_POULTRY_DIGESTIBLE_PHOSPHORUS_NOTE =
+  "Assessed before poultry digestible phosphorus was enforced. This saved result is shown as it was assessed then; only available phosphorus was checked. Re-formulate or re-check to apply the Brazilian Tables digestible-phosphorus minimum.";
+
 export const PRE_AGGREGATE_LIMITS_NOTE =
   "Assessed before ingredient-family limits. This saved result is shown as it was assessed then; combined family and added-fat ceilings were not checked. Re-formulate or re-check to apply them.";
 

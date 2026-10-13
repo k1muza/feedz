@@ -24436,7 +24436,7 @@
         "nutrientSources": {},
         "notes": [
           "Only nutrient values explicitly published for this mineral source are stored; other mineral-family values are treated as structural zero by PigFlow.",
-          "Poultry profile reuses the Table 1.10 Ca, P, available P, Na, Cl and Mg concentrations, which are chemical composition shared by both species. The swine STTD phosphorus value is not copied; no poultry digestible-phosphorus value is stored for this source."
+          "Poultry profile reuses the Table 1.10 Ca, P and available P concentrations, which are chemical composition shared by both species. Poultry standardized digestible phosphorus (12.9%, coefficient 70%) is the Table 1.10 \"Dig. Broilers\" value, published separately from the swine value; the swine STTD phosphorus value is not copied."
         ]
       },
       "nutrition": {
@@ -24471,7 +24471,9 @@
           "macroMinerals": {
             "calciumPct": 24,
             "totalPhosphorusPct": 18.5,
-            "availablePhosphorusPct": 18.5
+            "availablePhosphorusPct": 18.5,
+            "phosphorusDigestibilityPct": 70,
+            "digestiblePhosphorusPct": 12.9
           },
           "traceMineralsPpm": {},
           "vitamins": {},
@@ -24504,7 +24506,7 @@
         "nutrientSources": {},
         "notes": [
           "Only nutrient values explicitly published for this mineral source are stored; other mineral-family values are treated as structural zero by PigFlow.",
-          "Poultry profile reuses the Table 1.10 Ca, P, available P, Na, Cl and Mg concentrations, which are chemical composition shared by both species. The swine STTD phosphorus value is not copied; no poultry digestible-phosphorus value is stored for this source."
+          "Poultry profile reuses the Table 1.10 Ca, P and available P concentrations, which are chemical composition shared by both species. Poultry standardized digestible phosphorus (15.2%, coefficient 71%) is the Table 1.10 \"Dig. Broilers\" value, published separately from the swine value; the swine STTD phosphorus value is not copied."
         ]
       },
       "nutrition": {
@@ -24539,7 +24541,9 @@
           "macroMinerals": {
             "calciumPct": 18.9,
             "totalPhosphorusPct": 21.4,
-            "availablePhosphorusPct": 22
+            "availablePhosphorusPct": 22,
+            "phosphorusDigestibilityPct": 71,
+            "digestiblePhosphorusPct": 15.2
           },
           "traceMineralsPpm": {},
           "vitamins": {},

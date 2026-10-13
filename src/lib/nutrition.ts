@@ -894,10 +894,10 @@ function normalizeBroilerPhase(
       minerals: {
         calciumPct: nutrients.calcium,
         availablePhosphorusPct: nutrients.availablePhosphorus,
-        // The published poultry digestible-phosphorus requirement is not
-        // enforced: Table 1.10 inorganic phosphates carry no poultry
-        // digestible-P value, so every diet using them would be incomplete.
-        // Available phosphorus is published for those sources and is used.
+        // Both phosphorus requirements are published and enforced
+        // independently. Ingredients use the poultry digestible-P values
+        // (Table 1.01; Table 1.10 "Dig. Broilers" for phosphates).
+        sttdPhosphorusPct: nutrients.digestiblePhosphorus,
         sodiumPct: nutrients.sodium,
         chloridePct: nutrients.chloride,
       },

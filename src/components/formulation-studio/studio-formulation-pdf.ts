@@ -14,7 +14,9 @@ import { siteConfig } from "@/lib/seo";
 import { documentationGapLine,
   DATA_STATUS_LABELS,
   LEGACY_PREMIX_NOTE,
+  PRE_POULTRY_DIGESTIBLE_PHOSPHORUS_NOTE,
   isFormulationAssessment,
+  predatesPoultryDigestiblePhosphorus,
   type FormulationAssessment,
   type PremixComparison,
   type RequirementCheck,
@@ -338,11 +340,15 @@ export async function renderStudioFormulationPdf(
   const assessment = isFormulationAssessment(input.assessment) ? input.assessment : null;
   const failedRequirements = assessment?.requirements.filter((check) => check.status === "not_met") ?? [];
   const hardFailure = !!assessment && (assessment.verdict !== "meets_requirements" || failedRequirements.length > 0);
+  // A saved broiler result that never checked digestible phosphorus is not shown as a pass.
+  const stalePhosphorus = !!assessment && predatesPoultryDigestiblePhosphorus(assessment);
   // Red only for a genuine hard failure; a legacy result is a neutral note.
-  const assessmentColor = !assessment ? C.amberText : hardFailure ? C.red : C.green;
-  const assessmentBg = !assessment ? C.paleAmber : hardFailure ? hex("#f6dcd8") : C.paleGreen;
+  const assessmentColor = !assessment || (stalePhosphorus && !hardFailure) ? C.amberText : hardFailure ? C.red : C.green;
+  const assessmentBg = !assessment || (stalePhosphorus && !hardFailure) ? C.paleAmber : hardFailure ? hex("#f6dcd8") : C.paleGreen;
   const assessmentTitle = assessment ? assessment.headline : "Premix data updated";
-  const assessmentText = assessment ? assessment.summary : LEGACY_PREMIX_NOTE;
+  const assessmentText = assessment
+    ? [assessment.summary, stalePhosphorus ? PRE_POULTRY_DIGESTIBLE_PHOSPHORUS_NOTE : ""].filter(Boolean).join(" ")
+    : LEGACY_PREMIX_NOTE;
   const assessmentLines = wrap(assessmentText, regular, 7.8, CW - 24);
   const assessmentHeight = 38 + assessmentLines.length * 10;
   page.drawRectangle({ x: M, y: y - assessmentHeight, width: CW, height: assessmentHeight, color: assessmentBg });
