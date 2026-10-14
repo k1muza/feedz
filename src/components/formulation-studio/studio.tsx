@@ -11,7 +11,7 @@ import { isSupabaseConfigured, supabaseKey, supabaseUrl } from "@/lib/supabase/c
 import type { CatalogueIngredient, CatalogueNutrientId } from "@/lib/studio-catalogue";
 import type { StudioNutrientData } from "@/lib/studio-nutrients";
 import type { StudioProgrammeData } from "@/lib/studio-programmes";
-import { canAddStudioIngredient, selectStudioIngredient, poolWithCarriedPremixSelection, poolWithPremixPrice, poolWithPremixSelection, poolWithProgrammePremix, poolWithoutPremix } from "@/lib/studio-commercial-premix";
+import { canAddStudioIngredient, selectStudioIngredient, poolWithCarriedPremixSelection, poolWithPremixPrice, poolWithPremixSelection, poolWithProgrammePremix, poolWithoutPremix, studioPremixConflict } from "@/lib/studio-commercial-premix";
 import { commercialPremixById, commercialPremixCompatibleWithProgramme, commercialPremixSimulationOnlyForPhase } from "@/lib/commercial-premixes";
 import {
   DATA_STATUS_LABELS,
@@ -698,7 +698,11 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
 
   // Starting a run only bumps the token; the effect below solves whatever the
   // state is once that render lands, so a run always sees the latest settings.
-  const run = useCallback(() => update((s) => ({ running: true, runToken: s.runToken + 1, drawer: null, advisoriesOpen: false, addOpen: false, premixOpen: false, rulesOpen: false })), [update]);
+  // A premix the new programme or stage does not permit waits for the farmer's
+  // decision: re-formulating must not quietly run without it.
+  const run = useCallback(() => update((s) => studioPremixConflict(s.pool, s.programmeId, s.phaseId)
+    ? { toast: "Choose an eligible premix or continue without one before re-formulating" }
+    : { running: true, runToken: s.runToken + 1, drawer: null, advisoriesOpen: false, addOpen: false, premixOpen: false, rulesOpen: false }), [update]);
   useEffect(() => {
     if (!S.running) return;
     const token = S.runToken;
@@ -1423,7 +1427,7 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
   const programmeChoice = (programmeId: string) => {
     const programme = programmes.programmes.find((p) => p.id === programmeId) ?? P;
     return { programmeId: programme.id, phaseId: programme.phases[0].id,
-      species: programme.species, pool: poolWithProgrammePremix(S.pool, programme.id, undefined, programme.phases[0].id), recoveryUndo: null };
+      species: programme.species, pool: poolWithCarriedPremixSelection(S.pool, S.pool, programme.id, programme.phases[0].id), recoveryUndo: null };
   };
   // ---- setup ----
   // Step 2 lists the chosen ingredients by category: tick what you have, set
@@ -1472,6 +1476,8 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
           update((s) => {
             const cur = { ...s.pool[id] };
             if (commercialPremixById(id) && cur.role !== "excluded") return { pool: poolWithoutPremix(s.pool, id, true) };
+            if (commercialPremixById(id) && !commercialPremixCompatibleWithProgramme(commercialPremixById(id)!, s.programmeId, s.phaseId))
+              return { toast: ingredientName(id) + " is not eligible for this stage · choose an eligible premix" };
             if (cur.role === "excluded") {
               cur.role = cur.was ?? "available";
               delete cur.was;
@@ -1646,7 +1652,8 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
     update({ screen: "workspace", docName: PH.label + " · " + (S.setKey === "system" ? "FeedSport suggested" : setupList?.label ?? "My ingredients"), tab: "recipe" });
     run();
   };
-  const nextDisabled = S.step === 2 && poolIds.filter((id) => S.pool[id].role !== "excluded").length === 0;
+  const conflict = studioPremixConflict(S.pool, S.programmeId, S.phaseId);
+  const nextDisabled = (S.step === 2 && poolIds.filter((id) => S.pool[id].role !== "excluded").length === 0) || (S.step === 3 && !!conflict);
 
   // ---- workspace ----
   const optimal = R && R.status === "optimal" ? R : null;
@@ -1665,6 +1672,8 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
     ? { label: "Formulating…", color: "#45473f", bg: "#c98a1e", r: "50%", btn: "Formulating…", btnBg: "#e2dfd6", btnFg: "#64665c" }
     : !R
       ? { label: "Not formulated yet", color: "#64665c", bg: "#d0cdc3", r: "50%", btn: "Formulate", btnBg: "#2f5a3f", btnFg: "#fff" }
+      : conflict
+        ? { label: "Premix needs your decision", color: "#8a5f18", bg: "#c98a1e", r: "0", btn: "Re-formulate", btnBg: "#e2dfd6", btnFg: "#8d8a80" }
       : stale
         ? { label: changes.length + " change" + (changes.length === 1 ? "" : "s") + " since last run", color: "#222420", bg: "#222420", r: "0", btn: "Re-formulate", btnBg: "#2f5a3f", btnFg: "#fff" }
         : { label: "Result is up to date", color: "#2b6a42", bg: "#2f7a4a", r: "50%", btn: "Re-formulate", btnBg: "#e2dfd6", btnFg: "#45473f" };
@@ -2055,6 +2064,28 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
     status: commercialPremixCompatibleWithProgramme(currentPremix, S.programmeId, S.phaseId) ? "Selected for this phase" : "Wrong stage",
     statusColor: commercialPremixCompatibleWithProgramme(currentPremix, S.programmeId, S.phaseId) ? "#2f7a4a" : "#a06310",
   } : null;
+  // Never removed or swapped on the farmer's behalf: they decide, then re-formulate.
+  const conflictPrice = conflict ? S.pool[conflict.premix.id]?.price : undefined;
+  const conflictSuggested = conflict?.eligible[0] ?? null;
+  const premixConflict = conflict ? {
+    title: conflict.premix.name + " is not eligible for " + PH.label,
+    reason: conflict.reason,
+    kept: "It is still selected at its manufacturer dose of " + conflict.premix.inclusionKgPerTonne + " kg/t" +
+      (conflictPrice != null && conflictPrice !== "" ? " with your price of " + money(+conflictPrice) + "/t" : "") +
+      ". FeedSport will not remove it or swap in another product. Choose an eligible premix, or continue without one, before re-formulating.",
+    staleNote: R ? "The previous result stays marked out of date. Save and Export stay off until you resolve this and re-formulate." : "",
+    suggestLabel: conflictSuggested ? "Use " + conflictSuggested.name + " · " + conflictSuggested.inclusionKgPerTonne + " kg/t" : "",
+    suggest: () => {
+      if (!conflictSuggested) return;
+      update((state) => ({ pool: poolWithPremixSelection(state.pool, state.programmeId, conflictSuggested.id, state.phaseId) }));
+      flash("Replaced " + conflict.premix.sku + " with " + conflictSuggested.sku + " at its manufacturer dose · re-formulate to update the result");
+    },
+    choose: openPremixPicker,
+    continueWithout: () => {
+      update((state) => ({ pool: poolWithoutPremix(state.pool, conflict.premix.id) }));
+      flash("Continuing without a premix · vitamin and trace-mineral supply is reported under Advisories");
+    },
+  } : null;
   const rules = programmes.requirementFields.flatMap((f, i) => {
     const value = PH.requirements[i];
     if (value == null) return [];
@@ -2077,6 +2108,7 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
     canBack: S.step > 1, stepBack: () => update({ step: S.step - 1 }), stepNext, nextDisabled, nextBg: nextDisabled ? "#b9b6ab" : "#2f5a3f", nextLabel: S.step === 3 ? "Formulate" : "Continue",
     skipToWorkspace: () => update({ screen: "workspace" }),
     docName: S.docName, onName: (e: InputEvent) => update({ docName: e.target.value }), saveState, save: () => void save(), saveDisabled, saveBg: saveDisabled ? "#b9b6ab" : "#2f5a3f", saveTitle: stale ? "Re-formulate first" : manualOff ? "Resolve the manual recipe validity issues" : "", manualOff, manualIssues: manualView?.recipeValidity?.issues ?? [],
+    premixConflict, runDisabled: S.running || !!conflict,
     exportDisabled, exportColor: exportDisabled ? "#8d8a80" : "#222420", exportLabel: S.exporting ? "Opening PDF…" : "Export PDF", exportTitle: !optimal ? "Formulate a valid recipe first" : optimal.costExcludesPremix ? "Enter the supplier premix quote before exporting a full-cost report" : stale ? "Re-formulate first" : manualOff ? "Resolve the manual recipe validity issues" : "Open recipe and nutrient report as PDF", doExport: () => void exportPdf(),
     leftW: wide ? "300px" : "100%", programmeId: P.id, progList: programmes.programmes.map((p) => ({ id: p.id, name: p.name })),
     onProgramme: (e: InputEvent) => update(programmeChoice(e.target.value)),

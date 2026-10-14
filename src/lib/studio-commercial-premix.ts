@@ -2,7 +2,10 @@ import {
   commercialPremixById,
   commercialPremixForProgramme,
   commercialPremixCompatibleWithProgramme,
+  eligibleCommercialPremixes,
+  type CommercialPremix,
 } from "./commercial-premixes";
+import { feedProgrammePhaseById } from "./feed-programmes";
 import type { Pool, PoolEntry } from "@/components/formulation-studio/engine";
 import { INCLUSION_TOLERANCE_PCT } from "./numerical-tolerance";
 
@@ -82,18 +85,53 @@ export function poolWithPremixSelection(pool: Pool, programmeId: string, premixI
   return Object.fromEntries(Object.entries(unlocked).filter(([id]) => !commercialPremixById(id)));
 }
 
-/** Replaces the basal ingredient source while carrying the premix choice made
- * in Studio's separate selector. This also preserves an explicit no-premix
- * choice while an asynchronous suggestion list arrives.
+/** Replaces the basal ingredient source, or moves to another programme or
+ * stage, while carrying the premix choice made in Studio's separate selector.
+ * An eligible premix is re-asserted at its manufacturer dose with its price.
+ * One that is no longer eligible is carried unchanged, never dropped or
+ * swapped: studioPremixConflict then asks the farmer to decide. This also
+ * preserves an explicit no-premix choice while a suggestion list arrives.
  */
 export function poolWithCarriedPremixSelection(nextPool: Pool, currentPool: Pool, programmeId: string, phaseId?: string): Pool {
   const selected = Object.entries(currentPool)
-    .find(([id, row]) => {
-      if (row.role === "excluded") return false;
-      const commercial = commercialPremixById(id);
-      return !!commercial && commercialPremixCompatibleWithProgramme(commercial, programmeId, phaseId);
-    });
-  return poolWithPremixSelection(nextPool, programmeId, selected?.[0] ?? null, phaseId);
+    .find(([id, row]) => row.role !== "excluded" && !!commercialPremixById(id));
+  const product = selected ? commercialPremixById(selected[0]) : undefined;
+  if (!selected || !product || commercialPremixCompatibleWithProgramme(product, programmeId, phaseId)) {
+    return poolWithPremixSelection(nextPool, programmeId, selected?.[0] ?? null, phaseId);
+  }
+  const basal = Object.fromEntries(Object.entries(nextPool).filter(([id]) => !commercialPremixById(id)));
+  return { ...basal, [selected[0]]: selected[1] };
+}
+
+/** A selected premix the current programme phase does not permit. */
+export type StudioPremixConflict = {
+  premix: CommercialPremix;
+  /** Why it is ineligible, in the farmer's terms. */
+  reason: string;
+  /** Eligible products for this phase; the programme default comes first. */
+  eligible: CommercialPremix[];
+};
+
+/** The selected premix when it no longer fits this programme phase, e.g. after
+ * a stage change. Re-formulating waits until the farmer replaces it or
+ * explicitly continues without one; nothing here chooses for them.
+ */
+export function studioPremixConflict(pool: Pool, programmeId: string, phaseId?: string): StudioPremixConflict | null {
+  const premix = Object.entries(pool)
+    .filter(([, row]) => row.role !== "excluded")
+    .map(([id]) => commercialPremixById(id))
+    .find((product) => product !== undefined);
+  if (!premix || commercialPremixCompatibleWithProgramme(premix, programmeId, phaseId)) return null;
+  const phase = phaseId ? feedProgrammePhaseById(programmeId, phaseId) : undefined;
+  const family = programmeId.split(":")[0].toLowerCase();
+  const familyOk = premix.eligibleProgrammePrefixes.some((prefix) => family.startsWith(prefix));
+  const reason = familyOk && phase && premix.eligiblePhaseClasses?.length
+    ? `${premix.name} is labelled for ${premix.eligiblePhaseClasses.join(" and ")} phases only (${premix.application.toLowerCase()}); this stage is a ${phase.phaseClass} phase.`
+    : `${premix.name} is labelled for ${premix.application.toLowerCase()}, not this programme.`;
+  const fallback = commercialPremixForProgramme(programmeId, phaseId);
+  const eligible = eligibleCommercialPremixes(programmeId, phaseId)
+    .sort((a, b) => Number(b.id === fallback?.id) - Number(a.id === fallback?.id));
+  return { premix, reason, eligible };
 }
 
 /** Takes a premix out of the formulation: deleted, or kept as an unticked row.

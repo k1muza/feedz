@@ -609,6 +609,25 @@ function Featured({ v }: V) {
   );
 }
 
+// A selected premix the new programme or stage does not permit. The farmer
+// decides; nothing is removed or swapped until they do.
+function PremixConflictNotice({ c }: { c: NonNullable<StudioVals["premixConflict"]> }) {
+  return (
+    <section role="alert" aria-label="Premix not eligible" style={sx("background:#fdf6e8;border:1px solid #f0c97f;border-radius:10px;padding:16px 18px;display:flex;flex-direction:column;gap:10px")}>
+      <span style={sx("font:500 12px/1 'IBM Plex Mono',monospace;color:#8a5f18;text-transform:uppercase;letter-spacing:0.05em")}>Premix needs your decision</span>
+      <strong style={sx("font:600 16px/1.3 'IBM Plex Sans',sans-serif;color:#5c4012")}>{c.title}</strong>
+      <span style={sx("font:400 14px/1.5 'IBM Plex Sans',sans-serif;color:#45473f")}>{c.reason}</span>
+      <span style={sx("font:400 14px/1.5 'IBM Plex Sans',sans-serif;color:#45473f")}>{c.kept}</span>
+      {c.staleNote && <span style={sx("font:400 12px/1.4 'IBM Plex Sans',sans-serif;color:#64665c")}>{c.staleNote}</span>}
+      <div style={sx("display:flex;gap:8px;flex-wrap:wrap")}>
+        {c.suggestLabel && <button onClick={c.suggest} style={sx("border:0;font:600 13px/1 'IBM Plex Sans',sans-serif;padding:10px 14px;background:#2f5a3f;color:#fff;border-radius:7px")}>{c.suggestLabel}</button>}
+        <button onClick={c.choose} style={sx("border:1px solid #2f5a3f;background:#fff;color:#2f5a3f;font:600 13px/1 'IBM Plex Sans',sans-serif;padding:10px 14px;border-radius:7px")}>Choose an eligible premix</button>
+        <button onClick={c.continueWithout} style={sx("border:1px solid #d0cdc3;background:#fff;color:#45473f;font:500 13px/1 'IBM Plex Sans',sans-serif;padding:10px 14px;border-radius:7px")}>Continue without a premix</button>
+      </div>
+    </section>
+  );
+}
+
 // Ingredient step table: tick, name, price, limits (FeedSport Prototype (2)).
 const ING_COLS = "display:grid;gap:12px";
 
@@ -628,6 +647,7 @@ function Setup({ v }: V) {
       </div>
       <div style={sx("flex:1;display:flex;flex-wrap:wrap")}>
         <div style={sx("flex:1 1 560px;min-width:0;padding:32px clamp(16px,4vw,48px);display:flex;flex-direction:column;gap:24px")}>
+          {v.premixConflict && <PremixConflictNotice c={v.premixConflict} />}
           {v.step1 && (
             <>
               <div style={sx("font:600 26px/1.2 'IBM Plex Sans',sans-serif;letter-spacing:-0.015em")}>What are you feeding?</div>
@@ -899,7 +919,7 @@ function Workspace({ v }: V) {
               <span style={sx(`width:8px;height:8px;border-radius:${v.runState.r};background:${v.runState.bg}`)} />
               {v.runState.label}
             </div>
-            <button onClick={v.run} disabled={v.running} style={sx(`border:0;background:${v.runState.btnBg};color:${v.runState.btnFg};font:600 15px/1 'IBM Plex Sans',sans-serif;padding:14px;border-radius:8px`)}>{v.runState.btn}</button>
+            <button onClick={v.run} disabled={v.runDisabled} style={sx(`border:0;background:${v.runState.btnBg};color:${v.runState.btnFg};font:600 15px/1 'IBM Plex Sans',sans-serif;padding:14px;border-radius:8px`)}>{v.runState.btn}</button>
           </div>
         </div>
 
@@ -911,13 +931,14 @@ function Workspace({ v }: V) {
               <span style={sx("color:#b9b6ab")}>{v.runningText}</span>
             </div>
           )}
+          {v.premixConflict && <PremixConflictNotice c={v.premixConflict} />}
           {v.isStale && (
             <div style={sx("background:#fff;border:1px solid #222420;border-radius:10px;padding:16px 18px;display:flex;flex-direction:column;gap:10px")}>
               <div style={sx("display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap")}>
                 <span style={sx("font:600 15px/1.3 'IBM Plex Sans',sans-serif")}>{v.staleTitle}</span>
                 <div style={sx("display:flex;gap:8px")}>
                   <button onClick={v.undoChanges} style={sx("border:0;background:transparent;font:500 13px/1 'IBM Plex Sans',sans-serif;padding:10px 12px;color:#45473f")}>Undo changes</button>
-                  <button onClick={v.run} style={sx("border:0;font:600 13px/1 'IBM Plex Sans',sans-serif;padding:10px 14px;background:#2f5a3f;color:#fff;border-radius:7px")}>Re-formulate</button>
+                  <button onClick={v.run} disabled={v.runDisabled} style={sx(`border:0;font:600 13px/1 'IBM Plex Sans',sans-serif;padding:10px 14px;background:${v.runDisabled ? "#e2dfd6" : "#2f5a3f"};color:${v.runDisabled ? "#8d8a80" : "#fff"};border-radius:7px`)}>Re-formulate</button>
                 </div>
               </div>
               <div style={sx("display:flex;flex-direction:column;gap:4px;font:400 14px/1.4 'IBM Plex Sans',sans-serif;color:#45473f")}>
