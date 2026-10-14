@@ -267,8 +267,7 @@ describe("Caremix is formulated exactly like Sustar: through the generic ingredi
       programme_id: `${PROGRAMME_ID}:${GROWER_PHASE}`,
       ingredient_mode: "selected",
       ingredients: [...BASAL, "caremix-pig-grower"],
-      // Caremix has no planning price: the farmer enters one (illustrative, not a quotation).
-      constraints: { "soybean-degummed-oil": { max_percent: 4 }, "caremix-pig-grower": { price_per_tonne: 900 } },
+      constraints: { "soybean-degummed-oil": { max_percent: 4 } },
     }, { prices: INGREDIENT_DEFAULT_PRICES });
     assert.equal(mcp.status, "optimal");
     if (mcp.status !== "optimal") return;

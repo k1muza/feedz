@@ -17,11 +17,14 @@ const expectedPremixPlanningPrices: Record<string, number> = {
 };
 
 describe("commercial premix planning prices", () => {
-  test("does not invent Caremix premix prices", () => {
-    for (const id of ["caremix-pig-weaner", "caremix-pig-grower", "caremix-pig-finisher"]) {
-      assert.equal(ingredientDefaultPrice(id), undefined);
-      assert.equal(ingredientDefaultPlanningPricePerTonne(id), undefined);
-      assert.equal(ingredientDefaultPricePerKg(id), undefined);
+  test("prices Caremix from the supplier's per-bag quotation, without a planning multiplier", () => {
+    for (const [id, bagUsd, bagKg] of [["caremix-pig-weaner", 42, 17], ["caremix-pig-grower", 31, 16], ["caremix-pig-finisher", 23, 13]] as const) {
+      const source = ingredientDefaultPrice(id);
+      assert.ok(source, id);
+      assert.equal(source.sourceScope, "zimbabwe", id);
+      assert.equal(source.planningMultiplier, undefined, id);
+      assert.match(source.sourceLabel, /Supplier quotation/, id);
+      assert.ok(Math.abs(ingredientDefaultPricePerKg(id)! - bagUsd / bagKg) < 1e-5, id);
     }
   });
 

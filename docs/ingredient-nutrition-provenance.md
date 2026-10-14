@@ -147,9 +147,11 @@ nursery phase has no comparison. See `docs/formulation-assessment.md`.
   source first, then profile-level provenance.
 * `getStudioCatalogue()` returns `nutritionSource` and `nutrientSources`
   for the ingredient details panel. Real premixes are present as ingredients
-  in this catalogue. Their planning prices are explicitly sourced from Alibaba
-  listing midpoints and multiplied by two; they are not represented as supplier
-  quotations and should be replaced by current quotes when available.
+  in this catalogue. Caremix PigWeaner, Pig Grower and Pig Finisher are priced
+  from a Zimbabwe supplier quotation (per bag, ex VAT, converted to per kg with
+  no planning multiplier). The other premixes' planning prices are Alibaba
+  listing midpoints multiplied by two; they are not supplier quotations and
+  should be replaced by current quotes when available.
 * `getIngredient()` / MCP outputs profile-source attribution for both
   Brazilian Tables ingredients and commercial products. MCP `formulate`,
   `analyse_formulation`, manufacturer-recipe diagnostics, featured-formulation
