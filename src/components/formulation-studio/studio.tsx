@@ -9,7 +9,6 @@ import type { IngredientList, IngredientListItemRuleInput } from "@/lib/ingredie
 import { createClient } from "@/lib/supabase/client";
 import { isSupabaseConfigured, supabaseKey, supabaseUrl } from "@/lib/supabase/config";
 import type { CatalogueIngredient, CatalogueNutrientId } from "@/lib/studio-catalogue";
-import type { StudioNutrientData } from "@/lib/studio-nutrients";
 import type { StudioProgrammeData } from "@/lib/studio-programmes";
 import { canAddStudioIngredient, selectStudioIngredient, poolWithCarriedPremixSelection, poolWithPremixPrice, poolWithPremixSelection, poolWithProgrammePremix, poolWithoutPremix, studioPremixConflict } from "@/lib/studio-commercial-premix";
 import { commercialPremixById, commercialPremixCompatibleWithProgramme, commercialPremixSimulationOnlyForPhase } from "@/lib/commercial-premixes";
@@ -67,6 +66,8 @@ import {
 import type { FeaturedFormulation } from "./featured";
 import { useFormulations } from "./use-formulations";
 import { MAX_LIST_LABEL, useMyLists, type MyLists } from "./use-my-lists";
+import { NUTRIENTS, nutrientById } from "./nutrient-data";
+import { DEFAULT_PAGE_SIZE, PAGE_SIZES, pageCount, pagerVals } from "./pager";
 import { StudioView } from "./views";
 import { upperLimitAdvisoryVals } from "./upper-limit-advisory";
 
@@ -296,6 +297,13 @@ interface State {
   /** Phase within it; null is the first phase. */
   progPhase: string | null;
   progAllLimits: boolean;
+  /** Nutrient open on /studio/nutrients/[id]; null shows the list. */
+  nutSel: string | null;
+  /** /studio/nutrients/sources: where each nutrient comes from. */
+  nutSources: boolean;
+  /** Page of the /studio/nutrients list. */
+  nutPage: number;
+  nutPageSize: number;
   addTarget: "pool" | "set";
   auth: Account | null;
   /** Studio URL to return to after signing in. */
@@ -346,8 +354,6 @@ const SITE_PHONE = "263774684534";
 export interface StudioProps {
   /** Real ingredient catalogue, loaded on the server. */
   catalogue: CatalogueIngredient[];
-  /** Real nutrient reference data, built on the server. */
-  nutrients: StudioNutrientData;
   /** Real feeding programmes, built on the server. */
   programmes: StudioProgrammeData;
   /** Published featured formulations, loaded on the server. */
@@ -355,11 +361,7 @@ export interface StudioProps {
   showSolverDetails?: boolean;
 }
 
-// ---- paged tables (catalogue, formulations) ----
-export const PAGE_SIZES = [10, 25, 50];
-const DEFAULT_PAGE_SIZE = PAGE_SIZES[0];
-const pageCount = (total: number, size: number) => Math.max(1, Math.ceil(total / size));
-
+// ---- paged tables (catalogue, formulations, nutrients) ----
 /** ?page= and ?per= read from a URL, falling back to page 1 at the default size. */
 function pageFromParams(params: URLSearchParams) {
   const page = Math.floor(Number(params.get("page")));
@@ -377,29 +379,6 @@ const withQuery = (path: string, params: URLSearchParams) => {
   const query = params.toString();
   return path + (query ? "?" + query : "");
 };
-
-type PageBtn = { label: string; bg: string; fg: string; bd: string; go: () => void };
-
-/** The footer pager shared by paged tables, plus the slice of rows on the current page. */
-function pagerVals(total: number, wantPage: number, size: number, setPage: (p: number) => void, setSize: (n: number) => void) {
-  const pages = pageCount(total, size),
-    page = Math.min(Math.max(1, wantPage), pages);
-  const from = (page - 1) * size,
-    to = Math.min(total, from + size);
-  const goPage = (p: number) => () => p >= 1 && p <= pages && p !== page && setPage(p);
-  const pager = {
-    text: total ? "Showing " + (from + 1) + "–" + to + " of " + total : "0 results", prev: goPage(page - 1), next: goPage(page + 1), prevColor: page > 1 ? "#222420" : "#b9b6ab", nextColor: page < pages ? "#222420" : "#b9b6ab", prevDisabled: page <= 1, nextDisabled: page >= pages,
-    pages: Array.from({ length: pages }, (_, i) => i + 1)
-      .filter((p) => pages <= 7 || p === 1 || p === pages || Math.abs(p - page) <= 1)
-      .reduce<PageBtn[]>((acc, p, i, arr) => {
-        if (i && p - arr[i - 1] > 1) acc.push({ label: "…", bg: "transparent", fg: "#64665c", bd: "transparent", go: () => {} });
-        acc.push({ label: String(p), bg: p === page ? "#222420" : "#fff", fg: p === page ? "#faf8f3" : "#222420", bd: p === page ? "#222420" : "#d0cdc3", go: goPage(p) });
-        return acc;
-      }, []),
-    size: String(size), onSize: (e: InputEvent) => setSize(+e.target.value),
-  };
-  return { from, to, pager };
-}
 
 // ---- ingredient catalogue ----
 const CAT_NUTRIENTS: { id: CatalogueNutrientId; name: string; short: string; unit: string; dp: number }[] = [
@@ -434,7 +413,6 @@ const BASE = "/studio";
 const SIMPLE_ROUTES: [Screen, string][] = [
   ["home", ""],
   ["setup", "/new"],
-  ["nutrients", "/nutrients"],
   ["catalogue", "/catalogue"],
   ["signup", "/signup"],
   ["forgot", "/forgot-password"],
@@ -456,6 +434,10 @@ interface Route {
   list?: { page: number; size: number };
   prog?: { id: string | null; phase: string | null };
   listId?: string | null;
+  nutrientId?: string | null;
+  nutrientSources?: boolean;
+  /** Page of the nutrient list. */
+  nut?: { page: number; size: number };
   next?: string | null;
   /** Set when an OAuth sign-in bounced back with an error. */
   error?: string | null;
@@ -483,6 +465,13 @@ function urlFor(S: State) {
     return withQuery(BASE + "/formulations", params);
   }
   if (S.screen === "signin") return BASE + "/login" + (S.authNext ? "?" + new URLSearchParams({ next: S.authNext }) : "");
+  if (S.screen === "nutrients") {
+    if (S.nutSources) return BASE + "/nutrients/sources";
+    if (S.nutSel) return BASE + "/nutrients/" + encodeURIComponent(S.nutSel);
+    const params = new URLSearchParams();
+    setPageParams(params, S.nutPage, S.nutPageSize);
+    return withQuery(BASE + "/nutrients", params);
+  }
   if (S.screen === "ingredients") return BASE + "/ingredients" + (S.myListSel ? "/" + encodeURIComponent(S.myListSel) : "");
   if (S.screen === "programmes") return BASE + "/programmes" + (S.progSel ? "/" + encodeURIComponent(S.progSel) + (S.progPhase ? "/phases/" + encodeURIComponent(S.progPhase) : "") : "");
   return BASE + SIMPLE_ROUTES.find(([k]) => k === S.screen)![1];
@@ -495,6 +484,9 @@ function parseRoute(pathname: string, params: URLSearchParams): Route | null {
   if (rest === "/formulations") return { screen: "list", list: pageFromParams(params) };
   const list = rest.match(/^\/ingredients(?:\/([^/]+))?$/);
   if (list) return { screen: "ingredients", listId: list[1] ? decodeURIComponent(list[1]) : null };
+  if (rest === "/nutrients/sources") return { screen: "nutrients", nutrientSources: true };
+  const nutrient = rest.match(/^\/nutrients(?:\/([^/]+))?$/);
+  if (nutrient) return { screen: "nutrients", nutrientId: nutrient[1] ? decodeURIComponent(nutrient[1]) : null, nut: pageFromParams(params) };
   const prog = rest.match(/^\/programmes(?:\/([^/]+)(?:\/phases\/([^/]+))?)?$/);
   if (prog) return { screen: "programmes", prog: { id: prog[1] ? decodeURIComponent(prog[1]) : null, phase: prog[2] ? decodeURIComponent(prog[2]) : null } };
   if (rest === "/login") return { screen: "signin", next: safeNext(params.get("next")), error: params.get("error") };
@@ -625,6 +617,9 @@ function enterRoute(s: State, route: Route | null, ctx: RouteContext, url: strin
     case "forgot":
     case "reset":
       return { patch: { ...AUTH_RESET, screen: route.screen } };
+    case "nutrients":
+      if (route.nutrientId && !nutrientById(route.nutrientId)) return { patch: {}, redirect: BASE + "/nutrients" };
+      return { patch: { screen: "nutrients", drawer: null, nutSel: route.nutrientId ?? null, nutSources: !!route.nutrientSources, ...(route.nutrientId || route.nutrientSources ? {} : { nutPage: route.nut!.page, nutPageSize: route.nut!.size }) } };
     case "ingredients":
       return { patch: { screen: "ingredients", drawer: null, myListSel: route.listId ?? null, listRename: null } };
     case "catalogue":
@@ -722,12 +717,12 @@ function draftErr(d: Draft, fs: number) {
 }
 
 const INITIAL: State = {
-  w: 1400, screen: "home", step: 1, species: "swine", programmeId: DEFAULT_PROGRAMME, phaseId: "", setKey: "none", setupListId: null, pool: {}, premixByUser: false, goal: "least_cost", batch: 100, batchMode: "100", customBatch: "", unit: "t", docName: "Untitled formulation", docId: null, pendingDoc: null, pendingCmp: null, result: null, runSig: null, runSnap: null, running: false, runToken: 0, tab: "recipe", drawer: null, advisoriesOpen: false, addOpen: false, addQ: "", addCategory: null, addPick: [], premixOpen: false, premixFilter: "matches", premixPick: null, mode: "optimised", manual: NO_MANUAL_AMOUNTS, manualCheck: null, restoreManual: null, rulesOpen: false, history: [], sel: [], cmp: null, toast: null, dismissed: {}, savedSig: null, savedV: null, saving: false, exporting: false, suggestion: null, completionSuggestion: null, compareOpen: false, recoveryUndo: null, ingQ: "", catQ: "", catSel: null, catPage: 1, catPageSize: DEFAULT_PAGE_SIZE, listPage: 1, listPageSize: DEFAULT_PAGE_SIZE, progSel: null, progPhase: null, progAllLimits: false, addTarget: "pool", auth: null, authNext: null, af: { email: "", password: "", name: "", org: "", role: "farmer" }, aShow: false, aErr: {}, aBusy: false, aGoogleBusy: false, aSent: null, myListSel: null, listRename: null, listCreate: null, sq: "", sOpen: false, sIdx: 0, uOpen: false, nOpen: false, featFilter: "all", cOpen: false, cTopic: "review", cPhone: "", cMsg: "", cAttach: true, cBusy: false, cSent: false, cErr: "",
+  w: 1400, screen: "home", step: 1, species: "swine", programmeId: DEFAULT_PROGRAMME, phaseId: "", setKey: "none", setupListId: null, pool: {}, premixByUser: false, goal: "least_cost", batch: 100, batchMode: "100", customBatch: "", unit: "t", docName: "Untitled formulation", docId: null, pendingDoc: null, pendingCmp: null, result: null, runSig: null, runSnap: null, running: false, runToken: 0, tab: "recipe", drawer: null, advisoriesOpen: false, addOpen: false, addQ: "", addCategory: null, addPick: [], premixOpen: false, premixFilter: "matches", premixPick: null, mode: "optimised", manual: NO_MANUAL_AMOUNTS, manualCheck: null, restoreManual: null, rulesOpen: false, history: [], sel: [], cmp: null, toast: null, dismissed: {}, savedSig: null, savedV: null, saving: false, exporting: false, suggestion: null, completionSuggestion: null, compareOpen: false, recoveryUndo: null, ingQ: "", catQ: "", catSel: null, catPage: 1, catPageSize: DEFAULT_PAGE_SIZE, listPage: 1, listPageSize: DEFAULT_PAGE_SIZE, progSel: null, progPhase: null, progAllLimits: false, nutSel: null, nutSources: false, nutPage: 1, nutPageSize: DEFAULT_PAGE_SIZE, addTarget: "pool", auth: null, authNext: null, af: { email: "", password: "", name: "", org: "", role: "farmer" }, aShow: false, aErr: {}, aBusy: false, aGoogleBusy: false, aSent: null, myListSel: null, listRename: null, listCreate: null, sq: "", sOpen: false, sIdx: 0, uOpen: false, nOpen: false, featFilter: "all", cOpen: false, cTopic: "review", cPhone: "", cMsg: "", cAttach: true, cBusy: false, cSent: false, cErr: "",
 };
 
 const spinnerStyle = (track: string, head: string): CSSProperties => ({ width: 16, height: 16, borderRadius: "50%", border: "2px solid " + track, borderTopColor: head, display: "inline-block", animation: "fsspin .8s linear infinite", flex: "none" });
 
-function useStudio({ catalogue, nutrients, programmes, featured: featuredList, showSolverDetails = false }: StudioProps) {
+function useStudio({ catalogue, programmes, featured: featuredList, showSolverDetails = false }: StudioProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -1421,7 +1416,7 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
   const onAuth = isAuthScreen(S.screen) || AUTH_PATHS.includes(pathname);
   const wide = S.w >= 1000 && !onAuth;
   const narrow = S.w < 1000 && !onAuth;
-  const go = (screen: Screen) => () => update({ screen, drawer: null, advisoriesOpen: false });
+  const go = (screen: Screen) => () => update({ screen, drawer: null, advisoriesOpen: false, ...(screen === "nutrients" ? { nutSel: null, nutSources: false } : {}) });
   const nav = ready
     ? (
         [
@@ -2247,7 +2242,7 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
     ...topBarVals(S, {
       update, searchRef, startGuided, startBlank: () => openWorkspace({}, "Untitled formulation"), openVersion, openDrawer, openAdvice,
       markAllAdviceRead: () => formulations.markAdviceRead(formulations.docs.flatMap((d) => d.advice.map((a) => a.id))),
-      docs: formulations.docs, catalogue, myLists, programmes, nutrients,
+      docs: formulations.docs, catalogue, myLists, programmes,
     }),
     ...featuredVals(S, featuredList, featured, { update, run, flash, programmes }),
     ...contactVals(S, {
@@ -2267,7 +2262,7 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
       docSub: optimal ? prog.name + " · " + (optimal.costExcludesPremix ? "cost excludes premix quote" : money(optimal.costT) + "/t") + " · settings, prices and result included" : prog.name + " · no valid recipe · settings and diagnosis included",
     }),
     ...libraryVals(S, {
-      update, flash, catalogue, nutrients, programmes, myLists, replaceUrl: () => (replaceNext.current = true),
+      update, flash, catalogue, programmes, myLists, replaceUrl: () => (replaceNext.current = true),
       formulateWithList: (list: IngredientList) => openWorkspace(poolFromList(list), list.label),
       formulateProgramme: (programmeId: string, phaseId: string) => {
         const list = myLists.lists.find((l) => l.isDefault) ?? myLists.lists[0] ?? null;
@@ -3076,7 +3071,6 @@ function libraryVals(
     update: Update;
     flash: (m: string) => void;
     catalogue: CatalogueIngredient[];
-    nutrients: StudioNutrientData;
     programmes: StudioProgrammeData;
     myLists: MyLists;
     replaceUrl: () => void;
@@ -3289,25 +3283,25 @@ function libraryVals(
     progLimMore: progLimRows.length > LIMITS_PREVIEW ? { label: S.progAllLimits ? "Show the tightest " + LIMITS_PREVIEW : "Show all " + progLimRows.length + " ingredients", toggle: () => update({ progAllLimits: !S.progAllLimits }) } : null,
     progLimNote: phase.columnLabel ? "Limits: " + ctx.programmes.limitsSource + ", " + phase.columnLabel + " column, tightest first." : "Table 1.01 publishes no column for this stage.",
     formulateProg: () => ctx.formulateProgramme(PP.id, phase.id),
-    nutGroups: [...new Set(ctx.nutrients.nutrients.map((n) => n.group))].map((group) => ({
-      label: group,
-      items: ctx.nutrients.nutrients
-        .filter((n) => n.group === group)
-        .map((n) => {
-          const { programmeCount, ingredientCount } = ctx.nutrients;
-          const all = n.ingredientsWithValue === ingredientCount;
-          return {
-            name: n.name,
-            unit: n.units.join(" · "),
-            desc: n.description + " " + n.formulationRole,
-            used: n.programmesRequiring ? "Required in " + n.programmesRequiring + " of " + programmeCount + " programmes" : "Not required by any programme",
-            // Most ingredients carry no vitamin or trace-mineral data by design,
-            // so partial coverage is reported plainly rather than as an error.
-            miss: all ? "All " + ingredientCount + " ingredients have a value" : "Values for " + n.ingredientsWithValue + " of " + ingredientCount + " ingredients",
-            missColor: all ? "#2b6a42" : "#64665c",
-          };
-        }),
-    })),
+    nutView: {
+      catalogue, programmes: ctx.programmes, sel: S.nutSel, sources: S.nutSources,
+      open: (id: string) => {
+        update({ screen: "nutrients", nutSel: id, nutSources: false });
+        window.scrollTo(0, 0);
+      },
+      openSources: () => {
+        update({ screen: "nutrients", nutSel: null, nutSources: true });
+        window.scrollTo(0, 0);
+      },
+      goList: () => update({ screen: "nutrients", nutSel: null, nutSources: false }),
+      page: S.nutPage,
+      pageSize: S.nutPageSize,
+      setPage: (page: number, replace = false) => {
+        if (replace) ctx.replaceUrl(); // a new search or filter shouldn't add a history entry
+        update({ nutPage: page });
+      },
+      setPageSize: (size: number) => update({ nutPageSize: size, nutPage: 1 }),
+    },
     catQ: S.catQ,
     onCatQ: (e: InputEvent) => {
       ctx.replaceUrl(); // typing shouldn't add a history entry per keystroke
@@ -3348,7 +3342,6 @@ function topBarVals(
     catalogue: CatalogueIngredient[];
     myLists: MyLists;
     programmes: StudioProgrammeData;
-    nutrients: StudioNutrientData;
   },
 ) {
   const { update, myLists, programmes } = ctx;
@@ -3366,7 +3359,7 @@ function topBarVals(
   add("Actions", "+", "New formulation", "Guided: animal, ingredients, goal", () => { close(); ctx.startGuided(); }, "create start formulate");
   add("Actions", "+", "Open a blank workspace", "Skip the guide and set everything yourself", () => { close(); ctx.startBlank(); }, "advanced new");
   ([["home", "Home"], ["list", "Formulations"], ["ingredients", "My ingredients"], ["programmes", "Feeding programmes"], ["nutrients", "Nutrient data"], ["catalogue", "Ingredient catalogue"]] as [Screen, string][]).forEach(([screen, label]) =>
-    add("Pages", "→", label, "Go to page", nav({ screen }), "page"),
+    add("Pages", "→", label, "Go to page", nav({ screen, ...(screen === "nutrients" ? { nutSel: null, nutSources: false } : {}) }), "page"),
   );
   ctx.docs.forEach((d) => {
     const v = d.versions[d.versions.length - 1];
@@ -3384,7 +3377,8 @@ function topBarVals(
     add("Programmes", "P", p.name, p.source + " · " + p.phases.length + " phase" + (p.phases.length === 1 ? "" : "s"), nav({ screen: "programmes", progSel: p.id, progPhase: null, progAllLimits: false }),
       (p.species === "swine" ? "pigs swine sow" : "poultry broiler chicken") + " programme stage " + p.phases.map((ph) => ph.label).join(" ")),
   );
-  ctx.nutrients.nutrients.forEach((n) => add("Nutrients", "N", n.name, n.units.join(" · ") + " · nutrient reference", nav({ screen: "nutrients" }), n.shortName + " " + n.group + " nutrient"));
+  add("Pages", "→", "Where each nutrient comes from", "Ingredients against nutrients", nav({ screen: "nutrients", nutSel: null, nutSources: true }), "page heatmap nutrient sources");
+  NUTRIENTS.forEach((n) => add("Nutrients", "N", n.name, n.unit + " · " + n.group, nav({ screen: "nutrients", nutSel: n.id, nutSources: false }), n.shortName + " " + n.noun + " nutrient"));
 
   const q = S.sq.trim().toLowerCase();
   const toks = q.split(/\s+/).filter(Boolean);

@@ -525,7 +525,7 @@ export function suggestPremixReplacement(
       reasons.push(`meets all ${option.requirementsTotal} hard requirements; the current premix's recipe meets ${current.requirementsMet}`);
     }
     if (option.supplementationAt > current.supplementationAt) {
-      reasons.push(`${option.supplementationAt} of ${option.supplementationTotal} Chapter 7 recommendations reached instead of ${current.supplementationAt}`);
+      reasons.push(`${option.supplementationAt} of ${option.supplementationTotal} recommendations reached instead of ${current.supplementationAt}`);
     }
     if (!option.costExcludesPremix && !current.costExcludesPremix && option.costPerTonne !== null && current.costPerTonne !== null &&
       option.costPerTonne < current.costPerTonne - 0.005) {

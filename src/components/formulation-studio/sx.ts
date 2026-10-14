@@ -51,6 +51,10 @@ export const HOVER = {
   danger: "background:#fdf3f0",
   light: "background:#fff",
   outline: "background:#eef3ee",
+  rowLite: "background:#fcfbf7",
+  back: "color:#1f3e2b",
+  edge: "border-color:#8d8a80",
+  stage: "background:#f7f5ef",
 } as const;
 
 export const hv = (k: keyof typeof HOVER) => "fsh-" + k;

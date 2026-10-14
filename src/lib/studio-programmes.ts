@@ -1,6 +1,7 @@
 import "server-only";
 
 import { FEED_PROGRAMMES } from "@/lib/feed-programmes";
+import { feedNutrientById } from "@/lib/feed-nutrients";
 import { buildConstraintSpecs } from "@/lib/feed-optimizer";
 import {
   BRAZILIAN_INCLUSION_SOURCE,
@@ -19,6 +20,8 @@ import type { NutritionPhase, NutritionPhaseClass } from "@/lib/nutrition";
 // the column, so they are stored once per column rather than per phase.
 
 export interface StudioRequirementField {
+  /** Id in FEED_NUTRIENTS, which supplies the name, unit and kind. */
+  nutrientId: string;
   name: string;
   /** Broiler tables name this nutrient differently. */
   broilerName?: string;
@@ -96,28 +99,37 @@ export function studioNutrientConstraints(phase: NutritionPhase) {
 
 const GROWING: NutritionPhaseClass[] = ["pre-starter", "starter", "grower", "finisher"];
 
-const REQUIREMENTS: (StudioRequirementField & { pick: (phase: NutritionPhase) => number | undefined })[] = [
-  { name: "Metabolizable energy", unit: "kcal/kg", kind: "target", pick: (p) => p.requirements.metabolizableEnergyKcalKg },
-  { name: "Net energy", unit: "kcal/kg", kind: "target", pick: (p) => p.requirements.netEnergyKcalKg },
-  { name: "Crude protein", unit: "%", kind: "minimum", pick: (p) => p.requirements.crudeProteinPct },
-  { name: "Digestible protein", unit: "%", kind: "minimum", pick: (p) => p.requirements.digestibleProteinPct },
-  { name: "SID lysine", unit: "%", kind: "minimum", pick: (p) => p.requirements.sidAminoAcidsPct.lysine },
-  { name: "SID methionine + cysteine", unit: "%", kind: "minimum", pick: (p) => p.requirements.sidAminoAcidsPct.methionineCysteine },
-  { name: "SID threonine", unit: "%", kind: "minimum", pick: (p) => p.requirements.sidAminoAcidsPct.threonine },
-  { name: "SID tryptophan", unit: "%", kind: "minimum", pick: (p) => p.requirements.sidAminoAcidsPct.tryptophan },
-  { name: "SID valine", unit: "%", kind: "minimum", pick: (p) => p.requirements.sidAminoAcidsPct.valine },
-  { name: "SID isoleucine", unit: "%", kind: "minimum", pick: (p) => p.requirements.sidAminoAcidsPct.isoleucine },
-  { name: "SID leucine", unit: "%", kind: "minimum", pick: (p) => p.requirements.sidAminoAcidsPct.leucine },
-  { name: "SID histidine", unit: "%", kind: "minimum", pick: (p) => p.requirements.sidAminoAcidsPct.histidine },
-  { name: "SID phenylalanine + tyrosine", unit: "%", kind: "minimum", pick: (p) => p.requirements.sidAminoAcidsPct.phenylalanineTyrosine },
-  { name: "Calcium", unit: "%", kind: "minimum", pick: (p) => p.requirements.minerals.calciumPct },
-  { name: "Standardized digestible phosphorus", broilerName: "Digestible phosphorus", unit: "%", kind: "minimum", pick: (p) => p.requirements.minerals.sttdPhosphorusPct },
-  { name: "Available phosphorus", unit: "%", kind: "minimum", pick: (p) => p.requirements.minerals.availablePhosphorusPct },
-  { name: "Potassium", unit: "%", kind: "minimum", pick: (p) => p.requirements.potassiumPct },
-  { name: "Sodium", unit: "%", kind: "minimum", pick: (p) => p.requirements.minerals.sodiumPct },
-  { name: "Chlorine", unit: "%", kind: "minimum", pick: (p) => p.requirements.minerals.chloridePct },
-  { name: "Linoleic acid", unit: "%", kind: "minimum", pick: (p) => p.requirements.linoleicAcidPct },
+// The requirements a phase publishes, in display order. Names, units and
+// minimum/target come from FEED_NUTRIENTS.
+const REQUIREMENT_PICKS: [nutrientId: string, pick: (phase: NutritionPhase) => number | undefined, broilerName?: string][] = [
+  ["metabolizable-energy", (p) => p.requirements.metabolizableEnergyKcalKg],
+  ["net-energy", (p) => p.requirements.netEnergyKcalKg],
+  ["crude-protein", (p) => p.requirements.crudeProteinPct],
+  ["digestible-protein", (p) => p.requirements.digestibleProteinPct],
+  ["sid-lysine", (p) => p.requirements.sidAminoAcidsPct.lysine],
+  ["sid-methionine-cysteine", (p) => p.requirements.sidAminoAcidsPct.methionineCysteine],
+  ["sid-threonine", (p) => p.requirements.sidAminoAcidsPct.threonine],
+  ["sid-tryptophan", (p) => p.requirements.sidAminoAcidsPct.tryptophan],
+  ["sid-valine", (p) => p.requirements.sidAminoAcidsPct.valine],
+  ["sid-isoleucine", (p) => p.requirements.sidAminoAcidsPct.isoleucine],
+  ["sid-leucine", (p) => p.requirements.sidAminoAcidsPct.leucine],
+  ["sid-histidine", (p) => p.requirements.sidAminoAcidsPct.histidine],
+  ["sid-phenylalanine-tyrosine", (p) => p.requirements.sidAminoAcidsPct.phenylalanineTyrosine],
+  ["calcium", (p) => p.requirements.minerals.calciumPct],
+  // Broiler tables name this nutrient differently.
+  ["sttd-phosphorus", (p) => p.requirements.minerals.sttdPhosphorusPct, "Digestible phosphorus"],
+  ["available-phosphorus", (p) => p.requirements.minerals.availablePhosphorusPct],
+  ["potassium", (p) => p.requirements.potassiumPct],
+  ["sodium", (p) => p.requirements.minerals.sodiumPct],
+  ["chloride", (p) => p.requirements.minerals.chloridePct],
+  ["linoleic-acid", (p) => p.requirements.linoleicAcidPct],
 ];
+
+const REQUIREMENTS: (StudioRequirementField & { pick: (phase: NutritionPhase) => number | undefined })[] = REQUIREMENT_PICKS.map(([nutrientId, pick, broilerName]) => {
+  const nutrient = feedNutrientById(nutrientId);
+  if (!nutrient?.requirement) throw new Error(`Requirement field ${nutrientId} needs a FEED_NUTRIENTS entry with a requirement kind`);
+  return { nutrientId, name: nutrient.name, ...(broilerName ? { broilerName } : {}), unit: nutrient.units[0], kind: nutrient.requirement, pick };
+});
 
 function programmeLimitsOf(phase: NutritionPhase) {
   const practical = phase.requirements.practical;
@@ -205,7 +217,7 @@ export function getStudioProgrammes(): StudioProgrammeData {
 
   return {
     constraintMeta,
-    requirementFields: REQUIREMENTS.map(({ name, broilerName, unit, kind }) => ({ name, ...(broilerName ? { broilerName } : {}), unit, kind })),
+    requirementFields: REQUIREMENTS.map(({ nutrientId, name, broilerName, unit, kind }) => ({ nutrientId, name, ...(broilerName ? { broilerName } : {}), unit, kind })),
     programmes,
     limits,
     aggregateLimits,

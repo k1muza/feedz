@@ -426,7 +426,7 @@ export function documentationGapLine(assessment: Pick<FormulationAssessment, "do
   const labels = [...new Set(assessment.documentationGaps.map((gap) => gap.label))];
   if (!labels.length) return null;
   const listed = labels.length > 6 ? `${labels.slice(0, 6).join(", ")} and ${labels.length - 6} more` : labels.join(", ");
-  return `Premix documentation is incomplete for ${labels.length} value${labels.length === 1 ? "" : "s"} (${listed}). Check with the manufacturer before manufacturing.`;
+  return `Premix documentation is incomplete for ${labels.length} value${labels.length === 1 ? "" : "s"} (${listed}).`;
 }
 
 /**

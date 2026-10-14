@@ -3,7 +3,9 @@ import { useState, type ReactNode } from "react";
 
 import { IngredientPoolPanel } from "./ingredient-pool-panel";
 import { InfoTip } from "./info-tip";
-import { PAGE_SIZES, type ShellVals, type StudioVals } from "./studio";
+import { NutrientData } from "./nutrient-data-view";
+import { Pager } from "./pager";
+import type { ShellVals, StudioVals } from "./studio";
 import { ADV_LINK, CARD, DataTag, Diamond, MONO_HEAD, StatusGlyph } from "./marks";
 import { STUDIO_CSS, hv, sx } from "./sx";
 import { UpperLimitAdvisories, UpperLimitTable } from "./upper-limit-cards";
@@ -98,7 +100,7 @@ export function StudioView(props: { loading: true; shell: ShellVals } | { loadin
           {v && v.isList && <List v={v} />}
           {v && v.isIngredients && <MyIngredients v={v} />}
           {v && v.isProgrammes && <Programmes v={v} />}
-          {v && v.isNutrientsRef && <NutrientData v={v} />}
+          {v && v.isNutrientsRef && <NutrientData {...v.nutView} />}
           {v && v.isCatalogue && <Catalogue v={v} />}
           {v && v.isCompare && <Compare v={v} />}
         </div>
@@ -2108,60 +2110,6 @@ function Programmes({ v }: V) {
             <div style={sx("padding:12px 18px;border-top:1px solid #ece8df;font:400 12px/1.5 'IBM Plex Sans',sans-serif;color:#64665c")}>Hard limits are sent to the optimiser; users can tighten them but not exceed them. Guidelines are checked after solving and shown as advisories. {v.progLimNote}</div>
           </div>
         </div>
-      </div>
-    </div>
-  );
-}
-
-function NutrientData({ v }: V) {
-  return (
-    <div style={sx("padding:36px clamp(16px,4vw,40px);display:flex;flex-direction:column;gap:20px;max-width:1600px;width:100%;margin:0 auto;animation:fsin .25s ease-out")}>
-      <RefHeader title="Nutrient data" intro="The nutrients FeedSport tracks, how they're measured, and where data is missing. Values are on an as-fed basis." />
-      {v.nutGroups.map((g) => (
-        <div key={g.label} style={sx("display:flex;flex-direction:column;gap:10px")}>
-          <span style={sx(MONO_LABEL)}>{g.label}</span>
-          <div style={sx("display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px")}>
-            {g.items.map((n) => (
-              <div key={n.name} style={sx("background:#fff;border:1px solid #e2dfd6;border-radius:10px;padding:16px 18px;display:flex;flex-direction:column;gap:8px")}>
-                <div style={sx("display:flex;justify-content:space-between;align-items:baseline;gap:10px")}>
-                  <span style={sx("font:600 15px/1.25 'IBM Plex Sans',sans-serif")}>{n.name}</span>
-                  <span style={sx("font:500 12px/1 'IBM Plex Mono',monospace;color:#64665c")}>{n.unit}</span>
-                </div>
-                <span style={sx("font:400 13px/1.5 'IBM Plex Sans',sans-serif;color:#45473f")}>{n.desc}</span>
-                <div style={sx("display:flex;justify-content:space-between;gap:10px;padding-top:8px;border-top:1px solid #ece8df;font:400 12px/1.4 'IBM Plex Sans',sans-serif;flex-wrap:wrap;margin-top:auto")}>
-                  <span style={sx("color:#45473f")}>{n.used}</span>
-                  <span style={sx(`color:${n.missColor}`)}>{n.miss}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-// Footer of a paged table: the range shown, page size, and page buttons.
-function Pager({ pg }: { pg: StudioVals["catPager"] }) {
-  return (
-    <div style={sx("display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 18px;border-top:1px solid #e2dfd6;background:#faf8f3;flex-wrap:wrap;position:sticky;left:0")}>
-      <div style={sx("display:flex;align-items:center;gap:12px;font:400 13px/1 'IBM Plex Sans',sans-serif;color:#45473f")}>
-        <span>{pg.text}</span>
-        <label style={sx("display:flex;align-items:center;gap:6px;color:#64665c")}>
-          Per page
-          <select value={pg.size} onChange={pg.onSize} style={sx("font:500 13px/1 'IBM Plex Sans',sans-serif;padding:5px 6px;border:1px solid #d0cdc3;border-radius:6px;background:#fff;color:#222420")}>
-            {PAGE_SIZES.map((n) => (
-              <option key={n} value={n}>{n}</option>
-            ))}
-          </select>
-        </label>
-      </div>
-      <div style={sx("display:flex;align-items:center;gap:6px")}>
-        <button onClick={pg.prev} disabled={pg.prevDisabled} aria-label="Previous page" style={sx(`border:1px solid #d0cdc3;background:#fff;color:${pg.prevColor};font:500 13px/1 'IBM Plex Sans',sans-serif;padding:7px 10px;border-radius:6px`)}>‹ Prev</button>
-        {pg.pages.map((p, i) => (
-          <button key={i} onClick={p.go} style={sx(`min-width:32px;border:1px solid ${p.bd};background:${p.bg};color:${p.fg};font:600 13px/1 'IBM Plex Sans',sans-serif;padding:7px 8px;border-radius:6px`)}>{p.label}</button>
-        ))}
-        <button onClick={pg.next} disabled={pg.nextDisabled} aria-label="Next page" style={sx(`border:1px solid #d0cdc3;background:#fff;color:${pg.nextColor};font:500 13px/1 'IBM Plex Sans',sans-serif;padding:7px 10px;border-radius:6px`)}>Next ›</button>
       </div>
     </div>
   );
