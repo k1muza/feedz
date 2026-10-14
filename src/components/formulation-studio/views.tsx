@@ -4,6 +4,7 @@ import { useState, type ReactNode } from "react";
 import { IngredientPoolPanel } from "./ingredient-pool-panel";
 import { CAT_PAGE_SIZES, type ShellVals, type StudioVals } from "./studio";
 import { STUDIO_CSS, hv, sx } from "./sx";
+import { INCLUSION_INPUT_PROPS } from "@/lib/inclusion-input";
 
 // Markup for the formulation studio, transcribed from the prototype template in
 // design/FeedSport Prototype.html. Inline style strings are kept as written in
@@ -1296,7 +1297,7 @@ function RecipeTable({ v, opt }: V & { opt: OptVals }) {
                 {r.sub && <span style={sx(`font:400 12px/1.35 'IBM Plex Sans',sans-serif;color:${r.isPremix ? "#64665c" : "#2b6a42"}`)}>{r.sub}</span>}
               </button>
               {v.isManual ? (
-                <input type="number" step="0.1" min="0" max="100" value={r.manual} onChange={r.onManual} aria-label={r.name + " inclusion, %"} style={sx("width:90px;padding:6px 8px;border:1px solid #d0cdc3;border-radius:6px;font:600 14px/1 'IBM Plex Sans',sans-serif;text-align:right")} />
+                <input {...INCLUSION_INPUT_PROPS} value={r.manual} onChange={r.onManual} aria-label={r.name + " inclusion, %"} style={sx("width:90px;padding:6px 8px;border:1px solid #d0cdc3;border-radius:6px;font:600 14px/1 'IBM Plex Sans',sans-serif;text-align:right")} />
               ) : (
                 <span style={sx("display:flex;align-items:center;gap:10px")}>
                   <span style={sx("width:52px;text-align:right;font-weight:600")}>{r.pctTxt}</span>
@@ -2388,7 +2389,7 @@ function Drawer({ v, d }: V & { d: NonNullable<StudioVals["d"]> }) {
                   <label style={sx("flex:1;min-width:0;display:flex;flex-direction:column;gap:6px;font:500 13px/1 'IBM Plex Sans',sans-serif")}>
                     {d.minLabel.replace(" %", "")}
                     <span style={sx("display:flex;align-items:center;padding:0 12px;border:1px solid #d0cdc3;border-radius:7px")}>
-                      <input type="number" step="0.1" min="0" value={d.min} onChange={d.onMin} placeholder="0" style={sx("flex:1;min-width:0;border:0;padding:11px 0;font:500 15px/1 'IBM Plex Sans',sans-serif;outline:none")} />
+                      <input {...INCLUSION_INPUT_PROPS} value={d.min} onChange={d.onMin} placeholder="0" style={sx("flex:1;min-width:0;border:0;padding:11px 0;font:500 15px/1 'IBM Plex Sans',sans-serif;outline:none")} />
                       <span style={sx("color:#64665c")}>%</span>
                     </span>
                   </label>
@@ -2397,7 +2398,7 @@ function Drawer({ v, d }: V & { d: NonNullable<StudioVals["d"]> }) {
                   <label style={sx("flex:1;min-width:0;display:flex;flex-direction:column;gap:6px;font:500 13px/1 'IBM Plex Sans',sans-serif")}>
                     {d.maxLabel.replace(" %", "")}
                     <span style={sx("display:flex;align-items:center;padding:0 12px;border:1px solid #d0cdc3;border-radius:7px")}>
-                      <input type="number" step="0.1" min="0" value={d.max} onChange={d.onMax} placeholder={d.maxPh === "No limit" ? "none" : d.maxPh} style={sx("flex:1;min-width:0;border:0;padding:11px 0;font:500 15px/1 'IBM Plex Sans',sans-serif;outline:none")} />
+                      <input {...INCLUSION_INPUT_PROPS} value={d.max} onChange={d.onMax} placeholder={d.maxPh === "No limit" ? "none" : d.maxPh} style={sx("flex:1;min-width:0;border:0;padding:11px 0;font:500 15px/1 'IBM Plex Sans',sans-serif;outline:none")} />
                       <span style={sx("color:#64665c")}>%</span>
                     </span>
                   </label>

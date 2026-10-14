@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { INCLUSION_INPUT_PROPS } from "@/lib/inclusion-input";
 import { useRouter } from "next/navigation";
 import {
   AlertTriangle,
@@ -1165,10 +1166,7 @@ export function FeedFormulationWorkbench({
                       </td>
                       <td className="px-3 py-2.5">
                         <Input
-                          type="number"
-                          min="0"
-                          max="100"
-                          step="0.1"
+                          {...INCLUSION_INPUT_PROPS}
                           value={row.min}
                           disabled={row.lockedPct.trim() !== ""}
                           placeholder={ingredient?.minInclusionPct?.toString() ?? "0"}
@@ -1177,10 +1175,7 @@ export function FeedFormulationWorkbench({
                       </td>
                       <td className="px-3 py-2.5">
                         <Input
-                          type="number"
-                          min="0"
-                          max="100"
-                          step="0.1"
+                          {...INCLUSION_INPUT_PROPS}
                           value={row.max}
                           disabled={row.lockedPct.trim() !== ""}
                           placeholder={(
@@ -1193,10 +1188,7 @@ export function FeedFormulationWorkbench({
                       </td>
                       <td className="px-3 py-2.5">
                         <Input
-                          type="number"
-                          min="0"
-                          max="100"
-                          step="0.1"
+                          {...INCLUSION_INPUT_PROPS}
                           value={row.lockedPct}
                           placeholder="—"
                           title="Set an exact inclusion percentage. This overrides Min % and Max % for this ingredient."

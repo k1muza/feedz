@@ -652,6 +652,8 @@ function draftErr(d: Draft, fs: number) {
   const m = d.min === "" ? null : +d.min,
     mx = d.max === "" ? null : +d.max;
   if (d.listRole === "excluded") return null;
+  if (m != null && !Number.isFinite(m)) return "Enter the minimum as a number.";
+  if (mx != null && !Number.isFinite(mx)) return "Enter the maximum as a number.";
   if (d.listRole === "required" && !(m != null && m > 0)) return "A required ingredient needs a minimum above 0%.";
   if (d.listRole === "fixed" && !(m != null && m > 0)) return "A fixed ingredient needs an inclusion above 0%.";
   if (m != null && m < 0) return "Minimum can’t be negative.";

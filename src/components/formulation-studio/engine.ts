@@ -2,6 +2,7 @@ import type { CatalogueIngredient } from "@/lib/studio-catalogue";
 import { commercialPremixById } from "@/lib/commercial-premixes";
 import { studioPremixProblems } from "@/lib/studio-commercial-premix";
 import { isCompleteInclusionTotal } from "@/lib/inclusion-total";
+import { isValidInclusionPct } from "@/lib/inclusion-input";
 import { INCLUSION_TOLERANCE_PCT, distinguishingDp, exactDp, nutrientFeasibilityTolerance, withinBound } from "@/lib/numerical-tolerance";
 import type { IngredientListItem } from "@/lib/ingredient-lists";
 import type { StudioPhase, StudioProgramme, StudioProgrammeData } from "@/lib/studio-programmes";
@@ -546,8 +547,8 @@ export function validateManualRecipe(snap: Snapshot, pct: Record<string, number>
   const total = values.reduce((sum, [, value]) => sum + (Number.isFinite(value) ? value : 0), 0);
 
   for (const [id, value] of values) {
-    if (!Number.isFinite(value) || value < 0) {
-      issues.push({ id, title: "Enter a valid amount for " + nameOf(ctx, id), body: "Ingredient amounts must be zero or a positive percentage." });
+    if (!isValidInclusionPct(value)) {
+      issues.push({ id, title: "Enter a valid amount for " + nameOf(ctx, id), body: "Ingredient amounts must be a percentage from 0% to 100%." });
     }
     if (!ctx.catalogue.has(id)) {
       issues.push({ id, title: "Unknown ingredient " + id, body: "This ingredient is not in the FeedSport catalogue and cannot be checked." });
@@ -661,8 +662,13 @@ export interface ManualAmounts {
 
 export const NO_MANUAL_AMOUNTS: ManualAmounts = { typed: {}, exact: {} };
 
-/** How a calculated amount is shown for editing. */
-export const shownAmount = (pct: number) => String(+pct.toFixed(2));
+/**
+ * How a calculated amount is shown for editing: two decimals, or two
+ * significant figures below 0.1% so a small inclusion (0.00018% L-tryptophan)
+ * never reads as 0. The exact amount stays behind it either way.
+ */
+export const shownAmount = (pct: number) =>
+  String(+pct.toFixed(pct > 0 && pct < 0.1 ? Math.min(8, 1 - Math.floor(Math.log10(pct) + 1e-9)) : 2));
 
 /** The amounts that count: exact values not retyped since, then typed numbers, leaving out zeros. */
 export function manualPct({ typed, exact }: ManualAmounts): Record<string, number> {
