@@ -434,6 +434,20 @@ describe("CFIA maximum nutrient values", () => {
     assert.ok(bytes.length > 10_000);
   });
 
+  it("premix comparison: an alternative without a recipe for the selected goal is never recommended", () => {
+    // Its recipe fell back to least cost, so it was not evaluated on the farmer's goal.
+    const assessment = vitaminAExceedance(56000);
+    const current = option({ premixId: "current", current: true, costPerTonne: 400, vitaminLimits: [vitamin("vitamin-a", 56000, 20000, "exceeds")] });
+    const fallback = option({ premixId: "fallback", goalUnavailable: true, costPerTonne: 300, supplementationAt: 10, vitaminLimits: [vitamin("vitamin-a", 9000, 20000, "within")] });
+    const advice = adviseOnVitaminLimits(assessment, current, [fallback], { id: "current", name: "Current" })!;
+    assert.equal(advice.recommendation, null);
+    assert.match(advice.notRecommended[0].reason, /no recipe for the selected goal/);
+    assert.deepEqual(suggestPremixReplacement(current, [fallback]), { suggestedPremixId: null, reasons: [] });
+    assert.deepEqual(suggestPremixReplacement(null, [fallback]), { suggestedPremixId: null, reasons: [] });
+    // The same premix with a goal recipe is recommended.
+    assert.equal(adviseOnVitaminLimits(assessment, current, [{ ...fallback, goalUnavailable: undefined }], { id: "current", name: "Current" })!.recommendation?.premixId, "fallback");
+  });
+
   it("premix comparison: a general suggestion never trades a new vitamin exceedance for cost or Chapter 7", () => {
     const current = option({ premixId: "current", current: true, costPerTonne: 400, supplementationAt: 4, vitaminLimits: [vitamin("vitamin-a", 10000, 20000, "within")] });
     const cheaperButHigh = option({ premixId: "cheap", costPerTonne: 300, supplementationAt: 10, vitaminLimits: [vitamin("vitamin-a", 56000, 20000, "exceeds")] });

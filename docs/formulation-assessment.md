@@ -210,8 +210,9 @@ introduces or worsens a known CFIA vitamin exceedance is never suggested,
 however cheap. A validated CFIA vitamin replacement takes precedence over
 these reasons. When the farmer views a simpler, lower-soy or lower-import
 recipe, every premix is re-run on that same goal (`PremixComparison.goal`); an
-alternative with no such recipe within 3% shows its least-cost recipe and is
-flagged `goalUnavailable`. `premixRecipeEffect` re-runs the recipe without the premix's macro
+alternative with no such recipe within 3% shows its least-cost recipe, is
+flagged `goalUnavailable` and is never suggested or recommended, because it
+was not evaluated on the farmer's goal. `premixRecipeEffect` re-runs the recipe without the premix's macro
 contributions to explain, for example, "0.07% less L-lysine HCl because the
 premix supplies SID lysine".
 

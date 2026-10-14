@@ -2567,7 +2567,7 @@ function optimalVals(
       const delta = base && option !== base && option.costPerTonne !== null && base.costPerTonne !== null && !option.costExcludesPremix && !base.costExcludesPremix ? option.costPerTonne - base.costPerTonne : null;
       return {
         key: option.premixId,
-        badge: option.current ? (leastCostBasis ? "Current · least cost" : "Current") : option.premixId === comparison.suggestedPremixId ? "Suggested" : "Also eligible",
+        badge: option.current ? (leastCostBasis ? "Current · least cost" : "Current") : option.premixId === comparison.suggestedPremixId ? "Suggested" : option.goalUnavailable ? "Least cost · no " + GOALS[runSnap.goal].label.toLowerCase() + " recipe" : "Also eligible",
         suggested: option.premixId === comparison.suggestedPremixId,
         name: premixName(option.premixId),
         dose: option.inclusionKgPerTonne + " kg/t · fixed " + fmt(option.inclusionPct, option.inclusionPct < 1 ? 1 : 1) + "%",

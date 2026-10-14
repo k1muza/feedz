@@ -509,6 +509,8 @@ export function suggestPremixReplacement(
 ): { suggestedPremixId: string | null; reasons: string[] } {
   const reasonsFor = (option: PremixOption): string[] => {
     if (option.status !== "optimal" || option.requirementsMet < option.requirementsTotal) return [];
+    // Its recipe was formulated for least cost, not the goal shown: not comparable.
+    if (option.goalUnavailable) return [];
     const tradeOffs = vitaminTradeOffs(current?.vitaminLimits, option);
     if (!current) {
       return [
@@ -553,7 +555,8 @@ export function suggestPremixReplacement(
  * An alternative is recommended only when it is on-label for the phase, its
  * re-run meets every hard requirement, it documents every exceeded vitamin,
  * it lowers at least one of them without raising any, and it introduces no
- * new vitamin exceedance. Ranked by exceedances resolved, then remaining
+ * new vitamin exceedance, and its re-run used the same goal as the recipe
+ * shown (never a least-cost fallback). Ranked by exceedances resolved, then remaining
  * excess, then cost; never by how many vitamins a label lists. Null when the
  * recipe exceeds no CFIA vitamin maximum. Advice only: nothing is replaced.
  */
@@ -590,7 +593,9 @@ export function adviseOnVitaminLimits(
     const tradeOffs = vitaminTradeOffs(before, option);
     const reason = option.compatibleOnLabel === false
       ? "it is only permitted for this phase as an off-label simulation"
-      : option.status !== "optimal" || option.requirementsMet < option.requirementsTotal
+      : option.goalUnavailable
+        ? "it has no recipe for the selected goal within 3% of least cost, so it cannot be compared on the same goal"
+        : option.status !== "optimal" || option.requirementsMet < option.requirementsTotal
         ? option.status === "optimal" || option.status === "infeasible"
           ? `its re-run meets ${option.requirementsMet} of ${option.requirementsTotal} hard requirements`
           : `it produced no recipe${option.message ? ` (${option.message})` : ""}`
