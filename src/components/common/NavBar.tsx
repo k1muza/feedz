@@ -3,7 +3,9 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { FormEvent, useEffect, useRef, useState } from 'react';
-import { Search, X } from 'lucide-react';
+import { ChevronDown, Lock, Search, X } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
+import { createClient } from '@/lib/supabase/client';
 
 const links = [
   { href: '/products', label: 'Products' },
@@ -13,9 +15,77 @@ const links = [
   { href: '/about', label: 'About' },
 ];
 
+type AccountUser = NonNullable<ReturnType<typeof useAuth>['user']>;
+
+const accountName = (user: AccountUser) => user.displayName ?? user.email?.split('@')[0] ?? 'Account';
+
+const firstName = (user: AccountUser) => accountName(user).split(' ')[0];
+
+const initials = (user: AccountUser) => {
+  const parts = accountName(user).split(/[\s._-]+/).filter(Boolean);
+  return ((parts[0]?.[0] ?? '') + (parts.length > 1 ? parts[parts.length - 1][0] : '')).toUpperCase() || '?';
+};
+
+function Avatar({ user, className }: { user: AccountUser; className: string }) {
+  return <span aria-hidden className={`grid shrink-0 place-items-center rounded-full bg-[#1d3a2a] font-bold text-white ${className}`}>{initials(user)}</span>;
+}
+
+const StudioLock = () => <Lock aria-label="Sign-in required" strokeWidth={2.2} className="h-3 w-3 opacity-60" />;
+
+function AccountMenu({ user, onQuote, onSignOut }: { user: AccountUser; onQuote: () => void; onSignOut: () => void }) {
+  const pathname = usePathname();
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => setOpen(false), [pathname]);
+  useEffect(() => {
+    if (!open) return;
+    const closeOnOutside = (event: MouseEvent) => !rootRef.current?.contains(event.target as Node) && setOpen(false);
+    const closeOnEscape = (event: KeyboardEvent) => event.key === 'Escape' && setOpen(false);
+    document.addEventListener('mousedown', closeOnOutside);
+    window.addEventListener('keydown', closeOnEscape);
+    return () => {
+      document.removeEventListener('mousedown', closeOnOutside);
+      window.removeEventListener('keydown', closeOnEscape);
+    };
+  }, [open]);
+
+  const item = 'box-border flex w-full items-center justify-between border-0 bg-transparent px-4 py-3 text-left text-[15px] text-[#191b18] no-underline hover:bg-[#efebe1]';
+
+  return (
+    <div ref={rootRef} className="relative hidden min-[1080px]:block">
+      <button
+        type="button"
+        onClick={() => setOpen((value) => !value)}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        aria-label="Account"
+        className="flex h-[42px] items-center gap-2 rounded-full border border-[#d9d4c7] bg-[#fbfaf6] py-0 pl-1 pr-[10px] text-[#191b18]"
+      >
+        <Avatar user={user} className="h-8 w-8 text-[12px]" />
+        <span className="whitespace-nowrap text-[14px] font-semibold">{firstName(user)}</span>
+        <ChevronDown aria-hidden strokeWidth={2.4} className="h-3 w-3" />
+      </button>
+      {open && (
+        <div role="menu" className="absolute right-0 top-[calc(100%+8px)] z-[35] w-[260px] overflow-hidden rounded-[6px] border border-[#d9d4c7] bg-[#fbfaf6] text-[#191b18] shadow-[0_16px_40px_rgba(25,27,24,.16)]">
+          <div className="flex flex-col gap-0.5 border-b border-[#d9d4c7] px-4 py-[14px]">
+            <span className="truncate font-bold">{accountName(user)}</span>
+            {user.email && <span className="truncate text-[13px] text-[#4f524b]">{user.email}</span>}
+          </div>
+          <Link role="menuitem" href="/studio" className={`${item} font-semibold text-[#1d3a2a]`}>Open Studio <span aria-hidden>→</span></Link>
+          <Link role="menuitem" href="/studio/formulations" className={item}>My formulations</Link>
+          <button role="menuitem" type="button" onClick={() => { setOpen(false); onQuote(); }} className={item}>Quotes &amp; orders</button>
+          <button role="menuitem" type="button" onClick={() => { setOpen(false); onSignOut(); }} className={`${item} border-t border-solid border-[#d9d4c7] text-[#4f524b]`}>Sign out</button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function NavBar() {
   const pathname = usePathname();
   const router = useRouter();
+  const { user, loading } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const [quoteOpen, setQuoteOpen] = useState(false);
@@ -43,6 +113,14 @@ export default function NavBar() {
     router.push(`/products?q=${encodeURIComponent(query.trim())}`);
   };
 
+  const signOut = async () => {
+    await createClient().auth.signOut();
+    router.refresh();
+  };
+
+  // Signed-in visitors go straight to the studio; everyone else sees the tour.
+  const navLinks = links.map((link) => (link.label === 'Studio' && user ? { ...link, href: '/studio' } : link));
+
   const active = (href: string) => {
     const route = href.split('#')[0];
     return route !== '/' && pathname.startsWith(route);
@@ -58,9 +136,10 @@ export default function NavBar() {
           </Link>
 
           <nav className="hidden items-center gap-1 min-[1080px]:flex" aria-label="Main navigation">
-            {links.map((link) => (
-              <Link key={link.label} href={link.href} className={`flex h-10 items-center whitespace-nowrap px-3 text-[15px] text-[#191b18] no-underline ${active(link.href) ? 'font-bold shadow-[inset_0_-2px_0_#191b18]' : 'font-medium'}`}>
+            {navLinks.map((link) => (
+              <Link key={link.label} href={link.href} className={`flex h-10 items-center gap-1.5 whitespace-nowrap px-3 text-[15px] text-[#191b18] no-underline ${active(link.href) ? 'font-bold shadow-[inset_0_-2px_0_#191b18]' : 'font-medium'}`}>
                 {link.label}
+                {link.label === 'Studio' && !user && !loading && <StudioLock />}
               </Link>
             ))}
           </nav>
@@ -70,6 +149,10 @@ export default function NavBar() {
             <Search aria-hidden className="absolute left-[13px] top-[13px] h-4 w-4 text-[#4f524b]" />
             <input value={query} onChange={(event) => setQuery(event.target.value)} aria-label="Search ingredients" placeholder="Search ingredients" className="h-[42px] w-full rounded-[4px] border border-[#d9d4c7] bg-[#fbfaf6] py-0 pl-[38px] pr-[14px] text-[14px] text-[#191b18] outline-none focus:border-[#1d3a2a]" />
           </form>
+          {!loading && (user
+            ? <AccountMenu user={user} onQuote={() => setQuoteOpen(true)} onSignOut={() => void signOut()} />
+            : <Link href="/studio/login" className="hidden h-[42px] items-center whitespace-nowrap px-1 text-[15px] font-semibold text-[#191b18] no-underline hover:text-[#2e5a40] min-[1080px]:flex">Sign in</Link>
+          )}
           <button onClick={() => setQuoteOpen(true)} className="hidden h-[42px] whitespace-nowrap rounded-[4px] border-0 bg-[#d99a2b] px-[18px] text-[15px] font-semibold text-[#191b18] hover:bg-[#c88a1e] sm:block">Get a quote</button>
           <button
             type="button"
@@ -81,6 +164,11 @@ export default function NavBar() {
           >
             {mobileSearchOpen ? <X className="h-5 w-5" /> : <Search className="h-5 w-5" />}
           </button>
+          {user && (
+            <Link href="/studio" aria-label="Open Studio" className="grid h-11 w-11 shrink-0 place-items-center no-underline min-[1080px]:hidden">
+              <Avatar user={user} className="h-8 w-8 text-[12px]" />
+            </Link>
+          )}
           <button onClick={() => { setMobileSearchOpen(false); setMenuOpen((value) => !value); }} className="h-11 rounded-[4px] border-0 bg-[#191b18] px-[14px] text-[14px] font-semibold text-[#f3f0e8] min-[1080px]:hidden">{menuOpen ? 'Close' : 'Menu'}</button>
         </div>
 
@@ -106,10 +194,25 @@ export default function NavBar() {
 
         {menuOpen && (
           <nav className="border-t border-[#d9d4c7] bg-[#f3f0e8] px-4 pb-5 pt-2 min-[1080px]:hidden" aria-label="Mobile navigation">
-            {links.map((link) => (
-              <Link key={link.label} href={link.href} className="flex min-h-[52px] items-center justify-between border-b border-[#d9d4c7] text-[20px] font-semibold text-[#191b18] no-underline">{link.label}<span className="text-[#4f524b]">→</span></Link>
+            {navLinks.map((link) => (
+              <Link key={link.label} href={link.href} className="flex min-h-[52px] items-center justify-between border-b border-[#d9d4c7] text-[20px] font-semibold text-[#191b18] no-underline"><span className="inline-flex items-center gap-2">{link.label}{link.label === 'Studio' && !user && !loading && <StudioLock />}</span><span className="text-[#4f524b]">→</span></Link>
             ))}
-            <button onClick={() => { setMenuOpen(false); setQuoteOpen(true); }} className="mt-4 h-[52px] w-full rounded-[4px] border-0 bg-[#d99a2b] text-[16px] font-semibold text-[#191b18]">Request a quote</button>
+            {user && (
+              <div className="mt-4 flex items-center gap-3 rounded-[6px] border border-[#d9d4c7] bg-[#fbfaf6] p-3 text-[#191b18]">
+                <Avatar user={user} className="h-10 w-10 text-[14px]" />
+                <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+                  <span className="truncate font-bold">{accountName(user)}</span>
+                  {(user.org ?? user.email) && <span className="truncate text-[13px] text-[#4f524b]">{user.org ?? user.email}</span>}
+                </span>
+                <button onClick={() => { setMenuOpen(false); void signOut(); }} className="h-10 shrink-0 rounded-[4px] border border-[#bdb7a9] bg-transparent px-3 text-[14px] font-semibold text-[#191b18]">Sign out</button>
+              </div>
+            )}
+            <div className="mt-4 grid grid-cols-2 gap-[10px]">
+              {user
+                ? <Link href="/studio" className="flex h-[52px] items-center justify-center rounded-[4px] bg-[#1d3a2a] text-[16px] font-semibold text-white no-underline">Open Studio</Link>
+                : <Link href="/studio/login" className="flex h-[52px] items-center justify-center rounded-[4px] border-[1.5px] border-[#191b18] text-[16px] font-semibold text-[#191b18] no-underline">Sign in</Link>}
+              <button onClick={() => { setMenuOpen(false); setQuoteOpen(true); }} className="h-[52px] rounded-[4px] border-0 bg-[#d99a2b] text-[16px] font-semibold text-[#191b18]">Get a quote</button>
+            </div>
           </nav>
         )}
       </header>
