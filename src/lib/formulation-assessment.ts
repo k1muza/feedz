@@ -1,5 +1,7 @@
+import { assessUpperLimits } from "./cfia-maximum-nutrients";
 import { analyzeDiet, type AnalyzedNutrient, type DietAnalysis, type DietFormula } from "./diet-formula";
 import {
+  automaticPremixExclusion,
   commercialPremixById,
   eligibleCommercialPremixes,
   type CommercialPremix,
@@ -26,18 +28,26 @@ import type { NutritionPhase } from "./nutrition";
 import type { EnergySystem } from "./nutrition-targets";
 import {
   INCLUSION_POLICY_VERSION,
+  UPPER_LIMIT_VITAMIN_IDS,
   assessmentHeadline,
+  formatUpperLimitValue,
   requirementCounts,
   supplementationCounts,
+  upperLimitCounts,
+  upperLimitRows,
   type DataStatus,
   type DocumentationGap,
   type FormulationAssessment,
   type FormulationVerdict,
   type PremixComparison,
+  type PremixComparisonGoal,
   type PremixOption,
+  type PremixVitaminLimit,
   type PremixRecipeEffect,
   type RequirementCheck,
   type SupplementationComparison,
+  type UpperLimitAssessment,
+  type VitaminLimitAdvice,
 } from "./formulation-assessment-model";
 
 export * from "./formulation-assessment-model";
@@ -90,6 +100,15 @@ export function supplementationGuidance(phase: NutritionPhase): GuidanceSpec[] {
 
 const dataStatus = (measure: AnalyzedNutrient): DataStatus =>
   measure.missingIngredientIds.length ? "missing" : measure.assumedZeroIngredientIds.length ? "assumed_zero" : "published";
+
+/** "vitamin A", "copper": a nutrient name inside a sentence. */
+const inSentence = (label: string) => label.replace(/^Vitamin /, "vitamin ").replace(/^(Copper|Iodine|Iron|Manganese|Selenium|Zinc|Calcium|Phosphorus|Sodium|Potassium)$/, (name) => name.toLowerCase());
+
+/** "Vitamin A and vitamin D". */
+const nutrientNames = (rows: readonly { label: string }[]) => {
+  const names = joinLabels(rows.map((row) => inSentence(row.label)));
+  return names.charAt(0).toUpperCase() + names.slice(1);
+};
 
 const joinLabels = (labels: string[]) =>
   labels.length < 2
@@ -258,6 +277,10 @@ export function buildFormulationAssessment(
     };
   });
 
+  // CFIA maxima: advisory references on total-diet concentrations, never constraints.
+  const upperLimits: UpperLimitAssessment = assessUpperLimits(phase, analysis, contributionsOf, (id) => (single.get(id)?.share ?? 0) * 100);
+  const exceeded = upperLimits.status === "assessed" ? upperLimits.rows.filter((row) => row.status === "exceeds") : [];
+
   const documentationGaps: DocumentationGap[] = premixes.flatMap((premix) => [
     ...requirements
       .filter((check) => check.totalOnlyIngredientIds.includes(premix.id))
@@ -295,6 +318,7 @@ export function buildFormulationAssessment(
     verdict,
     requirements,
     supplementation,
+    upperLimits,
     documentationGaps,
     consistencyErrors,
     headline: "",
@@ -312,6 +336,11 @@ export function buildFormulationAssessment(
         : "",
       supplementation
         ? `Vitamin and trace-mineral supplementation is compared with Chapter 7 recommendations as an advisory; it does not affect this result.`
+        : "",
+      upperLimits.status === "assessed"
+        ? exceeded.length
+          ? `${nutrientNames(exceeded)} ${exceeded.length === 1 ? "is" : "are"} above the CFIA reference maximum for ${upperLimits.category.label.toLowerCase()} feed. The CFIA maxima are advisory references; they do not affect this result.`
+          : "Total-diet vitamin and mineral concentrations are compared with CFIA reference maxima as an advisory; they do not affect this result."
         : "",
     ].filter(Boolean).join(" "),
     scope: "Hard requirements: the programme's energy, protein, SID amino-acid and mineral requirements, practical ingredient limits, combined ingredient-family and added-fat ceilings and the manufacturer's premix dose. FeedSport does not verify ingredient quality, manufacturing accuracy, storage or animal health.",
@@ -401,14 +430,23 @@ export async function premixRecipeEffect(
   };
 }
 
+function vitaminLimitsOf(assessment: FormulationAssessment | undefined): PremixVitaminLimit[] | undefined {
+  if (assessment?.upperLimits?.status !== "assessed") return undefined;
+  return upperLimitRows(assessment)
+    .filter((row) => UPPER_LIMIT_VITAMIN_IDS.includes(row.id))
+    .map(({ id, label, unit, max, actual, status }) => ({ id, label, unit, max, actual, status }));
+}
+
 function premixOption(
   product: CommercialPremix,
   current: boolean,
-  run: { status: PremixOption["status"]; message?: string; formula?: DietFormula; costPerKg?: number; assessment?: FormulationAssessment },
+  run: { status: PremixOption["status"]; message?: string; formula?: DietFormula; costPerKg?: number; assessment?: FormulationAssessment; goalUnavailable?: boolean },
   priceMissing: boolean,
+  stage: { programmeId: string; phaseId: string },
 ): PremixOption {
   const counts = run.assessment ? requirementCounts(run.assessment) : { met: 0, total: 0 };
   const supplementation = run.assessment ? supplementationCounts(run.assessment) : { at: 0, total: 0 };
+  const vitaminLimits = vitaminLimitsOf(run.assessment);
   return {
     premixId: product.id,
     name: product.name,
@@ -425,7 +463,29 @@ function premixOption(
     documentationGapLabels: [...new Set(run.assessment?.documentationGaps.map((gap) => gap.label) ?? [])],
     supplementationAt: supplementation.at,
     supplementationTotal: supplementation.total,
+    ...(vitaminLimits ? { vitaminLimits, upperLimitExceedanceLabels: upperLimitCounts(run.assessment!).exceeds.map((row) => row.label) } : {}),
+    vitaminSource: { verificationStatus: product.verificationStatus, basis: product.source?.basis ?? "not stated" },
+    compatibleOnLabel: automaticPremixExclusion(product, stage.programmeId, stage.phaseId) === undefined,
+    ...(run.goalUnavailable ? { goalUnavailable: true } : {}),
   };
+}
+
+/**
+ * Known CFIA vitamin exceedances an option introduces or worsens relative to
+ * `before`. A vitamin the option does not document is unknown, never better.
+ */
+function vitaminTradeOffs(before: readonly PremixVitaminLimit[] | undefined, option: PremixOption): string[] {
+  const was = new Map((before ?? []).map((row) => [row.id, row]));
+  return (option.vitaminLimits ?? []).flatMap((row) => {
+    if (row.status !== "exceeds") return [];
+    const previous = was.get(row.id);
+    if (!previous || previous.status !== "exceeds") {
+      return [`${row.label} would be ${formatUpperLimitValue(row.actual, row.unit)}, above the CFIA reference maximum of ${formatUpperLimitValue(row.max, row.unit)}`];
+    }
+    return row.actual > previous.actual + nutrientFeasibilityTolerance(row.max)
+      ? [`${row.label} would rise from ${formatUpperLimitValue(previous.actual, row.unit)} to ${formatUpperLimitValue(row.actual, row.unit)}, above the CFIA reference maximum of ${formatUpperLimitValue(row.max, row.unit)}`]
+      : [];
+  });
 }
 
 /**
@@ -436,7 +496,12 @@ function premixOption(
  * alone never count; only recommendations reached do. Fewer documentation
  * gaps is reported alongside such an improvement, but a better-documented
  * label is not evidence of better nutrition, so it never qualifies or ranks
- * a suggestion by itself.
+ * a suggestion by itself. An alternative that introduces or worsens a known
+ * CFIA vitamin exceedance is never a straightforward improvement, however
+ * cheap or close to Chapter 7: the comparison keeps both for the farmer.
+ * With no premix selected, the feed has no vitamin supplementation at all, so
+ * a compatible premix is still suggested, preferring one within the maxima,
+ * and any exceedance it brings is stated in its reasons.
  */
 export function suggestPremixReplacement(
   current: PremixOption | null,
@@ -444,7 +509,15 @@ export function suggestPremixReplacement(
 ): { suggestedPremixId: string | null; reasons: string[] } {
   const reasonsFor = (option: PremixOption): string[] => {
     if (option.status !== "optimal" || option.requirementsMet < option.requirementsTotal) return [];
-    if (!current) return [`meets all ${option.requirementsTotal} hard requirements with ${option.name} at its manufacturer dose`];
+    const tradeOffs = vitaminTradeOffs(current?.vitaminLimits, option);
+    if (!current) {
+      return [
+        `meets all ${option.requirementsTotal} hard requirements with ${option.name} at its manufacturer dose`,
+        ...(option.vitaminLimits ?? []).filter((row) => row.status === "exceeds")
+          .map((row) => `brings ${inSentence(row.label)} to ${formatUpperLimitValue(row.actual, row.unit)}, above the CFIA reference maximum of ${formatUpperLimitValue(row.max, row.unit)}`),
+      ];
+    }
+    if (tradeOffs.length) return [];
     const reasons: string[] = [];
     if (current.status !== "optimal" || current.requirementsMet < current.requirementsTotal) {
       reasons.push(`meets all ${option.requirementsTotal} hard requirements; the current premix's recipe meets ${current.requirementsMet}`);
@@ -465,6 +538,7 @@ export function suggestPremixReplacement(
     .map((option) => ({ option, reasons: reasonsFor(option) }))
     .filter((entry) => entry.reasons.length)
     .sort((a, b) =>
+      vitaminTradeOffs(current?.vitaminLimits, a.option).length - vitaminTradeOffs(current?.vitaminLimits, b.option).length ||
       b.option.supplementationAt - a.option.supplementationAt ||
       (a.option.costPerTonne ?? Infinity) - (b.option.costPerTonne ?? Infinity) ||
       a.option.documentationGapLabels.length - b.option.documentationGapLabels.length);
@@ -474,9 +548,124 @@ export function suggestPremixReplacement(
 }
 
 /**
+ * The response to a CFIA vitamin A, D or E exceedance, from the premix
+ * comparison's own re-runs (same basal ingredients, prices, limits and goal).
+ * An alternative is recommended only when it is on-label for the phase, its
+ * re-run meets every hard requirement, it documents every exceeded vitamin,
+ * it lowers at least one of them without raising any, and it introduces no
+ * new vitamin exceedance. Ranked by exceedances resolved, then remaining
+ * excess, then cost; never by how many vitamins a label lists. Null when the
+ * recipe exceeds no CFIA vitamin maximum. Advice only: nothing is replaced.
+ */
+export function adviseOnVitaminLimits(
+  assessment: FormulationAssessment,
+  current: PremixOption | null,
+  alternatives: readonly PremixOption[],
+  currentPremix: { id: string; name: string } | null,
+): VitaminLimitAdvice | null {
+  const exceeded = upperLimitCounts(assessment).vitaminExceedances;
+  if (!exceeded.length) return null;
+  const before = vitaminLimitsOf(assessment) ?? [];
+  const beforeById = new Map(before.map((row) => [row.id, row]));
+  const exceedances = exceeded.map((row) => {
+    const premixContribution = currentPremix ? row.contributions.find((c) => c.ingredientId === currentPremix.id)?.value ?? 0 : 0;
+    return {
+      id: row.id,
+      label: row.label,
+      unit: row.unit,
+      max: row.max,
+      actual: row.actual,
+      contributions: row.contributions,
+      premixContribution,
+      premixResponsible: premixContribution > 0 && withinBound("max", row.actual - premixContribution, row.max, nutrientFeasibilityTolerance(row.max)),
+    };
+  });
+  const labels = joinLabels(exceeded.map((row) => inSentence(row.label)));
+
+  const notRecommended: VitaminLimitAdvice["notRecommended"] = [];
+  const candidates: { option: PremixOption; after: Map<string, PremixVitaminLimit> }[] = [];
+  for (const option of alternatives) {
+    const after = new Map((option.vitaminLimits ?? []).map((row) => [row.id, row]));
+    const undocumented = exceeded.filter((row) => !after.has(row.id) || after.get(row.id)!.status === "not_documented");
+    const tradeOffs = vitaminTradeOffs(before, option);
+    const reason = option.compatibleOnLabel === false
+      ? "it is only permitted for this phase as an off-label simulation"
+      : option.status !== "optimal" || option.requirementsMet < option.requirementsTotal
+        ? option.status === "optimal" || option.status === "infeasible"
+          ? `its re-run meets ${option.requirementsMet} of ${option.requirementsTotal} hard requirements`
+          : `it produced no recipe${option.message ? ` (${option.message})` : ""}`
+        : undocumented.length
+          ? `it does not document ${joinLabels(undocumented.map((row) => inSentence(row.label)))}, so the concentration cannot be evaluated; an undocumented value is not evidence of a lower one`
+          : tradeOffs.length
+            ? tradeOffs.join("; ")
+            : !exceeded.some((row) => after.get(row.id)!.actual < row.actual - nutrientFeasibilityTolerance(row.max))
+              ? `it does not lower the calculated ${labels}`
+              : "";
+    if (reason) notRecommended.push({ premixId: option.premixId, name: option.name, reason });
+    else candidates.push({ option, after });
+  }
+
+  const resolvedCount = (after: Map<string, PremixVitaminLimit>) => exceeded.filter((row) => after.get(row.id)!.status === "within").length;
+  const remainingExcess = (after: Map<string, PremixVitaminLimit>) =>
+    exceeded.reduce((sum, row) => sum + Math.max(0, after.get(row.id)!.actual - row.max) / row.max, 0);
+  candidates.sort((a, b) =>
+    resolvedCount(b.after) - resolvedCount(a.after) ||
+    remainingExcess(a.after) - remainingExcess(b.after) ||
+    (a.option.costPerTonne ?? Infinity) - (b.option.costPerTonne ?? Infinity));
+
+  const best = candidates[0];
+  const currentName = currentPremix?.name ?? "the selected premix";
+  const responsible = exceedances.some((row) => row.premixResponsible);
+  if (!best) {
+    return {
+      exceedances,
+      currentPremixId: currentPremix?.id ?? null,
+      recommendation: null,
+      notRecommended,
+      message: responsible
+        ? `${alternatives.length ? `No compatible alternative premix demonstrably lowers the calculated ${labels} while meeting every hard requirement.` : "No other compatible commercial premix is available for this phase."} Verify the vitamin specifications of ${currentName} with its manufacturer.`
+        : `${currentName === "the selected premix" ? "The premix" : currentName} is not the only source of the calculated ${labels}; replacing it alone would not bring the recipe within the reference maximum. Check the vitamin values of the other contributing ingredients.`,
+    };
+  }
+
+  const { option, after } = best;
+  const resolved = resolvedCount(after) === exceeded.length;
+  const changes = before.map((row) => {
+    const next = after.get(row.id);
+    return { id: row.id, label: row.label, unit: row.unit, max: row.max, before: row.actual, beforeStatus: row.status, after: next?.actual ?? 0, afterStatus: next?.status ?? "not_documented" as const };
+  }).filter((row) => beforeById.has(row.id));
+  const costKnown = option.costPerTonne !== null && current?.costPerTonne != null && !option.costExcludesPremix && !current.costExcludesPremix;
+  const reduced = exceeded.map((row) => `${inSentence(row.label)} to ${formatUpperLimitValue(after.get(row.id)!.actual, row.unit)}`);
+  const remaining = exceeded.filter((row) => after.get(row.id)!.status !== "within");
+  return {
+    exceedances,
+    currentPremixId: currentPremix?.id ?? null,
+    recommendation: {
+      premixId: option.premixId,
+      name: option.name,
+      resolved,
+      changes,
+      costPerTonne: option.costPerTonne,
+      costDeltaPerTonne: costKnown ? option.costPerTonne! - current!.costPerTonne! : null,
+      costExcludesPremix: option.costExcludesPremix,
+      requirementsMet: option.requirementsMet,
+      requirementsTotal: option.requirementsTotal,
+      otherExceedanceLabels: (option.upperLimitExceedanceLabels ?? []).filter((label) => !option.vitaminLimits?.some((row) => row.label === label)),
+    },
+    notRecommended,
+    message: `Consider replacing ${currentName} with ${option.name}, which reduces the calculated ${joinLabels(reduced)}.` +
+      (resolved
+        ? ""
+        : ` ${nutrientNames(remaining)} ${remaining.length === 1 ? "remains" : "remain"} above the reference maximum with ${option.name}, so the exceedance is reduced, not resolved.`),
+  };
+}
+
+/**
  * Re-run the formulation with every other eligible commercial premix in
  * place of the selected one (Replace, never Add). Manufacturer-recipe-only
- * products are excluded: they fix the whole recipe, not just a dose.
+ * products are excluded: they fix the whole recipe, not just a dose. With a
+ * goal, each re-run uses that goal's recipe (or its least-cost recipe when
+ * the goal has none within 3%), so options compare like with like.
  */
 export async function comparePremixes(input: {
   phase: NutritionPhase;
@@ -488,30 +677,38 @@ export async function comparePremixes(input: {
   /** Ingredients whose price is a placeholder 0 (no quotation). */
   unpricedIngredientIds?: readonly string[];
   priceForPremix: (premixId: string) => number | undefined;
+  goal?: PremixComparisonGoal | null;
 }): Promise<PremixComparison | null> {
   const { phase, energySystem, programmeId, library } = input;
+  const goal = input.goal ?? null;
+  const stage = { programmeId, phaseId: phase.id };
   const unpriced = new Set(input.unpricedIngredientIds ?? []);
   const currentProduct = input.options.map((option) => commercialPremixById(option.ingredientId)).find((product) => product !== undefined);
   if (currentProduct?.manufacturerRecipe) return null;
   const inLibrary = (id: string) => library.ingredients.some((record) => record.id === id);
   const candidates = eligibleCommercialPremixes(programmeId, phase.id)
     .filter((product) => product.id !== currentProduct?.id && !product.manufacturerRecipe && inLibrary(product.id));
-  if (!candidates.length) return null;
+  // With no alternative, a vitamin exceedance still needs its advice
+  // (verify the selected premix with its manufacturer).
+  const exceedsVitamin = !!input.current && upperLimitCounts(input.current.assessment).vitaminExceedances.length > 0;
+  if (!candidates.length && !exceedsVitamin) return null;
 
   const basal = input.options.filter((option) => !commercialPremixById(option.ingredientId));
   const alternatives = await Promise.all(candidates.map(async (product) => {
     const price = input.priceForPremix(product.id);
     const options = [...basal, { ingredientId: product.id, pricePerKg: price ?? 0, minInclusionPct: product.inclusionPct, maxInclusionPct: product.inclusionPct }];
-    const result = await formulateLeastCostDiet(phase, energySystem, options, library, { explore: false });
+    const result = await formulateLeastCostDiet(phase, energySystem, options, library, { explore: false, alternatives: goal !== null });
     if (result.status === "optimal") {
-      const assessment = buildFormulationAssessment(phase, energySystem, result.solution.formula, library);
-      return premixOption(product, false, { status: "optimal", formula: result.solution.formula, costPerKg: result.solution.costPerKg, assessment }, price === undefined);
+      const goalRecipe = goal ? result.alternatives.find((alternative) => alternative.id === goal)?.solution : undefined;
+      const recipe = goalRecipe ?? result.solution;
+      const assessment = buildFormulationAssessment(phase, energySystem, recipe.formula, library);
+      return premixOption(product, false, { status: "optimal", formula: recipe.formula, costPerKg: recipe.costPerKg, assessment, goalUnavailable: goal !== null && !goalRecipe }, price === undefined, stage);
     }
     if (result.status === "infeasible" && result.bestEffort) {
       const assessment = buildFormulationAssessment(phase, energySystem, result.bestEffort.formula, library, { optimizerFeasible: false });
-      return premixOption(product, false, { status: "infeasible", message: result.message, formula: result.bestEffort.formula, costPerKg: result.bestEffort.costPerKg, assessment }, price === undefined);
+      return premixOption(product, false, { status: "infeasible", message: result.message, formula: result.bestEffort.formula, costPerKg: result.bestEffort.costPerKg, assessment }, price === undefined, stage);
     }
-    return premixOption(product, false, { status: result.status === "missing-data" ? "missing-data" : result.status === "infeasible" ? "infeasible" : "error", message: result.message }, price === undefined);
+    return premixOption(product, false, { status: result.status === "missing-data" ? "missing-data" : result.status === "infeasible" ? "infeasible" : "error", message: result.message }, price === undefined, stage);
   }));
   const current = currentProduct && input.current
     ? premixOption(currentProduct, true, {
@@ -519,12 +716,30 @@ export async function comparePremixes(input: {
         formula: input.current.formula,
         costPerKg: input.current.costPerKg,
         assessment: input.current.assessment,
-      }, unpriced.has(currentProduct.id))
+      }, unpriced.has(currentProduct.id), stage)
     : null;
+  const vitaminAdvice = input.current
+    ? adviseOnVitaminLimits(input.current.assessment, current, alternatives, currentProduct ? { id: currentProduct.id, name: currentProduct.name } : null)
+    : null;
+  const recommended = vitaminAdvice?.recommendation;
   return {
     currentPremixId: currentProduct?.id ?? null,
     options: current ? [current, ...alternatives] : alternatives,
-    ...suggestPremixReplacement(current, alternatives),
+    // A validated vitamin replacement takes precedence; otherwise the usual
+    // improvements decide, never at the cost of a new vitamin exceedance.
+    ...(recommended
+      ? {
+          suggestedPremixId: recommended.premixId,
+          reasons: [
+            ...recommended.changes
+              .filter((change) => vitaminAdvice!.exceedances.some((row) => row.id === change.id))
+              .map((change) => `brings ${inSentence(change.label)} from ${formatUpperLimitValue(change.before, change.unit)} to ${formatUpperLimitValue(change.after, change.unit)} (CFIA reference maximum ${formatUpperLimitValue(change.max, change.unit)})`),
+            `meets all ${recommended.requirementsTotal} hard requirements`,
+          ],
+        }
+      : suggestPremixReplacement(current, alternatives)),
+    goal,
+    vitaminAdvice,
   };
 }
 
@@ -538,8 +753,10 @@ export type AssessedFormulation = {
 
 /**
  * The single formulation entry point for the optimize API, Studio and MCP:
- * solve, assess every hard requirement, compare Chapter 7 supplementation,
- * explain the premix's effect on the recipe and re-run premix alternatives.
+ * solve, assess every hard requirement, compare Chapter 7 supplementation
+ * and CFIA maxima, explain the premix's effect on the recipe and re-run
+ * premix alternatives. With a goal, the premix comparison describes that
+ * goal's recipe (when one exists within 3% of least cost).
  */
 export async function formulateAndAssess(input: {
   phase: NutritionPhase;
@@ -550,6 +767,7 @@ export async function formulateAndAssess(input: {
   unpricedIngredientIds?: readonly string[];
   priceForPremix: (premixId: string) => number | undefined;
   onDiscardedAlternative?: (id: string, errors: string[]) => void;
+  goal?: PremixComparisonGoal | null;
 }): Promise<AssessedFormulation> {
   const { phase, energySystem, options, library } = input;
   const result = await formulateLeastCostDiet(phase, energySystem, options, library);
@@ -576,6 +794,8 @@ export async function formulateAndAssess(input: {
   const premixEffect = healthy && result.status === "optimal"
     ? await premixRecipeEffect(phase, energySystem, options, library, result.solution.formula)
     : null;
+  // The recipe the farmer sees: the goal's alternative when there is one.
+  const shown = input.goal ? alternatives?.find((alternative) => alternative.id === input.goal) : undefined;
   const premixComparison = healthy && recipe
     ? await comparePremixes({
         phase,
@@ -583,9 +803,12 @@ export async function formulateAndAssess(input: {
         programmeId: input.programmeId,
         options,
         library,
-        current: { formula: recipe.formula, costPerKg: recipe.costPerKg, assessment: assessment!, feasible: result.status === "optimal" },
+        current: shown
+          ? { formula: shown.solution.formula, costPerKg: shown.solution.costPerKg, assessment: shown.assessment, feasible: true }
+          : { formula: recipe.formula, costPerKg: recipe.costPerKg, assessment: assessment!, feasible: result.status === "optimal" },
         unpricedIngredientIds: input.unpricedIngredientIds,
         priceForPremix: input.priceForPremix,
+        goal: shown ? input.goal : null,
       })
     : null;
   return { result, assessment, alternatives, premixComparison, premixEffect };

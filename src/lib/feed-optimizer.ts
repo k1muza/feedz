@@ -50,6 +50,11 @@ export type FormulationRunOptions = {
    * least-cost recipe.
    */
   explore?: boolean;
+  /**
+   * Build only the 3%-cost alternatives (no ingredient opportunities), for a
+   * comparison re-run that must honour the same formulation goal.
+   */
+  alternatives?: boolean;
 };
 
 export type FormulationMissingData = {
@@ -323,7 +328,7 @@ export async function formulateLeastCostDiet(
   energySystem: EnergySystem,
   options: readonly FormulationIngredientOption[],
   library: IngredientLibrary = INGREDIENT_LIBRARY,
-  { explore = true }: FormulationRunOptions = {},
+  { explore = true, alternatives: withAlternatives = explore }: FormulationRunOptions = {},
 ): Promise<LeastCostFormulationResult> {
   const unsupportedRequirements = unsupportedRequirementsForPhase(phase);
 
@@ -357,7 +362,7 @@ export async function formulateLeastCostDiet(
 
     if (strict.status === "optimal") {
       const solution = buildSolution(strict.vars, prepared, library);
-      const alternatives = explore
+      const alternatives = withAlternatives
         ? await buildAlternativeFormulations(glpk, prepared, constraints, solution, library)
         : [];
       const ingredientOpportunities = explore

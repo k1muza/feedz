@@ -14,7 +14,11 @@ import type { FeedProgrammeDefinition } from '@/lib/feed-programmes';
 import { premixNutrientContributions, type CommercialPremix } from '@/lib/commercial-premixes';
 import { documentationGapLine,
   DATA_STATUS_LABELS,
+  UPPER_LIMIT_VITAMIN_IDS,
+  formatUpperLimitValue,
   requirementDisplay,
+  upperLimitSentence,
+  upperLimitTitle,
   type FormulationAssessment,
   type RequirementCheck,
   type SupplementationStatus,
@@ -261,7 +265,7 @@ export async function renderPublicFormulationPdf(input: PublicFormulationPdfInpu
       if (rowIndex % 2 === 1) box(M, y, CW, rowHeight, C.zebra);
       let x = M;
       columns.forEach((column, columnIndex) => {
-        // Red is reserved for a genuine hard-requirement failure.
+        // Red is reserved for a genuine hard-requirement failure or an established CFIA exceedance.
         const failedCell = columnIndex === options?.statusColumn && !!options?.failedRows?.has(rowIndex);
         const font: FontName = columnIndex === 0 || failedCell ? 'semibold' : 'regular';
         const color = failedCell ? C.red : C.body;
@@ -434,8 +438,37 @@ export async function renderPublicFormulationPdf(input: PublicFormulationPdfInpu
 
   const supplementationRows = input.assessment.supplementation?.rows ?? [];
   const gapLine = documentationGapLine(input.assessment);
-  if (gapLine || supplementationRows.length) {
+  const upper = input.assessment.upperLimits?.status === 'assessed' ? input.assessment.upperLimits : null;
+  if (gapLine || supplementationRows.length || upper) {
     sectionHeading('Advisories', 'optional · never block the recipe');
+    if (upper) {
+      const exceeded = upper.rows.filter((row) => row.status === 'exceeds');
+      const nameOf = (id: string) => ingredientMap.get(id)?.name ?? id;
+      // Red only for an established exceedance; missing data is never red.
+      exceeded.forEach((row) => paragraph(
+        `${upperLimitTitle(row)}. ${upperLimitSentence(row)}${row.contributions.length ? ` From ${row.contributions.slice(0, 3).map((c) => `${nameOf(c.ingredientId)} ${formatUpperLimitValue(c.value, row.unit)}`).join(', ')}.` : ''}`,
+        8, C.red,
+      ));
+      if (exceeded.some((row) => UPPER_LIMIT_VITAMIN_IDS.includes(row.id))) {
+        paragraph('Suggested action: verify the vitamin specifications of the selected premix with its manufacturer, or compare compatible premixes in FeedSport Studio, which re-runs each one with these ingredients and prices.', 8);
+      }
+      drawTable(
+        [
+          { label: 'CFIA reference', width: 130 },
+          { label: 'Recipe', width: 95, align: 'right' },
+          { label: 'Maximum', width: 95, align: 'right' },
+          { label: 'Comparison', width: CW - 320 },
+        ],
+        upper.rows.map((row) => [
+          row.label,
+          row.status === 'not_documented' && row.actual === 0 ? '—' : formatUpperLimitValue(row.actual, row.unit),
+          formatUpperLimitValue(row.max, row.unit),
+          `${row.status === 'exceeds' ? 'Above the reference maximum' : row.status === 'within' ? 'Within the reference maximum' : 'Not documented by the premix'} · ${DATA_STATUS_LABELS[row.data]}`,
+        ]),
+        { fontSize: 7.2, statusColumn: 3, failedRows: new Set(upper.rows.flatMap((row, index) => (row.status === 'exceeds' ? [index] : []))) },
+      );
+      paragraph(`Upper limits compared with ${upper.source}, ${upper.category.label} (${upper.mapping.basis}). ${upper.mapping.explanation} ${upper.basis} Reference maximums, not requirements: they do not affect whether the recipe meets its hard requirements.${upper.notAssessed.length ? ` ${upper.notAssessed.map((label, i) => (i ? label.toLowerCase() : label)).join(', ')} ${upper.notAssessed.length === 1 ? 'is' : 'are'} not modelled by FeedSport and not assessed.` : ''}`, 7.4, C.muted);
+    }
     if (gapLine) paragraph(gapLine, 8, C.amberText);
     if (supplementationRows.length) {
       paragraph(`Vitamin and trace-mineral supplementation compared with ${input.assessment.supplementation!.source} (inorganic trace-mineral basis). These are recommendations, not requirements: they do not affect whether the recipe meets its hard requirements.`, 8, C.amberText);

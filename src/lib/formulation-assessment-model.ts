@@ -6,8 +6,8 @@
  * - Hard requirement status (decides feasibility): met / not_met.
  * - Data status (on every value): published / assumed_zero / missing.
  * - Advisories (optional, never block): Chapter 7 supplementation
- *   comparisons, premix documentation gaps, premix alternatives and
- *   practical inclusion guidelines.
+ *   comparisons, CFIA maximum-nutrient references, premix documentation
+ *   gaps, premix alternatives and practical inclusion guidelines.
  */
 
 import { boundViolation, gapDp, requirementDisplayDp } from "./numerical-tolerance";
@@ -92,6 +92,54 @@ export interface SupplementationComparison {
   undocumentedIngredientIds: string[];
 }
 
+/**
+ * A CFIA maximum compared with the recipe's total-diet concentration.
+ * - exceeds: the documented contributions alone are above the maximum.
+ *   Missing values can only add, so the exceedance is established.
+ * - within: at or below the maximum, and every premix in the recipe
+ *   documents the nutrient. Ordinary feedstuffs without a published value
+ *   are listed in `missingIngredientIds`.
+ * - not_documented: at or below the maximum only because a premix that does
+ *   not document the nutrient was counted as 0. Unknown, never "within".
+ */
+export type UpperLimitStatus = "exceeds" | "within" | "not_documented";
+export type UpperLimitGroup = "vitamin" | "trace_mineral" | "macro_mineral";
+
+export interface UpperLimitCheck {
+  id: string;
+  label: string;
+  unit: string;
+  group: UpperLimitGroup;
+  max: number;
+  /** Sum of every documented contribution; a lower bound when data is missing. */
+  actual: number;
+  status: UpperLimitStatus;
+  data: DataStatus;
+  undocumentedPremixIds: string[];
+  missingIngredientIds: string[];
+  /** Each ingredient's contribution to the finished feed, largest first. */
+  contributions: RequirementContribution[];
+}
+
+/**
+ * CFIA maximum nutrient values for the phase's mapped CFIA column. Advisory
+ * only: never an optimiser constraint, never part of the verdict.
+ */
+export type UpperLimitAssessment =
+  | {
+      status: "assessed";
+      enforcement: "advisory";
+      source: string;
+      sourceUrl: string;
+      category: { id: string; label: string };
+      mapping: { basis: string; explanation: string; crossesBoundary: boolean };
+      basis: string;
+      rows: UpperLimitCheck[];
+      /** CFIA nutrients FeedSport does not model (magnesium, sulfur, cobalt). */
+      notAssessed: string[];
+    }
+  | { status: "unsupported"; reason: string };
+
 export interface DocumentationGap {
   ingredientId: string;
   nutrientId: string;
@@ -126,6 +174,11 @@ export interface FormulationAssessment {
     traceMineralBasis: "inorganic";
     rows: SupplementationComparison[];
   } | null;
+  /**
+   * CFIA maximum-nutrient references. Absent on assessments saved before
+   * they existed; those are shown as saved, never silently re-scored.
+   */
+  upperLimits?: UpperLimitAssessment;
   /** Unresolved manufacturer documentation, shown as one concise line. */
   documentationGaps: DocumentationGap[];
   /** A post-solve failure of a constraint that the optimizer claimed to satisfy. */
@@ -154,6 +207,41 @@ export function supplementationCounts(assessment: Pick<FormulationAssessment, "s
     below: rows.filter((row) => row.status === "below_recommendation").length,
     noData: rows.filter((row) => row.status === "no_data").length,
   };
+}
+
+/** The CFIA vitamins whose exceedance triggers a premix comparison. */
+export const UPPER_LIMIT_VITAMIN_IDS: readonly string[] = ["vitamin-a", "vitamin-d", "vitamin-e"];
+
+export function upperLimitRows(assessment: Pick<FormulationAssessment, "upperLimits">): UpperLimitCheck[] {
+  return assessment.upperLimits?.status === "assessed" ? assessment.upperLimits.rows : [];
+}
+
+export function upperLimitCounts(assessment: Pick<FormulationAssessment, "upperLimits">) {
+  const rows = upperLimitRows(assessment);
+  return {
+    total: rows.length,
+    exceeds: rows.filter((row) => row.status === "exceeds"),
+    notDocumented: rows.filter((row) => row.status === "not_documented"),
+    within: rows.filter((row) => row.status === "within").length,
+    vitaminExceedances: rows.filter((row) => row.status === "exceeds" && UPPER_LIMIT_VITAMIN_IDS.includes(row.id)),
+  };
+}
+
+/** "Vitamin A exceeds the reference maximum" — the same words in Studio, PDFs and MCP. */
+export function upperLimitTitle(row: Pick<UpperLimitCheck, "label">): string {
+  return `${row.label} exceeds the reference maximum`;
+}
+
+/** Concentrations written the same way everywhere: 56,000 IU/kg, 0.81%, 4.5 mg/kg. */
+export function formatUpperLimitValue(value: number, unit: string): string {
+  const dp = unit === "%" ? 2 : Math.abs(value) >= 100 ? 0 : Math.abs(value) >= 10 ? 1 : 2;
+  const text = value.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: dp });
+  return unit === "%" ? `${text}%` : `${text} ${unit}`;
+}
+
+/** "The current formulation provides 56,000 IU/kg against the CFIA reference maximum of 20,000 IU/kg." */
+export function upperLimitSentence(row: Pick<UpperLimitCheck, "actual" | "max" | "unit">): string {
+  return `The current formulation provides ${formatUpperLimitValue(row.actual, row.unit)} against the CFIA reference maximum of ${formatUpperLimitValue(row.max, row.unit)}.`;
 }
 
 /** "Meets all 20 hard requirements" / "Doesn't meet 1 hard requirement". Never "ready to manufacture". */
@@ -227,6 +315,69 @@ export interface PremixOption {
   documentationGapLabels: string[];
   supplementationAt: number;
   supplementationTotal: number;
+  /**
+   * CFIA vitamin A, D and E checks of this option's recipe. Absent on
+   * comparisons saved before CFIA references, or when the phase has none.
+   */
+  vitaminLimits?: PremixVitaminLimit[];
+  /** Every CFIA nutrient (vitamin or mineral) this option's recipe exceeds. */
+  upperLimitExceedanceLabels?: string[];
+  /**
+   * Where the premix's vitamin values come from. FeedSport never treats a
+   * value it does not have as evidence of a lower concentration.
+   */
+  vitaminSource?: { verificationStatus: string; basis: string };
+  /** False for an off-label, simulation-only product: never recommended. */
+  compatibleOnLabel?: boolean;
+  /** The comparison asked for a goal recipe but this option has none within 3%; its least-cost recipe is shown. */
+  goalUnavailable?: boolean;
+}
+
+export interface PremixVitaminLimit {
+  id: string;
+  label: string;
+  unit: string;
+  max: number;
+  actual: number;
+  status: UpperLimitStatus;
+}
+
+/**
+ * The response to a CFIA vitamin exceedance: what contributes, whether the
+ * selected premix is responsible, and the validated alternative, if any.
+ * It never replaces the premix itself; the farmer applies it deliberately.
+ */
+export interface VitaminLimitAdvice {
+  exceedances: {
+    id: string;
+    label: string;
+    unit: string;
+    max: number;
+    actual: number;
+    contributions: RequirementContribution[];
+    /** The selected premix's share of the total. */
+    premixContribution: number;
+    /** Without the premix's contribution the recipe would be within the maximum. */
+    premixResponsible: boolean;
+  }[];
+  currentPremixId: string | null;
+  recommendation: {
+    premixId: string;
+    name: string;
+    /** Every exceeded vitamin is documented by the alternative and within its maximum. */
+    resolved: boolean;
+    changes: { id: string; label: string; unit: string; max: number; before: number; beforeStatus: UpperLimitStatus; after: number; afterStatus: UpperLimitStatus }[];
+    costPerTonne: number | null;
+    costDeltaPerTonne: number | null;
+    costExcludesPremix: boolean;
+    requirementsMet: number;
+    requirementsTotal: number;
+    /** CFIA minerals the alternative's recipe exceeds, disclosed alongside. */
+    otherExceedanceLabels: string[];
+  } | null;
+  /** Each eligible alternative that was not recommended, and why. */
+  notRecommended: { premixId: string; name: string; reason: string }[];
+  message: string;
 }
 
 /**
@@ -241,7 +392,17 @@ export interface PremixComparison {
   suggestedPremixId: string | null;
   /** Why the suggestion is made, each backed by the re-run. */
   reasons: string[];
+  /**
+   * The formulation goal every option was re-run with. Absent or null: least
+   * cost. Saved comparisons predating goal-aware re-runs omit it.
+   */
+  goal?: PremixComparisonGoal | null;
+  /** Present when the current recipe exceeds a CFIA vitamin maximum. */
+  vitaminAdvice?: VitaminLimitAdvice | null;
 }
+
+/** The optimizer's 3%-cost alternatives, by id. */
+export type PremixComparisonGoal = "low-soy" | "low-import" | "simple";
 
 /**
  * How the selected premix's documented nutrients changed the recipe: the

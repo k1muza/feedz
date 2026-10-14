@@ -25,6 +25,8 @@ import {
   requirementCounts,
   requirementDisplay,
   supplementationCounts,
+  UPPER_LIMIT_VITAMIN_IDS,
+  formatUpperLimitValue,
   type FormulationVerdict,
   type RequirementCheck,
 } from "@/lib/formulation-assessment-model";
@@ -66,6 +68,7 @@ import type { FeaturedFormulation } from "./featured";
 import { useFormulations } from "./use-formulations";
 import { MAX_LIST_LABEL, useMyLists, type MyLists } from "./use-my-lists";
 import { StudioView } from "./views";
+import { upperLimitAdvisoryVals } from "./upper-limit-advisory";
 
 // FeedSport formulation studio, built from design/FeedSport Prototype.html.
 // useStudio() holds the screen state and derives everything the views render.
@@ -2278,9 +2281,24 @@ function optimalVals(
     : "";
   const current = comparison?.options.find((option) => option.current) ?? null;
   const suggested = comparison?.suggestedPremixId ? comparison.options.find((option) => option.premixId === comparison.suggestedPremixId) ?? null : null;
-  const showPremixAdvisory = !!suggested && !S.dismissed["premix-advisory:" + suggested.premixId];
+  // CFIA reference maximums: an established exceedance is a red card in
+  // Advisories and one count on the usual indicator; no new alert.
+  const upperLimitAdvice = upperLimitAdvisoryVals({
+    assessment,
+    comparison,
+    manual: !!mc,
+    premixSpecificationUrl: premixProduct?.specificationUrl ?? "",
+    name: (id) => shortName(name(id)),
+    money: (value) => money(value),
+    leastCostBasis,
+    replacePremix: ctx.replacePremix,
+    openCompare: () => update({ compareOpen: true }),
+  });
+  // A CFIA vitamin replacement is presented in its own upper-limit card, never twice.
+  const suggestedForVitamins = !!suggested && upperLimitAdvice.suggestedForVitamins === suggested.premixId;
+  const showPremixAdvisory = !!suggested && !suggestedForVitamins && !S.dismissed["premix-advisory:" + suggested.premixId];
   const suppAdvisory = !!supp && supp.below + supp.noData > 0;
-  const advisoryTotal = (showPremixAdvisory ? 1 : 0) + (suppAdvisory ? 1 : 0) + adv.length + (gaps.length ? 1 : 0) + ctx.adviceCount;
+  const advisoryTotal = (showPremixAdvisory ? 1 : 0) + (suppAdvisory ? 1 : 0) + upperLimitAdvice.advisoryCount + adv.length + (gaps.length ? 1 : 0) + ctx.adviceCount;
   const advisoriesLabel = advisoryTotal + " advisor" + (advisoryTotal === 1 ? "y" : "ies");
   const goAdvisories = () => update({ tab: "advisories" });
   const failedRows = (counts?.failed ?? []).map((check) => {
@@ -2523,16 +2541,25 @@ function optimalVals(
     premix: premixAdvisory,
     noBetterPremix,
     supplementation,
+    upperLimits: upperLimitAdvice.card,
     guidelines: advisories,
     documentation: documentationCard,
     nutritionistNotes: ctx.adviceCount ? { label: ctx.adviceCount + " note" + (ctx.adviceCount === 1 ? "" : "s") + " from your nutritionist", open: ctx.openAdvice } : null,
-    empty: advisoryTotal === 0,
+    empty: advisoryTotal === 0 && !upperLimitAdvice.card,
   };
 
   // ---- Compare premixes ----
   const compare = comparison && comparison.options.length > 1 ? (() => {
     const ordered = [...comparison.options].sort((a, b) => Number(b.current) - Number(a.current) || Number(b.premixId === comparison.suggestedPremixId) - Number(a.premixId === comparison.suggestedPremixId));
     const aminoIds = [...new Set(ordered.flatMap((option) => option.recipe.map((row) => row.ingredientId)).filter((id) => groupOf(id) === "amino"))];
+    // Every ingredient of every option, largest first, so each alternative recipe can be reviewed in full.
+    const peak = new Map<string, number>();
+    for (const option of ordered) for (const row of option.recipe) peak.set(row.ingredientId, Math.max(peak.get(row.ingredientId) ?? 0, row.inclusionPct));
+    const recipeIds = [...peak.keys()].filter((id) => (peak.get(id) ?? 0) > 1e-6).sort((a, b) => peak.get(b)! - peak.get(a)!);
+    const vitaminRefs = UPPER_LIMIT_VITAMIN_IDS.flatMap((id) => {
+      const ref = ordered.flatMap((option) => option.vitaminLimits ?? []).find((row) => row.id === id);
+      return ref ? [ref] : [];
+    });
     const base = ordered.find((option) => option.current) ?? null;
     const columns = ordered.map((option) => {
       const recipe = recipeOf(option);
@@ -2553,6 +2580,14 @@ function optimalVals(
         minerals: fmt(minerals, 2) + "%",
         ingredients: String(option.recipe.length),
         chapter7: option.supplementationAt + " of " + option.supplementationTotal,
+        vitamins: vitaminRefs.map((ref) => {
+          const row = option.vitaminLimits?.find((v) => v.id === ref.id);
+          if (!row) return { text: "—", tone: "plain" };
+          if (row.status === "not_documented") return { text: "Not documented", tone: "missing" };
+          return { text: formatUpperLimitValue(row.actual, row.unit), tone: row.status === "exceeds" ? "bad" : "plain" };
+        }),
+        vitaminData: option.vitaminSource ? option.vitaminSource.basis.replace(/^as-fed /, "") : "—",
+        recipeAll: recipeIds.map((id) => (recipe.has(id) ? fmt(recipe.get(id)!, recipe.get(id)! < 1 ? 2 : 1) + "%" : "—")),
         gaps: option.documentationGapLabels.length ? option.documentationGapLabels.length + " value" + (option.documentationGapLabels.length === 1 ? "" : "s") : "None",
         current: option.current,
         canReplace: !option.current && option.recipe.length > 0,
@@ -2562,7 +2597,10 @@ function optimalVals(
     return {
       columns,
       aminoLabels: aminoIds.map((id) => shortName(name(id))),
-      subtitle: "Eligible for " + (engine.programmes.programmes.find((p) => p.id === runSnap.programmeId)?.name.toLowerCase() ?? "this stage") + " · least-cost re-run with your " + ctx.poolIds.length + " ingredients, limits and prices" + (leastCostBasis ? " · " + leastCostBasis : ""),
+      vitaminLabels: vitaminRefs.map((ref) => ref.label + " · max " + formatUpperLimitValue(ref.max, ref.unit)),
+      upperLimitSource: upperLimitAdvice.card ? "CFIA reference maximums for " + upperLimitAdvice.card.category.toLowerCase() + " feed, total diet. Advisory; a column above a maximum is never shown as a straightforward improvement." : "",
+      recipeLabels: recipeIds.map((id) => shortName(name(id))),
+      subtitle: "Eligible for " + (engine.programmes.programmes.find((p) => p.id === runSnap.programmeId)?.name.toLowerCase() ?? "this stage") + " · " + (comparison.goal ? GOALS[runSnap.goal].label.toLowerCase() : "least-cost") + " re-run with your " + ctx.poolIds.length + " ingredients, limits and prices" + (leastCostBasis ? " · " + leastCostBasis : ""),
       footnote: (current ? "Replace removes " + premixName(current.premixId) + ", adds the new premix at its manufacturer dose, re-optimises the rest and recalculates every nutrient and the cost. " : "Each column adds that premix at its manufacturer dose and re-optimises the rest. ") + "Two premixes are never kept together. Columns without a price say so instead of guessing.",
       close: () => update({ compareOpen: false }),
     };

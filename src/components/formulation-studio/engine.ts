@@ -417,7 +417,7 @@ export async function formulate(snap: Snapshot, ctx: EngineContext): Promise<For
     });
     if (!ingredients.length) return { status: "blocked", errs: [{ title: "None of these ingredients has the data this stage needs", body: "Add ingredients with complete nutrient values from the catalogue." }], warns };
     try {
-      result = await post<typeof result>("/api/feed-formulation/optimize", { programmeId: programme.id, phaseId: phase.id, energySystem: "ME", ingredients, unpricedIngredientIds: missingPremixPrice ? [realPremix!.id] : [] });
+      result = await post<typeof result>("/api/feed-formulation/optimize", { programmeId: programme.id, phaseId: phase.id, energySystem: "ME", ingredients, unpricedIngredientIds: missingPremixPrice ? [realPremix!.id] : [], goal: snap.goal === "least_cost" ? null : GOAL_ALTERNATIVE[snap.goal] });
     } catch (error) {
       return { status: "error", warns, message: error instanceof Error ? error.message : String(error) };
     }
@@ -512,10 +512,12 @@ export async function formulate(snap: Snapshot, ctx: EngineContext): Promise<For
     costExcludesPremix: missingPremixPrice,
     assessment,
     premixComparison: result.premixComparison ?? null,
-    // Both advisories describe the least-cost recipe. Never attach its effect
+    // The premix effect describes the least-cost recipe. Never attach its
     // notes to a simpler, lower-soy or lower-import recipe.
     premixEffect: alt ? null : result.premixEffect ?? null,
-    premixComparedOnLeastCost: !!alt,
+    // The server re-runs premixes with the goal shown; a comparison without
+    // its goal (no goal recipe, or an older server) describes least cost.
+    premixComparedOnLeastCost: !!alt && !result.premixComparison?.goal,
   };
 }
 

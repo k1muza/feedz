@@ -4,7 +4,9 @@ import { useState, type ReactNode } from "react";
 import { IngredientPoolPanel } from "./ingredient-pool-panel";
 import { InfoTip } from "./info-tip";
 import { CAT_PAGE_SIZES, type ShellVals, type StudioVals } from "./studio";
+import { ADV_LINK, CARD, DataTag, Diamond, MONO_HEAD, StatusGlyph } from "./marks";
 import { STUDIO_CSS, hv, sx } from "./sx";
+import { UpperLimitAdvisories, UpperLimitTable } from "./upper-limit-cards";
 import { INCLUSION_INPUT_PROPS } from "@/lib/inclusion-input";
 
 // Markup for the formulation studio, transcribed from the prototype template in
@@ -1156,10 +1158,6 @@ function Infeasible({ v, inf }: V & { inf: NonNullable<StudioVals["inf"]> }) {
   );
 }
 
-function StatusGlyph({ shape, color, size = 9 }: { shape: string; color: string; size?: number }) {
-  const base = `flex:none;display:inline-block;width:${size}px;height:${size}px;background:${color}`;
-  return <span aria-hidden style={sx(shape === "triangle" ? `${base};width:${size + 2}px;clip-path:polygon(50% 0,100% 100%,0 100%)` : shape === "dot" ? `${base};border-radius:50%` : base)} />;
-}
 
 const VERIFY_COLS = "fs-verify-row";
 
@@ -1181,21 +1179,6 @@ function RescueChip({ chip }: { chip: ChipVals }) {
 
 type OptVals = NonNullable<StudioVals["opt"]>;
 
-const MONO_TAG = "font:500 10px/1 'IBM Plex Mono',monospace;letter-spacing:0.04em;text-transform:uppercase;padding:4px 6px;border-radius:4px;white-space:nowrap";
-
-/** Data status tag: Published / Assumed 0 / Missing. Never a requirement status. */
-function DataTag({ label, dashed }: { label: string; dashed?: boolean }) {
-  return <span style={sx(`${MONO_TAG};${dashed ? "border:1px dashed #b9b6ab;background:#fff;color:#45473f" : "border:1px solid transparent;background:#efece4;color:#45473f"}`)}>{label}</span>;
-}
-
-/** Amber diamond: advisory, optional, never blocks. */
-function Diamond({ size = 8 }: { size?: number }) {
-  return <span aria-hidden style={sx(`flex:none;display:inline-block;width:${size}px;height:${size}px;background:#c98a1e;transform:rotate(45deg)`)} />;
-}
-
-const ADV_LINK = "border:0;background:transparent;padding:0;font:600 13px/1.3 'IBM Plex Sans',sans-serif;color:#2f5a3f;text-decoration:underline;text-underline-offset:3px;cursor:pointer";
-const CARD = "background:#fff;border:1px solid #e2dfd6;border-radius:10px";
-const MONO_HEAD = "font:500 11px/1 'IBM Plex Mono',monospace;color:#64665c;text-transform:uppercase;letter-spacing:0.05em";
 
 function ResultHeadline({ s, showSolver }: { s: OptVals["summary"]; showSolver: boolean }) {
   const { headline } = s;
@@ -1436,6 +1419,7 @@ function AdvisoriesTab({ opt }: { opt: OptVals }) {
   return (
     <div style={sx("display:flex;flex-direction:column;gap:14px")}>
       {t.empty && <div style={sx(`${CARD};padding:16px 18px;font:400 14px/1.5 'IBM Plex Sans',sans-serif;color:#45473f`)}>No advisories for this recipe.</div>}
+      {t.upperLimits && <UpperLimitAdvisories upper={t.upperLimits} />}
       {t.premix?.show && (
         <section style={sx(`${CARD};overflow:hidden`)}>
           <div style={sx("display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid #ece8df")}>
@@ -1496,6 +1480,7 @@ function AdvisoriesTab({ opt }: { opt: OptVals }) {
           </div>
         </section>
       )}
+      {t.upperLimits && <UpperLimitTable upper={t.upperLimits} />}
       {(t.guidelines.length > 0 || t.documentation) && (
         <div style={sx("display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px")}>
           {t.guidelines.map((g) => (
@@ -1613,7 +1598,18 @@ function ComparePremixes({ c }: { c: NonNullable<OptVals["compare"]> }) {
             {c.aminoLabels.map((label, i) => <Row key={label} label={label} cells={c.columns.map((col) => col.amino[i])} />)}
             <Row label="Minerals" cells={c.columns.map((col) => col.minerals)} />
             <Row label="Ingredients" cells={c.columns.map((col) => col.ingredients)} />
+            <Section title="Full recipe" />
+            {c.recipeLabels.map((label, i) => <Row key={label} label={label} cells={c.columns.map((col) => col.recipeAll[i])} />)}
             <Section title="Advisory comparison" />
+            {c.vitaminLabels.map((label, i) => (
+              <Row key={label} label={label} cells={c.columns.map((col) => {
+                const cell = col.vitamins[i];
+                return cell.tone === "missing"
+                  ? <span key={col.key}><DataTag label="Missing" dashed /> <span style={sx("color:#45473f")}>{cell.text}</span></span>
+                  : <span key={col.key} style={sx(cell.tone === "bad" ? "display:flex;align-items:center;gap:7px;color:#a63d2a;font-weight:600" : "")}>{cell.tone === "bad" && <StatusGlyph shape="square" color="#b2412e" size={7} />}{cell.text}</span>;
+              })} />
+            ))}
+            {c.vitaminLabels.length > 0 && <Row label="Vitamin data" cells={c.columns.map((col) => <span key={col.key} style={sx("font-size:12px;color:#45473f")}>{col.vitaminData}</span>)} />}
             <Row label="Chapter 7 at recommendation" cells={c.columns.map((col) => col.chapter7)} />
             <Row label="Missing documentation" cells={c.columns.map((col) => <span key={col.key} style={sx(col.gaps === "None" ? "color:#2b6a42;font-weight:600" : "")}>{col.gaps}</span>)} />
             <div style={sx(`display:grid;grid-template-columns:${cols};border-top:1px solid #e2dfd6;background:#faf8f3`)}>
@@ -1628,7 +1624,7 @@ function ComparePremixes({ c }: { c: NonNullable<OptVals["compare"]> }) {
             </div>
           </div>
         </div>
-        <div style={sx("padding:12px 20px;border-top:1px solid #e2dfd6;font:400 12px/1.5 'IBM Plex Sans',sans-serif;color:#45473f")}>{c.footnote} None of these alternatives changes how requirements are judged.</div>
+        <div style={sx("padding:12px 20px;border-top:1px solid #e2dfd6;font:400 12px/1.5 'IBM Plex Sans',sans-serif;color:#45473f")}>{c.footnote} None of these alternatives changes how requirements are judged.{c.upperLimitSource && " " + c.upperLimitSource} Nothing is replaced until you choose Replace premix.</div>
       </div>
     </>
   );

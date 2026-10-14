@@ -1,0 +1,1113 @@
+{
+  "schemaVersion": 1,
+  "id": "cfia-maximum-nutrient-values-2024-phase-mapping",
+  "sourceId": "cfia-maximum-nutrient-values-2024",
+  "title": "FeedSport programme phases mapped to CFIA maximum-nutrient columns",
+  "rule": "Each supported phase maps to exactly one CFIA column. Growing pigs: the column whose published weight range contains the midpoint of the phase's published weight range. Broilers: the column containing the midpoint of the phase's age range, with day 28 (the 4-week start of the Grower column) as the Starter/Grower boundary. Gestating gilts and sows: Dry sows. Lactating gilts and sows: Lactating sows. Mature boars: Sexually active boars. A phase not listed here has no CFIA reference and is reported as unsupported; FeedSport never infers a column at run time.",
+  "unsupportedPolicy": "Phases absent from this list are reported with an explicit unsupported status and no upper-limit comparison.",
+  "mappings": [
+    {
+      "phaseId": "br2024-5-32-14-21d-4.4-6.2kg",
+      "programmeIds": [
+        "nursery-pig",
+        "nursery-pig-high-performance"
+      ],
+      "phaseLabel": "pre starter: 4.4–6.2 kg",
+      "basis": "4.4–6.2 kg",
+      "cfiaTable": "swine",
+      "cfiaCategoryId": "swine-starter-under-7kg",
+      "crossesBoundary": false,
+      "explanation": "4.4–6.2 kg lies within the CFIA Starter (less than 7 kg) column."
+    },
+    {
+      "phaseId": "br2024-5-32-21-35d-6.2-8.4kg",
+      "programmeIds": [
+        "nursery-pig",
+        "nursery-pig-high-performance"
+      ],
+      "phaseLabel": "pre starter: 6.2–8.4 kg",
+      "basis": "6.2–8.4 kg",
+      "cfiaTable": "swine",
+      "cfiaCategoryId": "swine-starter-7-11kg",
+      "crossesBoundary": true,
+      "explanation": "6.2–8.4 kg crosses the CFIA 7 kg boundary. The phase midpoint (7.3 kg) falls in Starter (7 to 11 kg), so that column applies."
+    },
+    {
+      "phaseId": "br2024-5-32-35-49d-8.4-17.9kg",
+      "programmeIds": [
+        "nursery-pig",
+        "nursery-pig-high-performance"
+      ],
+      "phaseLabel": "pre starter: 8.4–17.9 kg",
+      "basis": "8.4–17.9 kg",
+      "cfiaTable": "swine",
+      "cfiaCategoryId": "swine-starter-11-25kg",
+      "crossesBoundary": true,
+      "explanation": "8.4–17.9 kg crosses the CFIA 11 kg boundary. The phase midpoint (13.15 kg) falls in Starter (11 to 25 kg), so that column applies."
+    },
+    {
+      "phaseId": "br2024-5-43-49-63d-16-26kg",
+      "programmeIds": [
+        "nursery-pig"
+      ],
+      "phaseLabel": "starter: 16–26 kg",
+      "basis": "16–26 kg",
+      "cfiaTable": "swine",
+      "cfiaCategoryId": "swine-starter-11-25kg",
+      "crossesBoundary": true,
+      "explanation": "16–26 kg crosses the CFIA 25 kg boundary. The phase midpoint (21 kg) falls in Starter (11 to 25 kg), so that column applies. Copper, manganese and zinc maxima differ either side of 25 kg; the Starter values apply to this phase."
+    },
+    {
+      "phaseId": "br2024-5-43-63-91d-26-47kg",
+      "programmeIds": [
+        "grow-finish-pig"
+      ],
+      "phaseLabel": "grower: 26–47 kg",
+      "basis": "26–47 kg",
+      "cfiaTable": "swine",
+      "cfiaCategoryId": "swine-grower-25-50kg",
+      "crossesBoundary": false,
+      "explanation": "26–47 kg lies within the CFIA Grower (25 to 50 kg) column."
+    },
+    {
+      "phaseId": "br2024-5-43-91-119d-47-74kg",
+      "programmeIds": [
+        "grow-finish-pig"
+      ],
+      "phaseLabel": "grower: 47–74 kg",
+      "basis": "47–74 kg",
+      "cfiaTable": "swine",
+      "cfiaCategoryId": "swine-grower-50-75kg",
+      "crossesBoundary": true,
+      "explanation": "47–74 kg crosses the CFIA 50 kg boundary. The phase midpoint (60.5 kg) falls in Grower (50 to 75 kg), so that column applies."
+    },
+    {
+      "phaseId": "br2024-5-43-119-147d-74-103kg",
+      "programmeIds": [
+        "grow-finish-pig"
+      ],
+      "phaseLabel": "finisher: 74–103 kg",
+      "basis": "74–103 kg",
+      "cfiaTable": "swine",
+      "cfiaCategoryId": "swine-finisher-75-100kg",
+      "crossesBoundary": true,
+      "explanation": "74–103 kg crosses the CFIA 75 kg and 100 kg boundary. The phase midpoint (88.5 kg) falls in Finisher (75 to 100 kg), so that column applies."
+    },
+    {
+      "phaseId": "br2024-5-43-147-175d-103-131kg",
+      "programmeIds": [
+        "grow-finish-pig"
+      ],
+      "phaseLabel": "finisher: 103–131 kg",
+      "basis": "103–131 kg",
+      "cfiaTable": "swine",
+      "cfiaCategoryId": "swine-finisher-100-135kg",
+      "crossesBoundary": false,
+      "explanation": "103–131 kg lies within the CFIA Finisher (100 to 135 kg) column."
+    },
+    {
+      "phaseId": "br2024-5-38-49-63d-15-25kg",
+      "programmeIds": [
+        "developing-gilt"
+      ],
+      "phaseLabel": "starter: 15–25 kg",
+      "basis": "15–25 kg",
+      "cfiaTable": "swine",
+      "cfiaCategoryId": "swine-starter-11-25kg",
+      "crossesBoundary": false,
+      "explanation": "15–25 kg lies within the CFIA Starter (11 to 25 kg) column."
+    },
+    {
+      "phaseId": "br2024-5-38-63-91d-25-45kg",
+      "programmeIds": [
+        "developing-gilt"
+      ],
+      "phaseLabel": "grower: 25–45 kg",
+      "basis": "25–45 kg",
+      "cfiaTable": "swine",
+      "cfiaCategoryId": "swine-grower-25-50kg",
+      "crossesBoundary": false,
+      "explanation": "25–45 kg lies within the CFIA Grower (25 to 50 kg) column."
+    },
+    {
+      "phaseId": "br2024-5-38-91-119d-45-70kg",
+      "programmeIds": [
+        "developing-gilt"
+      ],
+      "phaseLabel": "grower: 45–70 kg",
+      "basis": "45–70 kg",
+      "cfiaTable": "swine",
+      "cfiaCategoryId": "swine-grower-50-75kg",
+      "crossesBoundary": true,
+      "explanation": "45–70 kg crosses the CFIA 50 kg boundary. The phase midpoint (57.5 kg) falls in Grower (50 to 75 kg), so that column applies."
+    },
+    {
+      "phaseId": "br2024-5-38-119-147d-70-100kg",
+      "programmeIds": [
+        "developing-gilt"
+      ],
+      "phaseLabel": "finisher: 70–100 kg",
+      "basis": "70–100 kg",
+      "cfiaTable": "swine",
+      "cfiaCategoryId": "swine-finisher-75-100kg",
+      "crossesBoundary": true,
+      "explanation": "70–100 kg crosses the CFIA 75 kg boundary. The phase midpoint (85 kg) falls in Finisher (75 to 100 kg), so that column applies."
+    },
+    {
+      "phaseId": "br2024-5-38-147-175d-100-129kg",
+      "programmeIds": [
+        "developing-gilt"
+      ],
+      "phaseLabel": "finisher: 100–129 kg",
+      "basis": "100–129 kg",
+      "cfiaTable": "swine",
+      "cfiaCategoryId": "swine-finisher-100-135kg",
+      "crossesBoundary": false,
+      "explanation": "100–129 kg lies within the CFIA Finisher (100 to 135 kg) column."
+    },
+    {
+      "phaseId": "br2024-5-35-49-63d-18-27kg",
+      "programmeIds": [
+        "growing-barrows-standard"
+      ],
+      "phaseLabel": "starter: 18–27 kg",
+      "basis": "18–27 kg",
+      "cfiaTable": "swine",
+      "cfiaCategoryId": "swine-starter-11-25kg",
+      "crossesBoundary": true,
+      "explanation": "18–27 kg crosses the CFIA 25 kg boundary. The phase midpoint (22.5 kg) falls in Starter (11 to 25 kg), so that column applies. Copper, manganese and zinc maxima differ either side of 25 kg; the Starter values apply to this phase."
+    },
+    {
+      "phaseId": "br2024-5-35-63-91d-27-50kg",
+      "programmeIds": [
+        "growing-barrows-standard"
+      ],
+      "phaseLabel": "grower: 27–50 kg",
+      "basis": "27–50 kg",
+      "cfiaTable": "swine",
+      "cfiaCategoryId": "swine-grower-25-50kg",
+      "crossesBoundary": false,
+      "explanation": "27–50 kg lies within the CFIA Grower (25 to 50 kg) column."
+    },
+    {
+      "phaseId": "br2024-5-35-91-119d-50-78kg",
+      "programmeIds": [
+        "growing-barrows-standard"
+      ],
+      "phaseLabel": "grower: 50–78 kg",
+      "basis": "50–78 kg",
+      "cfiaTable": "swine",
+      "cfiaCategoryId": "swine-grower-50-75kg",
+      "crossesBoundary": true,
+      "explanation": "50–78 kg crosses the CFIA 75 kg boundary. The phase midpoint (64 kg) falls in Grower (50 to 75 kg), so that column applies."
+    },
+    {
+      "phaseId": "br2024-5-35-119-147d-78-106kg",
+      "programmeIds": [
+        "growing-barrows-standard"
+      ],
+      "phaseLabel": "finisher: 78–106 kg",
+      "basis": "78–106 kg",
+      "cfiaTable": "swine",
+      "cfiaCategoryId": "swine-finisher-75-100kg",
+      "crossesBoundary": true,
+      "explanation": "78–106 kg crosses the CFIA 100 kg boundary. The phase midpoint (92 kg) falls in Finisher (75 to 100 kg), so that column applies."
+    },
+    {
+      "phaseId": "br2024-5-35-147-175d-106-133kg",
+      "programmeIds": [
+        "growing-barrows-standard"
+      ],
+      "phaseLabel": "finisher: 106–133 kg",
+      "basis": "106–133 kg",
+      "cfiaTable": "swine",
+      "cfiaCategoryId": "swine-finisher-100-135kg",
+      "crossesBoundary": false,
+      "explanation": "106–133 kg lies within the CFIA Finisher (100 to 135 kg) column."
+    },
+    {
+      "phaseId": "br2024-5-39-49-63d-17-26kg",
+      "programmeIds": [
+        "growing-entire-immunocastrated-males-standard"
+      ],
+      "phaseLabel": "starter: 17–26 kg",
+      "basis": "17–26 kg",
+      "cfiaTable": "swine",
+      "cfiaCategoryId": "swine-starter-11-25kg",
+      "crossesBoundary": true,
+      "explanation": "17–26 kg crosses the CFIA 25 kg boundary. The phase midpoint (21.5 kg) falls in Starter (11 to 25 kg), so that column applies. Copper, manganese and zinc maxima differ either side of 25 kg; the Starter values apply to this phase."
+    },
+    {
+      "phaseId": "br2024-5-39-63-91d-26-49kg",
+      "programmeIds": [
+        "growing-entire-immunocastrated-males-standard"
+      ],
+      "phaseLabel": "grower: 26–49 kg",
+      "basis": "26–49 kg",
+      "cfiaTable": "swine",
+      "cfiaCategoryId": "swine-grower-25-50kg",
+      "crossesBoundary": false,
+      "explanation": "26–49 kg lies within the CFIA Grower (25 to 50 kg) column."
+    },
+    {
+      "phaseId": "br2024-5-39-91-119d-49-80kg",
+      "programmeIds": [
+        "growing-entire-immunocastrated-males-standard"
+      ],
+      "phaseLabel": "grower: 49–80 kg",
+      "basis": "49–80 kg",
+      "cfiaTable": "swine",
+      "cfiaCategoryId": "swine-grower-50-75kg",
+      "crossesBoundary": true,
+      "explanation": "49–80 kg crosses the CFIA 50 kg and 75 kg boundary. The phase midpoint (64.5 kg) falls in Grower (50 to 75 kg), so that column applies."
+    },
+    {
+      "phaseId": "br2024-5-39-119-147d-80-116kg",
+      "programmeIds": [
+        "growing-entire-immunocastrated-males-standard"
+      ],
+      "phaseLabel": "finisher: 80–116 kg",
+      "basis": "80–116 kg",
+      "cfiaTable": "swine",
+      "cfiaCategoryId": "swine-finisher-75-100kg",
+      "crossesBoundary": true,
+      "explanation": "80–116 kg crosses the CFIA 100 kg boundary. The phase midpoint (98 kg) falls in Finisher (75 to 100 kg), so that column applies."
+    },
+    {
+      "phaseId": "br2024-5-39-147-175d-116-156kg",
+      "programmeIds": [
+        "growing-entire-immunocastrated-males-standard"
+      ],
+      "phaseLabel": "finisher: 116–156 kg",
+      "basis": "116–156 kg",
+      "cfiaTable": "swine",
+      "cfiaCategoryId": "swine-finisher-100-135kg",
+      "crossesBoundary": false,
+      "extendsBeyondPublishedClasses": true,
+      "explanation": "The phase ends at 156 kg, beyond the 135 kg end of the heaviest published grow-finish column. CFIA publishes the same values for every swine column from 25 kg upward (including dry sows, lactating sows and boars), so applying Finisher (100 to 135 kg) does not extend any published maximum."
+    },
+    {
+      "phaseId": "pic-mature-boar",
+      "programmeIds": [
+        "mature-boar"
+      ],
+      "phaseLabel": "Mature boar",
+      "basis": "Mature boar",
+      "cfiaTable": "swine",
+      "cfiaCategoryId": "swine-sexually-active-boars",
+      "crossesBoundary": false,
+      "explanation": "The PIC mature-boar specification is for working stud boars, the CFIA Sexually active boars column. This programme is PIC, not Brazilian Tables; it is mapped explicitly so the assessment is the same in every view."
+    },
+    {
+      "phaseId": "br2024-6-08-nulliparous-0-85d",
+      "programmeIds": [
+        "gestating-gilt-sow"
+      ],
+      "phaseLabel": "nulliparous · gestation days 0–85",
+      "basis": "nulliparous · gestation days 0–85",
+      "cfiaTable": "swine",
+      "cfiaCategoryId": "swine-dry-sows",
+      "crossesBoundary": false,
+      "explanation": "A gestating gilt or sow is not lactating, which CFIA classes as a dry sow. Gilts in gestation are included because CFIA has no separate gestating-gilt column."
+    },
+    {
+      "phaseId": "br2024-6-08-nulliparous-86-115d",
+      "programmeIds": [
+        "gestating-gilt-sow"
+      ],
+      "phaseLabel": "nulliparous · gestation days 86–115",
+      "basis": "nulliparous · gestation days 86–115",
+      "cfiaTable": "swine",
+      "cfiaCategoryId": "swine-dry-sows",
+      "crossesBoundary": false,
+      "explanation": "A gestating gilt or sow is not lactating, which CFIA classes as a dry sow. Gilts in gestation are included because CFIA has no separate gestating-gilt column."
+    },
+    {
+      "phaseId": "br2024-6-08-po1-0-85d",
+      "programmeIds": [
+        "gestating-gilt-sow"
+      ],
+      "phaseLabel": "PO1 · gestation days 0–85",
+      "basis": "PO1 · gestation days 0–85",
+      "cfiaTable": "swine",
+      "cfiaCategoryId": "swine-dry-sows",
+      "crossesBoundary": false,
+      "explanation": "A gestating gilt or sow is not lactating, which CFIA classes as a dry sow. Gilts in gestation are included because CFIA has no separate gestating-gilt column."
+    },
+    {
+      "phaseId": "br2024-6-08-po1-86-115d",
+      "programmeIds": [
+        "gestating-gilt-sow"
+      ],
+      "phaseLabel": "PO1 · gestation days 86–115",
+      "basis": "PO1 · gestation days 86–115",
+      "cfiaTable": "swine",
+      "cfiaCategoryId": "swine-dry-sows",
+      "crossesBoundary": false,
+      "explanation": "A gestating gilt or sow is not lactating, which CFIA classes as a dry sow. Gilts in gestation are included because CFIA has no separate gestating-gilt column."
+    },
+    {
+      "phaseId": "br2024-6-08-po2-0-85d",
+      "programmeIds": [
+        "gestating-gilt-sow"
+      ],
+      "phaseLabel": "PO2 · gestation days 0–85",
+      "basis": "PO2 · gestation days 0–85",
+      "cfiaTable": "swine",
+      "cfiaCategoryId": "swine-dry-sows",
+      "crossesBoundary": false,
+      "explanation": "A gestating gilt or sow is not lactating, which CFIA classes as a dry sow. Gilts in gestation are included because CFIA has no separate gestating-gilt column."
+    },
+    {
+      "phaseId": "br2024-6-08-po2-86-115d",
+      "programmeIds": [
+        "gestating-gilt-sow"
+      ],
+      "phaseLabel": "PO2 · gestation days 86–115",
+      "basis": "PO2 · gestation days 86–115",
+      "cfiaTable": "swine",
+      "cfiaCategoryId": "swine-dry-sows",
+      "crossesBoundary": false,
+      "explanation": "A gestating gilt or sow is not lactating, which CFIA classes as a dry sow. Gilts in gestation are included because CFIA has no separate gestating-gilt column."
+    },
+    {
+      "phaseId": "br2024-6-08-po3plus-0-85d",
+      "programmeIds": [
+        "gestating-gilt-sow"
+      ],
+      "phaseLabel": "PO3+ · gestation days 0–85",
+      "basis": "PO3+ · gestation days 0–85",
+      "cfiaTable": "swine",
+      "cfiaCategoryId": "swine-dry-sows",
+      "crossesBoundary": false,
+      "explanation": "A gestating gilt or sow is not lactating, which CFIA classes as a dry sow. Gilts in gestation are included because CFIA has no separate gestating-gilt column."
+    },
+    {
+      "phaseId": "br2024-6-08-po3plus-86-115d",
+      "programmeIds": [
+        "gestating-gilt-sow"
+      ],
+      "phaseLabel": "PO3+ · gestation days 86–115",
+      "basis": "PO3+ · gestation days 86–115",
+      "cfiaTable": "swine",
+      "cfiaCategoryId": "swine-dry-sows",
+      "crossesBoundary": false,
+      "explanation": "A gestating gilt or sow is not lactating, which CFIA classes as a dry sow. Gilts in gestation are included because CFIA has no separate gestating-gilt column."
+    },
+    {
+      "phaseId": "br2024-6-15-po1-2.63kg-lwg",
+      "programmeIds": [
+        "lactating-gilt-sow"
+      ],
+      "phaseLabel": "PO1 · litter gain 2.63 kg/day",
+      "basis": "PO1 · litter gain 2.63 kg/day",
+      "cfiaTable": "swine",
+      "cfiaCategoryId": "swine-lactating-sows",
+      "crossesBoundary": false,
+      "explanation": "A lactating gilt or sow is in the CFIA Lactating sows column."
+    },
+    {
+      "phaseId": "br2024-6-15-po1-2.90kg-lwg",
+      "programmeIds": [
+        "lactating-gilt-sow"
+      ],
+      "phaseLabel": "PO1 · litter gain 2.9 kg/day",
+      "basis": "PO1 · litter gain 2.9 kg/day",
+      "cfiaTable": "swine",
+      "cfiaCategoryId": "swine-lactating-sows",
+      "crossesBoundary": false,
+      "explanation": "A lactating gilt or sow is in the CFIA Lactating sows column."
+    },
+    {
+      "phaseId": "br2024-6-15-po2-2.82kg-lwg",
+      "programmeIds": [
+        "lactating-gilt-sow"
+      ],
+      "phaseLabel": "PO2 · litter gain 2.82 kg/day",
+      "basis": "PO2 · litter gain 2.82 kg/day",
+      "cfiaTable": "swine",
+      "cfiaCategoryId": "swine-lactating-sows",
+      "crossesBoundary": false,
+      "explanation": "A lactating gilt or sow is in the CFIA Lactating sows column."
+    },
+    {
+      "phaseId": "br2024-6-15-po2-3.10kg-lwg",
+      "programmeIds": [
+        "lactating-gilt-sow"
+      ],
+      "phaseLabel": "PO2 · litter gain 3.1 kg/day",
+      "basis": "PO2 · litter gain 3.1 kg/day",
+      "cfiaTable": "swine",
+      "cfiaCategoryId": "swine-lactating-sows",
+      "crossesBoundary": false,
+      "explanation": "A lactating gilt or sow is in the CFIA Lactating sows column."
+    },
+    {
+      "phaseId": "br2024-6-15-po3plus-2.82kg-lwg",
+      "programmeIds": [
+        "lactating-gilt-sow"
+      ],
+      "phaseLabel": "PO3+ · litter gain 2.82 kg/day",
+      "basis": "PO3+ · litter gain 2.82 kg/day",
+      "cfiaTable": "swine",
+      "cfiaCategoryId": "swine-lactating-sows",
+      "crossesBoundary": false,
+      "explanation": "A lactating gilt or sow is in the CFIA Lactating sows column."
+    },
+    {
+      "phaseId": "br2024-6-15-po3plus-3.10kg-lwg",
+      "programmeIds": [
+        "lactating-gilt-sow"
+      ],
+      "phaseLabel": "PO3+ · litter gain 3.1 kg/day",
+      "basis": "PO3+ · litter gain 3.1 kg/day",
+      "cfiaTable": "swine",
+      "cfiaCategoryId": "swine-lactating-sows",
+      "crossesBoundary": false,
+      "explanation": "A lactating gilt or sow is in the CFIA Lactating sows column."
+    },
+    {
+      "phaseId": "br2024-6-16-po1-2.63kg-lwg-25c",
+      "programmeIds": [
+        "lactating-gilt-sow-25c"
+      ],
+      "phaseLabel": "PO1 · litter gain 2.63 kg/day",
+      "basis": "PO1 · litter gain 2.63 kg/day",
+      "cfiaTable": "swine",
+      "cfiaCategoryId": "swine-lactating-sows",
+      "crossesBoundary": false,
+      "explanation": "A lactating gilt or sow is in the CFIA Lactating sows column."
+    },
+    {
+      "phaseId": "br2024-6-16-po1-2.90kg-lwg-25c",
+      "programmeIds": [
+        "lactating-gilt-sow-25c"
+      ],
+      "phaseLabel": "PO1 · litter gain 2.9 kg/day",
+      "basis": "PO1 · litter gain 2.9 kg/day",
+      "cfiaTable": "swine",
+      "cfiaCategoryId": "swine-lactating-sows",
+      "crossesBoundary": false,
+      "explanation": "A lactating gilt or sow is in the CFIA Lactating sows column."
+    },
+    {
+      "phaseId": "br2024-6-16-po2-2.82kg-lwg-25c",
+      "programmeIds": [
+        "lactating-gilt-sow-25c"
+      ],
+      "phaseLabel": "PO2 · litter gain 2.82 kg/day",
+      "basis": "PO2 · litter gain 2.82 kg/day",
+      "cfiaTable": "swine",
+      "cfiaCategoryId": "swine-lactating-sows",
+      "crossesBoundary": false,
+      "explanation": "A lactating gilt or sow is in the CFIA Lactating sows column."
+    },
+    {
+      "phaseId": "br2024-6-16-po2-3.10kg-lwg-25c",
+      "programmeIds": [
+        "lactating-gilt-sow-25c"
+      ],
+      "phaseLabel": "PO2 · litter gain 3.1 kg/day",
+      "basis": "PO2 · litter gain 3.1 kg/day",
+      "cfiaTable": "swine",
+      "cfiaCategoryId": "swine-lactating-sows",
+      "crossesBoundary": false,
+      "explanation": "A lactating gilt or sow is in the CFIA Lactating sows column."
+    },
+    {
+      "phaseId": "br2024-6-16-po3plus-2.82kg-lwg-25c",
+      "programmeIds": [
+        "lactating-gilt-sow-25c"
+      ],
+      "phaseLabel": "PO3+ · litter gain 2.82 kg/day",
+      "basis": "PO3+ · litter gain 2.82 kg/day",
+      "cfiaTable": "swine",
+      "cfiaCategoryId": "swine-lactating-sows",
+      "crossesBoundary": false,
+      "explanation": "A lactating gilt or sow is in the CFIA Lactating sows column."
+    },
+    {
+      "phaseId": "br2024-6-16-po3plus-3.10kg-lwg-25c",
+      "programmeIds": [
+        "lactating-gilt-sow-25c"
+      ],
+      "phaseLabel": "PO3+ · litter gain 3.1 kg/day",
+      "basis": "PO3+ · litter gain 3.1 kg/day",
+      "cfiaTable": "swine",
+      "cfiaCategoryId": "swine-lactating-sows",
+      "crossesBoundary": false,
+      "explanation": "A lactating gilt or sow is in the CFIA Lactating sows column."
+    },
+    {
+      "phaseId": "br2024-5-41-49-63d-18-27kg",
+      "programmeIds": [
+        "nursery-pig-high-performance"
+      ],
+      "phaseLabel": "starter: 18–27 kg",
+      "basis": "18–27 kg",
+      "cfiaTable": "swine",
+      "cfiaCategoryId": "swine-starter-11-25kg",
+      "crossesBoundary": true,
+      "explanation": "18–27 kg crosses the CFIA 25 kg boundary. The phase midpoint (22.5 kg) falls in Starter (11 to 25 kg), so that column applies. Copper, manganese and zinc maxima differ either side of 25 kg; the Starter values apply to this phase."
+    },
+    {
+      "phaseId": "br2024-5-41-63-91d-27-50kg",
+      "programmeIds": [
+        "grow-finish-pig-high-performance"
+      ],
+      "phaseLabel": "grower: 27–50 kg",
+      "basis": "27–50 kg",
+      "cfiaTable": "swine",
+      "cfiaCategoryId": "swine-grower-25-50kg",
+      "crossesBoundary": false,
+      "explanation": "27–50 kg lies within the CFIA Grower (25 to 50 kg) column."
+    },
+    {
+      "phaseId": "br2024-5-41-91-119d-50-80kg",
+      "programmeIds": [
+        "grow-finish-pig-high-performance"
+      ],
+      "phaseLabel": "grower: 50–80 kg",
+      "basis": "50–80 kg",
+      "cfiaTable": "swine",
+      "cfiaCategoryId": "swine-grower-50-75kg",
+      "crossesBoundary": true,
+      "explanation": "50–80 kg crosses the CFIA 75 kg boundary. The phase midpoint (65 kg) falls in Grower (50 to 75 kg), so that column applies."
+    },
+    {
+      "phaseId": "br2024-5-41-119-147d-80-110kg",
+      "programmeIds": [
+        "grow-finish-pig-high-performance"
+      ],
+      "phaseLabel": "finisher: 80–110 kg",
+      "basis": "80–110 kg",
+      "cfiaTable": "swine",
+      "cfiaCategoryId": "swine-finisher-75-100kg",
+      "crossesBoundary": true,
+      "explanation": "80–110 kg crosses the CFIA 100 kg boundary. The phase midpoint (95 kg) falls in Finisher (75 to 100 kg), so that column applies."
+    },
+    {
+      "phaseId": "br2024-5-41-147-175d-110-141kg",
+      "programmeIds": [
+        "grow-finish-pig-high-performance"
+      ],
+      "phaseLabel": "finisher: 110–141 kg",
+      "basis": "110–141 kg",
+      "cfiaTable": "swine",
+      "cfiaCategoryId": "swine-finisher-100-135kg",
+      "crossesBoundary": false,
+      "extendsBeyondPublishedClasses": true,
+      "explanation": "The phase ends at 141 kg, beyond the 135 kg end of the heaviest published grow-finish column. CFIA publishes the same values for every swine column from 25 kg upward (including dry sows, lactating sows and boars), so applying Finisher (100 to 135 kg) does not extend any published maximum."
+    },
+    {
+      "phaseId": "br2024-5-36-49-63d-18-27kg",
+      "programmeIds": [
+        "developing-gilt-high-performance"
+      ],
+      "phaseLabel": "starter: 18–27 kg",
+      "basis": "18–27 kg",
+      "cfiaTable": "swine",
+      "cfiaCategoryId": "swine-starter-11-25kg",
+      "crossesBoundary": true,
+      "explanation": "18–27 kg crosses the CFIA 25 kg boundary. The phase midpoint (22.5 kg) falls in Starter (11 to 25 kg), so that column applies. Copper, manganese and zinc maxima differ either side of 25 kg; the Starter values apply to this phase."
+    },
+    {
+      "phaseId": "br2024-5-36-63-91d-27-50kg",
+      "programmeIds": [
+        "developing-gilt-high-performance"
+      ],
+      "phaseLabel": "grower: 27–50 kg",
+      "basis": "27–50 kg",
+      "cfiaTable": "swine",
+      "cfiaCategoryId": "swine-grower-25-50kg",
+      "crossesBoundary": false,
+      "explanation": "27–50 kg lies within the CFIA Grower (25 to 50 kg) column."
+    },
+    {
+      "phaseId": "br2024-5-36-91-119d-50-77kg",
+      "programmeIds": [
+        "developing-gilt-high-performance"
+      ],
+      "phaseLabel": "grower: 50–77 kg",
+      "basis": "50–77 kg",
+      "cfiaTable": "swine",
+      "cfiaCategoryId": "swine-grower-50-75kg",
+      "crossesBoundary": true,
+      "explanation": "50–77 kg crosses the CFIA 75 kg boundary. The phase midpoint (63.5 kg) falls in Grower (50 to 75 kg), so that column applies."
+    },
+    {
+      "phaseId": "br2024-5-36-119-147d-77-107kg",
+      "programmeIds": [
+        "developing-gilt-high-performance"
+      ],
+      "phaseLabel": "finisher: 77–107 kg",
+      "basis": "77–107 kg",
+      "cfiaTable": "swine",
+      "cfiaCategoryId": "swine-finisher-75-100kg",
+      "crossesBoundary": true,
+      "explanation": "77–107 kg crosses the CFIA 100 kg boundary. The phase midpoint (92 kg) falls in Finisher (75 to 100 kg), so that column applies."
+    },
+    {
+      "phaseId": "br2024-5-36-147-175d-107-137kg",
+      "programmeIds": [
+        "developing-gilt-high-performance"
+      ],
+      "phaseLabel": "finisher: 107–137 kg",
+      "basis": "107–137 kg",
+      "cfiaTable": "swine",
+      "cfiaCategoryId": "swine-finisher-100-135kg",
+      "crossesBoundary": false,
+      "extendsBeyondPublishedClasses": true,
+      "explanation": "The phase ends at 137 kg, beyond the 135 kg end of the heaviest published grow-finish column. CFIA publishes the same values for every swine column from 25 kg upward (including dry sows, lactating sows and boars), so applying Finisher (100 to 135 kg) does not extend any published maximum."
+    },
+    {
+      "phaseId": "br2024-5-33-49-63d-18-27kg",
+      "programmeIds": [
+        "growing-barrows-high-performance"
+      ],
+      "phaseLabel": "starter: 18–27 kg",
+      "basis": "18–27 kg",
+      "cfiaTable": "swine",
+      "cfiaCategoryId": "swine-starter-11-25kg",
+      "crossesBoundary": true,
+      "explanation": "18–27 kg crosses the CFIA 25 kg boundary. The phase midpoint (22.5 kg) falls in Starter (11 to 25 kg), so that column applies. Copper, manganese and zinc maxima differ either side of 25 kg; the Starter values apply to this phase."
+    },
+    {
+      "phaseId": "br2024-5-33-63-91d-27-51kg",
+      "programmeIds": [
+        "growing-barrows-high-performance"
+      ],
+      "phaseLabel": "grower: 27–51 kg",
+      "basis": "27–51 kg",
+      "cfiaTable": "swine",
+      "cfiaCategoryId": "swine-grower-25-50kg",
+      "crossesBoundary": true,
+      "explanation": "27–51 kg crosses the CFIA 50 kg boundary. The phase midpoint (39 kg) falls in Grower (25 to 50 kg), so that column applies."
+    },
+    {
+      "phaseId": "br2024-5-33-91-119d-51-82kg",
+      "programmeIds": [
+        "growing-barrows-high-performance"
+      ],
+      "phaseLabel": "grower: 51–82 kg",
+      "basis": "51–82 kg",
+      "cfiaTable": "swine",
+      "cfiaCategoryId": "swine-grower-50-75kg",
+      "crossesBoundary": true,
+      "explanation": "51–82 kg crosses the CFIA 75 kg boundary. The phase midpoint (66.5 kg) falls in Grower (50 to 75 kg), so that column applies."
+    },
+    {
+      "phaseId": "br2024-5-33-119-147d-82-113kg",
+      "programmeIds": [
+        "growing-barrows-high-performance"
+      ],
+      "phaseLabel": "finisher: 82–113 kg",
+      "basis": "82–113 kg",
+      "cfiaTable": "swine",
+      "cfiaCategoryId": "swine-finisher-75-100kg",
+      "crossesBoundary": true,
+      "explanation": "82–113 kg crosses the CFIA 100 kg boundary. The phase midpoint (97.5 kg) falls in Finisher (75 to 100 kg), so that column applies."
+    },
+    {
+      "phaseId": "br2024-5-33-147-175d-113-145kg",
+      "programmeIds": [
+        "growing-barrows-high-performance"
+      ],
+      "phaseLabel": "finisher: 113–145 kg",
+      "basis": "113–145 kg",
+      "cfiaTable": "swine",
+      "cfiaCategoryId": "swine-finisher-100-135kg",
+      "crossesBoundary": false,
+      "extendsBeyondPublishedClasses": true,
+      "explanation": "The phase ends at 145 kg, beyond the 135 kg end of the heaviest published grow-finish column. CFIA publishes the same values for every swine column from 25 kg upward (including dry sows, lactating sows and boars), so applying Finisher (100 to 135 kg) does not extend any published maximum."
+    },
+    {
+      "phaseId": "br2024-5-34-63-91d-27-51kg",
+      "programmeIds": [
+        "growing-barrows-high-performance-hot"
+      ],
+      "phaseLabel": "grower: 27–51 kg",
+      "basis": "27–51 kg",
+      "cfiaTable": "swine",
+      "cfiaCategoryId": "swine-grower-25-50kg",
+      "crossesBoundary": true,
+      "explanation": "27–51 kg crosses the CFIA 50 kg boundary. The phase midpoint (39 kg) falls in Grower (25 to 50 kg), so that column applies."
+    },
+    {
+      "phaseId": "br2024-5-34-91-119d-51-82kg",
+      "programmeIds": [
+        "growing-barrows-high-performance-hot"
+      ],
+      "phaseLabel": "grower: 51–82 kg",
+      "basis": "51–82 kg",
+      "cfiaTable": "swine",
+      "cfiaCategoryId": "swine-grower-50-75kg",
+      "crossesBoundary": true,
+      "explanation": "51–82 kg crosses the CFIA 75 kg boundary. The phase midpoint (66.5 kg) falls in Grower (50 to 75 kg), so that column applies."
+    },
+    {
+      "phaseId": "br2024-5-34-119-147d-82-113kg",
+      "programmeIds": [
+        "growing-barrows-high-performance-hot"
+      ],
+      "phaseLabel": "finisher: 82–113 kg",
+      "basis": "82–113 kg",
+      "cfiaTable": "swine",
+      "cfiaCategoryId": "swine-finisher-75-100kg",
+      "crossesBoundary": true,
+      "explanation": "82–113 kg crosses the CFIA 100 kg boundary. The phase midpoint (97.5 kg) falls in Finisher (75 to 100 kg), so that column applies."
+    },
+    {
+      "phaseId": "br2024-5-34-147-175d-113-145kg",
+      "programmeIds": [
+        "growing-barrows-high-performance-hot"
+      ],
+      "phaseLabel": "finisher: 113–145 kg",
+      "basis": "113–145 kg",
+      "cfiaTable": "swine",
+      "cfiaCategoryId": "swine-finisher-100-135kg",
+      "crossesBoundary": false,
+      "extendsBeyondPublishedClasses": true,
+      "explanation": "The phase ends at 145 kg, beyond the 135 kg end of the heaviest published grow-finish column. CFIA publishes the same values for every swine column from 25 kg upward (including dry sows, lactating sows and boars), so applying Finisher (100 to 135 kg) does not extend any published maximum."
+    },
+    {
+      "phaseId": "br2024-5-37-63-91d-27-50kg",
+      "programmeIds": [
+        "developing-gilt-high-performance-hot"
+      ],
+      "phaseLabel": "grower: 27–50 kg",
+      "basis": "27–50 kg",
+      "cfiaTable": "swine",
+      "cfiaCategoryId": "swine-grower-25-50kg",
+      "crossesBoundary": false,
+      "explanation": "27–50 kg lies within the CFIA Grower (25 to 50 kg) column."
+    },
+    {
+      "phaseId": "br2024-5-37-91-119d-50-77kg",
+      "programmeIds": [
+        "developing-gilt-high-performance-hot"
+      ],
+      "phaseLabel": "grower: 50–77 kg",
+      "basis": "50–77 kg",
+      "cfiaTable": "swine",
+      "cfiaCategoryId": "swine-grower-50-75kg",
+      "crossesBoundary": true,
+      "explanation": "50–77 kg crosses the CFIA 75 kg boundary. The phase midpoint (63.5 kg) falls in Grower (50 to 75 kg), so that column applies."
+    },
+    {
+      "phaseId": "br2024-5-37-119-147d-77-107kg",
+      "programmeIds": [
+        "developing-gilt-high-performance-hot"
+      ],
+      "phaseLabel": "finisher: 77–107 kg",
+      "basis": "77–107 kg",
+      "cfiaTable": "swine",
+      "cfiaCategoryId": "swine-finisher-75-100kg",
+      "crossesBoundary": true,
+      "explanation": "77–107 kg crosses the CFIA 100 kg boundary. The phase midpoint (92 kg) falls in Finisher (75 to 100 kg), so that column applies."
+    },
+    {
+      "phaseId": "br2024-5-37-147-175d-107-137kg",
+      "programmeIds": [
+        "developing-gilt-high-performance-hot"
+      ],
+      "phaseLabel": "finisher: 107–137 kg",
+      "basis": "107–137 kg",
+      "cfiaTable": "swine",
+      "cfiaCategoryId": "swine-finisher-100-135kg",
+      "crossesBoundary": false,
+      "extendsBeyondPublishedClasses": true,
+      "explanation": "The phase ends at 137 kg, beyond the 135 kg end of the heaviest published grow-finish column. CFIA publishes the same values for every swine column from 25 kg upward (including dry sows, lactating sows and boars), so applying Finisher (100 to 135 kg) does not extend any published maximum."
+    },
+    {
+      "phaseId": "br2024-5-40-63-91d-25-45kg",
+      "programmeIds": [
+        "growing-entire-immunocastrated-males-high-performance-hot"
+      ],
+      "phaseLabel": "grower: 25–45 kg",
+      "basis": "25–45 kg",
+      "cfiaTable": "swine",
+      "cfiaCategoryId": "swine-grower-25-50kg",
+      "crossesBoundary": false,
+      "explanation": "25–45 kg lies within the CFIA Grower (25 to 50 kg) column."
+    },
+    {
+      "phaseId": "br2024-5-40-91-119d-45-70kg",
+      "programmeIds": [
+        "growing-entire-immunocastrated-males-high-performance-hot"
+      ],
+      "phaseLabel": "grower: 45–70 kg",
+      "basis": "45–70 kg",
+      "cfiaTable": "swine",
+      "cfiaCategoryId": "swine-grower-50-75kg",
+      "crossesBoundary": true,
+      "explanation": "45–70 kg crosses the CFIA 50 kg boundary. The phase midpoint (57.5 kg) falls in Grower (50 to 75 kg), so that column applies."
+    },
+    {
+      "phaseId": "br2024-5-40-119-147d-70-105kg",
+      "programmeIds": [
+        "growing-entire-immunocastrated-males-high-performance-hot"
+      ],
+      "phaseLabel": "finisher: 70–105 kg",
+      "basis": "70–105 kg",
+      "cfiaTable": "swine",
+      "cfiaCategoryId": "swine-finisher-75-100kg",
+      "crossesBoundary": true,
+      "explanation": "70–105 kg crosses the CFIA 75 kg and 100 kg boundary. The phase midpoint (87.5 kg) falls in Finisher (75 to 100 kg), so that column applies."
+    },
+    {
+      "phaseId": "br2024-5-40-147-175d-105-145kg",
+      "programmeIds": [
+        "growing-entire-immunocastrated-males-high-performance-hot"
+      ],
+      "phaseLabel": "finisher: 105–145 kg",
+      "basis": "105–145 kg",
+      "cfiaTable": "swine",
+      "cfiaCategoryId": "swine-finisher-100-135kg",
+      "crossesBoundary": false,
+      "extendsBeyondPublishedClasses": true,
+      "explanation": "The phase ends at 145 kg, beyond the 135 kg end of the heaviest published grow-finish column. CFIA publishes the same values for every swine column from 25 kg upward (including dry sows, lactating sows and boars), so applying Finisher (100 to 135 kg) does not extend any published maximum."
+    },
+    {
+      "phaseId": "br2024-5-42-63-91d-27-50kg",
+      "programmeIds": [
+        "grow-finish-pig-high-performance-hot"
+      ],
+      "phaseLabel": "grower: 27–50 kg",
+      "basis": "27–50 kg",
+      "cfiaTable": "swine",
+      "cfiaCategoryId": "swine-grower-25-50kg",
+      "crossesBoundary": false,
+      "explanation": "27–50 kg lies within the CFIA Grower (25 to 50 kg) column."
+    },
+    {
+      "phaseId": "br2024-5-42-91-119d-50-80kg",
+      "programmeIds": [
+        "grow-finish-pig-high-performance-hot"
+      ],
+      "phaseLabel": "grower: 50–80 kg",
+      "basis": "50–80 kg",
+      "cfiaTable": "swine",
+      "cfiaCategoryId": "swine-grower-50-75kg",
+      "crossesBoundary": true,
+      "explanation": "50–80 kg crosses the CFIA 75 kg boundary. The phase midpoint (65 kg) falls in Grower (50 to 75 kg), so that column applies."
+    },
+    {
+      "phaseId": "br2024-5-42-119-147d-80-110kg",
+      "programmeIds": [
+        "grow-finish-pig-high-performance-hot"
+      ],
+      "phaseLabel": "finisher: 80–110 kg",
+      "basis": "80–110 kg",
+      "cfiaTable": "swine",
+      "cfiaCategoryId": "swine-finisher-75-100kg",
+      "crossesBoundary": true,
+      "explanation": "80–110 kg crosses the CFIA 100 kg boundary. The phase midpoint (95 kg) falls in Finisher (75 to 100 kg), so that column applies."
+    },
+    {
+      "phaseId": "br2024-5-42-147-175d-110-141kg",
+      "programmeIds": [
+        "grow-finish-pig-high-performance-hot"
+      ],
+      "phaseLabel": "finisher: 110–141 kg",
+      "basis": "110–141 kg",
+      "cfiaTable": "swine",
+      "cfiaCategoryId": "swine-finisher-100-135kg",
+      "crossesBoundary": false,
+      "extendsBeyondPublishedClasses": true,
+      "explanation": "The phase ends at 141 kg, beyond the 135 kg end of the heaviest published grow-finish column. CFIA publishes the same values for every swine column from 25 kg upward (including dry sows, lactating sows and boars), so applying Finisher (100 to 135 kg) does not extend any published maximum."
+    },
+    {
+      "phaseId": "br2024-2-30-0-8d-0.05-0.24kg",
+      "programmeIds": [
+        "broiler-standard"
+      ],
+      "phaseLabel": "pre starter: days 0–8 (0.05–0.24 kg)",
+      "basis": "age 0–8 days",
+      "cfiaTable": "chickens",
+      "cfiaCategoryId": "chicken-starter",
+      "crossesBoundary": false,
+      "explanation": "Days 0–8 fall before week 4, inside the CFIA Starter column (printed as 0 to 8 weeks; see source anomaly chicken-starter-age)."
+    },
+    {
+      "phaseId": "br2024-2-30-8-17d-0.24-0.68kg",
+      "programmeIds": [
+        "broiler-standard"
+      ],
+      "phaseLabel": "starter: days 8–17 (0.24–0.68 kg)",
+      "basis": "age 8–17 days",
+      "cfiaTable": "chickens",
+      "cfiaCategoryId": "chicken-starter",
+      "crossesBoundary": false,
+      "explanation": "Days 8–17 fall before week 4, inside the CFIA Starter column (printed as 0 to 8 weeks; see source anomaly chicken-starter-age)."
+    },
+    {
+      "phaseId": "br2024-2-30-17-27d-0.68-1.49kg",
+      "programmeIds": [
+        "broiler-standard"
+      ],
+      "phaseLabel": "grower: days 17–27 (0.68–1.49 kg)",
+      "basis": "age 17–27 days",
+      "cfiaTable": "chickens",
+      "cfiaCategoryId": "chicken-starter",
+      "crossesBoundary": false,
+      "explanation": "Days 17–27 fall before week 4, inside the CFIA Starter column (printed as 0 to 8 weeks; see source anomaly chicken-starter-age)."
+    },
+    {
+      "phaseId": "br2024-2-30-27-35d-1.49-2.29kg",
+      "programmeIds": [
+        "broiler-standard"
+      ],
+      "phaseLabel": "grower: days 27–35 (1.49–2.29 kg)",
+      "basis": "age 27–35 days",
+      "cfiaTable": "chickens",
+      "cfiaCategoryId": "chicken-grower-4-8wk",
+      "crossesBoundary": true,
+      "explanation": "Days 27–35 span the 4-week (day 28) start of the CFIA Grower column. Most of the phase (midpoint day 31) falls in Grower (4 to 8 weeks), so that column applies. Starter and Grower publish identical values for every nutrient, so the boundary does not change any maximum."
+    },
+    {
+      "phaseId": "br2024-2-30-35-43d-2.29-3.11kg",
+      "programmeIds": [
+        "broiler-standard"
+      ],
+      "phaseLabel": "finisher: days 35–43 (2.29–3.11 kg)",
+      "basis": "age 35–43 days",
+      "cfiaTable": "chickens",
+      "cfiaCategoryId": "chicken-grower-4-8wk",
+      "crossesBoundary": false,
+      "explanation": "Days 35–43 fall within weeks 4 to 8, the CFIA Grower column. Broilers in this programme are marketed by day 49, before the Finisher/breeder column (greater than 8 weeks) begins."
+    },
+    {
+      "phaseId": "br2024-2-30-43-49d-3.11-3.7kg",
+      "programmeIds": [
+        "broiler-standard"
+      ],
+      "phaseLabel": "finisher: days 43–49 (3.11–3.7 kg)",
+      "basis": "age 43–49 days",
+      "cfiaTable": "chickens",
+      "cfiaCategoryId": "chicken-grower-4-8wk",
+      "crossesBoundary": false,
+      "explanation": "Days 43–49 fall within weeks 4 to 8, the CFIA Grower column. Broilers in this programme are marketed by day 49, before the Finisher/breeder column (greater than 8 weeks) begins."
+    },
+    {
+      "phaseId": "br2024-2-28-0-8d-0.05-0.24kg",
+      "programmeIds": [
+        "broiler-high-performance"
+      ],
+      "phaseLabel": "pre starter: days 0–8 (0.05–0.24 kg)",
+      "basis": "age 0–8 days",
+      "cfiaTable": "chickens",
+      "cfiaCategoryId": "chicken-starter",
+      "crossesBoundary": false,
+      "explanation": "Days 0–8 fall before week 4, inside the CFIA Starter column (printed as 0 to 8 weeks; see source anomaly chicken-starter-age)."
+    },
+    {
+      "phaseId": "br2024-2-28-8-17d-0.24-0.68kg",
+      "programmeIds": [
+        "broiler-high-performance"
+      ],
+      "phaseLabel": "starter: days 8–17 (0.24–0.68 kg)",
+      "basis": "age 8–17 days",
+      "cfiaTable": "chickens",
+      "cfiaCategoryId": "chicken-starter",
+      "crossesBoundary": false,
+      "explanation": "Days 8–17 fall before week 4, inside the CFIA Starter column (printed as 0 to 8 weeks; see source anomaly chicken-starter-age)."
+    },
+    {
+      "phaseId": "br2024-2-28-17-27d-0.68-1.49kg",
+      "programmeIds": [
+        "broiler-high-performance"
+      ],
+      "phaseLabel": "grower: days 17–27 (0.68–1.49 kg)",
+      "basis": "age 17–27 days",
+      "cfiaTable": "chickens",
+      "cfiaCategoryId": "chicken-starter",
+      "crossesBoundary": false,
+      "explanation": "Days 17–27 fall before week 4, inside the CFIA Starter column (printed as 0 to 8 weeks; see source anomaly chicken-starter-age)."
+    },
+    {
+      "phaseId": "br2024-2-28-27-35d-1.49-2.29kg",
+      "programmeIds": [
+        "broiler-high-performance"
+      ],
+      "phaseLabel": "grower: days 27–35 (1.49–2.29 kg)",
+      "basis": "age 27–35 days",
+      "cfiaTable": "chickens",
+      "cfiaCategoryId": "chicken-grower-4-8wk",
+      "crossesBoundary": true,
+      "explanation": "Days 27–35 span the 4-week (day 28) start of the CFIA Grower column. Most of the phase (midpoint day 31) falls in Grower (4 to 8 weeks), so that column applies. Starter and Grower publish identical values for every nutrient, so the boundary does not change any maximum."
+    },
+    {
+      "phaseId": "br2024-2-28-35-43d-2.29-3.11kg",
+      "programmeIds": [
+        "broiler-high-performance"
+      ],
+      "phaseLabel": "finisher: days 35–43 (2.29–3.11 kg)",
+      "basis": "age 35–43 days",
+      "cfiaTable": "chickens",
+      "cfiaCategoryId": "chicken-grower-4-8wk",
+      "crossesBoundary": false,
+      "explanation": "Days 35–43 fall within weeks 4 to 8, the CFIA Grower column. Broilers in this programme are marketed by day 49, before the Finisher/breeder column (greater than 8 weeks) begins."
+    },
+    {
+      "phaseId": "br2024-2-28-43-49d-3.11-3.7kg",
+      "programmeIds": [
+        "broiler-high-performance"
+      ],
+      "phaseLabel": "finisher: days 43–49 (3.11–3.7 kg)",
+      "basis": "age 43–49 days",
+      "cfiaTable": "chickens",
+      "cfiaCategoryId": "chicken-grower-4-8wk",
+      "crossesBoundary": false,
+      "explanation": "Days 43–49 fall within weeks 4 to 8, the CFIA Grower column. Broilers in this programme are marketed by day 49, before the Finisher/breeder column (greater than 8 weeks) begins."
+    },
+    {
+      "phaseId": "br2024-2-29-17-27d-0.8-1.8kg",
+      "programmeIds": [
+        "broiler-high-performance-hot"
+      ],
+      "phaseLabel": "grower: days 17–27 (0.8–1.8 kg)",
+      "basis": "age 17–27 days",
+      "cfiaTable": "chickens",
+      "cfiaCategoryId": "chicken-starter",
+      "crossesBoundary": false,
+      "explanation": "Days 17–27 fall before week 4, inside the CFIA Starter column (printed as 0 to 8 weeks; see source anomaly chicken-starter-age)."
+    },
+    {
+      "phaseId": "br2024-2-29-27-35d-1.8-2.75kg",
+      "programmeIds": [
+        "broiler-high-performance-hot"
+      ],
+      "phaseLabel": "grower: days 27–35 (1.8–2.75 kg)",
+      "basis": "age 27–35 days",
+      "cfiaTable": "chickens",
+      "cfiaCategoryId": "chicken-grower-4-8wk",
+      "crossesBoundary": true,
+      "explanation": "Days 27–35 span the 4-week (day 28) start of the CFIA Grower column. Most of the phase (midpoint day 31) falls in Grower (4 to 8 weeks), so that column applies. Starter and Grower publish identical values for every nutrient, so the boundary does not change any maximum."
+    },
+    {
+      "phaseId": "br2024-2-29-35-43d-2.75-3.68kg",
+      "programmeIds": [
+        "broiler-high-performance-hot"
+      ],
+      "phaseLabel": "finisher: days 35–43 (2.75–3.68 kg)",
+      "basis": "age 35–43 days",
+      "cfiaTable": "chickens",
+      "cfiaCategoryId": "chicken-grower-4-8wk",
+      "crossesBoundary": false,
+      "explanation": "Days 35–43 fall within weeks 4 to 8, the CFIA Grower column. Broilers in this programme are marketed by day 49, before the Finisher/breeder column (greater than 8 weeks) begins."
+    },
+    {
+      "phaseId": "br2024-2-29-43-49d-3.68-4.32kg",
+      "programmeIds": [
+        "broiler-high-performance-hot"
+      ],
+      "phaseLabel": "finisher: days 43–49 (3.68–4.32 kg)",
+      "basis": "age 43–49 days",
+      "cfiaTable": "chickens",
+      "cfiaCategoryId": "chicken-grower-4-8wk",
+      "crossesBoundary": false,
+      "explanation": "Days 43–49 fall within weeks 4 to 8, the CFIA Grower column. Broilers in this programme are marketed by day 49, before the Finisher/breeder column (greater than 8 weeks) begins."
+    }
+  ]
+}

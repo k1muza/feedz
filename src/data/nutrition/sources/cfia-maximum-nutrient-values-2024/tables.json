@@ -1,0 +1,94 @@
+{
+  "schemaVersion": 1,
+  "id": "cfia-maximum-nutrient-values-2024",
+  "title": "Tables of Maximum Nutrient Values for Feeds",
+  "publisher": "Canadian Food Inspection Agency",
+  "url": "https://inspection.canada.ca/en/animal-health/livestock-feeds/documents-incorporated-reference/tables-maximum-nutrient-values-feeds",
+  "dateModified": "2024-07-03",
+  "status": "Document incorporated by reference into the Feeds Regulations, 2024.",
+  "retrieved": "2026-10-14",
+  "scope": "Only Table 1 (Swine) and Table 2 (Chickens) are imported. FeedSport formulates pigs and broiler chickens only; the cattle, sheep, goat, horse, rabbit, fish and turkey tables are deliberately not imported.",
+  "basis": "Values are expressed based on the total diet at 88% dry matter (as fed basis) (Table 1 note 1, Table 2 note 2). They apply to the total diet, not to individual ingredients.",
+  "feedsportUse": "Advisory upper-limit references only. FeedSport compares every value with the total-diet concentration of the recipe; none is an optimiser constraint and none decides whether a recipe meets its hard requirements.",
+  "sourceAnomalies": [
+    {
+      "id": "swine-range-notation",
+      "table": "Table 1: Swine",
+      "description": "Three column headers are printed as \"7 to -11 kg\", \"11 to -25 kg\" and \"50 to -75 kg\". FeedSport reads them as 7 to 11 kg, 11 to 25 kg and 50 to 75 kg, the reading consistent with the neighbouring columns."
+    },
+    {
+      "id": "chicken-starter-age",
+      "table": "Table 2: Chickens",
+      "description": "The Starter column is printed as \"0 to 8 weeks\" while the Grower column is \"4 to 8 weeks\", so the two overlap. Every nutrient value in the two columns is identical, so the overlap never changes a maximum. FeedSport assigns broiler phases that end by day 28 to Starter and later phases to Grower, using the Grower column's 4-week start as the boundary."
+    }
+  ],
+  "tables": [
+    {
+      "id": "swine",
+      "table": "Table 1: Swine",
+      "species": "swine",
+      "note": "values are expressed based on the total diet at 88% dry matter (as fed basis)",
+      "categories": [
+        { "id": "swine-starter-under-7kg", "label": "Starter (less than 7 kg)", "publishedHeader": "Starter (less than 7 kg)", "weightKg": { "min": 0, "max": 7 } },
+        { "id": "swine-starter-7-11kg", "label": "Starter (7 to 11 kg)", "publishedHeader": "Starter (7 to -11 kg)", "weightKg": { "min": 7, "max": 11 } },
+        { "id": "swine-starter-11-25kg", "label": "Starter (11 to 25 kg)", "publishedHeader": "Starter (11 to -25 kg)", "weightKg": { "min": 11, "max": 25 } },
+        { "id": "swine-grower-25-50kg", "label": "Grower (25 to 50 kg)", "publishedHeader": "Grower (25 to 50 kg)", "weightKg": { "min": 25, "max": 50 } },
+        { "id": "swine-grower-50-75kg", "label": "Grower (50 to 75 kg)", "publishedHeader": "Grower (50 to -75 kg)", "weightKg": { "min": 50, "max": 75 } },
+        { "id": "swine-finisher-75-100kg", "label": "Finisher (75 to 100 kg)", "publishedHeader": "Finisher (75 to 100 kg)", "weightKg": { "min": 75, "max": 100 } },
+        { "id": "swine-finisher-100-135kg", "label": "Finisher (100 to 135 kg)", "publishedHeader": "Finisher (100 to 135 kg)", "weightKg": { "min": 100, "max": 135 } },
+        { "id": "swine-dry-sows", "label": "Dry sows", "publishedHeader": "Dry sows" },
+        { "id": "swine-lactating-sows", "label": "Lactating sows", "publishedHeader": "Lactating sows" },
+        { "id": "swine-sexually-active-boars", "label": "Sexually active boars", "publishedHeader": "Sexually active boars" }
+      ],
+      "nutrients": [
+        { "id": "calcium", "label": "Calcium", "unit": "%", "values": [2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0] },
+        { "id": "phosphorus", "label": "Phosphorus", "unit": "%", "values": [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0] },
+        { "id": "magnesium", "label": "Magnesium", "unit": "%", "values": [0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3] },
+        { "id": "sodium", "label": "Sodium", "unit": "%", "values": [1.1, 1.1, 1.1, 1.1, 1.1, 1.1, 1.1, 1.1, 1.1, 1.1] },
+        { "id": "potassium", "label": "Potassium", "unit": "%", "values": [3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0] },
+        { "id": "sulfur", "label": "Sulfur", "unit": "%", "values": [0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4] },
+        { "id": "cobalt", "label": "Cobalt", "unit": "mg/kg", "values": [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0] },
+        { "id": "copper", "label": "Copper", "unit": "mg/kg", "values": [250, 250, 250, 125, 125, 125, 125, 125, 125, 125] },
+        { "id": "iodine", "label": "Iodine", "unit": "mg/kg", "values": [4.0, 4.0, 4.0, 4.0, 4.0, 4.0, 4.0, 4.0, 4.0, 4.0] },
+        { "id": "iron", "label": "Iron", "unit": "mg/kg", "values": [750, 750, 750, 750, 750, 750, 750, 750, 750, 750] },
+        { "id": "manganese", "label": "Manganese", "unit": "mg/kg", "values": [125, 125, 125, 1000, 1000, 1000, 1000, 1000, 1000, 1000] },
+        { "id": "selenium", "label": "Selenium", "unit": "mg/kg", "values": [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0] },
+        { "id": "zinc", "label": "Zinc", "unit": "mg/kg", "values": [3000, 3000, 3000, 300, 300, 300, 300, 300, 300, 300] },
+        { "id": "vitamin-a", "label": "Vitamin A", "unit": "IU/kg", "values": [20000, 20000, 20000, 20000, 20000, 20000, 20000, 20000, 20000, 20000] },
+        { "id": "vitamin-d", "label": "Vitamin D", "unit": "IU/kg", "values": [3500, 3500, 3500, 3500, 3500, 3500, 3500, 3500, 3500, 3500] },
+        { "id": "vitamin-e", "label": "Vitamin E", "unit": "IU/kg", "values": [2000, 2000, 2000, 2000, 2000, 2000, 2000, 2000, 2000, 2000] }
+      ]
+    },
+    {
+      "id": "chickens",
+      "table": "Table 2: Chickens",
+      "species": "chickens",
+      "note": "values are expressed based on the total diet at 88% dry matter (as fed basis)",
+      "categories": [
+        { "id": "chicken-starter", "label": "Starter", "publishedHeader": "Starter (0 to 8 weeks)", "ageWeeks": { "min": 0, "max": 8 } },
+        { "id": "chicken-grower-4-8wk", "label": "Grower (4 to 8 weeks)", "publishedHeader": "Grower (4 to 8 weeks)", "ageWeeks": { "min": 4, "max": 8 } },
+        { "id": "chicken-finisher-breeder", "label": "Finisher/breeder (greater than 8 weeks)", "publishedHeader": "Finisher/ breeder (greater than 8 weeks)", "ageWeeks": { "min": 8 } },
+        { "id": "chicken-pre-layer", "label": "Pre-layer/pre-layer breeder (greater than 15 weeks)", "publishedHeader": "Pre-layer/pre-layer breeder (greater than 15 weeks)", "ageWeeks": { "min": 15 } },
+        { "id": "chicken-layer", "label": "Layer/layer breeder/layer broiler breeder", "publishedHeader": "Layer/layer breeder/layer broiler breeder (no age restrictions)" }
+      ],
+      "nutrients": [
+        { "id": "calcium", "label": "Calcium", "unit": "%", "values": [1.5, 1.5, 1.5, 4.0, 6.0] },
+        { "id": "phosphorus", "label": "Phosphorus", "unit": "%", "values": [1.2, 1.2, 1.2, 1.2, 1.2] },
+        { "id": "magnesium", "label": "Magnesium", "unit": "%", "values": [0.5, 0.5, 0.5, 0.5, 0.75] },
+        { "id": "sodium", "label": "Sodium", "unit": "%", "values": [0.65, 0.65, 0.65, 0.65, 0.65] },
+        { "id": "potassium", "label": "Potassium", "unit": "%", "values": [2.0, 2.0, 2.0, 2.0, 2.0] },
+        { "id": "sulfur", "label": "Sulfur", "unit": "%", "values": [0.6, 0.6, 0.6, 0.6, 0.6] },
+        { "id": "cobalt", "label": "Cobalt", "unit": "mg/kg", "values": [1.0, 1.0, 1.0, 1.0, 1.0] },
+        { "id": "copper", "label": "Copper", "unit": "mg/kg", "values": [125, 125, 125, 125, 125] },
+        { "id": "iodine", "label": "Iodine", "unit": "mg/kg", "values": [5.0, 5.0, 5.0, 5.0, 3.0] },
+        { "id": "iron", "label": "Iron", "unit": "mg/kg", "values": [500, 500, 500, 500, 500] },
+        { "id": "manganese", "label": "Manganese", "unit": "mg/kg", "values": [300, 300, 300, 300, 300] },
+        { "id": "selenium", "label": "Selenium", "unit": "mg/kg", "values": [1.0, 1.0, 1.0, 1.0, 1.0] },
+        { "id": "zinc", "label": "Zinc", "unit": "mg/kg", "values": [250, 250, 250, 250, 250] },
+        { "id": "vitamin-a", "label": "Vitamin A", "unit": "IU/kg", "values": [20000, 20000, 20000, 25000, 25000] },
+        { "id": "vitamin-d", "label": "Vitamin D", "unit": "IU/kg", "values": [10000, 10000, 10000, 10000, 6500] },
+        { "id": "vitamin-e", "label": "Vitamin E", "unit": "IU/kg", "values": [1000, 1000, 1000, 1000, 1000] }
+      ]
+    }
+  ]
+}

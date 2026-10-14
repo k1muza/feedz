@@ -4,9 +4,9 @@ FeedSport judges a recipe with three vocabularies that never mix.
 
 | Vocabulary | Values | Decides feasibility? |
 | --- | --- | --- |
-| Hard requirement status | Met / Not met | Yes. The only red in the product. |
+| Hard requirement status | Met / Not met | Yes. Red when not met. |
 | Data status, on every value | Published / Assumed 0 / Missing | No. Says how much the value can be trusted. |
-| Advisories | Chapter 7 comparison, premix documentation, premix alternatives, practical guidelines | No. Optional, amber, never block. |
+| Advisories | Chapter 7 comparison, CFIA reference maximums, premix documentation, premix alternatives, practical guidelines | No. Optional, never block. Amber, except an established CFIA exceedance, which is red inside the Advisories tab only. |
 
 ## Hard requirements
 
@@ -78,6 +78,73 @@ LP constraints and never decide the verdict. Each is compared with the
 meal) as `at_recommendation`, `below_recommendation` (shown as "% of
 recommendation") or `no_data` when the selected premix does not document it.
 
+## CFIA reference maximums (advisory upper limits)
+
+`src/lib/cfia-maximum-nutrients.ts` imports Table 1 (Swine) and Table 2
+(Chickens) of the CFIA *Tables of Maximum Nutrient Values for Feeds*
+(incorporated by reference into the Feeds Regulations, 2024; page modified
+2024-07-03), from
+`src/data/nutrition/sources/cfia-maximum-nutrient-values-2024/tables.json`.
+No other species' tables are imported.
+
+**Phase mapping.** `phase-mapping.json` maps every programme phase to exactly
+one CFIA column, explicitly; nothing is inferred at run time and an unmapped
+phase is reported as `unsupported`. The rule, recorded in the file with an
+explanation per phase:
+
+- growing pigs: the column whose weight range contains the midpoint of the
+  phase's published weight range. Phases ending above 135 kg use Finisher
+  (100 to 135 kg) and say so; CFIA publishes the same values for every swine
+  column from 25 kg upward, so no maximum is extended;
+- broilers: the column containing the midpoint of the phase's age, with day
+  28 as the Starter/Grower boundary (CFIA prints Starter as "0 to 8 weeks",
+  overlapping Grower "4 to 8 weeks"; their values are identical);
+- gestating gilts and sows: Dry sows; lactating: Lactating sows; PIC mature
+  boars: Sexually active boars.
+
+**Assessment.** `buildFormulationAssessment` records `upperLimits`: each CFIA
+nutrient FeedSport models (calcium, total phosphorus, sodium, potassium,
+copper, iodine, iron, manganese, selenium, zinc, vitamins A, D and E) against
+the recipe's *total-diet* concentration, every ingredient included.
+Magnesium, sulfur and cobalt are listed as not assessed. Values are compared
+as fed; CFIA states them for the total diet at 88% dry matter.
+
+| Status | Meaning |
+| --- | --- |
+| `exceeds` | The documented contributions alone are above the maximum. Missing values can only add, so this is established. Red. |
+| `within` | At or below the maximum and every premix documents the nutrient. For a % nutrient, also when even counting each undocumented ingredient at its full inclusion stays within. |
+| `not_documented` | Below only because a premix that does not document it was counted as 0. Unknown, never within; shown with the Missing tag, never red. |
+
+The maxima are never GLPK rows and never change the verdict, headline or
+hard-requirement counts. Vitamin and mineral maxima are advisory by design.
+The only non-vitamin, non-mineral maximum with a source is the PIC
+mature-boar L-lysine HCl limit, which is already a GLPK row and a hard
+requirement checked with the same bound; no other maximum is invented.
+
+**Vitamin advice.** When the recipe exceeds the CFIA maximum for vitamin A, D
+or E, `comparePremixes` (the same re-runs as the premix advisory) adds
+`vitaminAdvice` (`adviseOnVitaminLimits`): each exceedance, its contributing
+ingredients and whether the selected premix is responsible, and at most one
+recommended alternative. An alternative is recommended only when it is
+on-label for the phase, its re-run meets every hard requirement, it documents
+every exceeded vitamin, it lowers at least one without raising any, and it
+introduces no new vitamin exceedance. Candidates rank by exceedances resolved,
+then remaining excess, then cost, never by how many vitamins a label lists.
+`resolved` is true only when every exceeded vitamin is `within` in the
+re-run; otherwise the advice says the exceedance is reduced, not resolved.
+With no candidate, the advice is to verify the premix's vitamin
+specifications with its manufacturer. Nothing is replaced automatically: the
+farmer reviews the alternative (Compare premixes shows its full recipe, cost,
+hard requirements and CFIA vitamins) and chooses Replace premix.
+
+Studio shows one red card per exceedance group in the Advisories tab (one for
+the vitamins, one per mineral) and counts it once on the usual advisory
+indicator; the CFIA table sits beside, but apart from, the Chapter 7
+comparison. The Studio PDF and the public PDF write the same findings in
+their Advisories section; MCP reports them under
+`nutritional_validation.advisories.upper_limits` and
+`premix_advisory.vitamin_upper_limit_advice`.
+
 ## Commercial premixes are ingredients
 
 A premix's documented composition is an ordinary species nutrition profile in
@@ -135,10 +202,16 @@ recipe. An alternative without a price is costed without it and marked
 `costExcludesPremix`.
 
 `suggestPremixReplacement` suggests an alternative only when its re-run meets
-every hard requirement and shows a concrete improvement: fewer documentation
-gaps, more Chapter 7 recommendations reached, a hard requirement the current
-premix's recipe misses, or a lower cost. Higher concentrations alone never
-count. `premixRecipeEffect` re-runs the recipe without the premix's macro
+every hard requirement and shows a concrete improvement: more Chapter 7
+recommendations reached, a hard requirement the current premix's recipe
+misses, or a lower cost (fewer documentation gaps is reported alongside, never
+on its own). Higher concentrations alone never count, and an alternative that
+introduces or worsens a known CFIA vitamin exceedance is never suggested,
+however cheap. A validated CFIA vitamin replacement takes precedence over
+these reasons. When the farmer views a simpler, lower-soy or lower-import
+recipe, every premix is re-run on that same goal (`PremixComparison.goal`); an
+alternative with no such recipe within 3% shows its least-cost recipe and is
+flagged `goalUnavailable`. `premixRecipeEffect` re-runs the recipe without the premix's macro
 contributions to explain, for example, "0.07% less L-lysine HCl because the
 premix supplies SID lysine".
 
@@ -155,3 +228,6 @@ that checked available phosphorus but has no `sttd-phosphorus` row predates
 the poultry digestible-phosphorus minimum
 (`predatesPoultryDigestiblePhosphorus`): Studio and the Studio PDF say only
 available phosphorus was checked, and the PDF does not show it as a pass.
+An assessment without `upperLimits` predates the CFIA references: it is shown
+as saved, without CFIA findings, until the user re-formulates or re-checks it.
+Upper limits are advisory, so their absence never changes a saved verdict.

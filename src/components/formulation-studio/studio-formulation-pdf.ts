@@ -14,6 +14,10 @@ import { siteConfig } from "@/lib/seo";
 import { distinguishingDp } from "@/lib/numerical-tolerance";
 import { documentationGapLine,
   DATA_STATUS_LABELS,
+  UPPER_LIMIT_VITAMIN_IDS,
+  formatUpperLimitValue,
+  upperLimitSentence,
+  upperLimitTitle,
   LEGACY_PREMIX_NOTE,
   PRE_POULTRY_DIGESTIBLE_PHOSPHORUS_NOTE,
   isFormulationAssessment,
@@ -23,7 +27,10 @@ import { documentationGapLine,
   type PremixComparison,
   type RequirementCheck,
   type SupplementationStatus,
+  type UpperLimitCheck,
+  type UpperLimitStatus,
 } from "@/lib/formulation-assessment-model";
+import { INGREDIENT_LIBRARY_SOURCE } from "@/lib/ingredient-nutrients";
 import {
   commercialPremixById,
   premixNutrientContributions,
@@ -144,6 +151,21 @@ const SUPPLEMENTATION_STATUS_LABELS: Record<SupplementationStatus, string> = {
   below_recommendation: "Below recommendation",
   no_data: "No data",
 };
+
+const UPPER_LIMIT_STATUS_LABELS: Record<UpperLimitStatus, string> = {
+  exceeds: "Above the reference maximum",
+  within: "Within the reference maximum",
+  not_documented: "Not documented by the premix",
+};
+
+const ingredientName = (id: string) => INGREDIENT_LIBRARY_SOURCE.ingredients.find((ingredient) => ingredient.id === id)?.name ?? id;
+
+/** "From Sustar GlyPro X912 56,000 IU/kg." The contributors to a CFIA value, largest first. */
+export function upperLimitContributors(row: Pick<UpperLimitCheck, "contributions" | "unit">): string {
+  if (!row.contributions.length) return "";
+  const shown = row.contributions.slice(0, 3).map((c) => `${ingredientName(c.ingredientId)} ${formatUpperLimitValue(c.value, row.unit)}`);
+  return `From ${shown.join(", ")}${row.contributions.length > 3 ? ` and ${row.contributions.length - 3} more` : ""}.`;
+}
 
 const compact = (value: number, maximumFractionDigits = 3) =>
   value.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits });
@@ -575,13 +597,80 @@ export async function renderStudioFormulationPdf(
 
   const supplementationRows = assessment?.supplementation?.rows ?? [];
   const gapLine = assessment ? documentationGapLine(assessment) : null;
+  const vitaminAdvice = input.premixComparison?.vitaminAdvice ?? null;
   const suggested = input.premixComparison?.suggestedPremixId
     ? input.premixComparison.options.find((option) => option.premixId === input.premixComparison!.suggestedPremixId)
     : undefined;
-  if (gapLine || supplementationRows.length || suggested || input.advisories.length || input.notes.length) {
+  // A CFIA vitamin replacement is written once, with the upper limits.
+  const suggestedForVitamins = !!suggested && vitaminAdvice?.recommendation?.premixId === suggested.premixId;
+  const upper = assessment?.upperLimits?.status === "assessed" ? assessment.upperLimits : null;
+  if (gapLine || supplementationRows.length || suggested || upper || input.advisories.length || input.notes.length) {
     section("Advisories", "optional · never block the recipe");
+    if (upper) {
+      const exceeded = upper.rows.filter((row) => row.status === "exceeds");
+      // Red only for an established exceedance; uncertainty is never red.
+      exceeded.forEach((row) => paragraph(`${upperLimitTitle(row)}. ${upperLimitSentence(row)} ${upperLimitContributors(row)}`.trim(), C.red));
+      if (exceeded.length) paragraph(`${upper.source}, ${upper.category.label}. ${upper.mapping.explanation} These are advisory reference maximums: they do not change whether the recipe meets its hard requirements.`, C.muted);
+      const vitaminExceeded = exceeded.some((row) => UPPER_LIMIT_VITAMIN_IDS.includes(row.id));
+      if (vitaminAdvice) {
+        paragraph(`Suggested action: ${vitaminAdvice.message}`);
+        const rec = vitaminAdvice.recommendation;
+        if (rec) {
+          const currentName = input.premixComparison?.options.find((option) => option.current)?.name ?? (vitaminAdvice.currentPremixId ? commercialPremixById(vitaminAdvice.currentPremixId)?.name ?? vitaminAdvice.currentPremixId : "No premix");
+          table(
+            "Premix replacement",
+            [
+              { label: "Vitamin", width: 110 },
+              { label: "Current premix", width: 105, align: "right" },
+              { label: "Suggested premix", width: 105, align: "right" },
+              { label: "CFIA maximum", width: 95, align: "right" },
+              { label: "After replacement", width: CW - 415 },
+            ],
+            rec.changes.map((change) => ({
+              cells: [
+                change.label,
+                change.beforeStatus === "not_documented" ? "Not documented" : formatUpperLimitValue(change.before, change.unit),
+                change.afterStatus === "not_documented" ? "Not documented" : formatUpperLimitValue(change.after, change.unit),
+                formatUpperLimitValue(change.max, change.unit),
+                UPPER_LIMIT_STATUS_LABELS[change.afterStatus],
+              ],
+              colors: [undefined, change.before > change.max ? C.red : undefined, change.afterStatus === "exceeds" ? C.red : undefined, undefined, change.afterStatus === "exceeds" ? C.red : undefined],
+            })),
+          );
+          paragraph([
+            `Current premix: ${currentName}. Suggested alternative: ${rec.name}, re-run at its manufacturer dose with the same ingredients, prices and limits.`,
+            `Updated formulation cost: ${rec.costPerTonne === null ? "no recipe" : `${money(rec.costPerTonne)} per tonne${rec.costExcludesPremix ? " excluding the unpriced premix" : ""}`}${rec.costDeltaPerTonne === null ? "" : ` (${rec.costDeltaPerTonne >= 0 ? "+" : "-"}${money(Math.abs(rec.costDeltaPerTonne))} per tonne)`}.`,
+            `Hard requirements: ${rec.requirementsMet} of ${rec.requirementsTotal} met.`,
+            `Exceedance resolved: ${rec.resolved ? "yes" : "no, reduced but still above the reference maximum"}.`,
+            rec.otherExceedanceLabels.length ? `The alternative's recipe is also above the reference maximum for ${rec.otherExceedanceLabels.join(", ")}.` : "",
+            "The selected premix has not been replaced; this is a suggestion only.",
+          ].filter(Boolean).join(" "));
+        }
+      } else if (vitaminExceeded) {
+        paragraph("Suggested action: verify the vitamin specifications of the selected premix with its manufacturer.");
+      }
+      table(
+        "Advisories",
+        [
+          { label: "CFIA reference", width: 130 },
+          { label: "Recipe", width: 95, align: "right" },
+          { label: "Maximum", width: 95, align: "right" },
+          { label: "Comparison", width: CW - 320 },
+        ],
+        upper.rows.map((row) => ({
+          cells: [
+            row.label,
+            row.status === "not_documented" && row.actual === 0 ? "-" : formatUpperLimitValue(row.actual, row.unit),
+            formatUpperLimitValue(row.max, row.unit),
+            `${UPPER_LIMIT_STATUS_LABELS[row.status]} · ${DATA_STATUS_LABELS[row.data]}`,
+          ],
+          colors: row.status === "exceeds" ? [C.red, C.red, undefined, C.red] : undefined,
+        })),
+      );
+      paragraph(`Upper limits compared with ${upper.source}, ${upper.category.label} (${upper.mapping.basis}). ${upper.basis} Reference maximums, not requirements.${upper.notAssessed.length ? ` ${upper.notAssessed.map((label, i) => (i ? label.toLowerCase() : label)).join(", ")} ${upper.notAssessed.length === 1 ? "is" : "are"} not modelled by FeedSport and not assessed.` : ""}`, C.muted);
+    }
     if (gapLine) paragraph(gapLine, C.amberText);
-    if (suggested && input.premixComparison) {
+    if (suggested && input.premixComparison && !suggestedForVitamins) {
       const current = input.premixComparison.options.find((option) => option.current);
       const verb = current ? `Replace premix: ${current.name} with ${suggested.name}` : `Premix option: ${suggested.name}`;
       paragraph(`Premix advisory. ${verb}. Re-running the formulation with ${suggested.name} at its manufacturer dose ${input.premixComparison.reasons.join("; ")}.`, C.amberText);

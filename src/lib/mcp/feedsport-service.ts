@@ -69,9 +69,14 @@ import {
   buildFormulationAssessment,
   formulateAndAssess,
   supplementationGuidance,
+  upperLimitSentence,
+  upperLimitTitle,
   type FormulationAssessment,
   type PremixComparison,
+  type PremixComparisonGoal,
   type PremixRecipeEffect,
+  type UpperLimitAssessment,
+  type VitaminLimitAdvice,
 } from "@/lib/formulation-assessment";
 import { ingredientDefaultPricePerKg } from "@/lib/feed-ingredient-prices";
 import { round, snake } from "@/lib/feed-number-format";
@@ -345,6 +350,7 @@ export function nutritionalValidationReport(assessment: FormulationAssessment) {
             })),
           }
         : null,
+      upper_limits: upperLimitReport(assessment.upperLimits),
       premix_documentation_gaps: assessment.documentationGaps.map((gap) => ({
         ingredient: gap.ingredientId,
         nutrient: snake(gap.nutrientId),
@@ -355,6 +361,83 @@ export function nutritionalValidationReport(assessment: FormulationAssessment) {
     consistency_errors: assessment.consistencyErrors,
     note: assessment.summary,
     validation_scope: assessment.scope,
+  };
+}
+
+/**
+ * CFIA maximum-nutrient references, as Studio and the PDFs show them.
+ * Null on an assessment saved before CFIA references existed.
+ */
+export function upperLimitReport(upperLimits: UpperLimitAssessment | undefined) {
+  if (!upperLimits) return null;
+  if (upperLimits.status === "unsupported") return { status: "unsupported" as const, reason: upperLimits.reason };
+  return {
+    status: "assessed" as const,
+    enforcement: "advisory" as const,
+    note: "CFIA maximum nutrient values compared with the recipe's total-diet concentration. Advisory references only: never optimiser constraints and never part of overall_status. exceeds = the documented contributions alone are above the maximum (established); not_documented = a premix does not document the nutrient, so the result is unknown, never within.",
+    source: upperLimits.source,
+    source_url: upperLimits.sourceUrl,
+    cfia_category: upperLimits.category.label,
+    phase_mapping: { basis: upperLimits.mapping.basis, crosses_boundary: upperLimits.mapping.crossesBoundary, explanation: upperLimits.mapping.explanation },
+    basis: upperLimits.basis,
+    checks: upperLimits.rows.map((row) => ({
+      nutrient: snake(row.id),
+      label: row.label,
+      unit: row.unit,
+      maximum: row.max,
+      recipe: round(row.actual),
+      status: row.status,
+      data_status: row.data,
+      ...(row.status === "exceeds"
+        ? { excess: round(row.actual - row.max), title: upperLimitTitle(row), explanation: upperLimitSentence(row) }
+        : {}),
+      contributions: row.contributions.map((c) => ({ ingredient: c.ingredientId, value: round(c.value) })),
+      ...(row.undocumentedPremixIds.length ? { not_documented_by: row.undocumentedPremixIds } : {}),
+      ...(row.missingIngredientIds.length ? { missing_data_for: row.missingIngredientIds } : {}),
+    })),
+    not_assessed: upperLimits.notAssessed,
+  };
+}
+
+/** The CFIA vitamin advice, identical to the Studio card and the PDF paragraph. */
+export function vitaminAdviceReport(advice: VitaminLimitAdvice | null | undefined) {
+  if (!advice) return null;
+  const recommendation = advice.recommendation;
+  return {
+    note: "Advice only. FeedSport never replaces the selected premix automatically; the farmer applies a replacement deliberately.",
+    message: advice.message,
+    current_premix: advice.currentPremixId,
+    exceedances: advice.exceedances.map((row) => ({
+      nutrient: snake(row.id),
+      label: row.label,
+      unit: row.unit,
+      maximum: row.max,
+      recipe: round(row.actual),
+      premix_contribution: round(row.premixContribution),
+      premix_responsible: row.premixResponsible,
+      contributions: row.contributions.map((c) => ({ ingredient: c.ingredientId, value: round(c.value) })),
+    })),
+    suggested_replacement: recommendation && {
+      premix: recommendation.premixId,
+      name: recommendation.name,
+      exceedance_resolved: recommendation.resolved,
+      vitamins: recommendation.changes.map((change) => ({
+        nutrient: snake(change.id),
+        label: change.label,
+        unit: change.unit,
+        maximum: change.max,
+        before: round(change.before),
+        before_status: change.beforeStatus,
+        after: round(change.after),
+        after_status: change.afterStatus,
+      })),
+      cost_per_tonne: recommendation.costPerTonne === null ? null : round(recommendation.costPerTonne, 2),
+      cost_change_per_tonne: recommendation.costDeltaPerTonne === null ? null : round(recommendation.costDeltaPerTonne, 2),
+      cost_excludes_unpriced_premix: recommendation.costExcludesPremix,
+      hard_requirements_met: `${recommendation.requirementsMet} of ${recommendation.requirementsTotal}`,
+      other_cfia_exceedances: recommendation.otherExceedanceLabels,
+    },
+    not_recommended: advice.notRecommended.map((row) => ({ premix: row.premixId, reason: row.reason })),
   };
 }
 
@@ -371,12 +454,13 @@ export function premixComparisonReport(comparison: PremixComparison | null, effe
       cost_per_tonne_without_premix_contribution: effect.costPerTonneWithoutContribution === null ? null : round(effect.costPerTonneWithoutContribution, 2),
     },
     premix_advisory: comparison && {
-      note: "Each option is a least-cost re-run: the selected premix is replaced (never stacked), the alternative is fixed at its manufacturer dose and the rest is re-optimised." +
+      note: "Each option is a re-run with the same basal ingredients, prices and limits, on the objective named in compared_on: the selected premix is replaced (never stacked), the alternative is fixed at its manufacturer dose and the rest is re-optimised. A CFIA vitamin exceedance is never traded for a lower cost or more Chapter 7 recommendations." +
         (comparedOnLeastCost ? " The returned recipe uses a different objective, so these options are compared on least-cost recipes, not on the returned recipe." : ""),
-      compared_on: "least_cost" as const,
+      compared_on: comparison.goal ?? "least_cost",
       current_premix: comparison.currentPremixId,
       suggested_replacement: comparison.suggestedPremixId,
       reasons: comparison.reasons,
+      vitamin_upper_limit_advice: vitaminAdviceReport(comparison.vitaminAdvice),
       options: comparison.options.map((option) => ({
         premix: option.premixId,
         current: option.current,
@@ -389,6 +473,15 @@ export function premixComparisonReport(comparison: PremixComparison | null, effe
         recipe: option.recipe.map((row) => ({ ingredient: row.ingredientId, percent: round(row.inclusionPct, 7) })),
         documentation_gaps: option.documentationGapLabels,
         chapter7_at_recommendation: `${option.supplementationAt} of ${option.supplementationTotal}`,
+        ...(option.vitaminLimits
+          ? {
+              cfia_vitamins: option.vitaminLimits.map((row) => ({ nutrient: snake(row.id), recipe: round(row.actual), maximum: row.max, unit: row.unit, status: row.status })),
+              cfia_exceedances: option.upperLimitExceedanceLabels ?? [],
+            }
+          : {}),
+        ...(option.vitaminSource ? { vitamin_data_source: { verification_status: option.vitaminSource.verificationStatus, basis: option.vitaminSource.basis } } : {}),
+        ...(option.compatibleOnLabel === false ? { off_label_simulation_only: true } : {}),
+        ...(option.goalUnavailable ? { goal_recipe_unavailable: true } : {}),
       })),
     },
   };
@@ -1506,6 +1599,8 @@ export async function formulate(input: FormulateInput, context: FeedSportService
       const price = priceRecord(id, undefined, context);
       return price ? price.price_per_tonne / 1000 : ingredientDefaultPricePerKg(id);
     },
+    // Premix alternatives are re-run with the objective returned.
+    goal: objective === "least_cost" ? null : objective.replace("_", "-") as PremixComparisonGoal,
   });
   const { result } = assessed;
   if (assessed.assessment?.consistencyErrors.length) {
@@ -1616,7 +1711,7 @@ export async function formulate(input: FormulateInput, context: FeedSportService
     nutritional_validation: nutritionalValidationReport(validation),
     // The effect and comparison were computed on the least-cost recipe: never
     // attach the effect to an alternative objective's recipe.
-    ...premixComparisonReport(assessed.premixComparison, alternative ? null : assessed.premixEffect, !!alternative),
+    ...premixComparisonReport(assessed.premixComparison, alternative ? null : assessed.premixEffect, !!alternative && !assessed.premixComparison?.goal),
     notes: [
       ...notes,
       ...(automatic

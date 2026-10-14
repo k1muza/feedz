@@ -41,6 +41,82 @@ const supplementationRowSchema = z.object({
   undocumentedIngredientIds: idList,
 });
 
+const upperLimitStatusSchema = z.enum(["exceeds", "within", "not_documented"]);
+const contributionSchema = z.object({ ingredientId: z.string(), value: z.number().finite() });
+
+const upperLimitsSchema = z.discriminatedUnion("status", [
+  z.object({
+    status: z.literal("assessed"),
+    enforcement: z.literal("advisory"),
+    source: z.string().max(500),
+    sourceUrl: z.string().max(500),
+    category: z.object({ id: z.string(), label: z.string() }),
+    mapping: z.object({ basis: z.string().max(200), explanation: z.string().max(1_000), crossesBoundary: z.boolean() }),
+    basis: z.string().max(500),
+    rows: z.array(z.object({
+      id: z.string(),
+      label: z.string(),
+      unit: z.string(),
+      group: z.enum(["vitamin", "trace_mineral", "macro_mineral"]),
+      max: z.number().finite(),
+      actual: z.number().finite(),
+      status: upperLimitStatusSchema,
+      data: dataStatusSchema,
+      undocumentedPremixIds: idList,
+      missingIngredientIds: idList,
+      contributions: z.array(contributionSchema).max(200),
+    })).max(50),
+    notAssessed: z.array(z.string()).max(20),
+  }),
+  z.object({ status: z.literal("unsupported"), reason: z.string().max(500) }),
+]);
+
+const vitaminLimitSchema = z.object({
+  id: z.string(),
+  label: z.string(),
+  unit: z.string(),
+  max: z.number().finite(),
+  actual: z.number().finite(),
+  status: upperLimitStatusSchema,
+});
+
+const vitaminAdviceSchema = z.object({
+  exceedances: z.array(z.object({
+    id: z.string(),
+    label: z.string(),
+    unit: z.string(),
+    max: z.number().finite(),
+    actual: z.number().finite(),
+    contributions: z.array(contributionSchema).max(200),
+    premixContribution: z.number().finite(),
+    premixResponsible: z.boolean(),
+  })).max(10),
+  currentPremixId: z.string().nullable(),
+  recommendation: z.object({
+    premixId: z.string(),
+    name: z.string(),
+    resolved: z.boolean(),
+    changes: z.array(z.object({
+      id: z.string(),
+      label: z.string(),
+      unit: z.string(),
+      max: z.number().finite(),
+      before: z.number().finite(),
+      beforeStatus: upperLimitStatusSchema,
+      after: z.number().finite(),
+      afterStatus: upperLimitStatusSchema,
+    })).max(10),
+    costPerTonne: z.number().finite().nullable(),
+    costDeltaPerTonne: z.number().finite().nullable(),
+    costExcludesPremix: z.boolean(),
+    requirementsMet: z.number().int().nonnegative(),
+    requirementsTotal: z.number().int().nonnegative(),
+    otherExceedanceLabels: z.array(z.string()).max(20),
+  }).nullable(),
+  notRecommended: z.array(z.object({ premixId: z.string(), name: z.string(), reason: z.string().max(1_000) })).max(50),
+  message: z.string().max(1_000),
+});
+
 /** Schema-2 FormulationAssessment (see isFormulationAssessment). */
 const assessmentSchema = z.object({
   schemaVersion: z.literal(2),
@@ -52,6 +128,7 @@ const assessmentSchema = z.object({
     traceMineralBasis: z.literal("inorganic"),
     rows: z.array(supplementationRowSchema).max(100),
   }).nullable(),
+  upperLimits: upperLimitsSchema.optional(),
   documentationGaps: z.array(z.object({
     ingredientId: z.string(),
     nutrientId: z.string(),
@@ -85,9 +162,16 @@ const premixComparisonSchema = z.object({
     documentationGapLabels: z.array(z.string()).max(200),
     supplementationAt: z.number().int().nonnegative(),
     supplementationTotal: z.number().int().nonnegative(),
+    vitaminLimits: z.array(vitaminLimitSchema).max(10).optional(),
+    upperLimitExceedanceLabels: z.array(z.string()).max(50).optional(),
+    vitaminSource: z.object({ verificationStatus: z.string(), basis: z.string() }).optional(),
+    compatibleOnLabel: z.boolean().optional(),
+    goalUnavailable: z.boolean().optional(),
   })).max(50),
   suggestedPremixId: z.string().nullable(),
   reasons: z.array(z.string().max(1_000)).max(20),
+  goal: z.enum(["low-soy", "low-import", "simple"]).nullable().optional(),
+  vitaminAdvice: vitaminAdviceSchema.nullable().optional(),
 });
 
 const requestSchema = z.object({

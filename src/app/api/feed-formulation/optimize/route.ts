@@ -22,6 +22,8 @@ const requestSchema = z.object({
   energySystem: z.enum(["ME", "NE"]).default("ME"),
   /** Ingredients sent with a placeholder price of 0 because no quotation exists. */
   unpricedIngredientIds: z.array(z.string().min(1)).default([]),
+  /** The 3%-cost alternative the farmer is viewing; premix alternatives are re-run with the same goal. */
+  goal: z.enum(["low-soy", "low-import", "simple"]).nullable().default(null),
   customPremixes: z.array(
     z.object({
       id: z.string().min(1),
@@ -99,6 +101,7 @@ export async function POST(request: Request) {
     phaseId,
     energySystem,
     unpricedIngredientIds,
+    goal,
     customPremixes,
     ingredients,
   } = parsed.data;
@@ -153,6 +156,7 @@ export async function POST(request: Request) {
       library,
       unpricedIngredientIds,
       priceForPremix: ingredientDefaultPricePerKg,
+      goal,
       onDiscardedAlternative: (alternative, errors) => console.warn("Discarded inconsistent optional formulation alternative", { alternative, programmeId, phaseId, errors }),
     });
 
