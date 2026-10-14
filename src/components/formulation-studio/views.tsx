@@ -2,6 +2,7 @@ import { Trash2 } from "lucide-react";
 import { useState, type ReactNode } from "react";
 
 import { IngredientPoolPanel } from "./ingredient-pool-panel";
+import { InfoTip } from "./info-tip";
 import { CAT_PAGE_SIZES, type ShellVals, type StudioVals } from "./studio";
 import { STUDIO_CSS, hv, sx } from "./sx";
 import { INCLUSION_INPUT_PROPS } from "@/lib/inclusion-input";
@@ -1288,14 +1289,17 @@ function RecipeTable({ v, opt }: V & { opt: OptVals }) {
           </div>
           {opt.rows.map((r) => (
             <div key={r.name} title={r.setting + " · " + r.price + " (" + r.tag.toLowerCase() + " price)"} style={sx(`${RECIPE_COLS2};padding:12px 20px;border-top:1px solid #ece8df;font:400 14px/1.2 'IBM Plex Sans',sans-serif;align-items:center;background:${r.bg}`)}>
-              <button onClick={r.open} style={sx("border:0;background:transparent;padding:0;text-align:left;display:flex;flex-direction:column;gap:3px;color:#222420;min-width:0")}>
-                <span style={sx("display:flex;align-items:center;gap:8px;font:500 14px/1.25 'IBM Plex Sans',sans-serif")}>
-                  {r.isPremix && <span style={sx("font:600 9px/1 'IBM Plex Mono',monospace;background:#222420;color:#fff;padding:3px 5px;border-radius:3px")}>PREMIX</span>}
-                  {r.name}
-                  {r.adv && <Diamond />}
-                </span>
-                {r.sub && <span style={sx(`font:400 12px/1.35 'IBM Plex Sans',sans-serif;color:${r.isPremix ? "#64665c" : "#2b6a42"}`)}>{r.sub}</span>}
-              </button>
+              <span style={sx("display:flex;align-items:center;gap:6px;min-width:0")}>
+                <button onClick={r.open} style={sx("border:0;background:transparent;padding:0;text-align:left;display:flex;flex-direction:column;gap:3px;color:#222420;min-width:0")}>
+                  <span style={sx("display:flex;align-items:center;gap:8px;font:500 14px/1.25 'IBM Plex Sans',sans-serif")}>
+                    {r.isPremix && <span style={sx("font:600 9px/1 'IBM Plex Mono',monospace;background:#222420;color:#fff;padding:3px 5px;border-radius:3px")}>PREMIX</span>}
+                    {r.name}
+                    {r.adv && <Diamond />}
+                  </span>
+                  {r.sub && <span style={sx("font:400 12px/1.35 'IBM Plex Sans',sans-serif;color:#64665c")}>{r.sub}</span>}
+                </button>
+                {r.info && <InfoTip text={r.info} />}
+              </span>
               {v.isManual ? (
                 <input {...INCLUSION_INPUT_PROPS} value={r.manual} onChange={r.onManual} aria-label={r.name + " inclusion, %"} style={sx("width:90px;padding:6px 8px;border:1px solid #d0cdc3;border-radius:6px;font:600 14px/1 'IBM Plex Sans',sans-serif;text-align:right")} />
               ) : (

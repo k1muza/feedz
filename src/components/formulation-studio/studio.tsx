@@ -2204,6 +2204,7 @@ function optimalVals(
   const requirementLabel = (id: string) => assessment?.requirements.find((check) => check.id === id)?.label ?? id;
   // How much less of a crystalline amino acid or mineral the premix's documented nutrients made necessary.
   const effect = mc ? null : R.premixEffect;
+  // Shown behind an info icon beside the ingredient name, not as a line on the row.
   const savingNote = (id: string) => {
     const change = effect?.changes.find((c) => c.ingredientId === id && c.withoutContributionPct > c.withPremixPct);
     if (!change) return "";
@@ -2234,7 +2235,8 @@ function optimalVals(
       adv: advIds.has(r.id),
       bg: premix ? "#f4f6f1" : advIds.has(r.id) ? "#fdf9ef" : "#fff",
       isPremix: !!premix,
-      sub: premix ? premix.application + " · manufacturer dose " + premix.inclusionKgPerTonne + " kg/t" : savingNote(r.id),
+      sub: premix ? premix.application + " · manufacturer dose " + premix.inclusionKgPerTonne + " kg/t" : "",
+      info: premix ? "" : savingNote(r.id),
       fixed: e.role === "fixed",
       manual: S.manual.typed[r.id] ?? "",
       onManual: (ev: InputEvent) => update((s) => ({ manual: { ...s.manual, typed: { ...s.manual.typed, [r.id]: ev.target.value } } })),
