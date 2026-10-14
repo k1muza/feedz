@@ -88,16 +88,24 @@ export function poolWithPremixSelection(pool: Pool, programmeId: string, premixI
 /** Replaces the basal ingredient source, or moves to another programme or
  * stage, while carrying the premix choice made in Studio's separate selector.
  * An eligible premix is re-asserted at its manufacturer dose with its price.
- * One that is no longer eligible is carried unchanged, never dropped or
- * swapped: studioPremixConflict then asks the farmer to decide. This also
- * preserves an explicit no-premix choice while a suggestion list arrives.
+ * With `followDefault`, a premix the farmer did not pick themselves follows
+ * the move to the new stage's default: it was only ever the old default. A
+ * premix they picked that is no longer eligible is carried unchanged, never
+ * dropped or swapped: studioPremixConflict then asks the farmer to decide. This also preserves an explicit no-premix choice while a
+ * suggestion list arrives.
  */
-export function poolWithCarriedPremixSelection(nextPool: Pool, currentPool: Pool, programmeId: string, phaseId?: string): Pool {
+export function poolWithCarriedPremixSelection(
+  nextPool: Pool, currentPool: Pool, programmeId: string, phaseId?: string,
+  followDefault = false,
+): Pool {
   const selected = Object.entries(currentPool)
     .find(([id, row]) => row.role !== "excluded" && !!commercialPremixById(id));
   const product = selected ? commercialPremixById(selected[0]) : undefined;
   if (!selected || !product || commercialPremixCompatibleWithProgramme(product, programmeId, phaseId)) {
     return poolWithPremixSelection(nextPool, programmeId, selected?.[0] ?? null, phaseId);
+  }
+  if (followDefault && commercialPremixForProgramme(programmeId, phaseId)) {
+    return poolWithProgrammePremix(nextPool, programmeId, undefined, phaseId);
   }
   const basal = Object.fromEntries(Object.entries(nextPool).filter(([id]) => !commercialPremixById(id)));
   return { ...basal, [selected[0]]: selected[1] };

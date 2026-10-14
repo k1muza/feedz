@@ -87,6 +87,25 @@ test("Caremix grower and finisher do not cross-apply between phases", () => {
   assert.equal(poolWithProgrammePremix({}, "grow-finish-pig", undefined, finisher)["caremix-pig-finisher"]?.fixed, 2.6);
 });
 
+test("a premix the farmer did not pick follows a stage or programme move to the new default", () => {
+  const grower = "br2024-5-43-63-91d-26-47kg";
+  const finisher = "br2024-5-43-119-147d-74-103kg";
+  const base = { "corn-yellow-dent": { role: "available" as const, price: 270 } };
+  const growing = poolWithProgrammePremix(base, "grow-finish-pig", undefined, grower);
+  const moved = poolWithCarriedPremixSelection(growing, growing, "grow-finish-pig", finisher, true);
+  assert.equal(moved["caremix-pig-grower"], undefined);
+  assert.equal(moved["caremix-pig-finisher"]?.fixed, 2.6);
+  assert.equal(moved["corn-yellow-dent"]?.price, 270);
+  assert.equal(studioPremixConflict(moved, "grow-finish-pig", finisher), null);
+  const broiler = poolWithCarriedPremixSelection(growing, growing, "broiler-standard", undefined, true);
+  assert.equal(broiler["caremix-pig-grower"], undefined);
+  assert.equal(studioPremixConflict(broiler, "broiler-standard"), null);
+
+  const kept = poolWithCarriedPremixSelection(growing, growing, "grow-finish-pig", finisher, false);
+  assert.deepEqual(kept["caremix-pig-grower"], growing["caremix-pig-grower"], "The farmer's own pick waits for their decision");
+  assert.equal(kept["caremix-pig-finisher"], undefined);
+});
+
 test("choosing an eligible premix sets manufacturer dose without discarding cereal prices", () => {
   const maize = { role: "available" as const, price: 265 };
   const choice = selectStudioIngredient(
