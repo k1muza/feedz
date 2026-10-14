@@ -18,6 +18,7 @@ import {
   type IngredientLibrarySource,
 } from "./ingredient-nutrients";
 import type { NutritionPhase, NutritionPhaseClass, NutritionSpecies } from "./nutrition";
+import { aggregateTolerancePct, withinBound } from "./numerical-tolerance";
 
 export type BrazilianInclusionColumn = "starter" | "grower" | "finisher" | "gestation" | "lactation";
 
@@ -336,9 +337,7 @@ export function aggregateLabel(rule: Pick<AggregateInclusionRule, "kind" | "name
 }
 
 /** Feasibility tolerance for a combined-inclusion ceiling, in percentage points. */
-export function aggregateTolerancePct(maxPct: number): number {
-  return Math.max(Math.abs(maxPct) * 1e-5, 1e-6);
-}
+export { aggregateTolerancePct };
 
 export type AggregateInclusionCheck = {
   rule: AggregateInclusionRule;
@@ -369,6 +368,6 @@ export function checkAggregateInclusion(
     });
     if (contributions.length === 0) return [];
     const actualPct = contributions.reduce((sum, row) => sum + row.inclusionPct, 0);
-    return [{ rule, actualPct, contributions, exceeds: actualPct > rule.maxPct + aggregateTolerancePct(rule.maxPct) }];
+    return [{ rule, actualPct, contributions, exceeds: !withinBound("max", actualPct, rule.maxPct, aggregateTolerancePct(rule.maxPct)) }];
   });
 }

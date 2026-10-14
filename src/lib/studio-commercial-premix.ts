@@ -4,6 +4,7 @@ import {
   commercialPremixCompatibleWithProgramme,
 } from "./commercial-premixes";
 import type { Pool, PoolEntry } from "@/components/formulation-studio/engine";
+import { INCLUSION_TOLERANCE_PCT } from "./numerical-tolerance";
 
 /** Premixes participate in the same ingredient pool as maize, lysine or salt.
  * Their additional species, dose and manufacturer-recipe rules belong to the
@@ -158,13 +159,13 @@ export function studioPremixProblems(pool: Pool, programmeId: string, phaseId?: 
   const product = commercialPremixById(id)!;
   if (!commercialPremixCompatibleWithProgramme(product, programmeId, phaseId))
     return [`${product.name} is not suitable for ${programmeId}. Choose a compatible premix ingredient.`];
-  if (row.role !== "fixed" || Math.abs(Number(row.fixed) - product.inclusionPct) > 1e-6)
+  if (row.role !== "fixed" || Math.abs(Number(row.fixed) - product.inclusionPct) > INCLUSION_TOLERANCE_PCT)
     return [`${product.name} must be fixed at its manufacturer dose of ${product.inclusionKgPerTonne} kg/t.`];
   if (product.manufacturerRecipe) {
     const recipe = product.manufacturerRecipe;
     if (Object.keys(pool).length !== recipe.length || !recipe.every((part) => {
       const entry = pool[part.ingredientId];
-      return entry?.role === "fixed" && Math.abs(Number(entry.fixed) - part.percent) < 1e-6;
+      return entry?.role === "fixed" && Math.abs(Number(entry.fixed) - part.percent) <= INCLUSION_TOLERANCE_PCT;
     })) return [`${product.name} requires the manufacturer's complete fixed recipe. Do not alter ratios or ingredients.`];
   }
   return [];

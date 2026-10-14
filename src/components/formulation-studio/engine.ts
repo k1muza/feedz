@@ -1,7 +1,8 @@
 import type { CatalogueIngredient } from "@/lib/studio-catalogue";
 import { commercialPremixById } from "@/lib/commercial-premixes";
 import { studioPremixProblems } from "@/lib/studio-commercial-premix";
-import { INCLUSION_TOTAL_TOLERANCE_PCT } from "@/lib/inclusion-total";
+import { isCompleteInclusionTotal } from "@/lib/inclusion-total";
+import { INCLUSION_TOLERANCE_PCT, distinguishingDp, exactDp, nutrientFeasibilityTolerance, withinBound } from "@/lib/numerical-tolerance";
 import type { IngredientListItem } from "@/lib/ingredient-lists";
 import type { StudioPhase, StudioProgramme, StudioProgrammeData } from "@/lib/studio-programmes";
 import type {
@@ -232,6 +233,13 @@ export function fmt(v: number | string, dp: number) {
   return (+v).toLocaleString("en-US", { minimumFractionDigits: dp, maximumFractionDigits: dp });
 }
 
+/** An inclusion next to the bound it breaks: trailing zeros dropped, never written equal to it (3.2001% vs 3.2%). */
+export function pctPair(value: number, bound: number): [string, string] {
+  const dp = distinguishingDp(value, bound, exactDp(bound, 0, 3));
+  const trim = (v: number) => fmt(v, dp).replace(/(\.\d*?)0+$/, "$1").replace(/\.$/, "");
+  return [trim(value), trim(bound)];
+}
+
 export function phaseOf(programmes: StudioProgrammeData, programmeId: string, phaseId: string): { programme: StudioProgramme; phase: StudioPhase } {
   const programme = programmes.programmes.find((p) => p.id === programmeId) ?? programmes.programmes[0];
   const phase = programme.phases.find((ph) => ph.id === phaseId) ?? programme.phases[0];
@@ -299,18 +307,24 @@ export function bounds(ctx: EngineContext, phase: StudioPhase, id: string, e: Po
 
 const nutrientDp = (id: string, unit: string) => (unit !== "%" ? 0 : id === "crude-protein" || id === "digestible-protein" ? 1 : 2);
 
-/** One row per requirement; a nutrient with both a minimum and a maximum becomes one row. */
+/**
+ * One row per requirement; a nutrient with both a minimum and a maximum
+ * becomes one row. Status uses the assessment's tolerance, and `dp` shows
+ * each bound as published and a failing value as different from its bound.
+ */
 export function nutrientRows(profile: readonly FormulationNutrientComparison[]): NutrientResult[] {
   const rows = new Map<string, NutrientResult>();
   for (const n of profile) {
     const row = rows.get(n.id) ?? { id: n.id, name: n.label, unit: n.unit, dp: nutrientDp(n.id, n.unit), value: n.actual, min: null, max: null, status: "met" as NutrientResult["status"], limiting: false };
+    const met = withinBound(n.relation, n.actual, n.requirement, nutrientFeasibilityTolerance(n.requirement));
     if (n.relation === "min") {
       row.min = n.requirement;
-      if (n.actual < n.requirement * (1 - 1e-6)) row.status = "below";
+      if (!met) row.status = "below";
     } else {
       row.max = n.requirement;
-      if (n.actual > n.requirement * (1 + 1e-6)) row.status = "above";
+      if (!met) row.status = "above";
     }
+    row.dp = met ? Math.max(row.dp, exactDp(n.requirement, row.dp)) : Math.max(row.dp, distinguishingDp(n.actual, n.requirement, exactDp(n.requirement, row.dp)));
     row.limiting = row.limiting || n.binding;
     rows.set(n.id, row);
   }
@@ -320,9 +334,9 @@ export function nutrientRows(profile: readonly FormulationNutrientComparison[]):
 function advisoriesFor(ctx: EngineContext, phase: StudioPhase, pct: Record<string, number>): Advisory[] {
   return Object.keys(pct).flatMap((id) => {
     const g = guideline(ctx, phase, id);
-    return g != null && pct[id] > g + 1e-6
-      ? [{ id, pct: pct[id], guide: g, text: nameOf(ctx, id) + " is included at " + fmt(pct[id], 1) + "%. The practical guideline for this stage is up to " + g + "%." }]
-      : [];
+    if (g == null || withinBound("max", pct[id], g, INCLUSION_TOLERANCE_PCT)) return [];
+    const [shown, guide] = pctPair(pct[id], g);
+    return [{ id, pct: pct[id], guide: g, text: nameOf(ctx, id) + " is included at " + shown + "%. The practical guideline for this stage is up to " + guide + "%." }];
   });
 }
 
@@ -438,7 +452,7 @@ export async function formulate(snap: Snapshot, ctx: EngineContext): Promise<For
       warns,
       activeCount: usable.length,
       setAside: active.filter((id) => !usable.includes(id)),
-      shortfalls: result.diagnostics.map((d) => ({ id: d.constraintId, name: d.label, unit: d.unit, dp: nutrientDp(d.constraintId, d.unit), kind: d.relation, best: d.actual, req: d.bound })),
+      shortfalls: result.diagnostics.map((d) => ({ id: d.constraintId, name: d.label, unit: d.unit, dp: distinguishingDp(d.actual, d.bound, exactDp(d.bound, nutrientDp(d.constraintId, d.unit))), kind: d.relation, best: d.actual, req: d.bound })),
       assessment: result.assessment,
       closest: result.bestEffort ? pctList(result.bestEffort) : [],
       costT: result.bestEffort ? result.bestEffort.costPerKg * 1000 : null,
@@ -520,7 +534,9 @@ export interface ManualRecipeValidity {
   issues: Issue[];
 }
 
-const MANUAL_BOUND_TOLERANCE = 1e-6;
+// Individual ingredient bounds are compared exactly, up to floating-point
+// error, as the optimizer enforces them (INCLUSION_TOLERANCE_PCT).
+const MANUAL_BOUND_TOLERANCE = INCLUSION_TOLERANCE_PCT;
 
 /** Checks that a manual recipe is complete and obeys every configured hard ingredient bound. */
 export function validateManualRecipe(snap: Snapshot, pct: Record<string, number>, ctx: EngineContext): ManualRecipeValidity {
@@ -539,8 +555,8 @@ export function validateManualRecipe(snap: Snapshot, pct: Record<string, number>
       issues.push({ id, title: nameOf(ctx, id) + " is not in the selected ingredient pool", body: "Add it to the pool before using it in this recipe." });
     }
   }
-  if (Math.abs(total - 100) > INCLUSION_TOTAL_TOLERANCE_PCT) {
-    issues.push({ title: "Recipe total is " + fmt(total, 2) + "%", body: "A complete manual recipe must add to 100%." });
+  if (!isCompleteInclusionTotal(total)) {
+    issues.push({ title: "Recipe total is " + fmt(total, distinguishingDp(total, 100, 2)) + "%", body: "A complete manual recipe must add to 100%." });
   }
 
   for (const [id, entry] of Object.entries(snap.pool)) {
@@ -552,15 +568,20 @@ export function validateManualRecipe(snap: Snapshot, pct: Record<string, number>
     }
     const { lo, hi, fsMax } = bounds(ctx, phase, id, entry);
     if (entry.role === "fixed") {
-      if (Math.abs(inclusion - lo) > MANUAL_BOUND_TOLERANCE)
-        issues.push({ id, title: nameOf(ctx, id) + " must be fixed at " + fmt(lo, 3).replace(/\.?0+$/, "") + "%", body: "The manual amount is " + fmt(inclusion, 3).replace(/\.?0+$/, "") + "% and does not match its fixed inclusion." });
+      if (!withinBound("equal", inclusion, lo, MANUAL_BOUND_TOLERANCE)) {
+        const [amount, fixed] = pctPair(inclusion, lo);
+        issues.push({ id, title: nameOf(ctx, id) + " must be fixed at " + fixed + "%", body: "The manual amount is " + amount + "% and does not match its fixed inclusion." });
+      }
       continue;
     }
-    if (inclusion < lo - MANUAL_BOUND_TOLERANCE)
-      issues.push({ id, title: nameOf(ctx, id) + " is below its minimum", body: "Use at least " + fmt(lo, 3).replace(/\.?0+$/, "") + "%; the manual recipe uses " + fmt(inclusion, 3).replace(/\.?0+$/, "") + "%." });
-    if (inclusion > hi + MANUAL_BOUND_TOLERANCE) {
+    if (!withinBound("min", inclusion, lo, MANUAL_BOUND_TOLERANCE)) {
+      const [amount, min] = pctPair(inclusion, lo);
+      issues.push({ id, title: nameOf(ctx, id) + " is below its minimum", body: "Use at least " + min + "%; the manual recipe uses " + amount + "%." });
+    }
+    if (!withinBound("max", inclusion, hi, MANUAL_BOUND_TOLERANCE)) {
       const source = hi === fsMax ? "FeedSport stage limit" : "configured maximum";
-      issues.push({ id, title: nameOf(ctx, id) + " is above its maximum", body: "The " + source + " is " + fmt(hi, 3).replace(/\.?0+$/, "") + "%; the manual recipe uses " + fmt(inclusion, 3).replace(/\.?0+$/, "") + "%." });
+      const [amount, max] = pctPair(inclusion, hi);
+      issues.push({ id, title: nameOf(ctx, id) + " is above its maximum", body: "The " + source + " is " + max + "%; the manual recipe uses " + amount + "%." });
     }
   }
 

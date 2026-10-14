@@ -23,10 +23,13 @@ import {
   PRE_AGGREGATE_LIMITS_NOTE,
   PRE_POULTRY_DIGESTIBLE_PHOSPHORUS_NOTE,
   requirementCounts,
+  requirementDisplay,
   supplementationCounts,
   type FormulationVerdict,
   type RequirementCheck,
 } from "@/lib/formulation-assessment-model";
+import { isCompleteInclusionTotal } from "@/lib/inclusion-total";
+import { INCLUSION_TOLERANCE_PCT, distinguishingDp, exactDp } from "@/lib/numerical-tolerance";
 
 import {
   evaluateManual,
@@ -2051,7 +2054,7 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
     const value = PH.requirements[i];
     if (value == null) return [];
     const name = P.species === "broiler" && f.broilerName ? f.broilerName : f.name;
-    return [{ name: name + (f.unit === "%" ? ", %" : ", " + f.unit), pmin: fmt(value, f.unit === "%" ? 3 : 0).replace(/\.?0+$/, ""), pmax: "", editable: false, notEditable: true, ov: "", onOv: () => {}, type: f.kind === "target" ? "Hard · published target" : "Hard", bg: "#fff", minColor: "#222420", minDeco: "none" }];
+    return [{ name: name + (f.unit === "%" ? ", %" : ", " + f.unit), pmin: fmt(value, exactDp(value, 0, 4)), pmax: "", editable: false, notEditable: true, ov: "", onOv: () => {}, type: f.kind === "target" ? "Hard · published target" : "Hard", bg: "#fff", minColor: "#222420", minDeco: "none" }];
   });
   const poolGuides = guides.filter((g) => S.pool[g.id]);
   const guideText = poolGuides.length ? poolGuides.map((g) => g.name + " up to " + g.practicalPct + "%").join(" · ") + ". Checked after solving; never used as constraints." : "None for the ingredients in this formulation.";
@@ -2237,8 +2240,10 @@ function optimalVals(
     };
   });
   const tp = mc ? mc.total : 100;
-  const off = !!mc && Math.abs(tp - 100) > 0.05;
-  const total = { pct: fmt(tp, 1) + "%" + (off ? (tp > 100 ? " (+" : " (−") + fmt(Math.abs(tp - 100), 1) + ")" : ""), color: off ? "#a63d2a" : "#222420", kg: fmt((tp / 100) * S.batch, S.batch >= 1000 ? 0 : 1), cost: (partialCost ? "≥ " : "") + money(costT) + (partialCost ? " + premix" : "") };
+  const off = !!mc && !isCompleteInclusionTotal(tp);
+  // A total that isn't exactly 100% is never written as "100.0%": a rounding residual shows its digits.
+  const tpDp = Math.abs(tp - 100) > INCLUSION_TOLERANCE_PCT ? Math.min(4, distinguishingDp(tp, 100, 1)) : 1;
+  const total = { pct: fmt(tp, tpDp) + "%" + (off ? (tp > 100 ? " (+" : " (−") + fmt(Math.abs(tp - 100), Math.min(4, distinguishingDp(Math.abs(tp - 100), 0, 1))) + ")" : ""), color: off ? "#a63d2a" : "#222420", kg: fmt((tp / 100) * S.batch, S.batch >= 1000 ? 0 : 1), cost: (partialCost ? "≥ " : "") + money(costT) + (partialCost ? " + premix" : "") };
   const adv = mc ? mc.advisories : R.advisories.filter((a) => !S.dismissed[a.id]);
   const recipeInvalid = !!mc && !mc.checking && !mc.recipeValidity?.valid;
 
@@ -2249,8 +2254,12 @@ function optimalVals(
     missing: { label: DATA_STATUS_LABELS.missing, dashed: true },
   };
   const dpFor = (id: string, unit: string, v: number) => (unit === "%" ? (id === "crude-protein" || id === "digestible-protein" ? 1 : 2) : Math.abs(v) >= 100 ? 0 : Math.abs(v) >= 10 ? 1 : 2);
-  const valueTxt = (check: { id: string; unit: string }, v: number) => fmt(v, dpFor(check.id, check.unit, v)) + (check.unit === "%" ? "%" : " " + check.unit);
-  const boundTxt = (check: RequirementCheck) => (check.relation === "min" ? "≥" : check.relation === "max" ? "≤" : "=") + fmt(check.bound, dpFor(check.id, check.unit, check.bound));
+  const valueTxt = (check: { id: string; unit: string }, v: number, dp = dpFor(check.id, check.unit, v)) => fmt(v, dp) + (check.unit === "%" ? "%" : " " + check.unit);
+  // The bound as published, and a failing value never written equal to it.
+  const pairTxt = (check: RequirementCheck) => {
+    const { dp, gap } = requirementDisplay(check, dpFor(check.id, check.unit, check.bound));
+    return { actual: valueTxt(check, check.actual, dp), bound: (check.relation === "min" ? "≥" : check.relation === "max" ? "≤" : "=") + fmt(check.bound, dp), gap };
+  };
 
   // ---- Headline: hard requirements only, plus one line on premix documentation ----
   const counts = assessment ? requirementCounts(assessment) : null;
@@ -2273,11 +2282,13 @@ function optimalVals(
   const failedRows = (counts?.failed ?? []).map((check) => {
     const hi = Math.max(check.bound, check.actual, 1e-9) * 1.25;
     const fixes = suggested && suggested.requirementsMet === suggested.requirementsTotal ? suggested : null;
+    const pair = pairTxt(check);
     return {
       key: check.id,
       name: check.label,
-      actual: valueTxt(check, check.actual),
-      bound: boundTxt(check),
+      actual: pair.actual,
+      bound: pair.bound,
+      gap: pair.gap?.text ?? "",
       fill: Math.min(100, (check.actual / hi) * 100) + "%",
       marker: Math.min(100, (check.bound / hi) * 100) + "%",
       data: check.data === "published" ? null : DATA_TAGS[check.data],
@@ -2410,11 +2421,14 @@ function optimalVals(
       const scale = Math.max(check.bound, check.actual, 1e-9) * 1.15;
       const bySource = new Map<string, number>();
       for (const c of check.contributions) bySource.set(groupOf(c.ingredientId), (bySource.get(groupOf(c.ingredientId)) ?? 0) + c.value);
+      const pair = pairTxt(check);
       return {
         key: check.id,
         name: check.label,
-        value: valueTxt(check, check.actual),
-        bound: check.relation === "equal" ? "=" + fmt(check.bound, 2) : boundTxt(check),
+        value: pair.actual,
+        bound: pair.bound,
+        gap: pair.gap?.short ?? "",
+        gapTitle: pair.gap?.text,
         note: check.relation === "equal" && premixProduct ? "Manufacturer instruction · " + premixProduct.inclusionKgPerTonne + " kg/t" : "",
         segments: check.relation === "equal" ? [] : sourceKeys.flatMap((key) => {
           const v = bySource.get(key) ?? 0;
@@ -2477,7 +2491,7 @@ function optimalVals(
       recipe: row.status === "no_data" ? "—" : fmt(row.actual, row.actual >= 100 ? 0 : row.actual >= 10 ? 1 : 2),
       recommended: fmt(row.recommended, row.recommended >= 100 ? 0 : row.recommended >= 10 ? 1 : 2),
       status: row.status,
-      text: row.status === "at_recommendation" ? "At recommendation" : row.status === "below_recommendation" ? fmt(row.pctOfRecommendation ?? 0, 0) + "% of recommendation" : premixProduct ? "Not on the premix data sheet" : "No premix selected",
+      text: row.status === "at_recommendation" ? "At recommendation" : row.status === "below_recommendation" ? fmt(row.pctOfRecommendation ?? 0, Math.min(2, distinguishingDp(row.pctOfRecommendation ?? 0, 100, 0))) + "% of recommendation" : premixProduct ? "Not on the premix data sheet" : "No premix selected",
     }));
   const supplementation = assessment?.supplementation ? {
     counts: supp ? [supp.at + " at recommendation", supp.below ? supp.below + " below" : "", supp.noData ? supp.noData + " no data" : ""].filter(Boolean).join(" · ") : "",

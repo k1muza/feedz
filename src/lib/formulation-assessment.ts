@@ -7,12 +7,20 @@ import {
 import {
   buildConstraintSpecs,
   formulateLeastCostDiet,
-  nutrientFeasibilityTolerance,
   type FormulationAlternative,
   type FormulationIngredientOption,
   type LeastCostFormulationResult,
 } from "./feed-optimizer";
-import { aggregateLabel, aggregateTolerancePct, checkAggregateInclusion, describeAggregateSource } from "./ingredient-inclusion-limits";
+import { aggregateLabel, checkAggregateInclusion, describeAggregateSource } from "./ingredient-inclusion-limits";
+import { inclusionTotalOf, normaliseInclusionTotal } from "./inclusion-total";
+import {
+  INCLUSION_TOLERANCE_PCT,
+  aggregateTolerancePct,
+  distinguishingDp,
+  exactDp,
+  nutrientFeasibilityTolerance,
+  withinBound,
+} from "./numerical-tolerance";
 import type { IngredientLibrary, IngredientNutrientRecord } from "./ingredient-nutrients";
 import type { NutritionPhase } from "./nutrition";
 import type { EnergySystem } from "./nutrition-targets";
@@ -92,10 +100,11 @@ const joinLabels = (labels: string[]) =>
 function failureSummary(failed: readonly RequirementCheck[]): string {
   const requirements = failed.filter((check) => !check.aggregate);
   const ceilings = failed.filter((check) => check.aggregate);
-  const pct = (value: number) => `${+value.toFixed(2)}%`;
+  // Enough decimals that the combined inclusion visibly differs from the ceiling.
+  const pct = (value: number, check: RequirementCheck) => `${+value.toFixed(distinguishingDp(check.actual, check.bound, exactDp(check.bound, 0, 2)))}%`;
   return [
     requirements.length ? `${joinLabels(requirements.map((check) => check.label))} ${requirements.length === 1 ? "is" : "are"} not met.` : "",
-    ...ceilings.map((check) => `${check.label} exceeds its combined maximum (${pct(check.actual)} > ${pct(check.bound)}).`),
+    ...ceilings.map((check) => `${check.label} exceeds its combined maximum (${pct(check.actual, check)} > ${pct(check.bound, check)}).`),
   ].filter(Boolean).join(" ");
 }
 
@@ -107,6 +116,19 @@ function premixesIn(formula: DietFormula, library: IngredientLibrary): Ingredien
   });
 }
 
+/**
+ * Assesses a recipe against every hard requirement.
+ *
+ * Batch total: amounts that total 100% to floating-point precision are
+ * assessed exactly as given. Amounts within INCLUSION_TOTAL_TOLERANCE_PCT of
+ * 100% (typed or shown to two decimals) are a rounding residual, recorded as
+ * `inclusionTotalPct`: nutrients are measured on the mix those amounts make
+ * (each amount as a share of their total), while the premix dose and the
+ * ingredient-family ceilings are judged on the amounts as entered, the ones
+ * that are weighed, so a residual elsewhere never moves a fixed dose or a
+ * capped family off its bound. A larger difference is an incomplete or
+ * excessive batch and is rejected, never rescaled.
+ */
 export function buildFormulationAssessment(
   phase: NutritionPhase,
   energySystem: EnergySystem,
@@ -119,8 +141,10 @@ export function buildFormulationAssessment(
   } = {},
 ): FormulationAssessment {
   const optimizerFeasible = options.optimizerFeasible ?? true;
-  const analysis = analyzeDiet(formula, [], library);
-  const single = new Map(formula.ingredients
+  const inclusionTotalPct = inclusionTotalOf(formula.ingredients);
+  const composition: DietFormula = { ingredients: normaliseInclusionTotal(formula.ingredients) };
+  const analysis = analyzeDiet(composition, [], library);
+  const single = new Map(composition.ingredients
     .filter((row) => row.inclusionPct > 0)
     .map((row) => [row.ingredientId, {
       share: row.inclusionPct / 100,
@@ -135,10 +159,8 @@ export function buildFormulationAssessment(
   const requirements: RequirementCheck[] = buildConstraintSpecs(phase, energySystem).map((spec) => {
     const measure = spec.measure(analysis);
     const tolerance = nutrientFeasibilityTolerance(spec.bound);
-    const met = spec.relation === "min"
-      // Missing values can only add, so a known subtotal at the minimum is met.
-      ? measure.value + tolerance >= spec.bound
-      : measure.complete && measure.value - tolerance <= spec.bound;
+    // Missing values can only add, so a known subtotal at the minimum is met.
+    const met = (spec.relation === "min" || measure.complete) && withinBound(spec.relation, measure.value, spec.bound, tolerance);
     return {
       id: spec.id,
       label: spec.label,
@@ -197,7 +219,7 @@ export function buildFormulationAssessment(
   for (const premix of premixes) {
     const product = commercialPremixById(premix.id);
     if (!product) continue;
-    const actual = formula.ingredients.find((row) => row.ingredientId === premix.id)?.inclusionPct ?? 0;
+    const actual = formula.ingredients.reduce((sum, row) => sum + (row.ingredientId === premix.id ? row.inclusionPct : 0), 0);
     requirements.push({
       id: "premix-dose",
       label: "Premix dose",
@@ -205,7 +227,7 @@ export function buildFormulationAssessment(
       relation: "equal",
       bound: product.inclusionPct,
       actual,
-      status: Math.abs(actual - product.inclusionPct) <= 1e-6 ? "met" : "not_met",
+      status: withinBound("equal", actual, product.inclusionPct, INCLUSION_TOLERANCE_PCT) ? "met" : "not_met",
       limiting: false,
       data: "published",
       missingIngredientIds: [],
@@ -220,7 +242,7 @@ export function buildFormulationAssessment(
   const supplementationRows: SupplementationComparison[] = guidance.map((spec) => {
     const measure = spec.measure(analysis);
     const recommended = spec.recommended!;
-    const at = measure.value + nutrientFeasibilityTolerance(recommended) >= recommended;
+    const at = withinBound("min", measure.value, recommended, nutrientFeasibilityTolerance(recommended));
     const undocumented = [...measure.assumedZeroIngredientIds, ...measure.missingIngredientIds];
     return {
       id: spec.id,
@@ -248,7 +270,7 @@ export function buildFormulationAssessment(
   const consistencyErrors = options.checkOptimizerConsistency
     ? requirements
         .filter((check) => check.enforcedByOptimizer && check.status === "not_met")
-        .map((check) => `${check.label} failed post-solve validation despite an enforced optimizer bound (actual ${check.actual}, ${check.relation === "min" ? "minimum" : check.relation === "max" ? "maximum" : "required"} ${check.bound}, tolerance ${nutrientFeasibilityTolerance(check.bound)}).`)
+        .map((check) => `${check.label} failed post-solve validation despite an enforced optimizer bound (actual ${check.actual}, ${check.relation === "min" ? "minimum" : check.relation === "max" ? "maximum" : "required"} ${check.bound}, tolerance ${check.aggregate ? aggregateTolerancePct(check.bound) : check.relation === "equal" ? INCLUSION_TOLERANCE_PCT : nutrientFeasibilityTolerance(check.bound)}).`)
     : [];
 
   const failed = requirements.filter((check) => check.status === "not_met");
@@ -269,6 +291,7 @@ export function buildFormulationAssessment(
     schemaVersion: 2,
     inclusionPolicy: INCLUSION_POLICY_VERSION,
     optimizerFeasible,
+    ...(Math.abs(inclusionTotalPct - 100) > INCLUSION_TOLERANCE_PCT ? { inclusionTotalPct } : {}),
     verdict,
     requirements,
     supplementation,
@@ -281,6 +304,9 @@ export function buildFormulationAssessment(
         : failed.length
           ? failureSummary(failed)
           : "Every hard requirement of the selected programme is met.",
+      Math.abs(inclusionTotalPct - 100) > INCLUSION_TOLERANCE_PCT
+        ? `The amounts total ${inclusionTotalPct.toFixed(distinguishingDp(inclusionTotalPct, 100, 2))}%, a rounding difference: nutrients are measured on the mix they make, and the premix dose and ingredient limits on the amounts as entered.`
+        : "",
       assumed.length
         ? `Premix values that are not documented are counted as 0 (${assumed.length} requirement${assumed.length === 1 ? "" : "s"}); that is conservative and labelled as an assumption, not a verified value.`
         : "",

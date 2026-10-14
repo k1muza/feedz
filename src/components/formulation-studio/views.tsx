@@ -1225,7 +1225,7 @@ function ResultHeadline({ s, showSolver }: { s: OptVals["summary"]; showSolver: 
               <span role="cell" style={sx("display:flex;align-items:center;gap:8px;color:#a63d2a;font-weight:600;width:84px")}><StatusGlyph shape="square" color="#b2412e" />Not met</span>
               <span role="cell" style={sx("font:600 14px/1.3 'IBM Plex Sans',sans-serif;min-width:140px")}>{row.name}</span>
               <span role="cell" style={sx("display:flex;align-items:center;gap:10px;color:#45473f")}>
-                <span><b style={sx("font-weight:600;color:#222420")}>{row.actual}</b> / {row.bound}</span>
+                <span><b style={sx("font-weight:600;color:#222420")}>{row.actual}</b> / {row.bound}{row.gap && <span style={sx("color:#a63d2a")}> · {row.gap}</span>}</span>
                 <span style={sx("position:relative;width:60px;height:5px;background:#f3f0e8;border-radius:3px")}>
                   <span style={sx(`position:absolute;left:0;top:0;bottom:0;width:${row.fill};background:#e7b3a6;border-radius:3px`)} />
                   <span style={sx(`position:absolute;left:${row.marker};top:-4px;width:2px;height:13px;background:#222420`)} />
@@ -1392,7 +1392,7 @@ function NutrientAnalysis({ v, opt }: V & { opt: OptVals }) {
             {rows.map((row) => (
               <div key={row.key} style={sx("display:grid;grid-template-columns:minmax(150px,1.2fr) 150px minmax(200px,2.4fr) 120px 130px;gap:14px;padding:12px 18px;border-top:1px solid #ece8df;align-items:center;font:400 13px/1.3 'IBM Plex Sans',sans-serif")}>
                 <span style={sx("font-weight:600")}>{row.name}</span>
-                <span style={sx("text-align:right")}><b style={sx("font-weight:600")}>{row.value}</b> <span style={sx("color:#64665c")}>/ {row.bound}</span></span>
+                <span style={sx("text-align:right")} title={row.gapTitle}><b style={sx("font-weight:600")}>{row.value}</b> <span style={sx("color:#64665c")}>/ {row.bound}</span>{row.gap && <span style={sx("display:block;margin-top:3px;font-size:11px;color:#a63d2a")}>{row.gap}</span>}</span>
                 {row.note ? <span style={sx("color:#45473f")}>{row.note}</span> : (
                   <span style={sx("position:relative;height:10px;background:#f3f0e8;border-radius:2px;display:flex;overflow:visible")}>
                     {row.segments.map((seg) => <span key={seg.key} title={seg.title} style={sx(`flex:none;width:${seg.w};max-width:100%;height:100%;background:${seg.color}`)} />)}

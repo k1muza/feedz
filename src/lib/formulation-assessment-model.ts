@@ -10,6 +10,8 @@
  *   practical inclusion guidelines.
  */
 
+import { boundViolation, gapDp, requirementDisplayDp } from "./numerical-tolerance";
+
 export type DataStatus = "published" | "assumed_zero" | "missing";
 export type RequirementStatus = "met" | "not_met";
 
@@ -110,6 +112,13 @@ export interface FormulationAssessment {
   /** Absent on assessments saved before aggregate inclusion ceilings. */
   inclusionPolicy?: typeof INCLUSION_POLICY_VERSION;
   optimizerFeasible: boolean;
+  /**
+   * The entered amounts' total, present only when it is not 100% to
+   * floating-point precision: a rounding residual within
+   * INCLUSION_TOTAL_TOLERANCE_PCT. Nutrients were then measured on the mix
+   * the amounts make; the premix dose and family ceilings on the amounts as entered.
+   */
+  inclusionTotalPct?: number;
   verdict: FormulationVerdict;
   requirements: RequirementCheck[];
   supplementation: {
@@ -257,4 +266,28 @@ export function documentationGapLine(assessment: Pick<FormulationAssessment, "do
   if (!labels.length) return null;
   const listed = labels.length > 6 ? `${labels.slice(0, 6).join(", ")} and ${labels.length - 6} more` : labels.join(", ");
   return `Premix documentation is incomplete for ${labels.length} value${labels.length === 1 ? "" : "s"} (${listed}). Check with the manufacturer before manufacturing.`;
+}
+
+/**
+ * How a requirement and its recipe value are written together, in every
+ * view (Studio banner, nutrient analysis, PDFs). The bound keeps its
+ * published decimals (0.891, never 0.89). A requirement that is not met
+ * never reads as equal to its bound: the recipe value gets the decimals that
+ * show the difference, and `gap` states the shortfall or excess.
+ */
+export function requirementDisplay(
+  check: Pick<RequirementCheck, "relation" | "bound" | "actual" | "status" | "unit">,
+  baseDp: number,
+): { dp: number; gap: { amount: number; dp: number; text: string; short: string } | null } {
+  const met = check.status === "met";
+  const dp = requirementDisplayDp(check.actual, check.bound, baseDp, met);
+  if (met) return { dp, gap: null };
+  const amount = boundViolation(check.relation, check.actual, check.bound);
+  const below = check.actual < check.bound;
+  const unit = check.unit === "%" ? " percentage points" : check.unit ? ` ${check.unit}` : "";
+  const target = check.relation === "min" ? "minimum" : check.relation === "max" ? "maximum" : "required value";
+  const gapDecimals = gapDp(amount);
+  const written = amount.toLocaleString("en-US", { minimumFractionDigits: gapDecimals, maximumFractionDigits: gapDecimals });
+  const short = `${written}${check.unit === "%" ? "" : unit} ${check.relation === "equal" ? (below ? "below" : "above") : below ? "short" : "over"}`;
+  return { dp, gap: { amount, dp: gapDecimals, text: `${written}${unit} ${below ? "below" : "above"} the ${target}`, short } };
 }

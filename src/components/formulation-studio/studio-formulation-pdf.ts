@@ -11,12 +11,14 @@ import {
 } from "pdf-lib";
 
 import { siteConfig } from "@/lib/seo";
+import { distinguishingDp } from "@/lib/numerical-tolerance";
 import { documentationGapLine,
   DATA_STATUS_LABELS,
   LEGACY_PREMIX_NOTE,
   PRE_POULTRY_DIGESTIBLE_PHOSPHORUS_NOTE,
   isFormulationAssessment,
   predatesPoultryDigestiblePhosphorus,
+  requirementDisplay,
   type FormulationAssessment,
   type PremixComparison,
   type RequirementCheck,
@@ -498,8 +500,8 @@ export async function renderStudioFormulationPdf(
         assessment.requirements.map((check) => ({
           cells: [
             `${check.label}${check.unit ? ` (${check.unit})` : ""}`,
-            compact(check.actual),
-            `${check.relation === "min" ? "min" : check.relation === "max" ? "max" : "="} ${compact(check.bound)}`,
+            compact(check.actual, requirementDisplay(check, 3).dp),
+            `${check.relation === "min" ? "min" : check.relation === "max" ? "max" : "="} ${compact(check.bound, requirementDisplay(check, 3).dp)}`,
             check.status === "met" ? (check.limiting ? "Met · limiting" : "Met") : "Not met",
             requirementDataTag(check),
           ],
@@ -507,6 +509,11 @@ export async function renderStudioFormulationPdf(
         })),
       );
     }
+    const gaps = assessment.requirements.flatMap((check) => {
+      const gap = requirementDisplay(check, 3).gap;
+      return gap ? [`${check.label}: ${gap.text}`] : [];
+    });
+    if (gaps.length) paragraph(`Not met by: ${gaps.join("; ")}.`, C.red);
     paragraph("Data: Published = documented by the source; Assumed 0 = the premix does not document the value, so it is counted as 0 (a conservative assumption, not a documented value); Missing = no value is available; total only = a total value without a SID/digestible value, not counted toward SID.", C.muted);
     paragraph(assessment.scope, C.muted);
   } else {
@@ -595,7 +602,7 @@ export async function renderStudioFormulationPdf(
             row.label,
             `${compact(row.actual, 2)} ${row.unit}`,
             `${compact(row.recommended, 2)} ${row.unit}`,
-            row.pctOfRecommendation === null ? "-" : `${Math.round(row.pctOfRecommendation)}%`,
+            row.pctOfRecommendation === null ? "-" : `${compact(row.pctOfRecommendation, Math.min(2, distinguishingDp(row.pctOfRecommendation, 100, 0)))}%`,
             `${SUPPLEMENTATION_STATUS_LABELS[row.status]} · ${DATA_STATUS_LABELS[row.data]}`,
           ],
           colors: [undefined, undefined, undefined, row.status === "at_recommendation" ? undefined : C.amberText, undefined],

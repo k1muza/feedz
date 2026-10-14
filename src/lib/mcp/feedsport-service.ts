@@ -66,6 +66,8 @@ import {
 } from "@/lib/formulation-assessment";
 import { ingredientDefaultPricePerKg } from "@/lib/feed-ingredient-prices";
 import { round, snake } from "@/lib/feed-number-format";
+import { INCLUSION_TOTAL_TOLERANCE_PCT, isCompleteInclusionTotal, normaliseInclusionTotal } from "@/lib/inclusion-total";
+import { INCLUSION_TOLERANCE_PCT, boundViolation, nutrientFeasibilityTolerance, withinBound } from "@/lib/numerical-tolerance";
 export { round, snake } from "@/lib/feed-number-format";
 
 export const SOLVER = "GLPK (glpk.js)";
@@ -292,6 +294,8 @@ export function nutritionalValidationReport(assessment: FormulationAssessment) {
       relation: check.relation,
       requirement: round(check.bound),
       actual: round(check.actual),
+      // The unrounded shortfall or excess, so a failure is never explained by two equal rounded numbers.
+      ...(check.status === "not_met" ? { deviation: Number(boundViolation(check.relation, check.actual, check.bound).toPrecision(3)) } : {}),
       unit: check.unit,
       limiting: check.limiting,
       data_status: check.data,
@@ -908,7 +912,8 @@ function dietProfile(analysis: DietAnalysis, includeSupplementation: boolean) {
 
 export function comparisonRows(profile: readonly FormulationNutrientComparison[]) {
   return profile.map((row) => {
-    const tolerance = Math.max(Math.abs(row.requirement) * 1e-4, 1e-6);
+    // The assessment's own rule, so `passes` never disagrees with nutritional_validation.
+    const passes = withinBound(row.relation, row.actual, row.requirement, nutrientFeasibilityTolerance(row.requirement));
     return {
       nutrient: snake(row.id),
       label: row.label,
@@ -918,7 +923,8 @@ export function comparisonRows(profile: readonly FormulationNutrientComparison[]
       actual: round(row.actual),
       margin: round(row.margin),
       binding: row.binding,
-      passes: row.margin >= -tolerance,
+      passes,
+      ...(passes ? {} : { deviation: Number(boundViolation(row.relation, row.actual, row.requirement).toPrecision(3)) }),
     };
   });
 }
@@ -1168,8 +1174,8 @@ export function buildScenario(
       throw new FeedSportInputError(`Constraint for ${id} has min_percent greater than max_percent.`);
     }
     const premix = commercialPremixById(id);
-    if (premix && ((value.min_percent !== undefined && Math.abs(value.min_percent - premix.inclusionPct) > 1e-6) ||
-      (value.max_percent !== undefined && Math.abs(value.max_percent - premix.inclusionPct) > 1e-6))) {
+    if (premix && ((value.min_percent !== undefined && Math.abs(value.min_percent - premix.inclusionPct) > INCLUSION_TOLERANCE_PCT) ||
+      (value.max_percent !== undefined && Math.abs(value.max_percent - premix.inclusionPct) > INCLUSION_TOLERANCE_PCT))) {
       throw new FeedSportInputError(`${premix.name} must remain at ${premix.inclusionKgPerTonne} kg/t.`);
     }
     constraints.set(id, value);
@@ -1525,7 +1531,8 @@ export type AnalyseInput = {
   prices?: Record<string, number>;
 };
 
-export const RECIPE_TOTAL_TOLERANCE_PCT = 0.1;
+/** The same input-rounding tolerance as Studio and the evaluate API. */
+export const RECIPE_TOTAL_TOLERANCE_PCT = INCLUSION_TOTAL_TOLERANCE_PCT;
 
 export function analyseFormulation(input: AnalyseInput, context: FeedSportServiceContext) {
   const request = prepareRequest(
@@ -1536,20 +1543,23 @@ export function analyseFormulation(input: AnalyseInput, context: FeedSportServic
   const { resolved, library, ingredientIds } = request;
 
   const total = input.recipe.reduce((sum, row) => sum + row.percentage, 0);
-  if (Math.abs(total - 100) > RECIPE_TOTAL_TOLERANCE_PCT) {
+  if (!isCompleteInclusionTotal(total)) {
     throw new FeedSportInputError(
       `Recipe percentages total ${round(total, 3)}%; they must total 100% (±${RECIPE_TOTAL_TOLERANCE_PCT}).`,
     );
   }
 
   // Within the rounding tolerance, treat percentages as parts of the mix: the
-  // nutrient concentration of that mix is exactly the normalized recipe.
-  const formula: DietFormula = {
+  // nutrient concentration of that mix is exactly the normalized recipe. The
+  // premix dose and inclusion limits are checked on the percentages as given,
+  // exactly as buildFormulationAssessment does.
+  const entered: DietFormula = {
     ingredients: ingredientIds.map((ingredientId, index) => ({
       ingredientId,
-      inclusionPct: (input.recipe[index].percentage / total) * 100,
+      inclusionPct: input.recipe[index].percentage,
     })),
   };
+  const formula: DietFormula = { ingredients: normaliseInclusionTotal(entered.ingredients) };
 
   // The shared manufacturer-recipe helper validates CJ's exact ratios.
 
@@ -1602,7 +1612,7 @@ export function analyseFormulation(input: AnalyseInput, context: FeedSportServic
   }
 
   const evaluation = evaluateFormulation(resolved.phase, request.energySystem, formula, library);
-  const validation = buildFormulationAssessment(resolved.phase, request.energySystem, formula, library);
+  const validation = buildFormulationAssessment(resolved.phase, request.energySystem, entered, library);
   const comparison = comparisonRows(evaluation.nutrientProfile);
   const deficiencies = comparison.filter((row) => row.relation === "min" && !row.passes);
   const excesses = comparison.filter((row) => row.relation === "max" && !row.passes);
@@ -1614,15 +1624,15 @@ export function analyseFormulation(input: AnalyseInput, context: FeedSportServic
     max_percent?: number;
     limit_source?: string;
   };
-  const inclusionLimitViolations = formula.ingredients.flatMap((row): InclusionLimitViolation[] => {
+  const inclusionLimitViolations = entered.ingredients.flatMap((row): InclusionLimitViolation[] => {
     const premix = commercialPremixById(row.ingredientId);
-    if (premix && Math.abs(row.inclusionPct - premix.inclusionPct) > 1e-6) {
+    if (premix && !withinBound("equal", row.inclusionPct, premix.inclusionPct, INCLUSION_TOLERANCE_PCT)) {
       return [{ ingredient: row.ingredientId, percentage: round(row.inclusionPct, 4), min_percent: premix.inclusionPct, max_percent: premix.inclusionPct, limit_source: premix.specificationUrl }];
     }
     if (premix) return [];
     const record = library.ingredients.find((ingredient) => ingredient.id === row.ingredientId)!;
     const limits = feedsportInclusionLimits(record.id, record.constraints, resolved.phase);
-    if (row.inclusionPct > limits.maxPct + 1e-6) {
+    if (!withinBound("max", row.inclusionPct, limits.maxPct, INCLUSION_TOLERANCE_PCT)) {
       return [{
         ingredient: row.ingredientId,
         percentage: round(row.inclusionPct, 4),
@@ -1630,13 +1640,13 @@ export function analyseFormulation(input: AnalyseInput, context: FeedSportServic
         limit_source: describeMaxSource(limits),
       }];
     }
-    if (row.inclusionPct < limits.minPct - 1e-6) {
+    if (!withinBound("min", row.inclusionPct, limits.minPct, INCLUSION_TOLERANCE_PCT)) {
       return [{ ingredient: row.ingredientId, percentage: round(row.inclusionPct, 4), min_percent: limits.minPct }];
     }
     return [];
   });
   // Combined ceilings from the same resolver the optimizer uses.
-  const aggregateInclusions = checkAggregateInclusion(formula.ingredients, resolved.phase, library).map((check) => ({
+  const aggregateInclusions = checkAggregateInclusion(entered.ingredients, resolved.phase, library).map((check) => ({
     kind: check.rule.kind,
     id: check.rule.id,
     name: aggregateLabel(check.rule),
@@ -1670,8 +1680,8 @@ export function analyseFormulation(input: AnalyseInput, context: FeedSportServic
   if (unverifiable.length > 0) {
     notes.push("Some requirements cannot be verified because ingredient nutrient data is missing; the formulation cannot pass until they can.");
   }
-  if (Math.abs(total - 100) > 1e-9) {
-    notes.push(`Recipe totalled ${round(total, 5)}%; it was analysed as proportions of that total.`);
+  if (validation.inclusionTotalPct !== undefined) {
+    notes.push(`Recipe totalled ${round(total, 5)}%; nutrients were analysed as proportions of that total, and the premix dose and inclusion limits were checked on the percentages as given.`);
   }
 
   return {

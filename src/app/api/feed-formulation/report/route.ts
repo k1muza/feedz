@@ -7,6 +7,8 @@ import {
   commercialPremixCompatibleWithProgramme,
 } from '@/lib/commercial-premixes';
 import { buildFormulationAssessment } from '@/lib/formulation-assessment';
+import { isCompleteInclusionTotal, normaliseInclusionTotal } from '@/lib/inclusion-total';
+import { INCLUSION_TOLERANCE_PCT, withinBound } from '@/lib/numerical-tolerance';
 import { ingredientDefaultPricePerKg } from '@/lib/feed-ingredient-prices';
 import { evaluateFormulation } from '@/lib/feed-optimizer';
 import { getIngredientPrices } from '@/lib/ingredient-prices';
@@ -79,7 +81,7 @@ export async function POST(request: Request) {
 
   try {
     const total = formula.ingredients.reduce((sum, ingredient) => sum + ingredient.inclusionPct, 0);
-    if (Math.abs(total - 100) > 0.02) throw new Error('The downloaded formulation must total 100%.');
+    if (!isCompleteInclusionTotal(total)) throw new Error('The downloaded formulation must total 100%.');
     // Only a real manufacturer product, at its published dose, may appear in a report.
     const premix = commercialPremixById(premixId);
     if (!premix) throw new Error('Select a commercial premix before downloading the formula.');
@@ -89,7 +91,7 @@ export async function POST(request: Request) {
     const otherPremixes = formula.ingredients.filter((row) => row.ingredientId !== premix.id && commercialPremixById(row.ingredientId));
     if (otherPremixes.length) throw new Error('Select only one commercial premix for a formulation.');
     const premixRow = formula.ingredients.find((row) => row.ingredientId === premix.id);
-    if (!premixRow || Math.abs(premixRow.inclusionPct - premix.inclusionPct) > 0.01) {
+    if (!premixRow || !withinBound('equal', premixRow.inclusionPct, premix.inclusionPct, INCLUSION_TOLERANCE_PCT)) {
       throw new Error(`${premix.name} must be included at its published ${premix.inclusionKgPerTonne} kg/t.`);
     }
     assertManufacturerRecipe(
@@ -98,7 +100,8 @@ export async function POST(request: Request) {
     );
 
     const library = ingredientLibraryForPhase(phase);
-    const evaluation = evaluateFormulation(phase, 'ME', formula, library);
+    // Nutrients on the mix the amounts make; the assessment checks doses and limits as given.
+    const evaluation = evaluateFormulation(phase, 'ME', { ingredients: normaliseInclusionTotal(formula.ingredients) }, library);
     const assessment = buildFormulationAssessment(phase, 'ME', formula, library);
     const ingredientPrices = await getIngredientPrices();
     // An unpriced ingredient makes the total unknown; it is never costed as zero.

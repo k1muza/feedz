@@ -1,3 +1,4 @@
+import { INCLUSION_TOLERANCE_PCT } from "./numerical-tolerance";
 import {
   INGREDIENT_LIBRARY,
   SOYBEAN_MEAL_FAMILY_ID,
@@ -143,7 +144,7 @@ export function analyzeDiet(
   library: IngredientLibrary = INGREDIENT_LIBRARY,
 ): DietAnalysis {
   const total = formula.ingredients.reduce((sum, row) => sum + row.inclusionPct, 0);
-  if (!Number.isFinite(total) || Math.abs(total - 100) > 1e-6) {
+  if (!Number.isFinite(total) || Math.abs(total - 100) > INCLUSION_TOLERANCE_PCT) {
     throw new Error(`Diet inclusions must sum to 100%; received ${total}.`);
   }
 

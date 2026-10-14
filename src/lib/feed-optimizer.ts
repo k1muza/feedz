@@ -27,6 +27,7 @@ import {
 import { resolveNutritionTargets, type EnergySystem } from "./nutrition-targets";
 import type { NutritionPhase } from "./nutrition";
 import type { FormulationAssessment } from "./formulation-assessment-model";
+import { nutrientFeasibilityTolerance } from "./numerical-tolerance";
 
 export type FormulationIngredientOption = {
   ingredientId: string;
@@ -272,15 +273,10 @@ export function evaluateFormulation(
   };
 }
 
-/**
- * GLPK feasibility and independently recomputed nutrient totals may differ
- * microscopically at binding constraints. Match the existing 1e-5 relative
- * binding-window convention, while retaining a small absolute floor for
- * targets close to zero. Never use display rounding as a feasibility rule.
- */
-export function nutrientFeasibilityTolerance(bound: number): number {
-  return Math.max(Math.abs(bound) * 1e-5, 1e-7);
-}
+// GLPK feasibility and independently recomputed nutrient totals may differ
+// microscopically at binding constraints; the shared tolerance absorbs that.
+// Never use display rounding as a feasibility rule.
+export { nutrientFeasibilityTolerance };
 
 export type ConstraintSpec = {
   id: string;

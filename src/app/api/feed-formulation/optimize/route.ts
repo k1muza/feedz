@@ -12,6 +12,7 @@ import {
 import { assertManufacturerRecipe, commercialPremixById, commercialPremixCompatibleWithProgramme, premixAnalysisForIds } from "@/lib/commercial-premixes";
 import { buildManufacturerRecipeReport } from "@/lib/manufacturer-recipe";
 import { formulateAndAssess } from "@/lib/formulation-assessment";
+import { INCLUSION_TOLERANCE_PCT } from "@/lib/numerical-tolerance";
 
 const optionalNutrient = z.number().finite().nonnegative().optional();
 
@@ -119,8 +120,8 @@ export async function POST(request: Request) {
       if (!commercialPremixCompatibleWithProgramme(premix, programmeId, phaseId)) {
         throw new Error(`${premix.name} is not assigned to this animal stage.`);
       }
-      if (Math.abs((ingredient.minInclusionPct ?? -1) - premix.inclusionPct) > 1e-6 ||
-          Math.abs((ingredient.maxInclusionPct ?? -1) - premix.inclusionPct) > 1e-6) {
+      if (Math.abs((ingredient.minInclusionPct ?? -1) - premix.inclusionPct) > INCLUSION_TOLERANCE_PCT ||
+          Math.abs((ingredient.maxInclusionPct ?? -1) - premix.inclusionPct) > INCLUSION_TOLERANCE_PCT) {
         throw new Error(`${premix.name} must be included at its published ${premix.inclusionKgPerTonne} kg/t; changing its dose is not supported.`);
       }
       return [premix];

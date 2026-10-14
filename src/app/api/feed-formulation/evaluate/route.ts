@@ -46,15 +46,17 @@ export async function POST(request: Request) {
     });
     if (premixes.length > 1) throw new Error("Select only one premix for a formulation.");
     const library = ingredientLibraryForPhase(phase);
-    // Typed or rounded amounts may miss 100% by a few hundredths; those are
-    // rescaled, while a material deviation is still rejected.
-    const formula = { ingredients: normaliseInclusionTotal(ingredients) };
-    const evaluation = evaluateFormulation(phase, energySystem, formula, library);
+    // Typed or rounded amounts may miss 100% by a few hundredths. Nutrients
+    // are measured on the mix they make; the assessment judges the premix
+    // dose and family ceilings on the amounts as entered. A material
+    // deviation is still rejected (see buildFormulationAssessment).
+    const entered = { ingredients };
+    const evaluation = evaluateFormulation(phase, energySystem, { ingredients: normaliseInclusionTotal(ingredients) }, library);
     return NextResponse.json({
       status: "evaluated",
       nutrientProfile: evaluation.nutrientProfile,
       incompleteRequirements: evaluation.incompleteRequirements,
-      assessment: buildFormulationAssessment(phase, energySystem, formula, library),
+      assessment: buildFormulationAssessment(phase, energySystem, entered, library),
     });
   } catch (error) {
     return NextResponse.json({ status: "error", message: error instanceof Error ? error.message : String(error) }, { status: 400 });

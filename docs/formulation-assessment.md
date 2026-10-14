@@ -31,6 +31,44 @@ A minimum is met when the known contributions reach it. Missing values can
 only add, so a known subtotal at the minimum is met even with a gap; below it,
 the requirement is not met and its data status says why it cannot be confirmed.
 
+## Numerical comparisons
+
+`src/lib/numerical-tolerance.ts` holds the only comparison rules. The
+optimizer, `buildFormulationAssessment`, Studio's manual check, the evaluate
+and report APIs and MCP all import them. A bound is met unless it is violated
+by more than its tolerance (`withinBound`). Tolerances only absorb arithmetic
+error and never stand in for display rounding:
+
+| Comparison | Tolerance | Why |
+| --- | --- | --- |
+| Nutrient minimum/maximum, Chapter 7 recommendation | 1e-5 × bound (floor 1e-7) | GLPK row feasibility plus recomputing nutrients from the solution; 0.0000089 pp for SID lysine at 0.891% |
+| Family / constraint-group ceiling | 1e-5 × ceiling (floor 1e-6 pp) | An LP row, like a nutrient |
+| One ingredient's minimum, maximum or fixed dose, premix dose | 1e-6 pp | Variable bounds are honoured exactly; only binary floating point (0.1 + 0.2) is absorbed |
+
+Nutrients are never rounded before they are compared.
+
+**Batch total.** Amounts totalling 100% to 1e-6 pp are assessed as given.
+Amounts within ±0.05 pp (`INCLUSION_TOTAL_TOLERANCE_PCT`) are an
+input-rounding residual. That covers ten amounts typed to two decimals, or
+untouched exact amounts next to retyped ones. For such a recipe:
+
+- nutrients are measured on the mix the amounts make (each amount as a share
+  of their total);
+- the premix dose, ingredient limits and family ceilings are judged on the
+  amounts as entered, the ones that are weighed; and
+- the assessment records `inclusionTotalPct` and says so in its summary.
+
+Rescaling therefore never moves a fixed premix or a capped family off its
+bound. A larger difference is an incomplete or excessive batch and is
+rejected, never rescaled.
+
+**Display.** A bound is written with its published decimals (0.891, not
+0.89). A requirement that is not met is never written as equal to its bound:
+`requirementDisplay` gives the decimals that show the difference and the
+shortfall or excess ("0.0023 percentage points below the minimum"). The same
+helper drives the Studio banner and nutrient analysis and both PDFs. MCP
+reports the unrounded `deviation`.
+
 ## Supplementation advisories (Brazilian Tables Chapter 7)
 
 `supplementationGuidance(phase)` holds the Chapter 7 vitamin and

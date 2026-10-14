@@ -14,6 +14,7 @@ import type { FeedProgrammeDefinition } from '@/lib/feed-programmes';
 import { premixNutrientContributions, type CommercialPremix } from '@/lib/commercial-premixes';
 import { documentationGapLine,
   DATA_STATUS_LABELS,
+  requirementDisplay,
   type FormulationAssessment,
   type RequirementCheck,
   type SupplementationStatus,
@@ -24,6 +25,7 @@ import {
 } from '@/lib/ingredient-nutrients';
 import type { NutritionPhase } from '@/lib/nutrition';
 import { siteConfig } from '@/lib/seo';
+import { distinguishingDp } from '@/lib/numerical-tolerance';
 
 const W = 595.28;
 const H = 841.89;
@@ -374,8 +376,8 @@ export async function renderPublicFormulationPdf(input: PublicFormulationPdfInpu
       ],
       input.assessment.requirements.map((check) => [
         `${check.label}${check.unit ? ` (${check.unit})` : ''}`,
-        compactNumber(check.actual),
-        `${relationLabel(check.relation)} ${compactNumber(check.bound)}`,
+        compactNumber(check.actual, requirementDisplay(check, 3).dp),
+        `${relationLabel(check.relation)} ${compactNumber(check.bound, requirementDisplay(check, 3).dp)}`,
         check.status === 'met' ? 'Met' : 'Not met',
         dataTag(check),
       ]),
@@ -384,7 +386,7 @@ export async function renderPublicFormulationPdf(input: PublicFormulationPdfInpu
   }
   paragraph(`${input.assessment.scope} Data: Published = documented by the source; Assumed 0 = the premix does not document the value, so it is counted as 0 (a conservative assumption, not a documented value); Missing = no value is available; total only = a total value without a SID/digestible value, not counted toward SID.`, 7.4, C.muted);
   if (failedRequirements.length) {
-    paragraph(`Not met: ${failedRequirements.map((check) => check.label).join(', ')}. Do not mix this recipe until every hard requirement is met.`, 8, C.red);
+    paragraph(`Not met: ${failedRequirements.map((check) => `${check.label} (${requirementDisplay(check, 3).gap?.text})`).join(', ')}. Do not mix this recipe until every hard requirement is met.`, 8, C.red);
   }
 
   sectionHeading('Commercial premix', `${premix.inclusionPct}% inclusion · ${premix.inclusionKgPerTonne} kg/t`);
@@ -449,7 +451,7 @@ export async function renderPublicFormulationPdf(input: PublicFormulationPdfInpu
           row.label,
           `${compactNumber(row.actual, 2)} ${row.unit}`,
           `${compactNumber(row.recommended, 2)} ${row.unit}`,
-          row.pctOfRecommendation === null ? '—' : `${Math.round(row.pctOfRecommendation)}%`,
+          row.pctOfRecommendation === null ? '—' : `${compactNumber(row.pctOfRecommendation, Math.min(2, distinguishingDp(row.pctOfRecommendation, 100, 0)))}%`,
           `${SUPPLEMENTATION_STATUS_LABELS[row.status]} · ${DATA_STATUS_LABELS[row.data]}`,
         ]),
         { fontSize: 7.2 },
