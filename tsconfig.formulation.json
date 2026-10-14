@@ -8,6 +8,7 @@
     "next-env.d.ts",
     "src/lib/commercial-premixes.ts",
     "src/lib/commercial-premixes.test.ts",
+    "src/lib/caremix-premix-profiles.test.ts",
     "src/lib/ingredient-pool-transition.ts",
     "src/lib/ingredient-pool-transition.test.ts",
     "src/lib/manufacturer-recipe.ts",

@@ -54,21 +54,80 @@ with its own attribution. Price provenance is separate from nutrient provenance.
 5. Retain product-level verification warnings until all relevant nutrient
    guarantees, practical dosage restrictions and compatibility are verified.
 
-## Caremix Maxipacks: finished-feed specifications kept as reference
+## Caremix Maxipacks: per-kg premix profiles reverse-calculated from finished-feed specifications
 
-The user-provided one-page Caremix / Trouw Nutrition sheet describes **nutrient
-ranges per kilogram of finished feed** for three stage-specific products:
+Trouw Nutrition's one-page *Caremix Pig Grower Specification Range* gives
+nutrients **per kilogram of finished feed** for three stage-specific products:
 PigWeaner 28 kg/t (2.8%), Pig Grower 32 kg/t (3.2%) and Pig Finisher 26 kg/t
-(2.6%). The 30 printed rows per product are preserved under
-`premix.finishedFeedSpecification`, with the user-approved min/max reversals
-noted per row.
+(2.6%). Its *Ration download Pig Growers* worksheet gives a reference ration
+for each product with total crude protein, fat, fibre, calcium and phosphorus.
+Both are kept on the product: the 30 printed rows (with the user-approved
+min/max reversals) under `premix.finishedFeedSpecification.rows`, and the
+worksheet under `premix.finishedFeedSpecification.referenceRation`.
 
-A finished-feed specification is not a premix composition. FeedSport no longer
-reverse-calculates a premix profile from it: the Caremix nutrition profiles are
-empty, so every premix nutrient is reported as undocumented (`assumed_zero` in
-hard requirements, `no_data` against Chapter 7). The premix advisory can then
-compare a documented alternative. A per-kg premix analysis from the supplier
-is required before any Caremix nutrient is credited.
+Each Caremix product's `nutrition.swine` profile is an ordinary per-kg premix
+composition, credited through the same pipeline as Sustar X912. Every value
+cites its derivation in `provenance.nutrientSources[path]`.
+
+### Measurement basis
+
+The sheet lists what the **premix supplies** per kg of feed, not total feed
+content. Its phosphorus ranges (for example 0.42–1.37 g/kg for the grower) and
+the grower manganese row are below what maize, soybean meal and wheat bran
+alone supply, and the worksheet's grower ration totals 5.3 g P/kg. So:
+
+`premix concentration = finished-feed supplemental minimum / (inclusionKgPerTonne / 1000)`
+
+For example, Pig Grower vitamin A 10,000 IU/kg feed ÷ 0.032 = 312,500 IU/kg
+premix; zinc 80 mg/kg feed ÷ 0.032 = 2,500 mg/kg premix.
+
+### Rules applied
+
+* **Minimums, like Sustar.** The canonical profile uses the published minimum.
+  A row with only a maximum, or a minimum of 0, is not a guaranteed supply and
+  stays missing: choline, phytase, antioxidant, tryptophan and valine for all
+  three products, grower methionine and threonine, finisher folic acid and
+  finisher phosphorus.
+* **Calcium from the reference ration.** Calcium is the worksheet total minus
+  the basal ingredients' calcium (Brazilian Tables 2024 profiles of maize,
+  soybean meal 45.6% CP, wheat bran and, for the weaner, fish meal 54% CP),
+  divided by the premix's share of the printed batch mass (16 of 501 kg for
+  the grower). It is used because the result lies inside the published
+  supplemental range for all three products, whose printed Min/Max are
+  transposed, and because understating premix calcium against a
+  minimum-only requirement would add limestone the feed does not need.
+* **Phosphorus keeps the published minimum.** The worksheet implies more
+  premix phosphorus than the published maximum for every product, so the two
+  documents disagree and the conservative minimum is used. STTD and available
+  phosphorus apply dicalcium phosphate's Brazilian Tables coefficients (75.1%
+  and 100%), assuming an inorganic source. Phytase is not credited.
+* **Amino acids.** The supplemental amino acids are crystalline. Total is the
+  minimum ÷ dose; SID applies the Brazilian Tables Table 1.09 coefficients
+  (lysine 98.1%, methionine 99.5%, threonine 96.8%).
+* **Units.** Calcium pantothenate × 0.92 (d-form) = pantothenic acid; biotin
+  mcg → mg; g/kg → % (÷ 10). Vitamin B12 stays in mcg/kg.
+* **Vitamin E.** Only the labelled vitamin E row is credited; the unlabelled
+  "Vitamin E Equivalent" IU row is not added.
+* **Displaced trace-mineral cells.** The printed Fe–Se cells are scrambled.
+  Weaner and finisher each contain the eight numbers of plausible I, Mn, Zn and
+  Se ranges; the lower plausible minimum is credited (weaner I 0.6, Mn 20,
+  Zn 100, Se 0.1 mg/kg; finisher I 0.4, Mn 20, Zn 60, Se 0.1). The grower
+  cells are rotated one row (iodine row = zinc 80–150, manganese row = iodine
+  0.5–2, zinc row = manganese 20–60, selenium row = iron 80–160, iron row
+  repeats copper), so grower **selenium is lost and stays missing**.
+* **Not inferred.** Energy, crude protein, fat and fibre: the worksheet totals
+  minus basal give inconsistent results across products (for example negative
+  fibre) because they are differences of nearly equal numbers. Chloride is not
+  declared and is not inferred from sodium.
+
+`src/lib/caremix-premix-profiles.test.ts` recomputes every value from the
+stored rows and reference ration, including the worked grower example
+(317 kg maize, 100 kg soybean meal, 68 kg wheat bran, 16 kg Caremix =
+501 kg, reproducing the worksheet's 6.1 g Ca/kg).
+
+The profiles are calculated, not a supplier assay: verification stays
+`manufacturer_unverified` until Trouw Nutrition confirms a per-kg premix
+composition.
 
 ## Hard requirements versus supplementation advisories
 

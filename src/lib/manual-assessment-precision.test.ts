@@ -28,10 +28,11 @@ import { analyseFormulation } from "./mcp/feedsport-service";
 import { INGREDIENT_DEFAULT_PRICES } from "./feed-ingredient-prices";
 
 // The production reproduction: Grow-Finish Pig, Grower 47–74 kg (Brazilian
-// Tables 2024), Caremix Pig Grower fixed at 32 kg/t, optimised, then corn and
-// wheat bran adjusted by hand. Untouched amounts keep their exact optimised
-// values behind two-decimal inputs, so the edited recipe totals 100% only to
-// within input rounding.
+// Tables 2024), Caremix Pig Grower fixed at 32 kg/t, optimised, then wheat
+// bran and soybean meal adjusted by hand. Untouched amounts keep their exact
+// optimised values behind two-decimal inputs, so the edited recipe totals 100%
+// only to within input rounding. Caremix's calculated profile supplies calcium,
+// sodium and lysine, so the optimum puts corn at its 65% family ceiling.
 
 const PROGRAMME_ID = "grow-finish-pig";
 const PHASE_ID = "br2024-5-43-91-119d-47-74kg";
@@ -61,14 +62,14 @@ const pctOf = (rows: readonly Row[], id: string) => rows.find((row) => row.ingre
 const withAmounts = (rows: readonly Row[], amounts: Record<string, number>): Row[] =>
   rows.map((row) => (row.ingredientId in amounts ? { ...row, inclusionPct: amounts[row.ingredientId] } : row));
 const total = (rows: readonly Row[]) => rows.reduce((sum, row) => sum + row.inclusionPct, 0);
-/** Corn and wheat bran retyped at two decimals and moved by `delta`, everything else exact: the reported edit. */
+/** Wheat bran and soybean meal retyped at two decimals and moved by `delta`, everything else exact: the reported edit. */
 const handEdited = (delta: number) => withAmounts(optimised, {
-  [CORN]: +(+pctOf(optimised, CORN).toFixed(2) + delta).toFixed(2),
-  [BRAN]: +(+pctOf(optimised, BRAN).toFixed(2) - delta).toFixed(2),
+  [BRAN]: +(+pctOf(optimised, BRAN).toFixed(2) + delta).toFixed(2),
+  [SBM]: +(+pctOf(optimised, SBM).toFixed(2) - delta).toFixed(2),
 });
 const assess = (rows: readonly Row[]) => buildFormulationAssessment(phase, "ME", { ingredients: [...rows] }, library);
 const check = (assessment: FormulationAssessment, id: string) => assessment.requirements.find((row) => row.id === id)!;
-const sbmFamily = (assessment: FormulationAssessment) => assessment.requirements.find((row) => row.aggregate?.memberIngredientIds.includes(SBM))!;
+const cornFamily = (assessment: FormulationAssessment) => assessment.requirements.find((row) => row.aggregate?.memberIngredientIds.includes(CORN))!;
 const statuses = (assessment: FormulationAssessment) => Object.fromEntries(assessment.requirements.map((row) => [row.id, row.status]));
 
 async function evaluate(rows: readonly Row[]) {
@@ -80,12 +81,13 @@ async function evaluate(rows: readonly Row[]) {
 }
 
 describe("the reproduced manual assessment", () => {
-  test("the optimised recipe meets every requirement, with soybean meal at its 25% ceiling and the premix at 3.2%", () => {
+  test("the optimised recipe meets every requirement, with corn at its 65% ceiling and the premix at 3.2%", () => {
     const assessment = assess(optimised);
     assert.equal(assessment.verdict, "meets_requirements");
-    assert.ok(Math.abs(pctOf(optimised, SBM) - 25) < 1e-9, "the scenario binds soybean meal at exactly 25%");
-    assert.equal(sbmFamily(assessment).status, "met");
-    assert.equal(sbmFamily(assessment).limiting, true);
+    assert.ok(Math.abs(pctOf(optimised, CORN) - 65) < 1e-9, "the scenario binds corn at exactly 65%");
+    assert.equal(pctOf(optimised, PREMIX), 3.2, "the solver returns the fixed dose exactly");
+    assert.equal(cornFamily(assessment).status, "met");
+    assert.equal(cornFamily(assessment).limiting, true);
     assert.equal(check(assessment, "premix-dose").status, "met");
     assert.equal(assessment.inclusionTotalPct, undefined, "an exact 100% total is assessed as given");
   });
@@ -99,14 +101,15 @@ describe("the reproduced manual assessment", () => {
     assert.equal(premix.status, "met");
     assert.equal(premix.actual, 3.2, "judged on the amount entered and weighed");
     assert.equal(body.assessment.inclusionTotalPct, total(edited));
-    assert.match(body.assessment.summary, /amounts total 100\.00\d+%, a rounding difference/);
+    assert.match(body.assessment.summary, /amounts total 99\.99\d+%, a rounding difference/);
   });
 
   test("the reported nutrient failures are genuine shortfalls, written so they can be seen", async () => {
-    // Moving 1% from wheat bran to corn lowers SID lysine to 0.8887% against
-    // the published 0.891%; two-decimal display hid it as "0.89% / ≥0.89%".
-    const { body } = await evaluate(handEdited(1));
-    for (const id of ["sid-lysine", "sid-met-cys", "sid-threonine", "calcium"]) {
+    // Moving 0.25% from soybean meal to wheat bran lowers SID lysine to about
+    // 0.8856% against the published 0.891%; two-decimal display would hide it
+    // as "0.89% / ≥0.89%".
+    const { body } = await evaluate(handEdited(0.25));
+    for (const id of ["sid-lysine", "sid-met-cys", "sid-threonine", "sid-tryptophan"]) {
       const row: RequirementCheck = check(body.assessment, id);
       assert.equal(row.status, "not_met", id);
       assert.ok(row.bound - row.actual > 1e-4, `${id} is short by far more than any tolerance`);
@@ -117,11 +120,11 @@ describe("the reproduced manual assessment", () => {
     assert.equal(check(body.assessment, "sid-lysine").bound, 0.891, "the Brazilian Tables target is unchanged");
   });
 
-  test("the edit in the other direction meets every amino acid but genuinely misses energy", async () => {
-    const { body } = await evaluate(handEdited(-1));
+  test("the edit in the other direction meets energy and every amino acid but genuinely misses phosphorus and chloride", async () => {
+    const { body } = await evaluate(handEdited(-0.5));
     const failed = body.assessment.requirements.filter((row: RequirementCheck) => row.status === "not_met").map((row: RequirementCheck) => row.id);
-    assert.deepEqual(failed, ["energy-me"]);
-    assert.match(requirementDisplay(check(body.assessment, "energy-me"), 0).gap!.text, /kcal\/kg below the minimum/);
+    assert.deepEqual(failed, ["sttd-phosphorus", "chloride"]);
+    assert.match(requirementDisplay(check(body.assessment, "sttd-phosphorus"), 2).gap!.text, /percentage points below the minimum/);
   });
 
   test("nutrients are measured on the mix the entered amounts make", () => {
@@ -133,8 +136,8 @@ describe("the reproduced manual assessment", () => {
 });
 
 describe("premix fixed dose", () => {
-  // Balance each change on corn so the total stays exactly 100%.
-  const premixAt = (pct: number) => withAmounts(optimised, { [PREMIX]: pct, [CORN]: pctOf(optimised, CORN) + 3.2 - pct });
+  // Balance each change on wheat bran so the total stays exactly 100%.
+  const premixAt = (pct: number) => withAmounts(optimised, { [PREMIX]: pct, [BRAN]: pctOf(optimised, BRAN) + 3.2 - pct });
 
   test("exactly 3.2% is met, including 3.2 written as a floating-point sum", () => {
     assert.equal(check(assess(premixAt(3.2)), "premix-dose").status, "met");
@@ -150,20 +153,20 @@ describe("premix fixed dose", () => {
   });
 });
 
-describe("soybean meal family ceiling", () => {
-  test("exactly 25% with a rounding residual elsewhere is met (was: rescaled to 25.0015% and failed)", async () => {
+describe("corn family ceiling", () => {
+  test("exactly 65% with a rounding residual elsewhere is met (was: rescaled to 65.0015% and failed)", async () => {
     const short = withAmounts(optimised, { [BRAN]: +pctOf(optimised, BRAN).toFixed(2) - 0.01 });
     assert.ok(total(short) < 100 && total(short) > 99.95);
     const { body } = await evaluate(short);
-    assert.equal(sbmFamily(body.assessment).status, "met");
-    assert.equal(sbmFamily(body.assessment).actual, 25);
+    assert.equal(cornFamily(body.assessment).status, "met");
+    assert.equal(cornFamily(body.assessment).actual, 65);
   });
 
   test("a genuine exceedance fails and is reported with its real figures", () => {
-    const over = withAmounts(optimised, { [SBM]: 25.01, [CORN]: pctOf(optimised, CORN) - 0.01 });
+    const over = withAmounts(optimised, { [CORN]: 65.01, [SBM]: pctOf(optimised, SBM) - 0.01 });
     const assessment = assess(over);
-    assert.equal(sbmFamily(assessment).status, "not_met");
-    assert.match(assessment.summary, /exceeds its combined maximum \(25\.01% > 25%\)/);
+    assert.equal(cornFamily(assessment).status, "not_met");
+    assert.match(assessment.summary, /exceeds its combined maximum \(65\.01% > 65%\)/);
   });
 });
 
@@ -201,7 +204,7 @@ describe("one set of rules across optimiser, manual check, API and MCP", () => {
   });
 
   for (const delta of [1, -1, 0.5]) {
-    test(`a hand-edited recipe (${delta > 0 ? "+" : ""}${delta}% corn) gets the same verdicts from the evaluate API, MCP and Studio`, async () => {
+    test(`a hand-edited recipe (${delta > 0 ? "+" : ""}${delta}% wheat bran) gets the same verdicts from the evaluate API, MCP and Studio`, async () => {
       const edited = handEdited(delta);
       const { body } = await evaluate(edited);
       const analysis = mcp(edited);
@@ -267,15 +270,15 @@ describe("Studio: manual edits, save, reload and reassessment", () => {
 
   test("a hand edit with a fixed 3.2% premix passes the manual bounds check", () => {
     const amounts = manualAmounts(optimised.map((row) => ({ id: row.ingredientId, pct: row.inclusionPct })), Object.keys(pool));
-    amounts.typed[CORN] = String(+(pctOf(optimised, CORN) + 1).toFixed(2));
-    amounts.typed[BRAN] = String(+(pctOf(optimised, BRAN) - 1).toFixed(2));
+    amounts.typed[BRAN] = String(+(pctOf(optimised, BRAN) + 1).toFixed(2));
+    amounts.typed[SBM] = String(+(pctOf(optimised, SBM) - 1).toFixed(2));
     const pct = manualPct(amounts);
     assert.equal(pct[PREMIX], 3.2);
     assert.ok(Math.abs(Object.values(pct).reduce((sum, v) => sum + v, 0) - 100) > 1e-6, "a residual is present");
     const validity = validateManualRecipe(snapshot, pct, context);
     assert.deepEqual(validity.issues, []);
 
-    const offDose = validateManualRecipe(snapshot, { ...pct, [PREMIX]: 3.2001, [CORN]: pct[CORN] - 0.0001 }, context);
+    const offDose = validateManualRecipe(snapshot, { ...pct, [PREMIX]: 3.2001, [BRAN]: pct[BRAN] - 0.0001 }, context);
     assert.deepEqual(offDose.issues.map((issue) => [issue.title, issue.body]), [[
       `${context.catalogue.get(PREMIX)!.name} must be fixed at 3.2%`,
       "The manual amount is 3.2001% and does not match its fixed inclusion.",
@@ -288,8 +291,8 @@ describe("Studio: manual edits, save, reload and reassessment", () => {
       assert.equal(optimisedResult.status, "optimal");
       if (optimisedResult.status !== "optimal") throw new Error("not optimal");
       const amounts = manualAmounts(optimisedResult.recipe, Object.keys(pool));
-      amounts.typed[CORN] = String(+(optimisedResult.recipe.find((line) => line.id === CORN)!.pct + 0.5).toFixed(2));
-      amounts.typed[BRAN] = String(+(optimisedResult.recipe.find((line) => line.id === BRAN)!.pct - 0.5).toFixed(2));
+      amounts.typed[BRAN] = String(+(optimisedResult.recipe.find((line) => line.id === BRAN)!.pct + 0.5).toFixed(2));
+      amounts.typed[SBM] = String(+(optimisedResult.recipe.find((line) => line.id === SBM)!.pct - 0.5).toFixed(2));
       const pct = manualPct(amounts);
       return { optimisedResult, check: await evaluateManual(snapshot, pct, context), pct };
     });

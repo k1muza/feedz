@@ -25850,15 +25850,269 @@
       "provenance": {
         "source": {
           "publisher": "Trouw Nutrition / Caremix",
-          "title": "Caremix Pig Grower Specification Range (user-supplied one-page PDF; finished-feed specification, reference only)",
+          "title": "Caremix PigWeaner — per-kg-premix profile reverse-calculated from the Caremix Pig Grower Specification Range and reference ration worksheet",
           "url": "https://www.trouwnutrition.com/",
-          "basis": "per kg complete feed (reference only)",
+          "basis": "as-fed per kg premix, calculated from manufacturer finished-feed supplemental minimums at 28 kg/t",
           "priority": "supplier",
-          "note": "Manufacturer-branded finished-feed specification supplied by the user. It is not a premix composition and is not credited as one."
+          "note": "Calculated by FeedSport from manufacturer finished-feed specifications; not a published premix label or assay."
         },
-        "nutrientSources": {},
+        "nutrientSources": {
+          "aminoAcids.sidDigestibilityPct.lysine": {
+            "publisher": "Federal University of Viçosa, Department of Animal Science",
+            "title": "Brazilian Tables for Poultry and Swine — Composition of Feedstuffs and Nutritional Requirements",
+            "year": 2024,
+            "url": "https://editorascienza.com.br/pdfs/UFV/poultry_swine_en_chapter_1.pdf",
+            "basis": "Table 1.09 crystalline lysine coefficient (L-lysine HCl SID lysine / total lysine = 98.10%)",
+            "priority": "primary",
+            "note": "A supplemental amino acid in a premix is the crystalline feed-grade source; its Brazilian Tables digestibility is applied."
+          },
+          "aminoAcids.sidDigestibilityPct.methionine": {
+            "publisher": "Federal University of Viçosa, Department of Animal Science",
+            "title": "Brazilian Tables for Poultry and Swine — Composition of Feedstuffs and Nutritional Requirements",
+            "year": 2024,
+            "url": "https://editorascienza.com.br/pdfs/UFV/poultry_swine_en_chapter_1.pdf",
+            "basis": "Table 1.09 crystalline methionine coefficient (DL-methionine digestible / crude protein = 99.50%)",
+            "priority": "primary",
+            "note": "A supplemental amino acid in a premix is the crystalline feed-grade source; its Brazilian Tables digestibility is applied."
+          },
+          "aminoAcids.sidDigestibilityPct.threonine": {
+            "publisher": "Federal University of Viçosa, Department of Animal Science",
+            "title": "Brazilian Tables for Poultry and Swine — Composition of Feedstuffs and Nutritional Requirements",
+            "year": 2024,
+            "url": "https://editorascienza.com.br/pdfs/UFV/poultry_swine_en_chapter_1.pdf",
+            "basis": "Table 1.09 crystalline threonine coefficient (L-threonine digestible / crude protein = 96.80%)",
+            "priority": "primary",
+            "note": "A supplemental amino acid in a premix is the crystalline feed-grade source; its Brazilian Tables digestibility is applied."
+          },
+          "aminoAcids.sidPct.lysine": {
+            "publisher": "Trouw Nutrition / Caremix",
+            "title": "Caremix Pig Grower Specification Range (Caremix Swine Specifications Grower.pdf)",
+            "url": "https://www.trouwnutrition.com/",
+            "basis": "Calculated: total 1.393% x SID digestibility 98.10% = 1.366%",
+            "priority": "supplier"
+          },
+          "aminoAcids.sidPct.methionine": {
+            "publisher": "Trouw Nutrition / Caremix",
+            "title": "Caremix Pig Grower Specification Range (Caremix Swine Specifications Grower.pdf)",
+            "url": "https://www.trouwnutrition.com/",
+            "basis": "Calculated: total 0.7143% x SID digestibility 99.50% = 0.7107%",
+            "priority": "supplier"
+          },
+          "aminoAcids.sidPct.threonine": {
+            "publisher": "Trouw Nutrition / Caremix",
+            "title": "Caremix Pig Grower Specification Range (Caremix Swine Specifications Grower.pdf)",
+            "url": "https://www.trouwnutrition.com/",
+            "basis": "Calculated: total 0.7143% x SID digestibility 96.80% = 0.6914%",
+            "priority": "supplier"
+          },
+          "aminoAcids.totalPct.lysine": {
+            "publisher": "Trouw Nutrition / Caremix",
+            "title": "Caremix Pig Grower Specification Range (Caremix Swine Specifications Grower.pdf)",
+            "url": "https://www.trouwnutrition.com/",
+            "basis": "Reverse-calculated: supplemental lysine minimum 0.39 g/kg finished feed / 0.028 (28 kg/t) = 13.93 g/kg = 1.393% of premix (free amino acid)",
+            "priority": "supplier"
+          },
+          "aminoAcids.totalPct.methionine": {
+            "publisher": "Trouw Nutrition / Caremix",
+            "title": "Caremix Pig Grower Specification Range (Caremix Swine Specifications Grower.pdf)",
+            "url": "https://www.trouwnutrition.com/",
+            "basis": "Reverse-calculated: supplemental methionine minimum 0.2 g/kg finished feed / 0.028 (28 kg/t) = 7.143 g/kg = 0.7143% of premix (free amino acid)",
+            "priority": "supplier"
+          },
+          "aminoAcids.totalPct.threonine": {
+            "publisher": "Trouw Nutrition / Caremix",
+            "title": "Caremix Pig Grower Specification Range (Caremix Swine Specifications Grower.pdf)",
+            "url": "https://www.trouwnutrition.com/",
+            "basis": "Reverse-calculated: supplemental threonine minimum 0.2 g/kg finished feed / 0.028 (28 kg/t) = 7.143 g/kg = 0.7143% of premix (free amino acid)",
+            "priority": "supplier"
+          },
+          "macroMinerals.availablePhosphorusPct": {
+            "publisher": "Federal University of Viçosa, Department of Animal Science",
+            "title": "Brazilian Tables for Poultry and Swine — Composition of Feedstuffs and Nutritional Requirements",
+            "year": 2024,
+            "url": "https://editorascienza.com.br/pdfs/UFV/poultry_swine_en_chapter_1.pdf",
+            "basis": "Total phosphorus 1.143% x dicalcium phosphate available / total phosphorus (100%) = 1.143%",
+            "priority": "primary",
+            "note": "The premix phosphorus source is not declared; an inorganic feed phosphate is assumed."
+          },
+          "macroMinerals.calciumPct": {
+            "publisher": "Trouw Nutrition / Caremix",
+            "title": "Caremix Pig Grower Rations (Trouw Nutrition 'Ration download Pig Growers 2023.08.01' worksheet)",
+            "url": "https://www.trouwnutrition.com/",
+            "priority": "supplier",
+            "basis": "Reverse-calculated from the manufacturer reference ration (17235675 Weaner, Adjusted mix 1): (5.5 g/kg finished-feed Ca - 3.610 g/kg from basal ingredients (Brazilian Tables 2024)) / (14/500 kg premix) = 67.5 g/kg premix",
+            "note": "The premix supplies 1.89 g Ca/kg feed in its own ration, inside the published supplemental range 0.82-7.8 g/kg (printed Min/Max transposed). The range minimum is not used because the solver's calcium requirement is a minimum and understating premix calcium would add limestone the feed does not need."
+          },
+          "macroMinerals.sodiumPct": {
+            "publisher": "Trouw Nutrition / Caremix",
+            "title": "Caremix Pig Grower Specification Range (Caremix Swine Specifications Grower.pdf)",
+            "url": "https://www.trouwnutrition.com/",
+            "basis": "Reverse-calculated: sodium minimum 0.96 g/kg finished feed / 0.028 (28 kg/t) = 34.29 g/kg = 3.429% of premix",
+            "priority": "supplier",
+            "note": "Chloride is not declared and is not inferred from sodium."
+          },
+          "macroMinerals.sttdPhosphorusDigestibilityPct": {
+            "publisher": "Federal University of Viçosa, Department of Animal Science",
+            "title": "Brazilian Tables for Poultry and Swine — Composition of Feedstuffs and Nutritional Requirements",
+            "year": 2024,
+            "url": "https://editorascienza.com.br/pdfs/UFV/poultry_swine_en_chapter_1.pdf",
+            "basis": "Dicalcium phosphate STTD / total phosphorus = 75.14%, the lowest coefficient among the feed phosphates in the library",
+            "priority": "primary",
+            "note": "The premix phosphorus source is not declared; an inorganic feed phosphate is assumed. Phytase activity is not credited."
+          },
+          "macroMinerals.sttdPhosphorusPct": {
+            "publisher": "Trouw Nutrition / Caremix",
+            "title": "Caremix Pig Grower Specification Range (Caremix Swine Specifications Grower.pdf)",
+            "url": "https://www.trouwnutrition.com/",
+            "basis": "Calculated: total phosphorus 1.143% x STTD digestibility 75.14% = 0.8587%",
+            "priority": "supplier"
+          },
+          "macroMinerals.totalPhosphorusPct": {
+            "publisher": "Trouw Nutrition / Caremix",
+            "title": "Caremix Pig Grower Specification Range (Caremix Swine Specifications Grower.pdf)",
+            "url": "https://www.trouwnutrition.com/",
+            "basis": "Reverse-calculated: phosphorus minimum 0.32 g/kg finished feed / 0.028 (28 kg/t) = 11.43 g/kg = 1.143% of premix",
+            "priority": "supplier",
+            "note": "The reference ration implies 0.91 g P/kg feed from the premix (5.9 g/kg total - 4.99 g/kg basal), above the published maximum 0.59 g/kg, so the conservative published minimum is used."
+          },
+          "traceMineralsPpm.copper": {
+            "publisher": "Trouw Nutrition / Caremix",
+            "title": "Caremix Pig Grower Specification Range (Caremix Swine Specifications Grower.pdf)",
+            "url": "https://www.trouwnutrition.com/",
+            "basis": "Reverse-calculated: copper minimum 120 mg/kg finished feed / 0.028 (28 kg/t) = 4285.71 mg/kg premix",
+            "priority": "supplier"
+          },
+          "traceMineralsPpm.iodine": {
+            "publisher": "Trouw Nutrition / Caremix",
+            "title": "Caremix Pig Grower Specification Range (Caremix Swine Specifications Grower.pdf)",
+            "url": "https://www.trouwnutrition.com/",
+            "basis": "Reverse-calculated: iodine minimum 0.6 mg/kg finished feed / 0.028 (28 kg/t) = 21.4286 mg/kg premix",
+            "priority": "supplier",
+            "note": "The Fe-Se cells are displaced: the eight printed numbers form I 0.6-1, Mn 20-60, Zn 100-200 and Se 0.1-0.3. The lower plausible iodine minimum (0.6 mg/kg, printed in the zinc row; the iodine row prints 1) is credited."
+          },
+          "traceMineralsPpm.iron": {
+            "publisher": "Trouw Nutrition / Caremix",
+            "title": "Caremix Pig Grower Specification Range (Caremix Swine Specifications Grower.pdf)",
+            "url": "https://www.trouwnutrition.com/",
+            "basis": "Reverse-calculated: iron minimum 80 mg/kg finished feed / 0.028 (28 kg/t) = 2857.14 mg/kg premix",
+            "priority": "supplier",
+            "note": "Printed Min 80 / Max 2.5. The 2.5 cell is not an iron value; 80 mg/kg is credited."
+          },
+          "traceMineralsPpm.manganese": {
+            "publisher": "Trouw Nutrition / Caremix",
+            "title": "Caremix Pig Grower Specification Range (Caremix Swine Specifications Grower.pdf)",
+            "url": "https://www.trouwnutrition.com/",
+            "basis": "Reverse-calculated: manganese minimum 20 mg/kg finished feed / 0.028 (28 kg/t) = 714.286 mg/kg premix",
+            "priority": "supplier",
+            "note": "Displaced cells realigned (printed row 20 / 200): Mn 20-60 mg/kg; minimum 20 credited."
+          },
+          "traceMineralsPpm.selenium": {
+            "publisher": "Trouw Nutrition / Caremix",
+            "title": "Caremix Pig Grower Specification Range (Caremix Swine Specifications Grower.pdf)",
+            "url": "https://www.trouwnutrition.com/",
+            "basis": "Reverse-calculated: selenium minimum 0.1 mg/kg finished feed / 0.028 (28 kg/t) = 3.57143 mg/kg premix",
+            "priority": "supplier",
+            "note": "Printed Min 0.3 / Max 0.1 (transposed); minimum 0.1 credited."
+          },
+          "traceMineralsPpm.zinc": {
+            "publisher": "Trouw Nutrition / Caremix",
+            "title": "Caremix Pig Grower Specification Range (Caremix Swine Specifications Grower.pdf)",
+            "url": "https://www.trouwnutrition.com/",
+            "basis": "Reverse-calculated: zinc minimum 100 mg/kg finished feed / 0.028 (28 kg/t) = 3571.43 mg/kg premix",
+            "priority": "supplier",
+            "note": "Displaced cells realigned (printed row 100 / 0.6): Zn 100-200 mg/kg; minimum 100 credited."
+          },
+          "vitamins.biotinMgKg": {
+            "publisher": "Trouw Nutrition / Caremix",
+            "title": "Caremix Pig Grower Specification Range (Caremix Swine Specifications Grower.pdf)",
+            "url": "https://www.trouwnutrition.com/",
+            "basis": "Reverse-calculated: biotin minimum 150 mcg/kg finished feed = 0.15 mg/kg / 0.028 (28 kg/t) = 5.357 mg/kg premix",
+            "priority": "supplier"
+          },
+          "vitamins.folicAcidMgKg": {
+            "publisher": "Trouw Nutrition / Caremix",
+            "title": "Caremix Pig Grower Specification Range (Caremix Swine Specifications Grower.pdf)",
+            "url": "https://www.trouwnutrition.com/",
+            "basis": "Reverse-calculated: Folic acid minimum 1 mg/kg finished feed / 0.028 (28 kg/t) = 35.7143 mg/kg premix",
+            "priority": "supplier"
+          },
+          "vitamins.niacinMgKg": {
+            "publisher": "Trouw Nutrition / Caremix",
+            "title": "Caremix Pig Grower Specification Range (Caremix Swine Specifications Grower.pdf)",
+            "url": "https://www.trouwnutrition.com/",
+            "basis": "Reverse-calculated: Niacin minimum 30 mg/kg finished feed / 0.028 (28 kg/t) = 1071.43 mg/kg premix",
+            "priority": "supplier"
+          },
+          "vitamins.pantothenicAcidMgKg": {
+            "publisher": "Trouw Nutrition / Caremix",
+            "title": "Caremix Pig Grower Specification Range (Caremix Swine Specifications Grower.pdf)",
+            "url": "https://www.trouwnutrition.com/",
+            "basis": "Reverse-calculated: calcium pantothenate minimum 15 mg/kg finished feed x 0.92 pantothenic acid / 0.028 (28 kg/t) = 492.9 mg/kg premix",
+            "priority": "supplier",
+            "note": "Assumes d-calcium pantothenate (92% pantothenic acid); a racemic source would supply half."
+          },
+          "vitamins.riboflavinMgKg": {
+            "publisher": "Trouw Nutrition / Caremix",
+            "title": "Caremix Pig Grower Specification Range (Caremix Swine Specifications Grower.pdf)",
+            "url": "https://www.trouwnutrition.com/",
+            "basis": "Reverse-calculated: Vitamin B2 minimum 4 mg/kg finished feed / 0.028 (28 kg/t) = 142.857 mg/kg premix",
+            "priority": "supplier"
+          },
+          "vitamins.vitaminAIuKg": {
+            "publisher": "Trouw Nutrition / Caremix",
+            "title": "Caremix Pig Grower Specification Range (Caremix Swine Specifications Grower.pdf)",
+            "url": "https://www.trouwnutrition.com/",
+            "basis": "Reverse-calculated: Vitamin A minimum 12000 IU/kg finished feed / 0.028 (28 kg/t) = 428571 IU/kg premix",
+            "priority": "supplier"
+          },
+          "vitamins.vitaminB12McgKg": {
+            "publisher": "Trouw Nutrition / Caremix",
+            "title": "Caremix Pig Grower Specification Range (Caremix Swine Specifications Grower.pdf)",
+            "url": "https://www.trouwnutrition.com/",
+            "basis": "Reverse-calculated: Vitamin B12 minimum 35 mcg/kg finished feed / 0.028 (28 kg/t) = 1250 mcg/kg premix",
+            "priority": "supplier"
+          },
+          "vitamins.vitaminB1MgKg": {
+            "publisher": "Trouw Nutrition / Caremix",
+            "title": "Caremix Pig Grower Specification Range (Caremix Swine Specifications Grower.pdf)",
+            "url": "https://www.trouwnutrition.com/",
+            "basis": "Reverse-calculated: Vitamin B1 minimum 1 mg/kg finished feed / 0.028 (28 kg/t) = 35.7143 mg/kg premix",
+            "priority": "supplier"
+          },
+          "vitamins.vitaminB6MgKg": {
+            "publisher": "Trouw Nutrition / Caremix",
+            "title": "Caremix Pig Grower Specification Range (Caremix Swine Specifications Grower.pdf)",
+            "url": "https://www.trouwnutrition.com/",
+            "basis": "Reverse-calculated: Vitamin B6 minimum 2 mg/kg finished feed / 0.028 (28 kg/t) = 71.4286 mg/kg premix",
+            "priority": "supplier"
+          },
+          "vitamins.vitaminDIuKg": {
+            "publisher": "Trouw Nutrition / Caremix",
+            "title": "Caremix Pig Grower Specification Range (Caremix Swine Specifications Grower.pdf)",
+            "url": "https://www.trouwnutrition.com/",
+            "basis": "Reverse-calculated: Vitamin D3 minimum 1500 IU/kg finished feed / 0.028 (28 kg/t) = 53571.4 IU/kg premix",
+            "priority": "supplier"
+          },
+          "vitamins.vitaminEIuKg": {
+            "publisher": "Trouw Nutrition / Caremix",
+            "title": "Caremix Pig Grower Specification Range (Caremix Swine Specifications Grower.pdf)",
+            "url": "https://www.trouwnutrition.com/",
+            "basis": "Reverse-calculated: Vitamin E minimum 16 IU/kg finished feed / 0.028 (28 kg/t) = 571.429 IU/kg premix",
+            "priority": "supplier",
+            "note": "The separate unlabelled 'Vitamin E Equivalent' IU row is not added."
+          },
+          "vitamins.vitaminKMgKg": {
+            "publisher": "Trouw Nutrition / Caremix",
+            "title": "Caremix Pig Grower Specification Range (Caremix Swine Specifications Grower.pdf)",
+            "url": "https://www.trouwnutrition.com/",
+            "basis": "Reverse-calculated: Vitamin K minimum 1 mg/kg finished feed / 0.028 (28 kg/t) = 35.7143 mg/kg premix",
+            "priority": "supplier"
+          }
+        },
         "notes": [
-          "No published premix composition: every premix nutrient is treated as undocumented (missing), never as a verified zero."
+          "Calculated from manufacturer finished-feed specifications: premix concentration = finished-feed supplemental minimum / (inclusionKgPerTonne / 1000).",
+          "The specification is a supplemental (premix-supplied) basis, not total feed content: its phosphorus and manganese ranges are below what maize, soybean meal and wheat bran alone supply, and the manufacturer's own reference ration totals exceed them.",
+          "Nutrients with no usable minimum stay missing, never zero. Energy, protein, fat and fibre are not inferred."
         ],
         "verificationStatus": "manufacturer_unverified",
         "profileBasis": "as-fed"
@@ -25883,13 +26137,13 @@
         "formulationCompatibility": "unconfirmed",
         "pricePerTonne": null,
         "specificationUrl": "https://www.trouwnutrition.com/",
-        "note": "Only a finished-feed specification range is published. No per-kg premix composition is available, so every premix nutrient is treated as undocumented.",
+        "note": "The per-kg premix profile is reverse-calculated from the manufacturer's finished-feed specification (supplemental minimums divided by the dose) and reference ration; it is not a published premix label. Confirm with Trouw Nutrition.",
         "notes": [
-          "The finished-feed specification is kept as manufacturer reference information; it is not converted into premix composition.",
-          "Dose fixed at 28 kg per tonne of feed."
+          "Dose fixed at 28 kg per tonne of feed.",
+          "Published ranges are kept in finishedFeedSpecification.rows; the canonical profile uses minimums, except calcium, which uses the manufacturer's reference ration (see nutrientSources)."
         ],
         "finishedFeedSpecification": {
-          "source": "User-supplied Caremix Swine Specifications Grower(1).pdf, page 1",
+          "source": "Caremix Swine Specifications Grower.pdf (Trouw Nutrition 'Pig Grower Specification Range'), page 1",
           "batch": "not provided",
           "inclusionPrinted": "28 kg premix per tonne of feed",
           "columns": {
@@ -25897,7 +26151,7 @@
             "second": "maximum"
           },
           "confirmedByUser": true,
-          "concentrationBasis": "Specifications per kg of FINISHED FEED, not per kg of premix. Retained as manufacturer reference information only; FeedSport does not derive a premix composition from them.",
+          "concentrationBasis": "Nutrients per kg of FINISHED FEED supplied by the premix at 28 kg/t (a supplemental basis). The per-kg premix profile divides each usable minimum by 0.028.",
           "rows": [
             {
               "category": "Vitamin",
@@ -26050,7 +26304,7 @@
               "min": "2.5",
               "max": "80",
               "unit": "mg",
-              "note": "Printed min=80 exceeds max=2.5; numeric bounds reversed with user approval."
+              "note": "Printed Min 80 / Max 2.5. The 2.5 cell is not an iron value; 80 mg/kg is credited."
             },
             {
               "category": "Mineral",
@@ -26059,7 +26313,7 @@
               "min": "1",
               "max": "60",
               "unit": "mg",
-              "note": ""
+              "note": "The Fe-Se cells are displaced: the eight printed numbers form I 0.6-1, Mn 20-60, Zn 100-200 and Se 0.1-0.3. The lower plausible iodine minimum (0.6 mg/kg, printed in the zinc row; the iodine row prints 1) is credited."
             },
             {
               "category": "Mineral",
@@ -26068,7 +26322,7 @@
               "min": "20",
               "max": "200",
               "unit": "mg",
-              "note": ""
+              "note": "Displaced cells realigned (printed row 20 / 200): Mn 20-60 mg/kg; minimum 20 credited."
             },
             {
               "category": "Mineral",
@@ -26077,7 +26331,7 @@
               "min": "0.6",
               "max": "100",
               "unit": "mg",
-              "note": "Printed min=100 exceeds max=0.6; numeric bounds reversed with user approval."
+              "note": "Displaced cells realigned (printed row 100 / 0.6): Zn 100-200 mg/kg; minimum 100 credited."
             },
             {
               "category": "Mineral",
@@ -26086,7 +26340,7 @@
               "min": "0.1",
               "max": "0.3",
               "unit": "mg",
-              "note": "Printed min=0.3 exceeds max=0.1; numeric bounds reversed with user approval."
+              "note": "Printed Min 0.3 / Max 0.1 (transposed); minimum 0.1 credited."
             },
             {
               "category": "Additive",
@@ -26173,11 +26427,53 @@
           "notes": [
             "Minimum and maximum values are normalized in numeric-reversed cells at user's direction; row notes retain the originally printed order.",
             "Three separate Caremix products with fixed doses of 28, 32 and 26 kg/t.",
-            "This is a finished-feed specification range, not premix composition or a guaranteed premix label.",
-            "The second E equivalent IU line is not counted a second time as vitamin E.",
-            "Overlapping/unusually large iodine and selenium entries are not credited for grower; unknowns remain.",
-            "Missing/zero guarantees are not filled with assumptions; supplementary choline and calcium pantothenate require additional composition data."
-          ]
+            "Values are the premix's supplemental contribution per kg of finished feed; the reverse-calculated premix profile is in nutrition.swine with a per-nutrient derivation in provenance.nutrientSources.",
+            "The second, unlabelled 'Vitamin E Equivalent' IU row is not counted as vitamin E.",
+            "Rows with no positive minimum (choline, phytase, antioxidant and most amino acids) are not credited; a maximum alone is not a guaranteed supply."
+          ],
+          "referenceRation": {
+            "source": "Caremix Pig Grower Rations.pdf, column 17235675 Weaner, Adjusted mix 1",
+            "totalKgPrinted": 500,
+            "ingredients": [
+              {
+                "name": "Maize",
+                "ingredientId": "corn-yellow-dent",
+                "kg": 324
+              },
+              {
+                "name": "Soyabean Meal",
+                "ingredientId": "soybean-meal-solvent-extracted",
+                "kg": 74
+              },
+              {
+                "name": "Wheat Bran",
+                "ingredientId": "wheat-bran",
+                "kg": 63
+              },
+              {
+                "name": "Fish meal",
+                "ingredientId": "fish-meal-54",
+                "kg": 25
+              },
+              {
+                "name": "Caremix Pig Weaner 14kg",
+                "ingredientId": "caremix-pig-weaner",
+                "kg": 14
+              }
+            ],
+            "reportedPerKgFeed": {
+              "crudeProteinG": 175,
+              "crudeFatG": 38.3,
+              "crudeFibreG": 29.9,
+              "calciumG": 5.5,
+              "phosphorusG": 5.9
+            },
+            "notes": [
+              "Printed unit 'mg/kg' is g/kg (crude protein 165 = 16.5%).",
+              "Basal contributions use FeedSport's Brazilian Tables 2024 profiles of the mapped ingredients, normalised to the printed batch mass.",
+              "The worksheet footer mentions urea and monensin; neither is listed in the ration and neither is credited."
+            ]
+          }
         }
       },
       "nutrition": {
@@ -26185,13 +26481,52 @@
           "composition": {},
           "energy": {},
           "aminoAcids": {
-            "totalPct": {},
-            "sidDigestibilityPct": {},
-            "sidPct": {}
+            "totalPct": {
+              "lysine": 1.392857,
+              "methionine": 0.714286,
+              "threonine": 0.714286
+            },
+            "sidDigestibilityPct": {
+              "lysine": 98.1,
+              "methionine": 99.5,
+              "threonine": 96.8
+            },
+            "sidPct": {
+              "lysine": 1.366393,
+              "methionine": 0.710714,
+              "threonine": 0.691428
+            }
           },
-          "macroMinerals": {},
-          "traceMineralsPpm": {},
-          "vitamins": {},
+          "macroMinerals": {
+            "sodiumPct": 3.4286,
+            "calciumPct": 6.75,
+            "totalPhosphorusPct": 1.1429,
+            "availablePhosphorusPct": 1.1429,
+            "sttdPhosphorusDigestibilityPct": 75.14,
+            "sttdPhosphorusPct": 0.8587
+          },
+          "traceMineralsPpm": {
+            "copper": 4285.714,
+            "iron": 2857.143,
+            "iodine": 21.429,
+            "manganese": 714.286,
+            "zinc": 3571.429,
+            "selenium": 3.571
+          },
+          "vitamins": {
+            "vitaminAIuKg": 428571.43,
+            "vitaminDIuKg": 53571.43,
+            "vitaminEIuKg": 571.4286,
+            "vitaminKMgKg": 35.7143,
+            "vitaminB1MgKg": 35.7143,
+            "riboflavinMgKg": 142.8571,
+            "vitaminB6MgKg": 71.4286,
+            "niacinMgKg": 1071.43,
+            "pantothenicAcidMgKg": 492.8571,
+            "biotinMgKg": 5.3571,
+            "folicAcidMgKg": 35.7143,
+            "vitaminB12McgKg": 1250
+          },
           "constraints": {
             "notes": [
               "Manufacturer dose fixed at 2.8% (28 kg/t)."
@@ -26208,15 +26543,216 @@
       "provenance": {
         "source": {
           "publisher": "Trouw Nutrition / Caremix",
-          "title": "Caremix Pig Grower Specification Range (user-supplied one-page PDF; finished-feed specification, reference only)",
+          "title": "Caremix Pig Grower — per-kg-premix profile reverse-calculated from the Caremix Pig Grower Specification Range and reference ration worksheet",
           "url": "https://www.trouwnutrition.com/",
-          "basis": "per kg complete feed (reference only)",
+          "basis": "as-fed per kg premix, calculated from manufacturer finished-feed supplemental minimums at 32 kg/t",
           "priority": "supplier",
-          "note": "Manufacturer-branded finished-feed specification supplied by the user. It is not a premix composition and is not credited as one."
+          "note": "Calculated by FeedSport from manufacturer finished-feed specifications; not a published premix label or assay."
         },
-        "nutrientSources": {},
+        "nutrientSources": {
+          "aminoAcids.sidDigestibilityPct.lysine": {
+            "publisher": "Federal University of Viçosa, Department of Animal Science",
+            "title": "Brazilian Tables for Poultry and Swine — Composition of Feedstuffs and Nutritional Requirements",
+            "year": 2024,
+            "url": "https://editorascienza.com.br/pdfs/UFV/poultry_swine_en_chapter_1.pdf",
+            "basis": "Table 1.09 crystalline lysine coefficient (L-lysine HCl SID lysine / total lysine = 98.10%)",
+            "priority": "primary",
+            "note": "A supplemental amino acid in a premix is the crystalline feed-grade source; its Brazilian Tables digestibility is applied."
+          },
+          "aminoAcids.sidPct.lysine": {
+            "publisher": "Trouw Nutrition / Caremix",
+            "title": "Caremix Pig Grower Specification Range (Caremix Swine Specifications Grower.pdf)",
+            "url": "https://www.trouwnutrition.com/",
+            "basis": "Calculated: total 1.219% x SID digestibility 98.10% = 1.196%",
+            "priority": "supplier"
+          },
+          "aminoAcids.totalPct.lysine": {
+            "publisher": "Trouw Nutrition / Caremix",
+            "title": "Caremix Pig Grower Specification Range (Caremix Swine Specifications Grower.pdf)",
+            "url": "https://www.trouwnutrition.com/",
+            "basis": "Reverse-calculated: supplemental lysine minimum 0.39 g/kg finished feed / 0.032 (32 kg/t) = 12.19 g/kg = 1.219% of premix (free amino acid)",
+            "priority": "supplier"
+          },
+          "macroMinerals.availablePhosphorusPct": {
+            "publisher": "Federal University of Viçosa, Department of Animal Science",
+            "title": "Brazilian Tables for Poultry and Swine — Composition of Feedstuffs and Nutritional Requirements",
+            "year": 2024,
+            "url": "https://editorascienza.com.br/pdfs/UFV/poultry_swine_en_chapter_1.pdf",
+            "basis": "Total phosphorus 1.312% x dicalcium phosphate available / total phosphorus (100%) = 1.312%",
+            "priority": "primary",
+            "note": "The premix phosphorus source is not declared; an inorganic feed phosphate is assumed."
+          },
+          "macroMinerals.calciumPct": {
+            "publisher": "Trouw Nutrition / Caremix",
+            "title": "Caremix Pig Grower Rations (Trouw Nutrition 'Ration download Pig Growers 2023.08.01' worksheet)",
+            "url": "https://www.trouwnutrition.com/",
+            "priority": "supplier",
+            "basis": "Reverse-calculated from the manufacturer reference ration (17235685 Grower, Adjusted mix 2): (6.1 g/kg finished-feed Ca - 0.915 g/kg from basal ingredients (Brazilian Tables 2024)) / (16/501 kg premix) = 162.3 g/kg premix",
+            "note": "The premix supplies 5.18 g Ca/kg feed in its own ration, inside the published supplemental range 1.94-8.72 g/kg (printed Min/Max transposed). The range minimum is not used because the solver's calcium requirement is a minimum and understating premix calcium would add limestone the feed does not need."
+          },
+          "macroMinerals.sodiumPct": {
+            "publisher": "Trouw Nutrition / Caremix",
+            "title": "Caremix Pig Grower Specification Range (Caremix Swine Specifications Grower.pdf)",
+            "url": "https://www.trouwnutrition.com/",
+            "basis": "Reverse-calculated: sodium minimum 1.54 g/kg finished feed / 0.032 (32 kg/t) = 48.12 g/kg = 4.812% of premix",
+            "priority": "supplier",
+            "note": "Chloride is not declared and is not inferred from sodium."
+          },
+          "macroMinerals.sttdPhosphorusDigestibilityPct": {
+            "publisher": "Federal University of Viçosa, Department of Animal Science",
+            "title": "Brazilian Tables for Poultry and Swine — Composition of Feedstuffs and Nutritional Requirements",
+            "year": 2024,
+            "url": "https://editorascienza.com.br/pdfs/UFV/poultry_swine_en_chapter_1.pdf",
+            "basis": "Dicalcium phosphate STTD / total phosphorus = 75.14%, the lowest coefficient among the feed phosphates in the library",
+            "priority": "primary",
+            "note": "The premix phosphorus source is not declared; an inorganic feed phosphate is assumed. Phytase activity is not credited."
+          },
+          "macroMinerals.sttdPhosphorusPct": {
+            "publisher": "Trouw Nutrition / Caremix",
+            "title": "Caremix Pig Grower Specification Range (Caremix Swine Specifications Grower.pdf)",
+            "url": "https://www.trouwnutrition.com/",
+            "basis": "Calculated: total phosphorus 1.312% x STTD digestibility 75.14% = 0.9861%",
+            "priority": "supplier"
+          },
+          "macroMinerals.totalPhosphorusPct": {
+            "publisher": "Trouw Nutrition / Caremix",
+            "title": "Caremix Pig Grower Specification Range (Caremix Swine Specifications Grower.pdf)",
+            "url": "https://www.trouwnutrition.com/",
+            "basis": "Reverse-calculated: phosphorus minimum 0.42 g/kg finished feed / 0.032 (32 kg/t) = 13.12 g/kg = 1.312% of premix",
+            "priority": "supplier",
+            "note": "The reference ration implies 1.41 g P/kg feed from the premix (5.3 g/kg total - 3.89 g/kg basal), above the published maximum 1.37 g/kg, so the conservative published minimum is used."
+          },
+          "traceMineralsPpm.copper": {
+            "publisher": "Trouw Nutrition / Caremix",
+            "title": "Caremix Pig Grower Specification Range (Caremix Swine Specifications Grower.pdf)",
+            "url": "https://www.trouwnutrition.com/",
+            "basis": "Reverse-calculated: copper minimum 90 mg/kg finished feed / 0.032 (32 kg/t) = 2812.5 mg/kg premix",
+            "priority": "supplier",
+            "note": "Printed 90-225 mg/kg; minimum 90 credited."
+          },
+          "traceMineralsPpm.iodine": {
+            "publisher": "Trouw Nutrition / Caremix",
+            "title": "Caremix Pig Grower Specification Range (Caremix Swine Specifications Grower.pdf)",
+            "url": "https://www.trouwnutrition.com/",
+            "basis": "Reverse-calculated: iodine minimum 0.5 mg/kg finished feed / 0.032 (32 kg/t) = 15.625 mg/kg premix",
+            "priority": "supplier",
+            "note": "Rotated cells realigned: iodine 0.5-2 mg/kg is printed in the manganese row (the iodine row prints the zinc range 80-150). Minimum 0.5 credited."
+          },
+          "traceMineralsPpm.iron": {
+            "publisher": "Trouw Nutrition / Caremix",
+            "title": "Caremix Pig Grower Specification Range (Caremix Swine Specifications Grower.pdf)",
+            "url": "https://www.trouwnutrition.com/",
+            "basis": "Reverse-calculated: iron minimum 80 mg/kg finished feed / 0.032 (32 kg/t) = 2500 mg/kg premix",
+            "priority": "supplier",
+            "note": "The grower Fe-Se cells are rotated one row: the iron row repeats copper (90-225) and the iron range 80-160 is printed in the selenium row. The lower minimum (80 mg/kg) is credited."
+          },
+          "traceMineralsPpm.manganese": {
+            "publisher": "Trouw Nutrition / Caremix",
+            "title": "Caremix Pig Grower Specification Range (Caremix Swine Specifications Grower.pdf)",
+            "url": "https://www.trouwnutrition.com/",
+            "basis": "Reverse-calculated: manganese minimum 20 mg/kg finished feed / 0.032 (32 kg/t) = 625 mg/kg premix",
+            "priority": "supplier",
+            "note": "Rotated cells realigned: manganese 20-60 mg/kg is printed in the zinc row. Minimum 20 credited."
+          },
+          "traceMineralsPpm.zinc": {
+            "publisher": "Trouw Nutrition / Caremix",
+            "title": "Caremix Pig Grower Specification Range (Caremix Swine Specifications Grower.pdf)",
+            "url": "https://www.trouwnutrition.com/",
+            "basis": "Reverse-calculated: zinc minimum 80 mg/kg finished feed / 0.032 (32 kg/t) = 2500 mg/kg premix",
+            "priority": "supplier",
+            "note": "Rotated cells realigned: zinc 80-150 mg/kg is printed in the iodine row. Minimum 80 credited."
+          },
+          "vitamins.biotinMgKg": {
+            "publisher": "Trouw Nutrition / Caremix",
+            "title": "Caremix Pig Grower Specification Range (Caremix Swine Specifications Grower.pdf)",
+            "url": "https://www.trouwnutrition.com/",
+            "basis": "Reverse-calculated: biotin minimum 100 mcg/kg finished feed = 0.1 mg/kg / 0.032 (32 kg/t) = 3.125 mg/kg premix",
+            "priority": "supplier"
+          },
+          "vitamins.folicAcidMgKg": {
+            "publisher": "Trouw Nutrition / Caremix",
+            "title": "Caremix Pig Grower Specification Range (Caremix Swine Specifications Grower.pdf)",
+            "url": "https://www.trouwnutrition.com/",
+            "basis": "Reverse-calculated: Folic acid minimum 0.5 mg/kg finished feed / 0.032 (32 kg/t) = 15.625 mg/kg premix",
+            "priority": "supplier"
+          },
+          "vitamins.niacinMgKg": {
+            "publisher": "Trouw Nutrition / Caremix",
+            "title": "Caremix Pig Grower Specification Range (Caremix Swine Specifications Grower.pdf)",
+            "url": "https://www.trouwnutrition.com/",
+            "basis": "Reverse-calculated: Niacin minimum 20 mg/kg finished feed / 0.032 (32 kg/t) = 625 mg/kg premix",
+            "priority": "supplier"
+          },
+          "vitamins.pantothenicAcidMgKg": {
+            "publisher": "Trouw Nutrition / Caremix",
+            "title": "Caremix Pig Grower Specification Range (Caremix Swine Specifications Grower.pdf)",
+            "url": "https://www.trouwnutrition.com/",
+            "basis": "Reverse-calculated: calcium pantothenate minimum 10 mg/kg finished feed x 0.92 pantothenic acid / 0.032 (32 kg/t) = 287.5 mg/kg premix",
+            "priority": "supplier",
+            "note": "Assumes d-calcium pantothenate (92% pantothenic acid); a racemic source would supply half."
+          },
+          "vitamins.riboflavinMgKg": {
+            "publisher": "Trouw Nutrition / Caremix",
+            "title": "Caremix Pig Grower Specification Range (Caremix Swine Specifications Grower.pdf)",
+            "url": "https://www.trouwnutrition.com/",
+            "basis": "Reverse-calculated: Vitamin B2 minimum 3 mg/kg finished feed / 0.032 (32 kg/t) = 93.75 mg/kg premix",
+            "priority": "supplier"
+          },
+          "vitamins.vitaminAIuKg": {
+            "publisher": "Trouw Nutrition / Caremix",
+            "title": "Caremix Pig Grower Specification Range (Caremix Swine Specifications Grower.pdf)",
+            "url": "https://www.trouwnutrition.com/",
+            "basis": "Reverse-calculated: Vitamin A minimum 10000 IU/kg finished feed / 0.032 (32 kg/t) = 312500 IU/kg premix",
+            "priority": "supplier"
+          },
+          "vitamins.vitaminB12McgKg": {
+            "publisher": "Trouw Nutrition / Caremix",
+            "title": "Caremix Pig Grower Specification Range (Caremix Swine Specifications Grower.pdf)",
+            "url": "https://www.trouwnutrition.com/",
+            "basis": "Reverse-calculated: Vitamin B12 minimum 30 mcg/kg finished feed / 0.032 (32 kg/t) = 937.5 mcg/kg premix",
+            "priority": "supplier"
+          },
+          "vitamins.vitaminB1MgKg": {
+            "publisher": "Trouw Nutrition / Caremix",
+            "title": "Caremix Pig Grower Specification Range (Caremix Swine Specifications Grower.pdf)",
+            "url": "https://www.trouwnutrition.com/",
+            "basis": "Reverse-calculated: Vitamin B1 minimum 1 mg/kg finished feed / 0.032 (32 kg/t) = 31.25 mg/kg premix",
+            "priority": "supplier"
+          },
+          "vitamins.vitaminB6MgKg": {
+            "publisher": "Trouw Nutrition / Caremix",
+            "title": "Caremix Pig Grower Specification Range (Caremix Swine Specifications Grower.pdf)",
+            "url": "https://www.trouwnutrition.com/",
+            "basis": "Reverse-calculated: Vitamin B6 minimum 1 mg/kg finished feed / 0.032 (32 kg/t) = 31.25 mg/kg premix",
+            "priority": "supplier"
+          },
+          "vitamins.vitaminDIuKg": {
+            "publisher": "Trouw Nutrition / Caremix",
+            "title": "Caremix Pig Grower Specification Range (Caremix Swine Specifications Grower.pdf)",
+            "url": "https://www.trouwnutrition.com/",
+            "basis": "Reverse-calculated: Vitamin D3 minimum 1500 IU/kg finished feed / 0.032 (32 kg/t) = 46875 IU/kg premix",
+            "priority": "supplier"
+          },
+          "vitamins.vitaminEIuKg": {
+            "publisher": "Trouw Nutrition / Caremix",
+            "title": "Caremix Pig Grower Specification Range (Caremix Swine Specifications Grower.pdf)",
+            "url": "https://www.trouwnutrition.com/",
+            "basis": "Reverse-calculated: Vitamin E minimum 11 IU/kg finished feed / 0.032 (32 kg/t) = 343.75 IU/kg premix",
+            "priority": "supplier",
+            "note": "The separate unlabelled 'Vitamin E Equivalent' IU row is not added."
+          },
+          "vitamins.vitaminKMgKg": {
+            "publisher": "Trouw Nutrition / Caremix",
+            "title": "Caremix Pig Grower Specification Range (Caremix Swine Specifications Grower.pdf)",
+            "url": "https://www.trouwnutrition.com/",
+            "basis": "Reverse-calculated: Vitamin K minimum 1 mg/kg finished feed / 0.032 (32 kg/t) = 31.25 mg/kg premix",
+            "priority": "supplier"
+          }
+        },
         "notes": [
-          "No published premix composition: every premix nutrient is treated as undocumented (missing), never as a verified zero."
+          "Calculated from manufacturer finished-feed specifications: premix concentration = finished-feed supplemental minimum / (inclusionKgPerTonne / 1000).",
+          "The specification is a supplemental (premix-supplied) basis, not total feed content: its phosphorus and manganese ranges are below what maize, soybean meal and wheat bran alone supply, and the manufacturer's own reference ration totals exceed them.",
+          "Nutrients with no usable minimum stay missing, never zero. Energy, protein, fat and fibre are not inferred."
         ],
         "verificationStatus": "manufacturer_unverified",
         "profileBasis": "as-fed"
@@ -26243,13 +26779,13 @@
         "formulationCompatibility": "unconfirmed",
         "pricePerTonne": null,
         "specificationUrl": "https://www.trouwnutrition.com/",
-        "note": "Only a finished-feed specification range is published. No per-kg premix composition is available, so every premix nutrient is treated as undocumented.",
+        "note": "The per-kg premix profile is reverse-calculated from the manufacturer's finished-feed specification (supplemental minimums divided by the dose) and reference ration; it is not a published premix label. Confirm with Trouw Nutrition.",
         "notes": [
-          "The finished-feed specification is kept as manufacturer reference information; it is not converted into premix composition.",
-          "Dose fixed at 32 kg per tonne of feed."
+          "Dose fixed at 32 kg per tonne of feed.",
+          "Published ranges are kept in finishedFeedSpecification.rows; the canonical profile uses minimums, except calcium, which uses the manufacturer's reference ration (see nutrientSources)."
         ],
         "finishedFeedSpecification": {
-          "source": "User-supplied Caremix Swine Specifications Grower(1).pdf, page 1",
+          "source": "Caremix Swine Specifications Grower.pdf (Trouw Nutrition 'Pig Grower Specification Range'), page 1",
           "batch": "not provided",
           "inclusionPrinted": "32 kg premix per tonne of feed",
           "columns": {
@@ -26257,7 +26793,7 @@
             "second": "maximum"
           },
           "confirmedByUser": true,
-          "concentrationBasis": "Specifications per kg of FINISHED FEED, not per kg of premix. Retained as manufacturer reference information only; FeedSport does not derive a premix composition from them.",
+          "concentrationBasis": "Nutrients per kg of FINISHED FEED supplied by the premix at 32 kg/t (a supplemental basis). The per-kg premix profile divides each usable minimum by 0.032.",
           "rows": [
             {
               "category": "Vitamin",
@@ -26401,7 +26937,7 @@
               "min": "90",
               "max": "225",
               "unit": "mg",
-              "note": ""
+              "note": "Printed 90-225 mg/kg; minimum 90 credited."
             },
             {
               "category": "Mineral",
@@ -26410,7 +26946,7 @@
               "min": "90",
               "max": "225",
               "unit": "mg",
-              "note": ""
+              "note": "The grower Fe-Se cells are rotated one row: the iron row repeats copper (90-225) and the iron range 80-160 is printed in the selenium row. The lower minimum (80 mg/kg) is credited."
             },
             {
               "category": "Mineral",
@@ -26419,7 +26955,7 @@
               "min": "80",
               "max": "150",
               "unit": "mg",
-              "note": "The 80–150 mg/kg entry appears displaced or mislabeled in this source; do not credit as iodine."
+              "note": "Rotated cells realigned: iodine 0.5-2 mg/kg is printed in the manganese row (the iodine row prints the zinc range 80-150). Minimum 0.5 credited."
             },
             {
               "category": "Mineral",
@@ -26428,7 +26964,7 @@
               "min": "0.5",
               "max": "2",
               "unit": "mg",
-              "note": ""
+              "note": "Rotated cells realigned: manganese 20-60 mg/kg is printed in the zinc row. Minimum 20 credited."
             },
             {
               "category": "Mineral",
@@ -26437,7 +26973,7 @@
               "min": "20",
               "max": "60",
               "unit": "mg",
-              "note": ""
+              "note": "Rotated cells realigned: zinc 80-150 mg/kg is printed in the iodine row. Minimum 80 credited."
             },
             {
               "category": "Mineral",
@@ -26446,7 +26982,7 @@
               "min": "80",
               "max": "160",
               "unit": "mg",
-              "note": "The 80–160 mg/kg entry appears displaced or mislabeled in this source; do not credit as selenium."
+              "note": "Printed 80-160 is the iron range rotated into this row; the selenium value is lost. Selenium is not credited."
             },
             {
               "category": "Additive",
@@ -26533,11 +27069,48 @@
           "notes": [
             "Minimum and maximum values are normalized in numeric-reversed cells at user's direction; row notes retain the originally printed order.",
             "Three separate Caremix products with fixed doses of 28, 32 and 26 kg/t.",
-            "This is a finished-feed specification range, not premix composition or a guaranteed premix label.",
-            "The second E equivalent IU line is not counted a second time as vitamin E.",
-            "Overlapping/unusually large iodine and selenium entries are not credited for grower; unknowns remain.",
-            "Missing/zero guarantees are not filled with assumptions; supplementary choline and calcium pantothenate require additional composition data."
-          ]
+            "Values are the premix's supplemental contribution per kg of finished feed; the reverse-calculated premix profile is in nutrition.swine with a per-nutrient derivation in provenance.nutrientSources.",
+            "The second, unlabelled 'Vitamin E Equivalent' IU row is not counted as vitamin E.",
+            "Rows with no positive minimum (choline, phytase, antioxidant and most amino acids) are not credited; a maximum alone is not a guaranteed supply."
+          ],
+          "referenceRation": {
+            "source": "Caremix Pig Grower Rations.pdf, column 17235685 Grower, Adjusted mix 2",
+            "totalKgPrinted": 501,
+            "ingredients": [
+              {
+                "name": "Maize",
+                "ingredientId": "corn-yellow-dent",
+                "kg": 317
+              },
+              {
+                "name": "Soyabean Meal",
+                "ingredientId": "soybean-meal-solvent-extracted",
+                "kg": 100
+              },
+              {
+                "name": "Wheat Bran",
+                "ingredientId": "wheat-bran",
+                "kg": 68
+              },
+              {
+                "name": "Caremix Pig Grower 16kg",
+                "ingredientId": "caremix-pig-grower",
+                "kg": 16
+              }
+            ],
+            "reportedPerKgFeed": {
+              "crudeProteinG": 165,
+              "crudeFatG": 33.8,
+              "crudeFibreG": 32.6,
+              "calciumG": 6.1,
+              "phosphorusG": 5.3
+            },
+            "notes": [
+              "Printed unit 'mg/kg' is g/kg (crude protein 165 = 16.5%).",
+              "Basal contributions use FeedSport's Brazilian Tables 2024 profiles of the mapped ingredients, normalised to the printed batch mass.",
+              "The worksheet footer mentions urea and monensin; neither is listed in the ration and neither is credited."
+            ]
+          }
         }
       },
       "nutrition": {
@@ -26545,13 +27118,45 @@
           "composition": {},
           "energy": {},
           "aminoAcids": {
-            "totalPct": {},
-            "sidDigestibilityPct": {},
-            "sidPct": {}
+            "totalPct": {
+              "lysine": 1.21875
+            },
+            "sidDigestibilityPct": {
+              "lysine": 98.1
+            },
+            "sidPct": {
+              "lysine": 1.195594
+            }
           },
-          "macroMinerals": {},
-          "traceMineralsPpm": {},
-          "vitamins": {},
+          "macroMinerals": {
+            "sodiumPct": 4.8125,
+            "calciumPct": 16.2344,
+            "totalPhosphorusPct": 1.3125,
+            "availablePhosphorusPct": 1.3125,
+            "sttdPhosphorusDigestibilityPct": 75.14,
+            "sttdPhosphorusPct": 0.9861
+          },
+          "traceMineralsPpm": {
+            "copper": 2812.5,
+            "iron": 2500,
+            "iodine": 15.625,
+            "manganese": 625,
+            "zinc": 2500
+          },
+          "vitamins": {
+            "vitaminAIuKg": 312500,
+            "vitaminDIuKg": 46875,
+            "vitaminEIuKg": 343.75,
+            "vitaminKMgKg": 31.25,
+            "vitaminB1MgKg": 31.25,
+            "riboflavinMgKg": 93.75,
+            "vitaminB6MgKg": 31.25,
+            "niacinMgKg": 625,
+            "pantothenicAcidMgKg": 287.5,
+            "biotinMgKg": 3.125,
+            "folicAcidMgKg": 15.625,
+            "vitaminB12McgKg": 937.5
+          },
           "constraints": {
             "notes": [
               "Manufacturer dose fixed at 3.2% (32 kg/t)."
@@ -26568,15 +27173,183 @@
       "provenance": {
         "source": {
           "publisher": "Trouw Nutrition / Caremix",
-          "title": "Caremix Pig Grower Specification Range (user-supplied one-page PDF; finished-feed specification, reference only)",
+          "title": "Caremix Pig Finisher — per-kg-premix profile reverse-calculated from the Caremix Pig Grower Specification Range and reference ration worksheet",
           "url": "https://www.trouwnutrition.com/",
-          "basis": "per kg complete feed (reference only)",
+          "basis": "as-fed per kg premix, calculated from manufacturer finished-feed supplemental minimums at 26 kg/t",
           "priority": "supplier",
-          "note": "Manufacturer-branded finished-feed specification supplied by the user. It is not a premix composition and is not credited as one."
+          "note": "Calculated by FeedSport from manufacturer finished-feed specifications; not a published premix label or assay."
         },
-        "nutrientSources": {},
+        "nutrientSources": {
+          "aminoAcids.sidDigestibilityPct.lysine": {
+            "publisher": "Federal University of Viçosa, Department of Animal Science",
+            "title": "Brazilian Tables for Poultry and Swine — Composition of Feedstuffs and Nutritional Requirements",
+            "year": 2024,
+            "url": "https://editorascienza.com.br/pdfs/UFV/poultry_swine_en_chapter_1.pdf",
+            "basis": "Table 1.09 crystalline lysine coefficient (L-lysine HCl SID lysine / total lysine = 98.10%)",
+            "priority": "primary",
+            "note": "A supplemental amino acid in a premix is the crystalline feed-grade source; its Brazilian Tables digestibility is applied."
+          },
+          "aminoAcids.sidPct.lysine": {
+            "publisher": "Trouw Nutrition / Caremix",
+            "title": "Caremix Pig Grower Specification Range (Caremix Swine Specifications Grower.pdf)",
+            "url": "https://www.trouwnutrition.com/",
+            "basis": "Calculated: total 1.5% x SID digestibility 98.10% = 1.471%",
+            "priority": "supplier"
+          },
+          "aminoAcids.totalPct.lysine": {
+            "publisher": "Trouw Nutrition / Caremix",
+            "title": "Caremix Pig Grower Specification Range (Caremix Swine Specifications Grower.pdf)",
+            "url": "https://www.trouwnutrition.com/",
+            "basis": "Reverse-calculated: supplemental lysine minimum 0.39 g/kg finished feed / 0.026 (26 kg/t) = 15 g/kg = 1.5% of premix (free amino acid)",
+            "priority": "supplier"
+          },
+          "macroMinerals.calciumPct": {
+            "publisher": "Trouw Nutrition / Caremix",
+            "title": "Caremix Pig Grower Rations (Trouw Nutrition 'Ration download Pig Growers 2023.08.01' worksheet)",
+            "url": "https://www.trouwnutrition.com/",
+            "priority": "supplier",
+            "basis": "Reverse-calculated from the manufacturer reference ration (17235695 Finisher, Adjusted mix 3): (5.5 g/kg finished-feed Ca - 0.836 g/kg from basal ingredients (Brazilian Tables 2024)) / (13/500 kg premix) = 179.4 g/kg premix",
+            "note": "The premix supplies 4.66 g Ca/kg feed in its own ration, inside the published supplemental range 1.59-7.5 g/kg (printed Min/Max transposed). The range minimum is not used because the solver's calcium requirement is a minimum and understating premix calcium would add limestone the feed does not need."
+          },
+          "macroMinerals.sodiumPct": {
+            "publisher": "Trouw Nutrition / Caremix",
+            "title": "Caremix Pig Grower Specification Range (Caremix Swine Specifications Grower.pdf)",
+            "url": "https://www.trouwnutrition.com/",
+            "basis": "Reverse-calculated: sodium minimum 1.16 g/kg finished feed / 0.026 (26 kg/t) = 44.62 g/kg = 4.462% of premix",
+            "priority": "supplier",
+            "note": "Chloride is not declared and is not inferred from sodium."
+          },
+          "traceMineralsPpm.copper": {
+            "publisher": "Trouw Nutrition / Caremix",
+            "title": "Caremix Pig Grower Specification Range (Caremix Swine Specifications Grower.pdf)",
+            "url": "https://www.trouwnutrition.com/",
+            "basis": "Reverse-calculated: copper minimum 80 mg/kg finished feed / 0.026 (26 kg/t) = 3076.92 mg/kg premix",
+            "priority": "supplier"
+          },
+          "traceMineralsPpm.iodine": {
+            "publisher": "Trouw Nutrition / Caremix",
+            "title": "Caremix Pig Grower Specification Range (Caremix Swine Specifications Grower.pdf)",
+            "url": "https://www.trouwnutrition.com/",
+            "basis": "Reverse-calculated: iodine minimum 0.4 mg/kg finished feed / 0.026 (26 kg/t) = 15.3846 mg/kg premix",
+            "priority": "supplier",
+            "note": "The Fe-Se cells are displaced: the printed numbers form I 0.4-0.5, Mn 20-40, Zn 60-120 and Se 0.1-0.2. The lower plausible iodine minimum (0.4 mg/kg, printed in the zinc row; the iodine row prints 0.5) is credited."
+          },
+          "traceMineralsPpm.iron": {
+            "publisher": "Trouw Nutrition / Caremix",
+            "title": "Caremix Pig Grower Specification Range (Caremix Swine Specifications Grower.pdf)",
+            "url": "https://www.trouwnutrition.com/",
+            "basis": "Reverse-calculated: iron minimum 50 mg/kg finished feed / 0.026 (26 kg/t) = 1923.08 mg/kg premix",
+            "priority": "supplier",
+            "note": "Printed Min 50 / Max 1.5. The 1.5 cell is not an iron value; 50 mg/kg is credited."
+          },
+          "traceMineralsPpm.manganese": {
+            "publisher": "Trouw Nutrition / Caremix",
+            "title": "Caremix Pig Grower Specification Range (Caremix Swine Specifications Grower.pdf)",
+            "url": "https://www.trouwnutrition.com/",
+            "basis": "Reverse-calculated: manganese minimum 20 mg/kg finished feed / 0.026 (26 kg/t) = 769.231 mg/kg premix",
+            "priority": "supplier",
+            "note": "Displaced cells realigned (printed row 20 / 120): Mn 20-40 mg/kg; minimum 20 credited."
+          },
+          "traceMineralsPpm.selenium": {
+            "publisher": "Trouw Nutrition / Caremix",
+            "title": "Caremix Pig Grower Specification Range (Caremix Swine Specifications Grower.pdf)",
+            "url": "https://www.trouwnutrition.com/",
+            "basis": "Reverse-calculated: selenium minimum 0.1 mg/kg finished feed / 0.026 (26 kg/t) = 3.84615 mg/kg premix",
+            "priority": "supplier",
+            "note": "Printed Min 0.2 / Max 0.1 (transposed); minimum 0.1 credited."
+          },
+          "traceMineralsPpm.zinc": {
+            "publisher": "Trouw Nutrition / Caremix",
+            "title": "Caremix Pig Grower Specification Range (Caremix Swine Specifications Grower.pdf)",
+            "url": "https://www.trouwnutrition.com/",
+            "basis": "Reverse-calculated: zinc minimum 60 mg/kg finished feed / 0.026 (26 kg/t) = 2307.69 mg/kg premix",
+            "priority": "supplier",
+            "note": "Displaced cells realigned (printed row 60 / 0.4): Zn 60-120 mg/kg; minimum 60 credited."
+          },
+          "vitamins.biotinMgKg": {
+            "publisher": "Trouw Nutrition / Caremix",
+            "title": "Caremix Pig Grower Specification Range (Caremix Swine Specifications Grower.pdf)",
+            "url": "https://www.trouwnutrition.com/",
+            "basis": "Reverse-calculated: biotin minimum 80 mcg/kg finished feed = 0.08 mg/kg / 0.026 (26 kg/t) = 3.077 mg/kg premix",
+            "priority": "supplier"
+          },
+          "vitamins.niacinMgKg": {
+            "publisher": "Trouw Nutrition / Caremix",
+            "title": "Caremix Pig Grower Specification Range (Caremix Swine Specifications Grower.pdf)",
+            "url": "https://www.trouwnutrition.com/",
+            "basis": "Reverse-calculated: Niacin minimum 10 mg/kg finished feed / 0.026 (26 kg/t) = 384.615 mg/kg premix",
+            "priority": "supplier"
+          },
+          "vitamins.pantothenicAcidMgKg": {
+            "publisher": "Trouw Nutrition / Caremix",
+            "title": "Caremix Pig Grower Specification Range (Caremix Swine Specifications Grower.pdf)",
+            "url": "https://www.trouwnutrition.com/",
+            "basis": "Reverse-calculated: calcium pantothenate minimum 10 mg/kg finished feed x 0.92 pantothenic acid / 0.026 (26 kg/t) = 353.8 mg/kg premix",
+            "priority": "supplier",
+            "note": "Assumes d-calcium pantothenate (92% pantothenic acid); a racemic source would supply half."
+          },
+          "vitamins.riboflavinMgKg": {
+            "publisher": "Trouw Nutrition / Caremix",
+            "title": "Caremix Pig Grower Specification Range (Caremix Swine Specifications Grower.pdf)",
+            "url": "https://www.trouwnutrition.com/",
+            "basis": "Reverse-calculated: Vitamin B2 minimum 2 mg/kg finished feed / 0.026 (26 kg/t) = 76.9231 mg/kg premix",
+            "priority": "supplier"
+          },
+          "vitamins.vitaminAIuKg": {
+            "publisher": "Trouw Nutrition / Caremix",
+            "title": "Caremix Pig Grower Specification Range (Caremix Swine Specifications Grower.pdf)",
+            "url": "https://www.trouwnutrition.com/",
+            "basis": "Reverse-calculated: Vitamin A minimum 6000 IU/kg finished feed / 0.026 (26 kg/t) = 230769 IU/kg premix",
+            "priority": "supplier"
+          },
+          "vitamins.vitaminB12McgKg": {
+            "publisher": "Trouw Nutrition / Caremix",
+            "title": "Caremix Pig Grower Specification Range (Caremix Swine Specifications Grower.pdf)",
+            "url": "https://www.trouwnutrition.com/",
+            "basis": "Reverse-calculated: Vitamin B12 minimum 20 mcg/kg finished feed / 0.026 (26 kg/t) = 769.231 mcg/kg premix",
+            "priority": "supplier"
+          },
+          "vitamins.vitaminB1MgKg": {
+            "publisher": "Trouw Nutrition / Caremix",
+            "title": "Caremix Pig Grower Specification Range (Caremix Swine Specifications Grower.pdf)",
+            "url": "https://www.trouwnutrition.com/",
+            "basis": "Reverse-calculated: Vitamin B1 minimum 1 mg/kg finished feed / 0.026 (26 kg/t) = 38.4615 mg/kg premix",
+            "priority": "supplier"
+          },
+          "vitamins.vitaminB6MgKg": {
+            "publisher": "Trouw Nutrition / Caremix",
+            "title": "Caremix Pig Grower Specification Range (Caremix Swine Specifications Grower.pdf)",
+            "url": "https://www.trouwnutrition.com/",
+            "basis": "Reverse-calculated: Vitamin B6 minimum 1 mg/kg finished feed / 0.026 (26 kg/t) = 38.4615 mg/kg premix",
+            "priority": "supplier"
+          },
+          "vitamins.vitaminDIuKg": {
+            "publisher": "Trouw Nutrition / Caremix",
+            "title": "Caremix Pig Grower Specification Range (Caremix Swine Specifications Grower.pdf)",
+            "url": "https://www.trouwnutrition.com/",
+            "basis": "Reverse-calculated: Vitamin D3 minimum 1000 IU/kg finished feed / 0.026 (26 kg/t) = 38461.5 IU/kg premix",
+            "priority": "supplier"
+          },
+          "vitamins.vitaminEIuKg": {
+            "publisher": "Trouw Nutrition / Caremix",
+            "title": "Caremix Pig Grower Specification Range (Caremix Swine Specifications Grower.pdf)",
+            "url": "https://www.trouwnutrition.com/",
+            "basis": "Reverse-calculated: Vitamin E minimum 11 IU/kg finished feed / 0.026 (26 kg/t) = 423.077 IU/kg premix",
+            "priority": "supplier",
+            "note": "The separate unlabelled 'Vitamin E Equivalent' IU row is not added."
+          },
+          "vitamins.vitaminKMgKg": {
+            "publisher": "Trouw Nutrition / Caremix",
+            "title": "Caremix Pig Grower Specification Range (Caremix Swine Specifications Grower.pdf)",
+            "url": "https://www.trouwnutrition.com/",
+            "basis": "Reverse-calculated: Vitamin K minimum 1 mg/kg finished feed / 0.026 (26 kg/t) = 38.4615 mg/kg premix",
+            "priority": "supplier"
+          }
+        },
         "notes": [
-          "No published premix composition: every premix nutrient is treated as undocumented (missing), never as a verified zero."
+          "Calculated from manufacturer finished-feed specifications: premix concentration = finished-feed supplemental minimum / (inclusionKgPerTonne / 1000).",
+          "The specification is a supplemental (premix-supplied) basis, not total feed content: its phosphorus and manganese ranges are below what maize, soybean meal and wheat bran alone supply, and the manufacturer's own reference ration totals exceed them.",
+          "Nutrients with no usable minimum stay missing, never zero. Energy, protein, fat and fibre are not inferred."
         ],
         "verificationStatus": "manufacturer_unverified",
         "profileBasis": "as-fed"
@@ -26603,13 +27376,13 @@
         "formulationCompatibility": "unconfirmed",
         "pricePerTonne": null,
         "specificationUrl": "https://www.trouwnutrition.com/",
-        "note": "Only a finished-feed specification range is published. No per-kg premix composition is available, so every premix nutrient is treated as undocumented.",
+        "note": "The per-kg premix profile is reverse-calculated from the manufacturer's finished-feed specification (supplemental minimums divided by the dose) and reference ration; it is not a published premix label. Confirm with Trouw Nutrition.",
         "notes": [
-          "The finished-feed specification is kept as manufacturer reference information; it is not converted into premix composition.",
-          "Dose fixed at 26 kg per tonne of feed."
+          "Dose fixed at 26 kg per tonne of feed.",
+          "Published ranges are kept in finishedFeedSpecification.rows; the canonical profile uses minimums, except calcium, which uses the manufacturer's reference ration (see nutrientSources)."
         ],
         "finishedFeedSpecification": {
-          "source": "User-supplied Caremix Swine Specifications Grower(1).pdf, page 1",
+          "source": "Caremix Swine Specifications Grower.pdf (Trouw Nutrition 'Pig Grower Specification Range'), page 1",
           "batch": "not provided",
           "inclusionPrinted": "26 kg premix per tonne of feed",
           "columns": {
@@ -26617,7 +27390,7 @@
             "second": "maximum"
           },
           "confirmedByUser": true,
-          "concentrationBasis": "Specifications per kg of FINISHED FEED, not per kg of premix. Retained as manufacturer reference information only; FeedSport does not derive a premix composition from them.",
+          "concentrationBasis": "Nutrients per kg of FINISHED FEED supplied by the premix at 26 kg/t (a supplemental basis). The per-kg premix profile divides each usable minimum by 0.026.",
           "rows": [
             {
               "category": "Vitamin",
@@ -26770,7 +27543,7 @@
               "min": "1.5",
               "max": "50",
               "unit": "mg",
-              "note": "Printed min=50 exceeds max=1.5; numeric bounds reversed with user approval."
+              "note": "Printed Min 50 / Max 1.5. The 1.5 cell is not an iron value; 50 mg/kg is credited."
             },
             {
               "category": "Mineral",
@@ -26779,7 +27552,7 @@
               "min": "0.5",
               "max": "40",
               "unit": "mg",
-              "note": ""
+              "note": "The Fe-Se cells are displaced: the printed numbers form I 0.4-0.5, Mn 20-40, Zn 60-120 and Se 0.1-0.2. The lower plausible iodine minimum (0.4 mg/kg, printed in the zinc row; the iodine row prints 0.5) is credited."
             },
             {
               "category": "Mineral",
@@ -26788,7 +27561,7 @@
               "min": "20",
               "max": "120",
               "unit": "mg",
-              "note": ""
+              "note": "Displaced cells realigned (printed row 20 / 120): Mn 20-40 mg/kg; minimum 20 credited."
             },
             {
               "category": "Mineral",
@@ -26797,7 +27570,7 @@
               "min": "0.4",
               "max": "60",
               "unit": "mg",
-              "note": "Printed min=60 exceeds max=0.4; numeric bounds reversed with user approval."
+              "note": "Displaced cells realigned (printed row 60 / 0.4): Zn 60-120 mg/kg; minimum 60 credited."
             },
             {
               "category": "Mineral",
@@ -26806,7 +27579,7 @@
               "min": "0.1",
               "max": "0.2",
               "unit": "mg",
-              "note": "Printed min=0.2 exceeds max=0.1; numeric bounds reversed with user approval."
+              "note": "Printed Min 0.2 / Max 0.1 (transposed); minimum 0.1 credited."
             },
             {
               "category": "Additive",
@@ -26893,11 +27666,48 @@
           "notes": [
             "Minimum and maximum values are normalized in numeric-reversed cells at user's direction; row notes retain the originally printed order.",
             "Three separate Caremix products with fixed doses of 28, 32 and 26 kg/t.",
-            "This is a finished-feed specification range, not premix composition or a guaranteed premix label.",
-            "The second E equivalent IU line is not counted a second time as vitamin E.",
-            "Overlapping/unusually large iodine and selenium entries are not credited for grower; unknowns remain.",
-            "Missing/zero guarantees are not filled with assumptions; supplementary choline and calcium pantothenate require additional composition data."
-          ]
+            "Values are the premix's supplemental contribution per kg of finished feed; the reverse-calculated premix profile is in nutrition.swine with a per-nutrient derivation in provenance.nutrientSources.",
+            "The second, unlabelled 'Vitamin E Equivalent' IU row is not counted as vitamin E.",
+            "Rows with no positive minimum (choline, phytase, antioxidant and most amino acids) are not credited; a maximum alone is not a guaranteed supply."
+          ],
+          "referenceRation": {
+            "source": "Caremix Pig Grower Rations.pdf, column 17235695 Finisher, Adjusted mix 3",
+            "totalKgPrinted": 500,
+            "ingredients": [
+              {
+                "name": "Maize",
+                "ingredientId": "corn-yellow-dent",
+                "kg": 309
+              },
+              {
+                "name": "Soyabean Meal",
+                "ingredientId": "soybean-meal-solvent-extracted",
+                "kg": 67
+              },
+              {
+                "name": "Wheat Bran",
+                "ingredientId": "wheat-bran",
+                "kg": 111
+              },
+              {
+                "name": "Caremix Pig Finisher 13kg",
+                "ingredientId": "caremix-pig-finisher",
+                "kg": 13
+              }
+            ],
+            "reportedPerKgFeed": {
+              "crudeProteinG": 155,
+              "crudeFatG": 40,
+              "crudeFibreG": 37.1,
+              "calciumG": 5.5,
+              "phosphorusG": 5.3
+            },
+            "notes": [
+              "Printed unit 'mg/kg' is g/kg (crude protein 165 = 16.5%).",
+              "Basal contributions use FeedSport's Brazilian Tables 2024 profiles of the mapped ingredients, normalised to the printed batch mass.",
+              "The worksheet footer mentions urea and monensin; neither is listed in the ration and neither is credited."
+            ]
+          }
         }
       },
       "nutrition": {
@@ -26905,13 +27715,41 @@
           "composition": {},
           "energy": {},
           "aminoAcids": {
-            "totalPct": {},
-            "sidDigestibilityPct": {},
-            "sidPct": {}
+            "totalPct": {
+              "lysine": 1.5
+            },
+            "sidDigestibilityPct": {
+              "lysine": 98.1
+            },
+            "sidPct": {
+              "lysine": 1.4715
+            }
           },
-          "macroMinerals": {},
-          "traceMineralsPpm": {},
-          "vitamins": {},
+          "macroMinerals": {
+            "sodiumPct": 4.4615,
+            "calciumPct": 17.9369
+          },
+          "traceMineralsPpm": {
+            "copper": 3076.923,
+            "iron": 1923.077,
+            "iodine": 15.385,
+            "manganese": 769.231,
+            "zinc": 2307.692,
+            "selenium": 3.846
+          },
+          "vitamins": {
+            "vitaminAIuKg": 230769.23,
+            "vitaminDIuKg": 38461.54,
+            "vitaminEIuKg": 423.0769,
+            "vitaminKMgKg": 38.4615,
+            "vitaminB1MgKg": 38.4615,
+            "riboflavinMgKg": 76.9231,
+            "vitaminB6MgKg": 38.4615,
+            "niacinMgKg": 384.6154,
+            "pantothenicAcidMgKg": 353.8462,
+            "biotinMgKg": 3.0769,
+            "vitaminB12McgKg": 769.2308
+          },
           "constraints": {
             "notes": [
               "Manufacturer dose fixed at 2.6% (26 kg/t)."

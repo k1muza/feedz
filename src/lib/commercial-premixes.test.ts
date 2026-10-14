@@ -26,7 +26,7 @@ describe("Manufacturer-backed commercial premix catalogue", () => {
     }
   });
 
-  test("Caremix finished-feed specifications are kept as reference only, never as premix composition", () => {
+  test("Caremix keeps its finished-feed specification beside a reverse-calculated premix profile", () => {
     assert.equal(commercialPremixById("aeci-v1736-pig-weaner-premix"), undefined);
     for (const [id, dose] of [["caremix-pig-weaner", 28], ["caremix-pig-grower", 32], ["caremix-pig-finisher", 26]] as const) {
       const product = commercialPremixById(id)!;
@@ -35,12 +35,15 @@ describe("Manufacturer-backed commercial premix catalogue", () => {
       assert.equal(product.inclusionKgPerTonne, dose);
       assert.equal(product.inclusionPct, dose / 10);
       assert.equal(product.finishedFeedSpecification?.rows.length, 30);
-      assert.match(product.finishedFeedSpecification?.concentrationBasis ?? "", /FINISHED FEED.*reference information only/i);
-      // No reverse-calculated composition: every premix nutrient is undocumented.
-      assert.deepEqual(premixNutrientContributions(product), []);
-      assert.deepEqual(product.composition.vitamins, {});
-      assert.deepEqual(product.composition.traceMineralsPpm, {});
-      assert.deepEqual(product.composition.aminoAcids.totalPct, {});
+      assert.match(product.finishedFeedSpecification?.concentrationBasis ?? "", /FINISHED FEED supplied by the premix/);
+      assert.ok(product.finishedFeedSpecification?.referenceRation, "the manufacturer's worked ration is kept");
+      // Its composition is an ordinary per-kg premix profile, credited like Sustar's.
+      assert.ok(premixNutrientContributions(product).length > 20);
+      assert.match(product.source?.basis ?? "", /per kg premix, calculated from manufacturer finished-feed/);
+      for (const path of premixNutrientContributions(product).map((row) => row.path)) {
+        if (path.startsWith("aminoAcids.sidPct.") && !product.composition.aminoAcids.sidPct[path.split(".")[2]]) continue;
+        assert.ok(product.nutrientSources[path], `${id} ${path} cites its derivation`);
+      }
       const calcium = product.finishedFeedSpecification?.rows.find((r) => r.nutrient === "Calcium");
       assert.ok(Number(calcium?.min) <= Number(calcium?.max));
       assert.equal(INGREDIENT_LIBRARY_SOURCE.ingredients.find((r) => r.id === id)?.category, "vitamin_mineral_premix");

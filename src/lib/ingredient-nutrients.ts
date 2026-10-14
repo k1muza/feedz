@@ -179,8 +179,9 @@ const commercialPremixSchema = z
     pricePerTonne: z.number().positive().nullable(),
     specificationUrl: z.string().url(),
     note: z.string().optional(),
-    /** A manufacturer's FINISHED-FEED specification, kept as reference
-     * information only. It is never converted into premix composition.
+    /** A manufacturer's FINISHED-FEED specification, kept as published. The
+     * premix's nutrition profile is reverse-calculated from it, with each
+     * derivation cited in `provenance.nutrientSources`.
      */
     finishedFeedSpecification: z.object({
       source: z.string(),
@@ -199,6 +200,20 @@ const commercialPremixSchema = z
         note: z.string(),
       }).strict()),
       notes: z.array(z.string()),
+      /** The manufacturer's worked ration for this premix, as printed. */
+      referenceRation: z.object({
+        source: z.string(),
+        totalKgPrinted: z.number().positive(),
+        ingredients: z.array(z.object({ name: z.string(), ingredientId: z.string(), kg: z.number().positive() }).strict()),
+        reportedPerKgFeed: z.object({
+          crudeProteinG: z.number(),
+          crudeFatG: z.number(),
+          crudeFibreG: z.number(),
+          calciumG: z.number(),
+          phosphorusG: z.number(),
+        }).strict(),
+        notes: z.array(z.string()),
+      }).strict().optional(),
     }).strict().optional(),
     /** Data caveats that used to live as code comments beside the values. */
     notes: z.array(z.string()).optional(),

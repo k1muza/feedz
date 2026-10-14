@@ -1684,16 +1684,21 @@ export function buildSolution(
     .map((ingredient) => ({
       ingredientId: ingredient.option.ingredientId,
       inclusionPct: Math.max(0, vars[ingredient.variable] ?? 0) * 100,
+      fixed: Math.abs(ingredient.minFraction - ingredient.maxFraction) <= 1e-12,
     }))
     .filter((row) => row.inclusionPct > 1e-7);
 
   // GLPK floating-point output can be microscopically off 100. Normalize once,
-  // then let analyzeDiet independently recompute every modeled nutrient.
+  // keeping fixed doses (e.g. a premix) exact, then let analyzeDiet
+  // independently recompute every modeled nutrient.
   const total = rows.reduce((sum, row) => sum + row.inclusionPct, 0);
+  const fixedTotal = rows.reduce((sum, row) => sum + (row.fixed ? row.inclusionPct : 0), 0);
+  const hasFree = total - fixedTotal > 1e-9;
+  const scale = hasFree ? (100 - fixedTotal) / (total - fixedTotal) : 100 / total;
   const formula: DietFormula = {
-    ingredients: rows.map((row) => ({
+    ingredients: rows.map(({ fixed, ...row }) => ({
       ...row,
-      inclusionPct: (row.inclusionPct / total) * 100,
+      inclusionPct: fixed && hasFree ? row.inclusionPct : row.inclusionPct * scale,
     })),
   };
   const prices: IngredientPrice[] = ingredients.map((ingredient) => ({
