@@ -88,19 +88,21 @@ recommendation") or `no_data` when the selected premix does not document it.
 No other species' tables are imported.
 
 **Phase mapping.** `phase-mapping.json` maps every programme phase to exactly
-one CFIA column, explicitly; nothing is inferred at run time and an unmapped
-phase is reported as `unsupported`. The rule, recorded in the file with an
-explanation per phase:
+one CFIA column or to an explicit `unsupported` status. Nothing is inferred at
+run time; a phase missing from the file is also unsupported. The file uses the
+agreed **upper-bound rule** and records an explanation for each phase:
 
-- growing pigs: the column whose weight range contains the midpoint of the
-  phase's published weight range. Phases ending above 135 kg use Finisher
-  (100 to 135 kg) and say so; CFIA publishes the same values for every swine
-  column from 25 kg upward, so no maximum is extended;
-- broilers: the column containing the midpoint of the phase's age, with day
-  28 as the Starter/Grower boundary (CFIA prints Starter as "0 to 8 weeks",
-  overlapping Grower "4 to 8 weeks"; their values are identical);
-- gestating gilts and sows: Dry sows; lactating: Lactating sows; PIC mature
-  boars: Sexually active boars.
+- growing pigs: the column whose weight range contains the phase's upper
+  published weight (lower bound exclusive, upper inclusive). A 16–26 kg
+  starter therefore takes Grower (25 to 50 kg): copper 125 mg/kg and zinc
+  300 mg/kg, not the Starter 250 and 3,000. A grow-finish phase ending above
+  135 kg is past the heaviest published column, so it is `unsupported` and
+  gets no comparison. FeedSport does not extrapolate a column;
+- broilers: the column containing the phase's last day, with day 28 as the
+  Starter/Grower boundary. CFIA prints Starter as "0 to 8 weeks", which
+  overlaps Grower "4 to 8 weeks"; the two columns have identical values;
+- gestating gilts and sows: Dry sows; lactating gilts and sows: Lactating
+  sows; PIC mature boars: Sexually active boars.
 
 **Assessment.** `buildFormulationAssessment` records `upperLimits`: each CFIA
 nutrient FeedSport models (calcium, total phosphorus, sodium, potassium,

@@ -37,17 +37,18 @@ export type CfiaNutrientLimit = {
   max: number;
 };
 
+/** One phase's entry: a mapped CFIA column, or an explicit unsupported status. */
 export type CfiaPhaseMapping = {
   phaseId: string;
   programmeIds: string[];
   phaseLabel: string;
   basis: string;
   cfiaTable: CfiaTableId;
-  cfiaCategoryId: string;
-  crossesBoundary: boolean;
-  extendsBeyondPublishedClasses?: boolean;
   explanation: string;
-};
+} & (
+  | { status: "mapped"; cfiaCategoryId: string; crossesBoundary: boolean }
+  | { status: "unsupported" }
+);
 
 export type CfiaPhaseReference =
   | {
@@ -55,7 +56,7 @@ export type CfiaPhaseReference =
       table: CfiaTableId;
       tableLabel: string;
       category: CfiaCategory;
-      mapping: CfiaPhaseMapping;
+      mapping: Extract<CfiaPhaseMapping, { status: "mapped" }>;
       limits: CfiaNutrientLimit[];
     }
   | { status: "unsupported"; reason: string };
@@ -108,14 +109,16 @@ const MEASURES: Record<string, { group: UpperLimitGroup; measure: Measure } | nu
 };
 
 /**
- * The CFIA column for a programme phase, from the explicit mapping only.
- * Nothing is inferred at run time: a phase without a mapping is unsupported.
+ * The CFIA column for a programme phase, from the explicit upper-bound
+ * mapping only. Nothing is inferred at run time: a phase listed as
+ * unsupported, or not listed at all, has no CFIA reference.
  */
 export function cfiaReferenceForPhase(phase: Pick<NutritionPhase, "id">): CfiaPhaseReference {
   const mapping = MAPPING_BY_PHASE.get(phase.id);
   if (!mapping) {
     return { status: "unsupported", reason: "This phase has no CFIA maximum-nutrient column. FeedSport maps only pig and broiler phases explicitly and does not infer one." };
   }
+  if (mapping.status === "unsupported") return { status: "unsupported", reason: mapping.explanation };
   const table = CFIA_TABLES.find((candidate) => candidate.id === mapping.cfiaTable);
   const index = table?.categories.findIndex((category) => category.id === mapping.cfiaCategoryId) ?? -1;
   if (!table || index < 0) {

@@ -158,24 +158,36 @@ describe("CFIA maximum nutrient values", () => {
     assert.equal(new Set(CFIA_PHASE_MAPPINGS.map((mapping) => mapping.phaseId)).size, CFIA_PHASE_MAPPINGS.length, "one mapping per phase");
     for (const [id, { phase, species }] of phases) {
       const reference = cfiaReferenceForPhase(phase);
+      // Upper-bound rule: beyond the heaviest published column is explicitly unsupported, never extrapolated.
+      if (species === "swine" && !["gestation", "lactation", "boar"].includes(phase.phaseClass) && phase.sourceMaxWeightKg > 135) {
+        assert.equal(reference.status, "unsupported", id);
+        if (reference.status === "unsupported") assert.match(reference.reason, /beyond the 135 kg end/);
+        continue;
+      }
       assert.equal(reference.status, "mapped", id);
       if (reference.status !== "mapped") continue;
       assert.equal(reference.table, species === "broiler" ? "chickens" : "swine", id);
       assert.ok(reference.mapping.explanation.length > 20, `${id} explains its column`);
       // The explicit table agrees with its documented rule.
       if (species === "broiler") {
-        const mid = (phase.ageMinDays! + phase.ageMaxDays!) / 2;
-        assert.equal(reference.category.id, mid < 28 ? "chicken-starter" : "chicken-grower-4-8wk", id);
+        assert.equal(reference.category.id, phase.ageMaxDays! <= 28 ? "chicken-starter" : "chicken-grower-4-8wk", id);
       } else if (phase.phaseClass === "gestation") assert.equal(reference.category.id, "swine-dry-sows", id);
       else if (phase.phaseClass === "lactation") assert.equal(reference.category.id, "swine-lactating-sows", id);
       else if (phase.phaseClass === "boar") assert.equal(reference.category.id, "swine-sexually-active-boars", id);
       else {
-        const mid = (phase.sourceMinWeightKg + phase.sourceMaxWeightKg) / 2;
-        const bands: [number, string][] = [[7, "swine-starter-under-7kg"], [11, "swine-starter-7-11kg"], [25, "swine-starter-11-25kg"], [50, "swine-grower-25-50kg"], [75, "swine-grower-50-75kg"], [100, "swine-finisher-75-100kg"], [Infinity, "swine-finisher-100-135kg"]];
-        assert.equal(reference.category.id, bands.find(([upper]) => mid < upper)![1], id);
-        if (phase.sourceMaxWeightKg > 135) assert.match(reference.mapping.explanation, /beyond the 135 kg end/, `${id} discloses that it extends past the published column`);
+        // The column containing the phase's upper weight (lower bound exclusive, upper inclusive).
+        const bands: [number, string][] = [[7, "swine-starter-under-7kg"], [11, "swine-starter-7-11kg"], [25, "swine-starter-11-25kg"], [50, "swine-grower-25-50kg"], [75, "swine-grower-50-75kg"], [100, "swine-finisher-75-100kg"], [135, "swine-finisher-100-135kg"]];
+        assert.equal(reference.category.id, bands.find(([upper]) => phase.sourceMaxWeightKg <= upper)![1], id);
       }
-      if (reference.mapping.crossesBoundary) assert.match(reference.mapping.explanation, /boundary|start of the CFIA Grower/, `${id} explains the boundary`);
+      if (reference.mapping.crossesBoundary) assert.match(reference.mapping.explanation, /upper-bound rule/, `${id} explains the boundary`);
+    }
+    // The agreed example: a 16–26 kg starter crosses 25 kg and takes the Grower (25 to 50 kg) maxima.
+    const starter = cfiaReferenceForPhase({ id: "br2024-5-43-49-63d-16-26kg" });
+    assert.equal(starter.status, "mapped");
+    if (starter.status === "mapped") {
+      assert.equal(starter.category.id, "swine-grower-25-50kg");
+      assert.equal(starter.limits.find((l) => l.id === "copper")!.max, 125);
+      assert.equal(starter.limits.find((l) => l.id === "zinc")!.max, 300);
     }
     for (const mapping of CFIA_PHASE_MAPPINGS) assert.ok(phases.has(mapping.phaseId), `${mapping.phaseId} is a real phase`);
 
