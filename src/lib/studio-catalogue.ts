@@ -181,6 +181,15 @@ function requirementProfile(id: string, library: IngredientLibrary, specs: Retur
   return { values, missing };
 }
 
+/**
+ * The name the catalogue shows for an ingredient: a commercial premix's product
+ * name, otherwise the library name. Null for an id in neither library.
+ */
+export function catalogueIngredientName(id: string): string | null {
+  const record = INGREDIENT_LIBRARY.ingredients.find((item) => item.id === id) ?? POULTRY_INGREDIENT_LIBRARY.ingredients.find((item) => item.id === id);
+  return record ? commercialPremixById(id)?.name ?? record.name : null;
+}
+
 export async function getStudioCatalogue(): Promise<CatalogueIngredient[]> {
   const priceList = await getIngredientPrices();
   const prices = new Map(priceList.map((price) => [price.ingredientId, price]));
@@ -251,7 +260,7 @@ export async function getStudioCatalogue(): Promise<CatalogueIngredient[]> {
     }
     return {
       id: ingredient.id,
-      name: product?.name ?? ingredient.name,
+      name: catalogueIngredientName(ingredient.id) ?? ingredient.name,
       aliases: product ? [product.sku, product.manufacturer] : ingredient.aliases,
       category: product ? "Premix" : CATEGORY_LABELS[ingredient.category],
       price: price && planningPricePerTonne !== undefined ? {

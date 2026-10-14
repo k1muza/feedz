@@ -2,6 +2,7 @@ import { Trash2 } from "lucide-react";
 import { useState, type ReactNode } from "react";
 
 import { IngredientPoolPanel } from "./ingredient-pool-panel";
+import { IngredientData } from "./ingredient-data-view";
 import { InfoTip } from "./info-tip";
 import { NutrientData } from "./nutrient-data-view";
 import { Pager } from "./pager";
@@ -101,7 +102,7 @@ export function StudioView(props: { loading: true; shell: ShellVals } | { loadin
           {v && v.isIngredients && <MyIngredients v={v} />}
           {v && v.isProgrammes && <Programmes v={v} />}
           {v && v.isNutrientsRef && <NutrientData {...v.nutView} />}
-          {v && v.isCatalogue && <Catalogue v={v} />}
+          {v && v.isCatalogue && <IngredientData {...v.ingView} />}
           {v && v.isCompare && <Compare v={v} />}
         </div>
 
@@ -2110,117 +2111,6 @@ function Programmes({ v }: V) {
             <div style={sx("padding:12px 18px;border-top:1px solid #ece8df;font:400 12px/1.5 'IBM Plex Sans',sans-serif;color:#64665c")}>Hard limits are sent to the optimiser; users can tighten them but not exceed them. Guidelines are checked after solving and shown as advisories. {v.progLimNote}</div>
           </div>
         </div>
-      </div>
-    </div>
-  );
-}
-
-const CAT_COLS = "display:grid;grid-template-columns:minmax(0,1.5fr) 0.9fr 0.7fr 0.7fr 0.8fr 0.7fr 1.4fr;gap:12px";
-
-function Catalogue({ v }: V) {
-  return (
-    <div style={sx("padding:36px clamp(16px,4vw,40px);display:flex;flex-direction:column;gap:20px;max-width:1600px;width:100%;margin:0 auto;animation:fsin .25s ease-out")}>
-      <div style={sx("display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap")}>
-        <RefHeader title="Ingredient catalogue" intro="FeedSport's authoritative nutrient profiles and default prices. Add anything to one of your lists." />
-        <input value={v.catQ} onChange={v.onCatQ} placeholder="Search name or category" style={sx("width:280px;max-width:100%;padding:11px 12px;border:1px solid #d0cdc3;border-radius:8px;font:400 14px/1 'IBM Plex Sans',sans-serif")} />
-      </div>
-      <div style={sx("display:flex;flex-wrap:wrap;gap:20px;align-items:flex-start")}>
-        <div style={sx("flex:1 1 600px;min-width:0;background:#fff;border:1px solid #e2dfd6;border-radius:10px;overflow:auto")}>
-          <div style={sx("min-width:640px")}>
-            <div style={sx(`${CAT_COLS};padding:10px 18px;font:500 11px/1 'IBM Plex Mono',monospace;color:#64665c;text-transform:uppercase;letter-spacing:0.04em;background:#faf8f3`)}>
-              <span>Ingredient</span>
-              <span>Category</span>
-              <span style={sx("text-align:right")}>Price / t</span>
-              <span style={sx("text-align:right")}>CP</span>
-              <span style={sx("text-align:right")}>ME pig</span>
-              <span style={sx("text-align:right")}>SID Lys</span>
-              <span>Data</span>
-            </div>
-            {v.catRows.map((r) => (
-              <button key={r.id} onClick={r.pick} className={hv("row")} style={sx(`width:100%;border:0;border-top:1px solid #ece8df;background:${r.bg};text-align:left;${CAT_COLS};padding:11px 18px;font:400 14px/1.2 'IBM Plex Sans',sans-serif;align-items:center;color:#222420`)}>
-                <span style={sx("font-weight:500")}>{r.name}</span>
-                <span style={sx("color:#45473f;font-size:13px")}>{r.cat}</span>
-                <span style={sx("text-align:right")}>{r.price}</span>
-                <span style={sx("text-align:right")}>{r.cp}</span>
-                <span style={sx("text-align:right")}>{r.me}</span>
-                <span style={sx("text-align:right")}>{r.lys}</span>
-                <span style={sx(`display:flex;align-items:center;gap:7px;font-size:12px;color:${r.dataColor}`)}>
-                  <span style={sx(`flex:none;width:7px;height:7px;background:${r.dataDot};border-radius:${r.dataR}`)} />
-                  {r.data}
-                </span>
-              </button>
-            ))}
-            {v.catEmpty && <div style={sx("padding:18px;font:400 14px/1.4 'IBM Plex Sans',sans-serif;color:#64665c")}>No ingredients match.</div>}
-          </div>
-          <Pager pg={v.catPager} />
-        </div>
-        {v.catD && (
-          <div style={sx("flex:0 1 360px;min-width:280px;background:#fff;border:1px solid #e2dfd6;border-radius:10px;display:flex;flex-direction:column;animation:fsin .2s ease-out")}>
-            <div style={sx("padding:16px 18px;border-bottom:1px solid #e2dfd6;display:flex;justify-content:space-between;align-items:flex-start;gap:10px")}>
-              <div style={sx("display:flex;flex-direction:column;gap:5px")}>
-                <span style={sx("font:600 18px/1.2 'IBM Plex Sans',sans-serif")}>{v.catD.name}</span>
-                <span style={sx("font:400 13px/1.3 'IBM Plex Sans',sans-serif;color:#64665c")}>{v.catD.sub}</span>
-              </div>
-              <button onClick={v.catD.close} aria-label="Close" style={sx("border:0;background:transparent;font:400 22px/1 'IBM Plex Sans',sans-serif;color:#64665c;padding:0")}>×</button>
-            </div>
-            <div style={sx("padding:14px 18px;display:flex;flex-direction:column;gap:8px;border-bottom:1px solid #e2dfd6")}>
-              <span style={sx("font:500 11px/1 'IBM Plex Mono',monospace;color:#64665c;text-transform:uppercase;letter-spacing:0.05em")}>Nutritional profile provenance</span>
-              <strong style={sx("font:600 13px/1.4 'IBM Plex Sans',sans-serif")}>
-                {v.catD.nutritionSource.publisher}{v.catD.nutritionSource.year ? " · " + v.catD.nutritionSource.year : ""}
-              </strong>
-              <span style={sx("font:400 12px/1.4 'IBM Plex Sans',sans-serif;color:#45473f")}>{v.catD.nutritionSource.title}</span>
-              <span style={sx("font:400 12px/1.4 'IBM Plex Sans',sans-serif;color:#8a5f18")}>
-                {v.catD.nutritionSource.verification.replaceAll("_", " ")}
-                {" · "}{v.catD.nutritionSource.basis}
-                {v.catD.nutritionSource.table ? " · " + v.catD.nutritionSource.table : ""}
-                {v.catD.nutritionSource.page != null ? " · p. " + v.catD.nutritionSource.page : ""}
-              </span>
-              {v.catD.nutritionSource.url && <a href={v.catD.nutritionSource.url} target="_blank" rel="noopener noreferrer" style={sx("font:600 12px/1.3 'IBM Plex Sans',sans-serif;color:#1f5c38;text-decoration:underline")}>View original nutrient source ↗</a>}
-              {v.catD.nutritionSource.notes.map((note: string, i: number) => (
-                <span key={i} style={sx("font:400 11px/1.4 'IBM Plex Sans',sans-serif;color:#64665c")}>{note}</span>
-              ))}
-            </div>
-            {v.catD.premixDetails && (
-              <div style={sx("padding:14px 18px;display:flex;flex-direction:column;gap:7px;border-bottom:1px solid #e2dfd6;background:#fdf9ef")}>
-                <span style={sx("font:500 11px/1 'IBM Plex Mono',monospace;color:#64665c;text-transform:uppercase;letter-spacing:0.05em")}>Premix use and complete-feed contribution</span>
-                <span style={sx("font:400 12px/1.4 'IBM Plex Sans',sans-serif;color:#45473f")}>{v.catD.premixDetails.application} · {v.catD.premixDetails.permitted}</span>
-                <span style={sx("font:500 12px/1.4 'IBM Plex Sans',sans-serif")}>{v.catD.premixDetails.instruction}</span>
-                {v.catD.premixDetails.contributions.map((item) => (
-                  <div key={item.name} style={sx("display:flex;justify-content:space-between;gap:8px;padding-top:5px;border-top:1px solid #ecd8ad;font:400 12px/1.3 'IBM Plex Sans',sans-serif")}>
-                    <span>{item.name}</span><span style={sx("font-weight:600")}>{item.prefix}{item.value}</span>
-                  </div>
-                ))}
-                <span style={sx("font:400 11px/1.4 'IBM Plex Sans',sans-serif;color:#8a5f18")}>{v.catD.premixDetails.basis}</span>
-              </div>
-            )}
-            <div style={sx("padding:14px 18px;display:flex;flex-direction:column;gap:0")}>
-              <span style={sx("font:500 11px/1 'IBM Plex Mono',monospace;color:#64665c;text-transform:uppercase;letter-spacing:0.05em;padding-bottom:8px")}>Nutrient profile · as fed</span>
-              {v.catD.profile.map((p) => (
-                <div key={p.name} style={sx("display:flex;justify-content:space-between;gap:8px;padding:6px 0;border-top:1px solid #ece8df;font:400 13px/1.2 'IBM Plex Sans',sans-serif")}>
-                  <span style={sx("color:#45473f")}>{p.name}{p.attribution?.url && <a href={p.attribution.url} target="_blank" rel="noopener noreferrer" title={p.attribution.publisher + " — " + p.attribution.title} style={sx("margin-left:6px;font:500 10px/1.3 'IBM Plex Sans',sans-serif;color:#1f5c38;text-decoration:underline")}>source</a>}</span>
-                  <span style={sx(`font-weight:500;color:${p.color}`)}>{p.val}</span>
-                </div>
-              ))}
-            </div>
-            <div style={sx("padding:4px 18px 14px;display:flex;flex-direction:column;gap:0")}>
-              <span style={sx("font:500 11px/1 'IBM Plex Mono',monospace;color:#64665c;text-transform:uppercase;letter-spacing:0.05em;padding:8px 0")}>Stage limits</span>
-              {v.catD.limits.map((l) => (
-                <div key={l.name} style={sx("display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-top:1px solid #ece8df;font:400 13px/1.3 'IBM Plex Sans',sans-serif")}>
-                  <span style={sx("color:#45473f")}>{l.name}</span>
-                  <span style={sx("text-align:right")}>
-                    <b style={sx("font-weight:500")}>{l.limit}</b> <span style={sx("color:#8a5f18")}>{l.guide}</span>
-                  </span>
-                </div>
-              ))}
-              {v.catD.noLimits && <span style={sx("font:400 13px/1.4 'IBM Plex Sans',sans-serif;color:#64665c;border-top:1px solid #ece8df;padding-top:8px")}>No stage-specific limits.</span>}
-            </div>
-            <div style={sx("padding:14px 18px;border-top:1px solid #e2dfd6;display:flex;flex-direction:column;gap:8px")}>
-              {v.catD.sets.map((s) => (
-                <button key={s.label} onClick={s.add} style={sx(`font:600 13px/1 'IBM Plex Sans',sans-serif;padding:10px 12px;border:1px solid ${s.bd};color:${s.color};border-radius:7px;background:#fff;text-align:left`)}>{s.label}</button>
-              ))}
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );

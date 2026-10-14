@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 
 import type { NutrientGroup } from "@/lib/feed-nutrients";
 import type { CatalogueIngredient } from "@/lib/studio-catalogue";
-import type { StudioPhase, StudioProgramme, StudioProgrammeData } from "@/lib/studio-programmes";
+import type { StudioPhase, StudioProgrammeData } from "@/lib/studio-programmes";
 
 import { fmt } from "./engine";
 import {
@@ -27,6 +27,7 @@ import {
   type Species,
 } from "./nutrient-data";
 import { Pager, pagerVals } from "./pager";
+import { BACK_LINK, CARD, CARD_HEAD, CARD_SUB, CARD_TITLE, DETAIL_PAGE, EDGE_BTN, HATCH, MONO_KICKER, MORE_BTN, PAGE, SEARCH_INPUT, StageSelect, chip, nameList, pct, plural, resolveStage, seg, type StageTarget } from "./reference-ui";
 import { hv, sx } from "./sx";
 
 // Markup for /studio/nutrients, /studio/nutrients/sources and
@@ -51,26 +52,6 @@ export interface NutrientDataProps {
   setPageSize: (size: number) => void;
 }
 
-const PAGE_FRAME = "display:flex;flex-direction:column;max-width:1600px;width:100%;margin:0 auto;animation:fsin .25s ease-out";
-const PAGE = PAGE_FRAME + ";padding:36px clamp(16px,4vw,40px) 56px;gap:22px";
-const DETAIL_PAGE = PAGE_FRAME + ";padding:28px clamp(16px,4vw,40px) 56px;gap:20px";
-const CARD = "background:#fff;border:1px solid #e2dfd6;border-radius:10px;overflow:hidden";
-const CARD_HEAD = "padding:16px 20px;border-bottom:1px solid #e2dfd6";
-const CARD_TITLE = "font:600 15px/1.2 'IBM Plex Sans',sans-serif";
-const CARD_SUB = "font:400 13px/1.45 'IBM Plex Sans',sans-serif;color:#64665c;text-wrap:pretty";
-const MONO_KICKER = "font:500 12px/1 'IBM Plex Mono',monospace;color:#64665c;letter-spacing:0.06em;text-transform:uppercase";
-const MORE_BTN = "border:0;background:transparent;padding:0;font:600 13px/1 'IBM Plex Sans',sans-serif;color:#2f5a3f";
-const HATCH = "repeating-linear-gradient(135deg,#ece8df 0 3px,#f7f5ef 3px 6px)";
-
-const seg = (on: boolean) => `background:${on ? "#fff" : "transparent"};color:${on ? "#222420" : "#64665c"};box-shadow:${on ? "0 1px 2px rgba(34,36,32,.14)" : "none"}`;
-const pct = (x: number) => x.toFixed(2) + "%";
-const plural = (n: number, word: string) => n + " " + word + (n === 1 ? "" : "s");
-
-/** "A, B, C and 4 more" — footnotes stay a line or two however many ingredients they name. */
-function nameList(names: string[], max = 8) {
-  return names.length <= max ? names.join(", ") : names.slice(0, max).join(", ") + " and " + (names.length - max) + " more";
-}
-
 export function NutrientData(props: NutrientDataProps) {
   const ings = useMemo(() => referenceIngredients(props.catalogue), [props.catalogue]);
   const N = nutrientById(props.sel);
@@ -83,7 +64,6 @@ type Inner = NutrientDataProps & { ings: CatalogueIngredient[] };
 /** Pig values for every nutrient, aligned with `ings`. The list and heatmap use pig ME; poultry energy is on the energy page. */
 const usePigValues = (ings: CatalogueIngredient[]) => useMemo(() => new Map(NUTRIENTS.map((n) => [n.id, ings.map((g) => nutrientContent(g, n, "swine"))])), [ings]);
 
-const BACK_LINK = "border:0;background:transparent;padding:6px 0;font:500 13px/1 'IBM Plex Sans',sans-serif;color:#2f5a3f;display:flex;gap:6px;align-items:center";
 
 // ---- list ----
 
@@ -126,14 +106,14 @@ function NutrientList({ ings, programmes, open, openSources, page, pageSize, set
           {(["All", ...NUTRIENT_GROUPS] as const).map((g) => {
             const on = group === g;
             return (
-              <button key={g} type="button" aria-pressed={on} onClick={() => filter(() => setGroup(g))} style={sx(`border:1px solid ${on ? "#222420" : "#d6d2c6"};background:${on ? "#222420" : "#fff"};color:${on ? "#faf8f3" : "#45473f"};font:500 13px/1 'IBM Plex Sans',sans-serif;padding:8px 12px;border-radius:999px;display:flex;gap:6px;align-items:center;white-space:nowrap`)}>
+              <button key={g} type="button" aria-pressed={on} onClick={() => filter(() => setGroup(g))} style={sx(chip(on))}>
                 <span>{g}</span>
                 <span style={sx("font:400 12px/1 'IBM Plex Mono',monospace;opacity:.7")}>{g === "All" ? NUTRIENTS.length : NUTRIENTS.filter((n) => n.group === g).length}</span>
               </button>
             );
           })}
         </div>
-        <input value={q} onChange={(e) => filter(() => setQ(e.target.value))} placeholder="Search nutrients" aria-label="Search nutrients" style={sx("width:240px;max-width:100%;border:1px solid #d6d2c6;background:#fff;border-radius:7px;padding:9px 12px;font:400 14px/1 'IBM Plex Sans',sans-serif;color:#222420")} />
+        <input value={q} onChange={(e) => filter(() => setQ(e.target.value))} placeholder="Search nutrients" aria-label="Search nutrients" style={sx(SEARCH_INPUT)} />
       </div>
 
       <div style={sx("background:#fff;border:1px solid #e2dfd6;border-radius:10px;overflow:auto")}>
@@ -243,7 +223,7 @@ function NutrientSources({ ings, open, goList }: Inner) {
                 [true, "Richest sources"],
               ] as const
             ).map(([k, label]) => (
-              <button key={label} type="button" aria-pressed={keyOnly === k} onClick={() => setKeyOnly(k)} style={sx(`border:1px solid ${keyOnly === k ? "#222420" : "#d6d2c6"};background:${keyOnly === k ? "#222420" : "#fff"};color:${keyOnly === k ? "#faf8f3" : "#45473f"};font:500 13px/1 'IBM Plex Sans',sans-serif;padding:8px 12px;border-radius:999px;white-space:nowrap`)}>{label}</button>
+              <button key={label} type="button" aria-pressed={keyOnly === k} onClick={() => setKeyOnly(k)} style={sx(chip(keyOnly === k))}>{label}</button>
             ))}
           </div>
           <div style={sx("display:flex;gap:14px;font:400 12px/1 'IBM Plex Sans',sans-serif;color:#64665c;flex-wrap:wrap;align-items:center")}>
@@ -297,10 +277,6 @@ function HeatCell({ g, n, v, max, open }: { g: CatalogueIngredient; n: NutrientR
 
 type Metric = "conc" | "cost" | "need";
 type SortKey = "name" | "cat" | "val" | "pct" | "price" | "cost" | "need";
-interface Target {
-  progId: string;
-  phaseId: string;
-}
 interface Row {
   g: CatalogueIngredient;
   v: number | null;
@@ -309,32 +285,13 @@ interface Row {
   lim: number | null;
 }
 
-const DEFAULT_PROGRAMME = "grow-finish-pig";
 const BAR_PREVIEW = 12;
 const ROW_PREVIEW = 20;
 const TABLE_COLS = "display:grid;grid-template-columns:minmax(150px,1.5fr) 104px 96px minmax(120px,1fr) 88px 116px 120px;gap:14px";
 const ASCENDING_FIRST: SortKey[] = ["name", "cat", "cost", "need", "price"];
 
-/** The stage compared against: the one picked, or else the first that sets this nutrient, grow-finish pigs first. */
-function resolveTarget(data: StudioProgrammeData, N: NutrientRef, picked: Target | null): { programme: StudioProgramme; phase: StudioPhase } {
-  const progs = data.programmes;
-  const find = (t: Target | null) => {
-    const programme = t && progs.find((p) => p.id === t.progId);
-    const phase = programme?.phases.find((ph) => ph.id === t!.phaseId);
-    return programme && phase ? { programme, phase } : null;
-  };
-  const chosen = find(picked);
-  if (chosen) return chosen;
-  const ordered = [...progs].sort((a, b) => +(b.id === DEFAULT_PROGRAMME) - +(a.id === DEFAULT_PROGRAMME));
-  for (const programme of ordered) {
-    const phase = programme.phases.find((ph) => phaseRequirement(data, ph, N) != null);
-    if (phase) return { programme, phase };
-  }
-  return { programme: ordered[0], phase: ordered[0].phases[0] };
-}
-
 function NutrientDetail({ ings, programmes, N, open, goList }: Inner & { N: NutrientRef }) {
-  const [picked, setPicked] = useState<Target | null>(null);
+  const [picked, setPicked] = useState<StageTarget | null>(null);
   const [metricPick, setMetric] = useState<Metric>("conc");
   const [scale, setScale] = useState<"log" | "lin">("log");
   const [sortK, setSortK] = useState<SortKey>("val");
@@ -345,7 +302,7 @@ function NutrientDetail({ ings, programmes, N, open, goList }: Inner & { N: Nutr
   const [rowsAll, setRowsAll] = useState(false);
 
   const progs = programmes.programmes;
-  const { programme: prog, phase } = resolveTarget(programmes, N, picked);
+  const { programme: prog, phase } = resolveStage(programmes, picked, (ph) => phaseRequirement(programmes, ph, N) != null);
   const sp: Species = prog.species;
   const isMe = N.id === "metabolizable-energy";
   const pctUnit = N.unit === "%";
@@ -511,8 +468,8 @@ function NutrientDetail({ ings, programmes, N, open, goList }: Inner & { N: Nutr
       <div style={sx("display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap")}>
         <button type="button" onClick={goList} className={hv("back")} style={sx(BACK_LINK)}>← Nutrient data</button>
         <div style={sx("display:flex;gap:6px")}>
-          <button type="button" onClick={go(prev.id)} className={hv("edge")} style={sx("border:1px solid #d6d2c6;background:#fff;border-radius:7px;padding:8px 12px;font:400 13px/1 'IBM Plex Sans',sans-serif;color:#45473f;white-space:nowrap")}>‹ {prev.shortName}</button>
-          <button type="button" onClick={go(next.id)} className={hv("edge")} style={sx("border:1px solid #d6d2c6;background:#fff;border-radius:7px;padding:8px 12px;font:400 13px/1 'IBM Plex Sans',sans-serif;color:#45473f;white-space:nowrap")}>{next.shortName} ›</button>
+          <button type="button" onClick={go(prev.id)} className={hv("edge")} style={sx(EDGE_BTN)}>‹ {prev.shortName}</button>
+          <button type="button" onClick={go(next.id)} className={hv("edge")} style={sx(EDGE_BTN)}>{next.shortName} ›</button>
         </div>
       </div>
 
@@ -525,25 +482,7 @@ function NutrientDetail({ ings, programmes, N, open, goList }: Inner & { N: Nutr
           </div>
           <p style={sx("margin:0;font:400 14px/1.5 'IBM Plex Sans',sans-serif;color:#64665c;max-width:640px;text-wrap:pretty")}>{N.guide.measured}</p>
         </div>
-        <label style={sx("display:flex;flex-direction:column;gap:6px;font:500 11px/1 'IBM Plex Mono',monospace;color:#64665c;text-transform:uppercase;letter-spacing:0.05em")}>
-          Compare against
-          <select
-            value={prog.id + "|" + phase.id}
-            onChange={(e) => {
-              const [progId, phaseId] = e.target.value.split("|");
-              setPicked({ progId, phaseId });
-            }}
-            style={sx("border:1px solid #d6d2c6;background:#fff;border-radius:7px;padding:9px 10px;font:400 14px/1 'IBM Plex Sans',sans-serif;color:#222420;min-width:240px;max-width:100%;text-transform:none;letter-spacing:0")}
-          >
-            {progs.map((p) => (
-              <optgroup key={p.id} label={p.name}>
-                {p.phases.map((ph) => (
-                  <option key={ph.id} value={p.id + "|" + ph.id}>{ph.label + (phaseRequirement(programmes, ph, N) != null ? "" : " · not set")}</option>
-                ))}
-              </optgroup>
-            ))}
-          </select>
-        </label>
+        <StageSelect programmes={programmes} programme={prog} phase={phase} onPick={setPicked} note={(ph) => (phaseRequirement(programmes, ph, N) != null ? "" : " · not set")} />
       </div>
 
       <div style={sx("background:#fff;border:1px solid #e2dfd6;border-radius:10px;display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr))")}>

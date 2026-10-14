@@ -286,6 +286,9 @@ interface State {
   /** One-step rollback for an ingredient set applied from an infeasible result. */
   recoveryUndo: RecoveryUndo | null;
   catQ: string;
+  /** Category filter on /studio/catalogue; null shows every category. */
+  catCat: string | null;
+  /** Ingredient open on /studio/catalogue/[id]; null shows the list. */
   catSel: string | null;
   catPage: number;
   catPageSize: number;
@@ -381,28 +384,16 @@ const withQuery = (path: string, params: URLSearchParams) => {
 };
 
 // ---- ingredient catalogue ----
-const CAT_NUTRIENTS: { id: CatalogueNutrientId; name: string; short: string; unit: string; dp: number }[] = [
-  { id: "mePig", name: "ME, pig", short: "ME pig", unit: "kcal/kg", dp: 0 },
-  { id: "mePoultry", name: "ME, poultry", short: "ME poultry", unit: "kcal/kg", dp: 0 },
-  { id: "cp", name: "Crude protein", short: "Crude protein", unit: "%", dp: 1 },
-  { id: "lys", name: "SID lysine", short: "SID lysine", unit: "%", dp: 2 },
-  { id: "mc", name: "SID Met+Cys", short: "SID Met+Cys", unit: "%", dp: 2 },
-  { id: "thr", name: "SID threonine", short: "SID threonine", unit: "%", dp: 2 },
-  { id: "ca", name: "Calcium", short: "Calcium", unit: "%", dp: 2 },
-  { id: "ap", name: "Available phosphorus", short: "Avail. phosphorus", unit: "%", dp: 2 },
-  { id: "na", name: "Sodium", short: "Sodium", unit: "%", dp: 2 },
-  { id: "cf", name: "Crude fibre", short: "Crude fibre", unit: "%", dp: 1 },
-];
 
 const currentList = (S: State, my: MyLists) => my.lists.find((l) => l.id === S.myListSel) ?? my.lists[0] ?? null;
 
-function catalogueMatches(catalogue: CatalogueIngredient[], q: string) {
+/** The catalogue rows the search and category filter leave. */
+function catalogueMatches(catalogue: CatalogueIngredient[], q: string, category: string | null) {
   const needle = q.trim().toLowerCase();
-  if (!needle) return catalogue;
-  return catalogue.filter((g) => [g.name, g.id, g.category, ...g.aliases].join(" ").toLowerCase().includes(needle));
+  return catalogue.filter((g) => (!category || g.category === category) && (!needle || [g.name, g.id, g.category, ...g.aliases].join(" ").toLowerCase().includes(needle)));
 }
 
-const catPageCount = (catalogue: CatalogueIngredient[], S: Pick<State, "catQ" | "catPageSize">) => pageCount(catalogueMatches(catalogue, S.catQ).length, S.catPageSize);
+const catPageCount = (catalogue: CatalogueIngredient[], S: Pick<State, "catQ" | "catCat" | "catPageSize">) => pageCount(catalogueMatches(catalogue, S.catQ, S.catCat).length, S.catPageSize);
 
 // ---- routes ----
 // Every screen has a URL under /studio. State stays the source of truth while
@@ -429,7 +420,9 @@ interface Route {
   screen: Screen;
   docId?: string;
   cmp?: string[];
-  cat?: { q: string; page: number; size: number };
+  cat?: { q: string; category: string | null; page: number; size: number };
+  /** Ingredient on /studio/catalogue/[id]. */
+  catId?: string;
   /** Page of the formulations list. */
   list?: { page: number; size: number };
   prog?: { id: string | null; phase: string | null };
@@ -453,9 +446,11 @@ function urlFor(S: State) {
     return BASE + "/formulations/compare" + (cmp ? "?" + new URLSearchParams({ a: cmp[0], b: cmp[1] }) : "");
   }
   if (S.screen === "catalogue") {
-    // Defaults stay out of the URL: /studio/catalogue is page 1, 10 per page, no search.
+    if (S.catSel) return BASE + "/catalogue/" + encodeURIComponent(S.catSel);
+    // Defaults stay out of the URL: /studio/catalogue is page 1, 10 per page, no search or category.
     const params = new URLSearchParams();
     if (S.catQ) params.set("q", S.catQ);
+    if (S.catCat) params.set("cat", S.catCat);
     setPageParams(params, S.catPage, S.catPageSize);
     return withQuery(BASE + "/catalogue", params);
   }
@@ -480,7 +475,9 @@ function urlFor(S: State) {
 function parseRoute(pathname: string, params: URLSearchParams): Route | null {
   if (pathname !== BASE && !pathname.startsWith(BASE + "/")) return null;
   const rest = pathname.slice(BASE.length).replace(/\/$/, "");
-  if (rest === "/catalogue") return { screen: "catalogue", cat: { q: params.get("q") || "", ...pageFromParams(params) } };
+  if (rest === "/catalogue") return { screen: "catalogue", cat: { q: params.get("q") || "", category: params.get("cat") || null, ...pageFromParams(params) } };
+  const ingredient = rest.match(/^\/catalogue\/([^/]+)$/);
+  if (ingredient) return { screen: "catalogue", catId: decodeURIComponent(ingredient[1]) };
   if (rest === "/formulations") return { screen: "list", list: pageFromParams(params) };
   const list = rest.match(/^\/ingredients(?:\/([^/]+))?$/);
   if (list) return { screen: "ingredients", listId: list[1] ? decodeURIComponent(list[1]) : null };
@@ -623,7 +620,8 @@ function enterRoute(s: State, route: Route | null, ctx: RouteContext, url: strin
     case "ingredients":
       return { patch: { screen: "ingredients", drawer: null, myListSel: route.listId ?? null, listRename: null } };
     case "catalogue":
-      return { patch: { screen: "catalogue", drawer: null, catQ: route.cat!.q, catPage: route.cat!.page, catPageSize: route.cat!.size } };
+      if (route.catId) return { patch: { screen: "catalogue", drawer: null, catSel: route.catId } };
+      return { patch: { screen: "catalogue", drawer: null, catSel: null, catQ: route.cat!.q, catCat: route.cat!.category, catPage: route.cat!.page, catPageSize: route.cat!.size } };
     case "list":
       return { patch: { screen: "list", drawer: null, listPage: route.list!.page, listPageSize: route.list!.size } };
     default:
@@ -717,7 +715,7 @@ function draftErr(d: Draft, fs: number) {
 }
 
 const INITIAL: State = {
-  w: 1400, screen: "home", step: 1, species: "swine", programmeId: DEFAULT_PROGRAMME, phaseId: "", setKey: "none", setupListId: null, pool: {}, premixByUser: false, goal: "least_cost", batch: 100, batchMode: "100", customBatch: "", unit: "t", docName: "Untitled formulation", docId: null, pendingDoc: null, pendingCmp: null, result: null, runSig: null, runSnap: null, running: false, runToken: 0, tab: "recipe", drawer: null, advisoriesOpen: false, addOpen: false, addQ: "", addCategory: null, addPick: [], premixOpen: false, premixFilter: "matches", premixPick: null, mode: "optimised", manual: NO_MANUAL_AMOUNTS, manualCheck: null, restoreManual: null, rulesOpen: false, history: [], sel: [], cmp: null, toast: null, dismissed: {}, savedSig: null, savedV: null, saving: false, exporting: false, suggestion: null, completionSuggestion: null, compareOpen: false, recoveryUndo: null, ingQ: "", catQ: "", catSel: null, catPage: 1, catPageSize: DEFAULT_PAGE_SIZE, listPage: 1, listPageSize: DEFAULT_PAGE_SIZE, progSel: null, progPhase: null, progAllLimits: false, nutSel: null, nutSources: false, nutPage: 1, nutPageSize: DEFAULT_PAGE_SIZE, addTarget: "pool", auth: null, authNext: null, af: { email: "", password: "", name: "", org: "", role: "farmer" }, aShow: false, aErr: {}, aBusy: false, aGoogleBusy: false, aSent: null, myListSel: null, listRename: null, listCreate: null, sq: "", sOpen: false, sIdx: 0, uOpen: false, nOpen: false, featFilter: "all", cOpen: false, cTopic: "review", cPhone: "", cMsg: "", cAttach: true, cBusy: false, cSent: false, cErr: "",
+  w: 1400, screen: "home", step: 1, species: "swine", programmeId: DEFAULT_PROGRAMME, phaseId: "", setKey: "none", setupListId: null, pool: {}, premixByUser: false, goal: "least_cost", batch: 100, batchMode: "100", customBatch: "", unit: "t", docName: "Untitled formulation", docId: null, pendingDoc: null, pendingCmp: null, result: null, runSig: null, runSnap: null, running: false, runToken: 0, tab: "recipe", drawer: null, advisoriesOpen: false, addOpen: false, addQ: "", addCategory: null, addPick: [], premixOpen: false, premixFilter: "matches", premixPick: null, mode: "optimised", manual: NO_MANUAL_AMOUNTS, manualCheck: null, restoreManual: null, rulesOpen: false, history: [], sel: [], cmp: null, toast: null, dismissed: {}, savedSig: null, savedV: null, saving: false, exporting: false, suggestion: null, completionSuggestion: null, compareOpen: false, recoveryUndo: null, ingQ: "", catQ: "", catCat: null, catSel: null, catPage: 1, catPageSize: DEFAULT_PAGE_SIZE, listPage: 1, listPageSize: DEFAULT_PAGE_SIZE, progSel: null, progPhase: null, progAllLimits: false, nutSel: null, nutSources: false, nutPage: 1, nutPageSize: DEFAULT_PAGE_SIZE, addTarget: "pool", auth: null, authNext: null, af: { email: "", password: "", name: "", org: "", role: "farmer" }, aShow: false, aErr: {}, aBusy: false, aGoogleBusy: false, aSent: null, myListSel: null, listRename: null, listCreate: null, sq: "", sOpen: false, sIdx: 0, uOpen: false, nOpen: false, featFilter: "all", cOpen: false, cTopic: "review", cPhone: "", cMsg: "", cAttach: true, cBusy: false, cSent: false, cErr: "",
 };
 
 const spinnerStyle = (track: string, head: string): CSSProperties => ({ width: 16, height: 16, borderRadius: "50%", border: "2px solid " + track, borderTopColor: head, display: "inline-block", animation: "fsspin .8s linear infinite", flex: "none" });
@@ -881,7 +879,7 @@ function useStudio({ catalogue, programmes, featured: featuredList, showSolverDe
   // snaps to the last page, replacing the URL rather than adding history.
   const lastCatPage = catPageCount(catalogue, S);
   useEffect(() => {
-    if (!ready || S.screen !== "catalogue" || S.catPage <= lastCatPage) return;
+    if (!ready || S.screen !== "catalogue" || S.catSel || S.catPage <= lastCatPage) return;
     replaceNext.current = true;
     update({ catPage: lastCatPage });
   }, [ready, S.screen, S.catPage, lastCatPage, update]);
@@ -1416,7 +1414,7 @@ function useStudio({ catalogue, programmes, featured: featuredList, showSolverDe
   const onAuth = isAuthScreen(S.screen) || AUTH_PATHS.includes(pathname);
   const wide = S.w >= 1000 && !onAuth;
   const narrow = S.w < 1000 && !onAuth;
-  const go = (screen: Screen) => () => update({ screen, drawer: null, advisoriesOpen: false, ...(screen === "nutrients" ? { nutSel: null, nutSources: false } : {}) });
+  const go = (screen: Screen) => () => update({ screen, drawer: null, advisoriesOpen: false, ...(screen === "nutrients" ? { nutSel: null, nutSources: false } : {}), ...(screen === "catalogue" ? { catSel: null } : {}) });
   const nav = ready
     ? (
         [
@@ -3146,65 +3144,21 @@ function libraryVals(
     ...(phase.limitsKey ? ctx.programmes.limits[phase.limitsKey] : []).map((l) => ({ name: l.name, limit: "max " + l.maxPct + "%", guide: l.practicalPct != null ? "up to " + l.practicalPct + "%" : "—", guideColor: l.practicalPct != null ? "#8a5f18" : "#8d8a80" })),
   ];
   const LIMITS_PREVIEW = 12;
-  const catAll = catalogueMatches(catalogue, S.catQ);
-  const catSel = S.catSel ? catalogue.find((g) => g.id === S.catSel) || null : null;
-  const catPg = pagerVals(catAll.length, S.catPage, S.catPageSize, (p) => update({ catPage: p }), (n) => update({ catPageSize: n, catPage: 1 }));
-  const catVal = (n: (typeof CAT_NUTRIENTS)[number], x: number) => (n.unit === "%" ? fmt(x, n.dp) + "%" : fmt(x, n.dp) + " " + n.unit);
-  const catD = catSel
-    ? {
-        name: catSel.name,
-        sub: catSel.category + " · " + (catSel.price ? "planning price $" + fmt(catSel.price.usdPerTonne, 0) + " / t · " + catSel.price.market : "no planning price"),
-        nutritionSource: {
-          title: catSel.nutritionSource.title,
-          publisher: catSel.nutritionSource.publisher,
-          year: catSel.nutritionSource.year,
-          url: catSel.nutritionSource.url,
-          table: catSel.nutritionSource.sourceTable,
-          page: catSel.nutritionSource.sourcePage,
-          verification: catSel.nutritionSource.verificationStatus,
-          basis: catSel.nutritionSource.basis,
-          notes: catSel.nutritionSource.notes,
-        },
-        premixDetails: catSel.premix ? {
-          application: catSel.premix.application,
-          permitted: `${catSel.premix.permittedSpecies} · ${catSel.premix.permittedProgrammePrefixes.join(", ")}`,
-          instruction: catSel.premix.inclusionInstructions,
-          basis: catSel.premix.contributions.some((item) => item.basis === "verified_analysis")
-            ? "Verified as-fed profile"
-            : "Manufacturer label minima · not independently verified",
-          contributions: catSel.premix.contributions.map((item) => ({
-            name: item.nutrient,
-            prefix: item.basis === "minimum_guarantee" ? "≥ " : "",
-            value: `${fmt(item.finishedFeedContribution, item.finishedFeedContribution < 1 ? 3 : 1)} ${item.unit}`,
-          })),
-        } : null,
-        close: () => update({ catSel: null }),
-        // Values the library doesn't publish read "Missing" only where this kind of ingredient should have one.
-        profile: CAT_NUTRIENTS.map((n) => {
-          const x = catSel.nutrients[n.id];
-          const missing = x == null && catSel.expected.includes(n.id);
-          return {
-            name: n.name, val: x != null ? catVal(n, x) : missing ? "Missing" : "—",
-            color: missing ? "#a63d2a" : x == null ? "#64665c" : "#222420",
-            attribution: catSel.nutrientSources[n.id] ?? null,
-          };
-        }),
-        limits: [
-          ...catSel.limits.map((l) => ({ name: l.stage, limit: "max " + l.maxPct + "%", guide: l.practicalPct != null ? "guideline " + l.practicalPct + "%" : "" })),
-          ...(catSel.family?.combinedLimits ?? []).map((l) => ({ name: l.stage + " · " + l.label, limit: "max " + l.maxPct + "% combined", guide: l.sourceType === "published" ? "published" : "FeedSport policy" })),
-        ],
-        noLimits: catSel.limits.length === 0 && !catSel.family?.combinedLimits.length,
-        sets:
-          !canAddStudioIngredient(catSel.id, S.programmeId, S.pool, S.phaseId) || myLists.status !== "ready"
-            ? []
-            : lists.length
-              ? lists.map((l) => {
-                  const inSet = l.items.some((it) => it.ingredientId === catSel.id);
-                  return { label: (inSet ? "✓ In " : "+ Add to ") + (l.label || "Untitled list"), inSet, color: inSet ? "#64665c" : "#2f5a3f", bd: inSet ? "#e2dfd6" : "#2f5a3f", add: () => { if (inSet) return; void myLists.addItem(l.id, catSel.id); flash(catSel.name + " added to " + (l.label || "your list")); } };
-                })
-              : [{ label: "+ Add to a new list", inSet: false, color: "#2f5a3f", bd: "#2f5a3f", add: async () => { const l = await myLists.createList("My ingredients"); if (!l) return; await myLists.addItem(l.id, catSel.id); flash(catSel.name + " added to “My ingredients”"); } }],
-      }
-    : null;
+  const catAll = catalogueMatches(catalogue, S.catQ, S.catCat);
+  /** Where an ingredient can be added: each of your lists, or a new one. Empty while lists load or when it can't be added. */
+  const addTargets = (g: CatalogueIngredient) =>
+    !canAddStudioIngredient(g.id, S.programmeId, S.pool, S.phaseId) || myLists.status !== "ready"
+      ? []
+      : lists.length
+        ? lists.map((l) => {
+            const inSet = l.items.some((it) => it.ingredientId === g.id);
+            return { label: (inSet ? "✓ In " : "+ Add to ") + (l.label || "Untitled list"), inSet, add: () => { if (inSet) return; void myLists.addItem(l.id, g.id); flash(g.name + " added to " + (l.label || "your list")); } };
+          })
+        : [{ label: "+ Add to a new list", inSet: false, add: async () => { const l = await myLists.createList("My ingredients"); if (!l) return; await myLists.addItem(l.id, g.id); flash(g.name + " added to “My ingredients”"); } }];
+  const ingTo = (patch: Partial<State>) => {
+    update({ screen: "catalogue", ...patch });
+    window.scrollTo(0, 0);
+  };
   return {
     isIngredients: S.screen === "ingredients", isProgrammes: S.screen === "programmes", isNutrientsRef: S.screen === "nutrients", isCatalogue: S.screen === "catalogue",
     myStatus: myLists.status, myNoLists: myLists.status === "ready" && lists.length === 0, myRetry: () => void myLists.reload(),
@@ -3302,20 +3256,27 @@ function libraryVals(
       },
       setPageSize: (size: number) => update({ nutPageSize: size, nutPage: 1 }),
     },
-    catQ: S.catQ,
-    onCatQ: (e: InputEvent) => {
-      ctx.replaceUrl(); // typing shouldn't add a history entry per keystroke
-      update({ catQ: e.target.value, catPage: 1 });
+    ingView: {
+      catalogue, programmes: ctx.programmes, sel: S.catSel, matches: catAll,
+      q: S.catQ,
+      setQ: (q: string) => {
+        ctx.replaceUrl(); // typing shouldn't add a history entry per keystroke
+        update({ catQ: q, catPage: 1 });
+      },
+      category: S.catCat,
+      setCategory: (category: string | null) => update({ catCat: category, catPage: 1 }),
+      page: S.catPage,
+      pageSize: S.catPageSize,
+      setPage: (page: number) => update({ catPage: page }),
+      setPageSize: (size: number) => update({ catPageSize: size, catPage: 1 }),
+      addTargets,
+      open: (id: string) => ingTo({ catSel: id }),
+      goList: () => ingTo({ catSel: null }),
+      openNutrient: (id: string) => {
+        update({ screen: "nutrients", nutSel: id, nutSources: false });
+        window.scrollTo(0, 0);
+      },
     },
-    catPager: catPg.pager,
-    catRows: catAll.slice(catPg.from, catPg.to).map((g) => {
-      const missing = !commercialPremixById(g.id) && g.expected.some((id) => g.nutrients[id] == null);
-      const on = g.id === S.catSel;
-      const num = (x: number | null, dp: number, unit = "") => (x == null ? "—" : fmt(x, dp) + unit);
-      return { id: g.id, name: g.name, cat: g.category, price: g.price ? "$" + fmt(g.price.usdPerTonne, 0) : "—", cp: num(g.nutrients.cp, 1, "%"), me: num(g.nutrients.mePig, 0), lys: num(g.nutrients.lys, 2, "%"), data: commercialPremixById(g.id) ? "Supplier spec" : missing ? "Incomplete" : "Complete", dataColor: missing ? "#a63d2a" : "#2b6a42", dataDot: missing ? "#b2412e" : "#2f7a4a", dataR: missing ? "0" : "50%", bg: on ? "#f4f8f4" : "#fff", pick: () => update({ catSel: on ? null : g.id }) };
-    }),
-    catEmpty: catAll.length === 0,
-    catD,
   };
 }
 
@@ -3359,7 +3320,7 @@ function topBarVals(
   add("Actions", "+", "New formulation", "Guided: animal, ingredients, goal", () => { close(); ctx.startGuided(); }, "create start formulate");
   add("Actions", "+", "Open a blank workspace", "Skip the guide and set everything yourself", () => { close(); ctx.startBlank(); }, "advanced new");
   ([["home", "Home"], ["list", "Formulations"], ["ingredients", "My ingredients"], ["programmes", "Feeding programmes"], ["nutrients", "Nutrient data"], ["catalogue", "Ingredient catalogue"]] as [Screen, string][]).forEach(([screen, label]) =>
-    add("Pages", "→", label, "Go to page", nav({ screen, ...(screen === "nutrients" ? { nutSel: null, nutSources: false } : {}) }), "page"),
+    add("Pages", "→", label, "Go to page", nav({ screen, ...(screen === "nutrients" ? { nutSel: null, nutSources: false } : {}), ...(screen === "catalogue" ? { catSel: null } : {}) }), "page"),
   );
   ctx.docs.forEach((d) => {
     const v = d.versions[d.versions.length - 1];
