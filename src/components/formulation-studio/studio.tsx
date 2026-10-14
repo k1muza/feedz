@@ -285,6 +285,9 @@ interface State {
   catSel: string | null;
   catPage: number;
   catPageSize: number;
+  /** Page of /studio/formulations. */
+  listPage: number;
+  listPageSize: number;
   /** Programme shown on /studio/programmes; null shows the default one. */
   progSel: string | null;
   /** Phase within it; null is the first phase. */
@@ -349,9 +352,53 @@ export interface StudioProps {
   showSolverDetails?: boolean;
 }
 
+// ---- paged tables (catalogue, formulations) ----
+export const PAGE_SIZES = [10, 25, 50];
+const DEFAULT_PAGE_SIZE = PAGE_SIZES[0];
+const pageCount = (total: number, size: number) => Math.max(1, Math.ceil(total / size));
+
+/** ?page= and ?per= read from a URL, falling back to page 1 at the default size. */
+function pageFromParams(params: URLSearchParams) {
+  const page = Math.floor(Number(params.get("page")));
+  const size = Number(params.get("per"));
+  return { page: page >= 1 ? page : 1, size: PAGE_SIZES.includes(size) ? size : DEFAULT_PAGE_SIZE };
+}
+
+/** Defaults stay out of the URL: page 1 at the default size adds nothing. */
+function setPageParams(params: URLSearchParams, page: number, size: number) {
+  if (page > 1) params.set("page", String(page));
+  if (size !== DEFAULT_PAGE_SIZE) params.set("per", String(size));
+}
+
+const withQuery = (path: string, params: URLSearchParams) => {
+  const query = params.toString();
+  return path + (query ? "?" + query : "");
+};
+
+type PageBtn = { label: string; bg: string; fg: string; bd: string; go: () => void };
+
+/** The footer pager shared by paged tables, plus the slice of rows on the current page. */
+function pagerVals(total: number, wantPage: number, size: number, setPage: (p: number) => void, setSize: (n: number) => void) {
+  const pages = pageCount(total, size),
+    page = Math.min(Math.max(1, wantPage), pages);
+  const from = (page - 1) * size,
+    to = Math.min(total, from + size);
+  const goPage = (p: number) => () => p >= 1 && p <= pages && p !== page && setPage(p);
+  const pager = {
+    text: total ? "Showing " + (from + 1) + "–" + to + " of " + total : "0 results", prev: goPage(page - 1), next: goPage(page + 1), prevColor: page > 1 ? "#222420" : "#b9b6ab", nextColor: page < pages ? "#222420" : "#b9b6ab", prevDisabled: page <= 1, nextDisabled: page >= pages,
+    pages: Array.from({ length: pages }, (_, i) => i + 1)
+      .filter((p) => pages <= 7 || p === 1 || p === pages || Math.abs(p - page) <= 1)
+      .reduce<PageBtn[]>((acc, p, i, arr) => {
+        if (i && p - arr[i - 1] > 1) acc.push({ label: "…", bg: "transparent", fg: "#64665c", bd: "transparent", go: () => {} });
+        acc.push({ label: String(p), bg: p === page ? "#222420" : "#fff", fg: p === page ? "#faf8f3" : "#222420", bd: p === page ? "#222420" : "#d0cdc3", go: goPage(p) });
+        return acc;
+      }, []),
+    size: String(size), onSize: (e: InputEvent) => setSize(+e.target.value),
+  };
+  return { from, to, pager };
+}
+
 // ---- ingredient catalogue ----
-export const CAT_PAGE_SIZES = [10, 25, 50];
-const CAT_DEFAULT_PAGE_SIZE = CAT_PAGE_SIZES[0];
 const CAT_NUTRIENTS: { id: CatalogueNutrientId; name: string; short: string; unit: string; dp: number }[] = [
   { id: "mePig", name: "ME, pig", short: "ME pig", unit: "kcal/kg", dp: 0 },
   { id: "mePoultry", name: "ME, poultry", short: "ME poultry", unit: "kcal/kg", dp: 0 },
@@ -373,7 +420,7 @@ function catalogueMatches(catalogue: CatalogueIngredient[], q: string) {
   return catalogue.filter((g) => [g.name, g.id, g.category, ...g.aliases].join(" ").toLowerCase().includes(needle));
 }
 
-const catPageCount = (catalogue: CatalogueIngredient[], S: Pick<State, "catQ" | "catPageSize">) => Math.max(1, Math.ceil(catalogueMatches(catalogue, S.catQ).length / S.catPageSize));
+const catPageCount = (catalogue: CatalogueIngredient[], S: Pick<State, "catQ" | "catPageSize">) => pageCount(catalogueMatches(catalogue, S.catQ).length, S.catPageSize);
 
 // ---- routes ----
 // Every screen has a URL under /studio. State stays the source of truth while
@@ -384,7 +431,6 @@ const BASE = "/studio";
 const SIMPLE_ROUTES: [Screen, string][] = [
   ["home", ""],
   ["setup", "/new"],
-  ["list", "/formulations"],
   ["nutrients", "/nutrients"],
   ["catalogue", "/catalogue"],
   ["signup", "/signup"],
@@ -403,6 +449,8 @@ interface Route {
   docId?: string;
   cmp?: string[];
   cat?: { q: string; page: number; size: number };
+  /** Page of the formulations list. */
+  list?: { page: number; size: number };
   prog?: { id: string | null; phase: string | null };
   listId?: string | null;
   next?: string | null;
@@ -423,10 +471,13 @@ function urlFor(S: State) {
     // Defaults stay out of the URL: /studio/catalogue is page 1, 10 per page, no search.
     const params = new URLSearchParams();
     if (S.catQ) params.set("q", S.catQ);
-    if (S.catPage > 1) params.set("page", String(S.catPage));
-    if (S.catPageSize !== CAT_DEFAULT_PAGE_SIZE) params.set("per", String(S.catPageSize));
-    const query = params.toString();
-    return BASE + "/catalogue" + (query ? "?" + query : "");
+    setPageParams(params, S.catPage, S.catPageSize);
+    return withQuery(BASE + "/catalogue", params);
+  }
+  if (S.screen === "list") {
+    const params = new URLSearchParams();
+    setPageParams(params, S.listPage, S.listPageSize);
+    return withQuery(BASE + "/formulations", params);
   }
   if (S.screen === "signin") return BASE + "/login" + (S.authNext ? "?" + new URLSearchParams({ next: S.authNext }) : "");
   if (S.screen === "ingredients") return BASE + "/ingredients" + (S.myListSel ? "/" + encodeURIComponent(S.myListSel) : "");
@@ -437,11 +488,8 @@ function urlFor(S: State) {
 function parseRoute(pathname: string, params: URLSearchParams): Route | null {
   if (pathname !== BASE && !pathname.startsWith(BASE + "/")) return null;
   const rest = pathname.slice(BASE.length).replace(/\/$/, "");
-  if (rest === "/catalogue") {
-    const page = Math.floor(Number(params.get("page")));
-    const size = Number(params.get("per"));
-    return { screen: "catalogue", cat: { q: params.get("q") || "", page: page >= 1 ? page : 1, size: CAT_PAGE_SIZES.includes(size) ? size : CAT_DEFAULT_PAGE_SIZE } };
-  }
+  if (rest === "/catalogue") return { screen: "catalogue", cat: { q: params.get("q") || "", ...pageFromParams(params) } };
+  if (rest === "/formulations") return { screen: "list", list: pageFromParams(params) };
   const list = rest.match(/^\/ingredients(?:\/([^/]+))?$/);
   if (list) return { screen: "ingredients", listId: list[1] ? decodeURIComponent(list[1]) : null };
   const prog = rest.match(/^\/programmes(?:\/([^/]+)(?:\/phases\/([^/]+))?)?$/);
@@ -578,6 +626,8 @@ function enterRoute(s: State, route: Route | null, ctx: RouteContext, url: strin
       return { patch: { screen: "ingredients", drawer: null, myListSel: route.listId ?? null, listRename: null } };
     case "catalogue":
       return { patch: { screen: "catalogue", drawer: null, catQ: route.cat!.q, catPage: route.cat!.page, catPageSize: route.cat!.size } };
+    case "list":
+      return { patch: { screen: "list", drawer: null, listPage: route.list!.page, listPageSize: route.list!.size } };
     default:
       return { patch: { screen: route.screen, drawer: null } };
   }
@@ -669,7 +719,7 @@ function draftErr(d: Draft, fs: number) {
 }
 
 const INITIAL: State = {
-  w: 1400, screen: "home", step: 1, species: "swine", programmeId: DEFAULT_PROGRAMME, phaseId: "", setKey: "none", setupListId: null, pool: {}, goal: "least_cost", batch: 100, batchMode: "100", customBatch: "", unit: "t", docName: "Untitled formulation", docId: null, pendingDoc: null, pendingCmp: null, result: null, runSig: null, runSnap: null, running: false, runToken: 0, tab: "recipe", drawer: null, advisoriesOpen: false, addOpen: false, addQ: "", addCategory: null, addPick: [], premixOpen: false, premixFilter: "matches", premixPick: null, mode: "optimised", manual: NO_MANUAL_AMOUNTS, manualCheck: null, restoreManual: null, rulesOpen: false, history: [], sel: [], cmp: null, toast: null, dismissed: {}, savedSig: null, savedV: null, saving: false, exporting: false, suggestion: null, completionSuggestion: null, compareOpen: false, recoveryUndo: null, ingQ: "", catQ: "", catSel: null, catPage: 1, catPageSize: CAT_DEFAULT_PAGE_SIZE, progSel: null, progPhase: null, progAllLimits: false, addTarget: "pool", auth: null, authNext: null, af: { email: "", password: "", name: "", org: "", role: "farmer" }, aShow: false, aErr: {}, aBusy: false, aGoogleBusy: false, aSent: null, myListSel: null, listRename: null, listCreate: null, sq: "", sOpen: false, sIdx: 0, uOpen: false, nOpen: false, featFilter: "all", cOpen: false, cTopic: "review", cPhone: "", cMsg: "", cAttach: true, cBusy: false, cSent: false, cErr: "",
+  w: 1400, screen: "home", step: 1, species: "swine", programmeId: DEFAULT_PROGRAMME, phaseId: "", setKey: "none", setupListId: null, pool: {}, goal: "least_cost", batch: 100, batchMode: "100", customBatch: "", unit: "t", docName: "Untitled formulation", docId: null, pendingDoc: null, pendingCmp: null, result: null, runSig: null, runSnap: null, running: false, runToken: 0, tab: "recipe", drawer: null, advisoriesOpen: false, addOpen: false, addQ: "", addCategory: null, addPick: [], premixOpen: false, premixFilter: "matches", premixPick: null, mode: "optimised", manual: NO_MANUAL_AMOUNTS, manualCheck: null, restoreManual: null, rulesOpen: false, history: [], sel: [], cmp: null, toast: null, dismissed: {}, savedSig: null, savedV: null, saving: false, exporting: false, suggestion: null, completionSuggestion: null, compareOpen: false, recoveryUndo: null, ingQ: "", catQ: "", catSel: null, catPage: 1, catPageSize: DEFAULT_PAGE_SIZE, listPage: 1, listPageSize: DEFAULT_PAGE_SIZE, progSel: null, progPhase: null, progAllLimits: false, addTarget: "pool", auth: null, authNext: null, af: { email: "", password: "", name: "", org: "", role: "farmer" }, aShow: false, aErr: {}, aBusy: false, aGoogleBusy: false, aSent: null, myListSel: null, listRename: null, listCreate: null, sq: "", sOpen: false, sIdx: 0, uOpen: false, nOpen: false, featFilter: "all", cOpen: false, cTopic: "review", cPhone: "", cMsg: "", cAttach: true, cBusy: false, cSent: false, cErr: "",
 };
 
 const spinnerStyle = (track: string, head: string): CSSProperties => ({ width: 16, height: 16, borderRadius: "50%", border: "2px solid " + track, borderTopColor: head, display: "inline-block", animation: "fsspin .8s linear infinite", flex: "none" });
@@ -837,6 +887,15 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
     replaceNext.current = true;
     update({ catPage: lastCatPage });
   }, [ready, S.screen, S.catPage, lastCatPage, update]);
+
+  // Likewise for the formulations list, once saved formulations have loaded
+  // (or after deleting the last one on the final page).
+  const lastListPage = docs ? pageCount(docs.length, S.listPageSize) : null;
+  useEffect(() => {
+    if (!ready || S.screen !== "list" || lastListPage == null || S.listPage <= lastListPage) return;
+    replaceNext.current = true;
+    update({ listPage: lastListPage });
+  }, [ready, S.screen, S.listPage, lastListPage, update]);
 
   // Toasts clear themselves after a few seconds.
   useEffect(() => {
@@ -1920,16 +1979,14 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
   const docVersions = doc ? doc.versions.slice().reverse().map((v) => ({ v: v.v, date: new Date(v.date).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }), cost: v.sum.costT != null ? money(v.sum.costT) + "/t" : "—", status: stOfSum(v.sum), open: () => openVersion(doc.id, v.v) })) : [];
 
   // ---- formulations list ----
-  const listRows = formulations.docs.flatMap((d) =>
-    d.versions
-      .slice()
-      .reverse()
-      .map((v, i) => {
-        const key = d.id + ":" + v.v;
-        const on = S.sel.includes(key);
-        return { name: i === 0 ? d.name : "↳ earlier version", indent: i === 0 ? "0" : "16px", nameColor: i === 0 ? "#222420" : "#64665c", prog: programmeLabel(programmes, v.snap), v: v.v, st: stOfSum(v.sum), cost: v.sum.costT != null ? money(v.sum.costT) : "—", date: new Date(v.date).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }), bg: on ? "#f4f8f4" : "#fff", check: on ? "✓" : "", cbBg: on ? "#2f5a3f" : "#fff", cbBd: on ? "#2f5a3f" : "#b9b6ab", toggle: () => update({ sel: on ? S.sel.filter((k) => k !== key) : [...S.sel, key].slice(-2) }), open: () => openVersion(d.id, v.v), canDelete: i === 0, deleteLabel: "Delete " + d.name, remove: () => void deleteDoc(d.id) };
-      }),
-  );
+  // One row per formulation, at its latest version; earlier versions are reached from the workspace.
+  const listPg = pagerVals(formulations.docs.length, S.listPage, S.listPageSize, (p) => update({ listPage: p }), (n) => update({ listPageSize: n, listPage: 1 }));
+  const listRows = formulations.docs.slice(listPg.from, listPg.to).map((d) => {
+    const v = d.versions[d.versions.length - 1];
+    const key = d.id + ":" + v.v;
+    const on = S.sel.includes(key);
+    return { name: d.name, prog: programmeLabel(programmes, v.snap), v: v.v, st: stOfSum(v.sum), cost: v.sum.costT != null ? money(v.sum.costT) : "—", date: new Date(v.date).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }), bg: on ? "#f4f8f4" : "#fff", check: on ? "✓" : "", cbBg: on ? "#2f5a3f" : "#fff", cbBd: on ? "#2f5a3f" : "#b9b6ab", toggle: () => update({ sel: on ? S.sel.filter((k) => k !== key) : [...S.sel, key].slice(-2) }), open: () => openVersion(d.id, v.v), deleteLabel: "Delete " + d.name, remove: () => void deleteDoc(d.id) };
+  });
   const recent = formulations.docs.slice(0, 5).map((d) => {
     const v = d.versions[d.versions.length - 1];
     return { name: d.name, v: v.v, prog: programmeLabel(programmes, v.snap), st: stOfSum(v.sum), cost: v.sum.costT != null ? money(v.sum.costT) + "/t" : "—", open: () => openVersion(d.id, v.v) };
@@ -2176,7 +2233,7 @@ function useStudio({ catalogue, nutrients, programmes, featured: featuredList, s
     isManual: !!manualView, notManual: !manualView, optimiseFromHere: () => update({ mode: "optimised", manual: NO_MANUAL_AMOUNTS, manualCheck: null }),
     goNutrients: () => update({ tab: "nutrients" }),
     whyLoading: false, whyReady: !!optimal, why, runs, docVersions, noVersions: docVersions.length === 0, docAdvice, hasAdvice: docAdvice.length > 0,
-    listRows, selText: S.sel.length + " of 2 selected", cmpDisabled: S.sel.length !== 2, cmpBg: S.sel.length === 2 ? "#e3aa45" : "#64665c", doCompare: () => S.sel.length === 2 && update({ screen: "compare", cmp: S.sel.slice() }), cmp,
+    listRows, listPager: listPg.pager, listPaged: formulations.docs.length > 0, selText: S.sel.length + " of 2 selected", cmpDisabled: S.sel.length !== 2, cmpBg: S.sel.length === 2 ? "#e3aa45" : "#64665c", doCompare: () => S.sel.length === 2 && update({ screen: "compare", cmp: S.sel.slice() }), cmp,
     d, closeDrawer: () => update({ drawer: null }),
     hasToast: !!S.toast, toast: S.toast || "",
     ...topBarVals(S, {
@@ -3089,13 +3146,7 @@ function libraryVals(
   const LIMITS_PREVIEW = 12;
   const catAll = catalogueMatches(catalogue, S.catQ);
   const catSel = S.catSel ? catalogue.find((g) => g.id === S.catSel) || null : null;
-  const ps = S.catPageSize,
-    pages = Math.max(1, Math.ceil(catAll.length / ps)),
-    page = Math.min(Math.max(1, S.catPage), pages);
-  const from = (page - 1) * ps,
-    to = Math.min(catAll.length, from + ps);
-  const goPage = (p: number) => () => p >= 1 && p <= pages && p !== page && update({ catPage: p });
-  type PageBtn = { label: string; bg: string; fg: string; bd: string; go: () => void };
+  const catPg = pagerVals(catAll.length, S.catPage, S.catPageSize, (p) => update({ catPage: p }), (n) => update({ catPageSize: n, catPage: 1 }));
   const catVal = (n: (typeof CAT_NUTRIENTS)[number], x: number) => (n.unit === "%" ? fmt(x, n.dp) + "%" : fmt(x, n.dp) + " " + n.unit);
   const catD = catSel
     ? {
@@ -3254,18 +3305,8 @@ function libraryVals(
       ctx.replaceUrl(); // typing shouldn't add a history entry per keystroke
       update({ catQ: e.target.value, catPage: 1 });
     },
-    catPager: {
-      text: catAll.length ? "Showing " + (from + 1) + "–" + to + " of " + catAll.length : "0 results", prev: goPage(page - 1), next: goPage(page + 1), prevColor: page > 1 ? "#222420" : "#b9b6ab", nextColor: page < pages ? "#222420" : "#b9b6ab", prevDisabled: page <= 1, nextDisabled: page >= pages,
-      pages: Array.from({ length: pages }, (_, i) => i + 1)
-        .filter((p) => pages <= 7 || p === 1 || p === pages || Math.abs(p - page) <= 1)
-        .reduce<PageBtn[]>((acc, p, i, arr) => {
-          if (i && p - arr[i - 1] > 1) acc.push({ label: "…", bg: "transparent", fg: "#64665c", bd: "transparent", go: () => {} });
-          acc.push({ label: String(p), bg: p === page ? "#222420" : "#fff", fg: p === page ? "#faf8f3" : "#222420", bd: p === page ? "#222420" : "#d0cdc3", go: goPage(p) });
-          return acc;
-        }, []),
-      size: String(ps), onSize: (e: InputEvent) => update({ catPageSize: +e.target.value, catPage: 1 }),
-    },
-    catRows: catAll.slice(from, to).map((g) => {
+    catPager: catPg.pager,
+    catRows: catAll.slice(catPg.from, catPg.to).map((g) => {
       const missing = !commercialPremixById(g.id) && g.expected.some((id) => g.nutrients[id] == null);
       const on = g.id === S.catSel;
       const num = (x: number | null, dp: number, unit = "") => (x == null ? "—" : fmt(x, dp) + unit);

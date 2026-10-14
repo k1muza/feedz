@@ -3,7 +3,7 @@ import { useState, type ReactNode } from "react";
 
 import { IngredientPoolPanel } from "./ingredient-pool-panel";
 import { InfoTip } from "./info-tip";
-import { CAT_PAGE_SIZES, type ShellVals, type StudioVals } from "./studio";
+import { PAGE_SIZES, type ShellVals, type StudioVals } from "./studio";
 import { ADV_LINK, CARD, DataTag, Diamond, MONO_HEAD, StatusGlyph } from "./marks";
 import { STUDIO_CSS, hv, sx } from "./sx";
 import { UpperLimitAdvisories, UpperLimitTable } from "./upper-limit-cards";
@@ -1845,7 +1845,7 @@ function List({ v }: V) {
           {v.listRows.map((d, i) => (
             <div key={i} style={sx(`${LIST_COLS};padding:12px 18px;border-top:1px solid #ece8df;font:400 14px/1.3 'IBM Plex Sans',sans-serif;align-items:center;background:${d.bg}`)}>
               <button onClick={d.toggle} aria-label="Select" style={sx(`width:18px;height:18px;border-radius:4px;border:1.5px solid ${d.cbBd};background:${d.cbBg};color:#fff;font:600 11px/15px 'IBM Plex Sans',sans-serif;padding:0`)}>{d.check}</button>
-              <span style={sx(`font-weight:500;padding-left:${d.indent};color:${d.nameColor}`)}>{d.name}</span>
+              <span style={sx("font-weight:500")}>{d.name}</span>
               <span style={sx("color:#45473f")}>{d.prog}</span>
               <span>v{d.v}</span>
               <span style={sx(`display:flex;align-items:center;gap:7px;color:${d.st.color}`)}>
@@ -1856,19 +1856,16 @@ function List({ v }: V) {
               <span style={sx("color:#45473f")}>{d.date}</span>
               <span style={sx("display:flex;align-items:center;justify-content:flex-end;gap:8px")}>
                 <button onClick={d.open} style={sx("border:0;background:transparent;font:600 13px/1 'IBM Plex Sans',sans-serif;color:#2f5a3f;text-align:right;padding:4px 0")}>Open</button>
-                {d.canDelete ? (
-                  <button onClick={d.remove} aria-label={d.deleteLabel} title="Delete this formulation and all its versions" className={hv("trash")} style={sx("display:flex;align-items:center;justify-content:center;width:30px;height:30px;border:0;border-radius:6px;background:transparent;padding:0;color:#a63d2a")}>
-                    <Trash2 size={16} strokeWidth={1.75} aria-hidden />
-                  </button>
-                ) : (
-                  <span style={sx("width:30px")} />
-                )}
+                <button onClick={d.remove} aria-label={d.deleteLabel} title="Delete this formulation and all its versions" className={hv("trash")} style={sx("display:flex;align-items:center;justify-content:center;width:30px;height:30px;border:0;border-radius:6px;background:transparent;padding:0;color:#a63d2a")}>
+                  <Trash2 size={16} strokeWidth={1.75} aria-hidden />
+                </button>
               </span>
             </div>
           ))}
         </div>
+        {v.listPaged && <Pager pg={v.listPager} />}
       </div>
-      <div style={sx("font:400 13px/1.5 'IBM Plex Sans',sans-serif;color:#64665c")}>Select any two versions to compare. Each version stores programme, stage, ingredients and roles, prices, limits and goal, so reopening reproduces the result.</div>
+      <div style={sx("font:400 13px/1.5 'IBM Plex Sans',sans-serif;color:#64665c")}>Select any two formulations to compare. Open one to see its earlier versions. Each version stores programme, stage, ingredients and roles, prices, limits and goal, so reopening reproduces the result.</div>
     </div>
   );
 }
@@ -2144,10 +2141,35 @@ function NutrientData({ v }: V) {
   );
 }
 
+// Footer of a paged table: the range shown, page size, and page buttons.
+function Pager({ pg }: { pg: StudioVals["catPager"] }) {
+  return (
+    <div style={sx("display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 18px;border-top:1px solid #e2dfd6;background:#faf8f3;flex-wrap:wrap;position:sticky;left:0")}>
+      <div style={sx("display:flex;align-items:center;gap:12px;font:400 13px/1 'IBM Plex Sans',sans-serif;color:#45473f")}>
+        <span>{pg.text}</span>
+        <label style={sx("display:flex;align-items:center;gap:6px;color:#64665c")}>
+          Per page
+          <select value={pg.size} onChange={pg.onSize} style={sx("font:500 13px/1 'IBM Plex Sans',sans-serif;padding:5px 6px;border:1px solid #d0cdc3;border-radius:6px;background:#fff;color:#222420")}>
+            {PAGE_SIZES.map((n) => (
+              <option key={n} value={n}>{n}</option>
+            ))}
+          </select>
+        </label>
+      </div>
+      <div style={sx("display:flex;align-items:center;gap:6px")}>
+        <button onClick={pg.prev} disabled={pg.prevDisabled} aria-label="Previous page" style={sx(`border:1px solid #d0cdc3;background:#fff;color:${pg.prevColor};font:500 13px/1 'IBM Plex Sans',sans-serif;padding:7px 10px;border-radius:6px`)}>‹ Prev</button>
+        {pg.pages.map((p, i) => (
+          <button key={i} onClick={p.go} style={sx(`min-width:32px;border:1px solid ${p.bd};background:${p.bg};color:${p.fg};font:600 13px/1 'IBM Plex Sans',sans-serif;padding:7px 8px;border-radius:6px`)}>{p.label}</button>
+        ))}
+        <button onClick={pg.next} disabled={pg.nextDisabled} aria-label="Next page" style={sx(`border:1px solid #d0cdc3;background:#fff;color:${pg.nextColor};font:500 13px/1 'IBM Plex Sans',sans-serif;padding:7px 10px;border-radius:6px`)}>Next ›</button>
+      </div>
+    </div>
+  );
+}
+
 const CAT_COLS = "display:grid;grid-template-columns:minmax(0,1.5fr) 0.9fr 0.7fr 0.7fr 0.8fr 0.7fr 1.4fr;gap:12px";
 
 function Catalogue({ v }: V) {
-  const pg = v.catPager;
   return (
     <div style={sx("padding:36px clamp(16px,4vw,40px);display:flex;flex-direction:column;gap:20px;max-width:1600px;width:100%;margin:0 auto;animation:fsin .25s ease-out")}>
       <div style={sx("display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap")}>
@@ -2182,26 +2204,7 @@ function Catalogue({ v }: V) {
             ))}
             {v.catEmpty && <div style={sx("padding:18px;font:400 14px/1.4 'IBM Plex Sans',sans-serif;color:#64665c")}>No ingredients match.</div>}
           </div>
-          <div style={sx("display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 18px;border-top:1px solid #e2dfd6;background:#faf8f3;flex-wrap:wrap;position:sticky;left:0")}>
-            <div style={sx("display:flex;align-items:center;gap:12px;font:400 13px/1 'IBM Plex Sans',sans-serif;color:#45473f")}>
-              <span>{pg.text}</span>
-              <label style={sx("display:flex;align-items:center;gap:6px;color:#64665c")}>
-                Per page
-                <select value={pg.size} onChange={pg.onSize} style={sx("font:500 13px/1 'IBM Plex Sans',sans-serif;padding:5px 6px;border:1px solid #d0cdc3;border-radius:6px;background:#fff;color:#222420")}>
-                  {CAT_PAGE_SIZES.map((n) => (
-                    <option key={n} value={n}>{n}</option>
-                  ))}
-                </select>
-              </label>
-            </div>
-            <div style={sx("display:flex;align-items:center;gap:6px")}>
-              <button onClick={pg.prev} disabled={pg.prevDisabled} aria-label="Previous page" style={sx(`border:1px solid #d0cdc3;background:#fff;color:${pg.prevColor};font:500 13px/1 'IBM Plex Sans',sans-serif;padding:7px 10px;border-radius:6px`)}>‹ Prev</button>
-              {pg.pages.map((p, i) => (
-                <button key={i} onClick={p.go} style={sx(`min-width:32px;border:1px solid ${p.bd};background:${p.bg};color:${p.fg};font:600 13px/1 'IBM Plex Sans',sans-serif;padding:7px 8px;border-radius:6px`)}>{p.label}</button>
-              ))}
-              <button onClick={pg.next} disabled={pg.nextDisabled} aria-label="Next page" style={sx(`border:1px solid #d0cdc3;background:#fff;color:${pg.nextColor};font:500 13px/1 'IBM Plex Sans',sans-serif;padding:7px 10px;border-radius:6px`)}>Next ›</button>
-            </div>
-          </div>
+          <Pager pg={v.catPager} />
         </div>
         {v.catD && (
           <div style={sx("flex:0 1 360px;min-width:280px;background:#fff;border:1px solid #e2dfd6;border-radius:10px;display:flex;flex-direction:column;animation:fsin .2s ease-out")}>
