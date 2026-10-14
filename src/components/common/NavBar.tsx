@@ -17,7 +17,10 @@ const links = [
 
 type AccountUser = NonNullable<ReturnType<typeof useAuth>['user']>;
 
-const accountName = (user: AccountUser) => user.displayName ?? user.email?.split('@')[0] ?? 'Account';
+// Names come from sign-up forms and email addresses, so they arrive in any case.
+const titleCase = (text: string) => text.toLowerCase().replace(/(^|[\s'-])(\p{L})/gu, (_, sep: string, letter: string) => sep + letter.toUpperCase());
+
+const accountName = (user: AccountUser) => titleCase(user.displayName ?? user.email?.split('@')[0] ?? 'Account');
 
 const firstName = (user: AccountUser) => accountName(user).split(' ')[0];
 
