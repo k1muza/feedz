@@ -4,7 +4,7 @@
   "sourceId": "cfia-maximum-nutrient-values-2024",
   "title": "FeedSport programme phases mapped to CFIA maximum-nutrient columns",
   "rule": "Upper-bound rule. Each phase maps to exactly one CFIA column: the one containing the phase's upper bound. Growing pigs: the column whose weight range contains the phase's upper published weight (lower bound exclusive, upper bound inclusive), so a 16-26 kg phase is Grower (25 to 50 kg). Broilers: the column containing the phase's last day, with day 28 (the 4-week start of the Grower column) as the Starter/Grower boundary. Gestating gilts and sows: Dry sows. Lactating gilts and sows: Lactating sows. Mature boars: Sexually active boars. FeedSport never infers a column at run time.",
-  "unsupportedPolicy": "A phase whose upper bound lies beyond every published column (a grow-finish phase ending above 135 kg) is listed with status unsupported and has no upper-limit comparison; FeedSport does not extrapolate. A phase absent from this list is also unsupported.",
+  "unsupportedPolicy": "Exception to the upper-bound rule: a grow-finish phase ending above 135 kg, beyond every published column, uses Finisher (100 to 135 kg) and is flagged beyondPublishedColumns. CFIA publishes the same values for every swine column from 25 kg upward, so this changes no maximum. A phase absent from this list has no CFIA reference and is reported as unsupported.",
   "mappings": [
     {
       "phaseId": "br2024-5-32-14-21d-4.4-6.2kg",
@@ -302,9 +302,12 @@
       ],
       "phaseLabel": "finisher: 116–156 kg",
       "basis": "116–156 kg",
-      "status": "unsupported",
+      "status": "mapped",
       "cfiaTable": "swine",
-      "explanation": "The phase ends at 156 kg, beyond the 135 kg end of the heaviest published CFIA grow-finish column (Finisher, 100 to 135 kg). By the upper-bound rule no published column applies, and FeedSport does not extrapolate one, so this phase has no CFIA reference."
+      "cfiaCategoryId": "swine-finisher-100-135kg",
+      "crossesBoundary": false,
+      "beyondPublishedColumns": true,
+      "explanation": "The phase ends at 156 kg, beyond the 135 kg end of the heaviest published CFIA grow-finish column. As an agreed exception to the upper-bound rule, Finisher (100 to 135 kg) applies. CFIA publishes the same values for every swine column from 25 kg upward (including dry sows, lactating sows and boars), so this does not change any maximum."
     },
     {
       "phaseId": "pic-mature-boar",
@@ -638,9 +641,12 @@
       ],
       "phaseLabel": "finisher: 110–141 kg",
       "basis": "110–141 kg",
-      "status": "unsupported",
+      "status": "mapped",
       "cfiaTable": "swine",
-      "explanation": "The phase ends at 141 kg, beyond the 135 kg end of the heaviest published CFIA grow-finish column (Finisher, 100 to 135 kg). By the upper-bound rule no published column applies, and FeedSport does not extrapolate one, so this phase has no CFIA reference."
+      "cfiaCategoryId": "swine-finisher-100-135kg",
+      "crossesBoundary": false,
+      "beyondPublishedColumns": true,
+      "explanation": "The phase ends at 141 kg, beyond the 135 kg end of the heaviest published CFIA grow-finish column. As an agreed exception to the upper-bound rule, Finisher (100 to 135 kg) applies. CFIA publishes the same values for every swine column from 25 kg upward (including dry sows, lactating sows and boars), so this does not change any maximum."
     },
     {
       "phaseId": "br2024-5-36-49-63d-18-27kg",
@@ -701,9 +707,12 @@
       ],
       "phaseLabel": "finisher: 107–137 kg",
       "basis": "107–137 kg",
-      "status": "unsupported",
+      "status": "mapped",
       "cfiaTable": "swine",
-      "explanation": "The phase ends at 137 kg, beyond the 135 kg end of the heaviest published CFIA grow-finish column (Finisher, 100 to 135 kg). By the upper-bound rule no published column applies, and FeedSport does not extrapolate one, so this phase has no CFIA reference."
+      "cfiaCategoryId": "swine-finisher-100-135kg",
+      "crossesBoundary": false,
+      "beyondPublishedColumns": true,
+      "explanation": "The phase ends at 137 kg, beyond the 135 kg end of the heaviest published CFIA grow-finish column. As an agreed exception to the upper-bound rule, Finisher (100 to 135 kg) applies. CFIA publishes the same values for every swine column from 25 kg upward (including dry sows, lactating sows and boars), so this does not change any maximum."
     },
     {
       "phaseId": "br2024-5-33-49-63d-18-27kg",
@@ -764,9 +773,12 @@
       ],
       "phaseLabel": "finisher: 113–145 kg",
       "basis": "113–145 kg",
-      "status": "unsupported",
+      "status": "mapped",
       "cfiaTable": "swine",
-      "explanation": "The phase ends at 145 kg, beyond the 135 kg end of the heaviest published CFIA grow-finish column (Finisher, 100 to 135 kg). By the upper-bound rule no published column applies, and FeedSport does not extrapolate one, so this phase has no CFIA reference."
+      "cfiaCategoryId": "swine-finisher-100-135kg",
+      "crossesBoundary": false,
+      "beyondPublishedColumns": true,
+      "explanation": "The phase ends at 145 kg, beyond the 135 kg end of the heaviest published CFIA grow-finish column. As an agreed exception to the upper-bound rule, Finisher (100 to 135 kg) applies. CFIA publishes the same values for every swine column from 25 kg upward (including dry sows, lactating sows and boars), so this does not change any maximum."
     },
     {
       "phaseId": "br2024-5-34-63-91d-27-51kg",
@@ -814,9 +826,12 @@
       ],
       "phaseLabel": "finisher: 113–145 kg",
       "basis": "113–145 kg",
-      "status": "unsupported",
+      "status": "mapped",
       "cfiaTable": "swine",
-      "explanation": "The phase ends at 145 kg, beyond the 135 kg end of the heaviest published CFIA grow-finish column (Finisher, 100 to 135 kg). By the upper-bound rule no published column applies, and FeedSport does not extrapolate one, so this phase has no CFIA reference."
+      "cfiaCategoryId": "swine-finisher-100-135kg",
+      "crossesBoundary": false,
+      "beyondPublishedColumns": true,
+      "explanation": "The phase ends at 145 kg, beyond the 135 kg end of the heaviest published CFIA grow-finish column. As an agreed exception to the upper-bound rule, Finisher (100 to 135 kg) applies. CFIA publishes the same values for every swine column from 25 kg upward (including dry sows, lactating sows and boars), so this does not change any maximum."
     },
     {
       "phaseId": "br2024-5-37-63-91d-27-50kg",
@@ -864,9 +879,12 @@
       ],
       "phaseLabel": "finisher: 107–137 kg",
       "basis": "107–137 kg",
-      "status": "unsupported",
+      "status": "mapped",
       "cfiaTable": "swine",
-      "explanation": "The phase ends at 137 kg, beyond the 135 kg end of the heaviest published CFIA grow-finish column (Finisher, 100 to 135 kg). By the upper-bound rule no published column applies, and FeedSport does not extrapolate one, so this phase has no CFIA reference."
+      "cfiaCategoryId": "swine-finisher-100-135kg",
+      "crossesBoundary": false,
+      "beyondPublishedColumns": true,
+      "explanation": "The phase ends at 137 kg, beyond the 135 kg end of the heaviest published CFIA grow-finish column. As an agreed exception to the upper-bound rule, Finisher (100 to 135 kg) applies. CFIA publishes the same values for every swine column from 25 kg upward (including dry sows, lactating sows and boars), so this does not change any maximum."
     },
     {
       "phaseId": "br2024-5-40-63-91d-25-45kg",
@@ -914,9 +932,12 @@
       ],
       "phaseLabel": "finisher: 105–145 kg",
       "basis": "105–145 kg",
-      "status": "unsupported",
+      "status": "mapped",
       "cfiaTable": "swine",
-      "explanation": "The phase ends at 145 kg, beyond the 135 kg end of the heaviest published CFIA grow-finish column (Finisher, 100 to 135 kg). By the upper-bound rule no published column applies, and FeedSport does not extrapolate one, so this phase has no CFIA reference."
+      "cfiaCategoryId": "swine-finisher-100-135kg",
+      "crossesBoundary": false,
+      "beyondPublishedColumns": true,
+      "explanation": "The phase ends at 145 kg, beyond the 135 kg end of the heaviest published CFIA grow-finish column. As an agreed exception to the upper-bound rule, Finisher (100 to 135 kg) applies. CFIA publishes the same values for every swine column from 25 kg upward (including dry sows, lactating sows and boars), so this does not change any maximum."
     },
     {
       "phaseId": "br2024-5-42-63-91d-27-50kg",
@@ -964,9 +985,12 @@
       ],
       "phaseLabel": "finisher: 110–141 kg",
       "basis": "110–141 kg",
-      "status": "unsupported",
+      "status": "mapped",
       "cfiaTable": "swine",
-      "explanation": "The phase ends at 141 kg, beyond the 135 kg end of the heaviest published CFIA grow-finish column (Finisher, 100 to 135 kg). By the upper-bound rule no published column applies, and FeedSport does not extrapolate one, so this phase has no CFIA reference."
+      "cfiaCategoryId": "swine-finisher-100-135kg",
+      "crossesBoundary": false,
+      "beyondPublishedColumns": true,
+      "explanation": "The phase ends at 141 kg, beyond the 135 kg end of the heaviest published CFIA grow-finish column. As an agreed exception to the upper-bound rule, Finisher (100 to 135 kg) applies. CFIA publishes the same values for every swine column from 25 kg upward (including dry sows, lactating sows and boars), so this does not change any maximum."
     },
     {
       "phaseId": "br2024-2-30-0-8d-0.05-0.24kg",

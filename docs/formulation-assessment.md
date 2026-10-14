@@ -95,9 +95,10 @@ agreed **upper-bound rule** and records an explanation for each phase:
 - growing pigs: the column whose weight range contains the phase's upper
   published weight (lower bound exclusive, upper inclusive). A 16–26 kg
   starter therefore takes Grower (25 to 50 kg): copper 125 mg/kg and zinc
-  300 mg/kg, not the Starter 250 and 3,000. A grow-finish phase ending above
-  135 kg is past the heaviest published column, so it is `unsupported` and
-  gets no comparison. FeedSport does not extrapolate a column;
+  300 mg/kg, not the Starter 250 and 3,000. Exception: the eight grow-finish
+  phases ending above 135 kg, past every published column, use Finisher (100
+  to 135 kg) and are flagged `beyondPublishedColumns`. CFIA's swine values
+  are identical from 25 kg upward, so no maximum changes;
 - broilers: the column containing the phase's last day, with day 28 as the
   Starter/Grower boundary. CFIA prints Starter as "0 to 8 weeks", which
   overlaps Grower "4 to 8 weeks"; the two columns have identical values;

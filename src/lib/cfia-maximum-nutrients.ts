@@ -46,7 +46,18 @@ export type CfiaPhaseMapping = {
   cfiaTable: CfiaTableId;
   explanation: string;
 } & (
-  | { status: "mapped"; cfiaCategoryId: string; crossesBoundary: boolean }
+  | {
+      status: "mapped";
+      cfiaCategoryId: string;
+      crossesBoundary: boolean;
+      /**
+       * Exception to the upper-bound rule: a grow-finish phase ending above
+       * 135 kg is past every published CFIA column, so it keeps Finisher
+       * (100 to 135 kg). CFIA's swine values are identical from 25 kg up,
+       * so no maximum changes.
+       */
+      beyondPublishedColumns?: true;
+    }
   | { status: "unsupported" }
 );
 

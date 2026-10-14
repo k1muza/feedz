@@ -158,12 +158,6 @@ describe("CFIA maximum nutrient values", () => {
     assert.equal(new Set(CFIA_PHASE_MAPPINGS.map((mapping) => mapping.phaseId)).size, CFIA_PHASE_MAPPINGS.length, "one mapping per phase");
     for (const [id, { phase, species }] of phases) {
       const reference = cfiaReferenceForPhase(phase);
-      // Upper-bound rule: beyond the heaviest published column is explicitly unsupported, never extrapolated.
-      if (species === "swine" && !["gestation", "lactation", "boar"].includes(phase.phaseClass) && phase.sourceMaxWeightKg > 135) {
-        assert.equal(reference.status, "unsupported", id);
-        if (reference.status === "unsupported") assert.match(reference.reason, /beyond the 135 kg end/);
-        continue;
-      }
       assert.equal(reference.status, "mapped", id);
       if (reference.status !== "mapped") continue;
       assert.equal(reference.table, species === "broiler" ? "chickens" : "swine", id);
@@ -176,8 +170,11 @@ describe("CFIA maximum nutrient values", () => {
       else if (phase.phaseClass === "boar") assert.equal(reference.category.id, "swine-sexually-active-boars", id);
       else {
         // The column containing the phase's upper weight (lower bound exclusive, upper inclusive).
-        const bands: [number, string][] = [[7, "swine-starter-under-7kg"], [11, "swine-starter-7-11kg"], [25, "swine-starter-11-25kg"], [50, "swine-grower-25-50kg"], [75, "swine-grower-50-75kg"], [100, "swine-finisher-75-100kg"], [135, "swine-finisher-100-135kg"]];
+        // Beyond 135 kg is the agreed exception: the heaviest published column, flagged.
+        const bands: [number, string][] = [[7, "swine-starter-under-7kg"], [11, "swine-starter-7-11kg"], [25, "swine-starter-11-25kg"], [50, "swine-grower-25-50kg"], [75, "swine-grower-50-75kg"], [100, "swine-finisher-75-100kg"], [Infinity, "swine-finisher-100-135kg"]];
         assert.equal(reference.category.id, bands.find(([upper]) => phase.sourceMaxWeightKg <= upper)![1], id);
+        assert.equal(reference.mapping.beyondPublishedColumns === true, phase.sourceMaxWeightKg > 135, `${id} flags the exception`);
+        if (phase.sourceMaxWeightKg > 135) assert.match(reference.mapping.explanation, /agreed exception/);
       }
       if (reference.mapping.crossesBoundary) assert.match(reference.mapping.explanation, /upper-bound rule/, `${id} explains the boundary`);
     }
