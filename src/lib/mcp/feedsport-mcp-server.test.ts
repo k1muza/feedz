@@ -111,7 +111,9 @@ describe("MCP premix guidance", () => {
       clientInfo: { name: "FeedSport contract test", version: "1.0.0" },
     });
     const instructions = result?.instructions ?? "";
-    assert.match(instructions, /Automatic mode does not include any premix/);
+    assert.match(instructions, /exactly one stage-compatible commercial premix at its fixed manufacturer dose/);
+    assert.match(instructions, /basal_only/);
+    assert.doesNotMatch(instructions, /Automatic mode does not include any premix/);
     assert.match(instructions, /Generic premix aliases such as "premix" are rejected/);
     assert.match(instructions, /count towards vitamin and trace-mineral targets/i);
     assert.match(instructions, /nutritional_validation/);
@@ -127,7 +129,7 @@ describe("MCP premix guidance", () => {
     assert.doesNotMatch(instructions, /include the FeedSport premix .* to cover/i);
   });
 
-  it("describes automatic mode as basal-only and requires a real SKU for premixes", async () => {
+  it("describes automatic mode as including one fixed-dose premix and requires a real SKU for premixes", async () => {
     const { handler } = server();
     const result = await rpc(handler, "tools/list", {});
     const tools = result?.tools ?? [];
@@ -136,7 +138,9 @@ describe("MCP premix guidance", () => {
       assert.ok(tool, `Tool not advertised: ${name}`);
       return tool.description ?? "";
     };
-    assert.match(find("formulate"), /BASAL ingredients only/);
+    assert.match(find("formulate"), /ONE stage-compatible commercial premix at its fixed dose/);
+    assert.match(find("formulate"), /feed_completeness=incomplete/);
+    assert.doesNotMatch(find("formulate"), /BASAL ingredients only/);
     assert.match(find("formulate"), /nutritional_validation/);
     assert.match(find("formulate"), /meets_requirements/);
     assert.match(find("formulate"), /advisories/);

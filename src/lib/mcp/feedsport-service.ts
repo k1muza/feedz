@@ -54,7 +54,16 @@ import {
 } from "@/lib/ingredient-inclusion-limits";
 import type { EnergySystem } from "@/lib/nutrition-targets";
 import type { NutritionPhase, NutritionSpecies } from "@/lib/nutrition";
-import { COMMERCIAL_PREMIXES, assertManufacturerRecipe, commercialPremixById, commercialPremixCompatibleWithProgramme, premixAnalysisForIds, type CommercialPremix } from "@/lib/commercial-premixes";
+import {
+  COMMERCIAL_PREMIXES,
+  assertManufacturerRecipe,
+  automaticPremixExclusion,
+  commercialPremixById,
+  commercialPremixCompatibleWithProgramme,
+  commercialPremixForProgramme,
+  premixAnalysisForIds,
+  type CommercialPremix,
+} from "@/lib/commercial-premixes";
 import { buildManufacturerRecipeReport, ManufacturerRecipeValidationError } from "@/lib/manufacturer-recipe";
 import {
   buildFormulationAssessment,
@@ -377,6 +386,7 @@ export function premixComparisonReport(comparison: PremixComparison | null, effe
         cost_excludes_unpriced_premix: option.costExcludesPremix,
         hard_requirements_met: `${option.requirementsMet} of ${option.requirementsTotal}`,
         ingredient_count: option.recipe.length,
+        recipe: option.recipe.map((row) => ({ ingredient: row.ingredientId, percent: round(row.inclusionPct, 7) })),
         documentation_gaps: option.documentationGapLabels,
         chapter7_at_recommendation: `${option.supplementationAt} of ${option.supplementationTotal}`,
       })),
@@ -955,9 +965,11 @@ export function recipeRows(
       return {
         ingredient: row.ingredientId,
         name: libraryName(row.ingredientId, library),
-        // Enough precision that re-analysing a returned recipe still passes.
-        percentage: round(row.inclusionPct, 5),
-        kg_per_tonne: round(row.inclusionPct * 10, 4),
+        // Enough precision that re-analysing a returned recipe still passes:
+        // at 5 dp, rounding salt alone can move a binding chloride minimum by
+        // more than its 1e-5 relative tolerance.
+        percentage: round(row.inclusionPct, 7),
+        kg_per_tonne: round(row.inclusionPct * 10, 6),
         price_per_tonne: price === undefined ? null : round(price, 2),
         cost_contribution_per_tonne: price === undefined ? null : round((row.inclusionPct / 100) * price, 2),
       };
@@ -1142,6 +1154,43 @@ function formulationNotes(request: PreparedRequest): string[] {
   return notes;
 }
 
+/** How automatic mode chose its single commercial premix. */
+export type AutomaticPremixSelection = {
+  premix: CommercialPremix | undefined;
+  /**
+   * explicit: named in constraints; programme_default: the programme's default
+   * product; available_alternative: the default could not be included, so the
+   * same rule chose among the eligible products that could; unavailable: none.
+   */
+  basis: "explicit" | "programme_default" | "available_alternative" | "unavailable";
+  unavailable: Array<{ premix: string; reason: string }>;
+};
+
+/**
+ * Whether the recipe is a complete feed or only a basal ration. Meeting the
+ * optimizer's hard requirements says nothing about vitamin and trace-mineral
+ * supplementation, which only a commercial premix provides here.
+ */
+export function feedCompletenessReport(ingredientIds: readonly string[], automatic?: AutomaticPremixSelection) {
+  const premix = ingredientIds.map(commercialPremixById).find((product) => product !== undefined);
+  return {
+    premix_included: !!premix,
+    feed_completeness: premix ? "complete_with_premix" as const : "incomplete" as const,
+    feed_completeness_note: premix
+      ? `${premix.name} provides the vitamin and trace-mineral supplementation at its fixed manufacturer dose of ${premix.inclusionKgPerTonne} kg/t, and its documented nutrients are credited once. Hard requirements are under nutritional_validation; Chapter 7 comparisons remain advisories. This is not manufacturer approval or a feeding-safety guarantee.`
+      : "No commercial vitamin-mineral premix is included: this is a BASAL ration with no vitamin or trace-mineral supplementation, NOT a complete feed, even when every hard requirement is met. Add one stage-compatible premix at its manufacturer dose before mixing.",
+    ...(automatic
+      ? {
+          premix_selection: {
+            basis: automatic.basis,
+            premix: automatic.premix?.id ?? null,
+            ...(automatic.unavailable.length ? { unavailable_premixes: automatic.unavailable } : {}),
+          },
+        }
+      : {}),
+  };
+}
+
 export type FormulationBaseInput = {
   programme_id: string;
   energy_system?: EnergySystem;
@@ -1157,6 +1206,7 @@ export function buildScenario(
   input: FormulationBaseInput,
   context: FeedSportServiceContext,
   ingredientMode: IngredientMode = "selected",
+  automaticPremix?: AutomaticPremixSelection,
 ) {
   const request = prepareRequest(input.programme_id, input.energy_system ?? "ME", input.ingredients);
   const { resolved, library, ingredientIds } = request;
@@ -1251,20 +1301,63 @@ export function buildScenario(
       ...(request.resolvedNames.length > 0 ? { resolved_ingredient_names: request.resolvedNames } : {}),
       data_sources: dataSources(resolved, library, ingredientIds, prices, request.energySystem, request.includesPremix),
       premix_analysis: premixAnalysisForIds(ingredientIds),
+      ...feedCompletenessReport(ingredientIds, automaticPremix),
     },
     notes: [...formulationNotes(request), ...relaxedRequests],
   };
 }
 
 
+/**
+ * The one commercial premix automatic mode includes. A premix named in
+ * constraints is the farmer's explicit choice and is never replaced;
+ * otherwise the programme's default rule chooses among the eligible products
+ * that can actually be included (on-label, optimisable and priced).
+ */
+function automaticPremix(
+  resolved: ResolvedPhase,
+  constraintById: ReadonlyMap<string, IngredientConstraintInput>,
+  library: IngredientLibrary,
+  context: FeedSportServiceContext,
+): AutomaticPremixSelection {
+  const programmeId = resolved.programme.id;
+  const phaseId = resolved.phase.id;
+  const named = [...constraintById.keys()].flatMap((id) => commercialPremixById(id) ?? []);
+  if (named.length > 1) throw new FeedSportInputError("Use one commercial premix at a time.");
+  if (named.length === 1) {
+    const [premix] = named;
+    const exclusion = automaticPremixExclusion(premix, programmeId, phaseId);
+    if (exclusion) throw new FeedSportInputError(exclusion);
+    if (!priceRecord(premix.id, constraintById.get(premix.id)?.price_per_tonne, context)) {
+      throw new FeedSportInputError(`FeedSport has no planning price for ${premix.id}. Supply constraints.${premix.id}.price_per_tonne.`);
+    }
+    return { premix, basis: "explicit", unavailable: [] };
+  }
+
+  const unavailable: AutomaticPremixSelection["unavailable"] = [];
+  const premix = commercialPremixForProgramme(programmeId, phaseId, (candidate) => {
+    const reason = automaticPremixExclusion(candidate, programmeId, phaseId) ??
+      (!library.ingredients.some((record) => record.id === candidate.id)
+        ? `${candidate.name} has no nutrient profile for this species.`
+        : !priceRecord(candidate.id, undefined, context)
+          ? `${candidate.name} has no FeedSport planning price; supply constraints.${candidate.id}.price_per_tonne to include it.`
+          : undefined);
+    if (reason) unavailable.push({ premix: candidate.id, reason });
+    return !reason;
+  });
+  const basis = !premix
+    ? "unavailable"
+    : premix.id === commercialPremixForProgramme(programmeId, phaseId)?.id ? "programme_default" : "available_alternative";
+  return { premix, basis, unavailable };
+}
+
 function automaticIngredientIds(
   input: Omit<FormulateInput, "objective" | "ingredients" | "ingredient_mode">,
   context: FeedSportServiceContext,
-): string[] {
+): { ingredientIds: string[]; premix: AutomaticPremixSelection } {
   const resolved = resolvePhase(input.programme_id);
   const energySystem = input.energy_system ?? "ME";
-  const speciesLibrary = ingredientLibraryForPhase(resolved.phase);
-  const library = speciesLibrary;
+  const library = ingredientLibraryForPhase(resolved.phase);
 
   const constraintById = new Map<string, IngredientConstraintInput>();
   for (const [key, value] of Object.entries(input.constraints ?? {})) {
@@ -1274,9 +1367,10 @@ function automaticIngredientIds(
     }
     constraintById.set(id, value);
   }
+  const premix = automaticPremix(resolved, constraintById, library, context);
 
   const options: FormulationIngredientOption[] = library.ingredients.flatMap((ingredient) => {
-    // No commercial premix is injected in automatic mode; one is chosen deliberately.
+    // Basal candidates only: exactly one premix joins below, at its fixed dose.
     if (ingredient.category === "vitamin_mineral_premix") return [];
     const requestConstraint = constraintById.get(ingredient.id);
     const price = priceRecord(
@@ -1304,15 +1398,18 @@ function automaticIngredientIds(
   const incomplete = new Set(
     collectMissingData(prepared, constraints).map((row) => row.ingredientId),
   );
-  const ingredientIds = prepared
+  const basalIds = prepared
     .map((ingredient) => ingredient.option.ingredientId)
     .filter((id) => !incomplete.has(id));
 
-  if (ingredientIds.length <= 1) {
+  if (basalIds.length <= 1) {
     throw new FeedSportInputError(
       "FeedSport could not find enough priced ingredients with complete nutrient data for this phase.",
     );
   }
+  // Like a selected premix, its undocumented nutrients count as 0 and are
+  // labelled as assumptions rather than excluding it as incomplete data.
+  const ingredientIds = premix.premix ? [...basalIds, premix.premix.id] : basalIds;
 
   for (const id of constraintById.keys()) {
     if (!ingredientIds.includes(id)) {
@@ -1322,7 +1419,7 @@ function automaticIngredientIds(
     }
   }
 
-  return ingredientIds;
+  return { ingredientIds, premix };
 }
 
 function formulateScenario(
@@ -1344,7 +1441,7 @@ function formulateScenario(
     );
   }
 
-  const ingredients =
+  const automatic =
     ingredientMode === "automatic"
       ? automaticIngredientIds(
           {
@@ -1354,17 +1451,18 @@ function formulateScenario(
           },
           context,
         )
-      : [...explicitIngredients];
+      : undefined;
 
   return buildScenario(
     {
       programme_id: input.programme_id,
       energy_system: input.energy_system,
-      ingredients,
+      ingredients: automatic?.ingredientIds ?? [...explicitIngredients],
       constraints: input.constraints,
     },
     context,
     ingredientMode,
+    automatic?.premix,
   );
 }
 
@@ -1486,8 +1584,18 @@ export async function formulate(input: FormulateInput, context: FeedSportService
   const validation = (alternative
     ? assessed.alternatives?.find((candidate) => candidate.id === alternative.id)?.assessment
     : assessed.assessment) ?? buildFormulationAssessment(resolved.phase, request.energySystem, chosen.solution.formula, library);
+  const automatic = common.formulation_basis.ingredient_mode === "automatic";
+  // Automatic mode chooses the premix itself, so a recipe without one is never
+  // "optimal": it is a basal ration that cannot be fed as it stands.
+  const basalOnly = automatic && !common.premix_included;
   return {
-    status: "optimal" as const,
+    status: basalOnly ? "basal_only" as const : "optimal" as const,
+    ...(basalOnly
+      ? {
+          optimizer_status: "optimal" as const,
+          message: "Automatic formulation could not establish a complete feed: no stage-compatible commercial premix with a usable price could be included. This basal ration meets the hard requirements but has no vitamin or trace-mineral supplementation. Do not present it as a complete or ready-to-mix feed.",
+        }
+      : {}),
     objective,
     objective_applied: alternative ? objective : "least_cost",
     ...(alternative
@@ -1511,9 +1619,12 @@ export async function formulate(input: FormulateInput, context: FeedSportService
     ...premixComparisonReport(assessed.premixComparison, alternative ? null : assessed.premixEffect, !!alternative),
     notes: [
       ...notes,
-      ...(common.formulation_basis.ingredient_mode === "automatic"
+      ...(automatic
         ? [
             "FeedSport built the candidate pool automatically from priced ingredients with complete data for this phase; the AI client did not choose the basket.",
+            common.premix_selection?.premix
+              ? `FeedSport included ${common.premix_selection.premix} (${common.premix_selection.basis.replaceAll("_", " ")}) at its fixed manufacturer dose and optimised the basal ingredients around it. Other eligible premixes are re-run under premix_advisory with the same basal ingredients and prices.`
+              : "No commercial premix could be included automatically; see premix_selection.unavailable_premixes and premix_advisory.",
           ]
         : []),
     ],
@@ -1714,6 +1825,7 @@ export function analyseFormulation(input: AnalyseInput, context: FeedSportServic
     unsupported_requirements: evaluation.unsupportedRequirements,
     nutritional_validation: nutritionalValidationReport(validation),
     premix_analysis: premixAnalysisForIds(ingredientIds),
+    ...feedCompletenessReport(ingredientIds),
     notes,
     programme: programmeHeader(resolved),
     ...(request.resolvedNames.length > 0 ? { resolved_ingredient_names: request.resolvedNames } : {}),

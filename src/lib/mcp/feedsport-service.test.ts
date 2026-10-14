@@ -66,15 +66,17 @@ describe("FeedSport MCP automatic ingredient mode", () => {
     assert.equal(result.status, "optimal");
     assert.equal(result.formulation_basis.ingredient_mode, "automatic");
     assert.ok(result.formulation_basis.candidate_count > 1);
-    // Hard requirements decide the result; without a premix, Chapter 7
-    // supplementation is reported as an advisory, never as a deficiency.
+    // Hard requirements decide the result; Chapter 7 supplementation from the
+    // automatically included premix is reported as an advisory.
     assert.equal(result.nutritional_validation.overall_status, "meets_requirements");
     assert.match(result.nutritional_validation.headline, /^Meets all \d+ hard requirements$/);
     assert.ok(result.nutritional_validation.hard_requirements.every((row) => row.status === "met"));
     const chapter7 = result.nutritional_validation.advisories.supplementation?.comparisons ?? [];
     assert.ok(chapter7.length > 0);
-    assert.ok(chapter7.every((row) => row.status !== "at_recommendation"));
-    assert.equal(result.premix_analysis.status, "not_included");
+    assert.ok(chapter7.some((row) => row.status === "at_recommendation"), "the premix supplies vitamins and trace minerals");
+    assert.equal(result.premix_analysis.status, "included");
+    assert.equal(result.premix_analysis.product_id, "caremix-pig-weaner");
+    assert.equal(result.feed_completeness, "complete_with_premix");
 
     const analysis = analyseFormulation({
       programme_id,
@@ -162,11 +164,13 @@ describe("FeedSport MCP automatic ingredient mode", () => {
     assert.equal(result.formulation_basis.ingredient_mode, "selected");
   });
 
-  it("never makes least cost worse by using the broader automatic pool", async () => {
+  it("never makes least cost worse by using the broader automatic pool with the same premix", async () => {
+    // The same explicitly chosen premix in both, so only the basal pool differs.
     const constraints = {
       "soybean-full-fat-extruded": { max_percent: 10 },
       "soybean-degummed-oil": { max_percent: 2 },
       "corn-oil": { max_percent: 2 },
+      "sustar-glypro-x911": {},
     };
 
     const selected = await formulate(
@@ -187,6 +191,7 @@ describe("FeedSport MCP automatic ingredient mode", () => {
           "l-threonine",
           "l-tryptophan",
           "l-valine",
+          "sustar-glypro-x911",
         ],
         constraints,
         objective: "least_cost",

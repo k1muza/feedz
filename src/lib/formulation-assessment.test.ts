@@ -220,6 +220,8 @@ describe("premix replacement lives in Advisories and re-runs the whole diet", ()
     assert.equal(suggestPremixReplacement(base, [{ ...base, premixId: "b", current: false, costPerTonne: 410 }]).suggestedPremixId, null);
     // An alternative that misses a hard requirement is never suggested.
     assert.equal(suggestPremixReplacement(base, [{ ...base, premixId: "c", current: false, documentationGapLabels: [], requirementsMet: 19 }]).suggestedPremixId, null);
+    // A better-documented label alone is not evidence of better nutrition.
+    assert.equal(suggestPremixReplacement(base, [{ ...base, premixId: "e", current: false, documentationGapLabels: [] }]).suggestedPremixId, null);
     const better = suggestPremixReplacement(base, [{ ...base, premixId: "d", current: false, documentationGapLabels: [], supplementationAt: 13, costPerTonne: 406.42 }]);
     assert.equal(better.suggestedPremixId, "d");
     assert.ok(better.reasons.some((r) => /documentation gap/.test(r)) && better.reasons.some((r) => /13 of 14/.test(r)));

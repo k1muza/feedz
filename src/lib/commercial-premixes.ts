@@ -44,10 +44,42 @@ export function commercialPremixById(id: string): CommercialPremix | undefined {
 /**
  * Map only recognized programme families. Never infer premix compatibility from
  * incidental substrings (especially "boar" versus sow/breeding products).
+ * `usable` narrows the eligible products first (e.g. to priced ones), so every
+ * caller applies the same default-product rule to whatever it can include.
  */
-export function commercialPremixForProgramme(programmeId: string, phaseId?: string): CommercialPremix | undefined {
-  const eligible = eligibleCommercialPremixes(programmeId, phaseId);
+export function commercialPremixForProgramme(
+  programmeId: string,
+  phaseId?: string,
+  usable: (premix: CommercialPremix) => boolean = () => true,
+): CommercialPremix | undefined {
+  const eligible = eligibleCommercialPremixes(programmeId, phaseId).filter(usable);
   return eligible.find((product) => product.defaultForEligibleProgrammes) ?? eligible[0];
+}
+
+/**
+ * Why an eligible premix cannot join an optimised (automatic) ingredient pool,
+ * or undefined when it can. Off-label simulation products are never chosen on
+ * the farmer's behalf, and a manufacturer-recipe-only product fixes the whole
+ * recipe, so there is nothing left to optimise around it.
+ */
+export function automaticPremixExclusion(premix: CommercialPremix, programmeId: string, phaseId?: string): string | undefined {
+  if (!commercialPremixCompatibleWithProgramme(premix, programmeId, phaseId)) return `${premix.name} is not assigned to this programme phase.`;
+  if (!eligibleOnLabel(premix, programmeId, phaseId)) return `${premix.name} is only permitted here as an off-label simulation.`;
+  if (premix.formulationCompatibility === "manufacturer_recipe_only") {
+    return `${premix.name} is restricted to its manufacturer's fixed recipe; formulate it with ingredient_mode="selected" and the published ratios.`;
+  }
+  return undefined;
+}
+
+function eligibleOnLabel(premix: CommercialPremix, programmeId: string, phaseId?: string): boolean {
+  const family = programmeId.split(":")[0].toLowerCase();
+  const matchesFamily = premix.eligibleProgrammePrefixes.some((prefix) => family.startsWith(prefix));
+  const matchesPhase = !premix.eligiblePhaseClasses?.length || !phaseId ||
+    (() => {
+      const phase = feedProgrammePhaseById(programmeId, phaseId);
+      return !!phase && premix.eligiblePhaseClasses!.some((allowed) => allowed === phase.phaseClass);
+    })();
+  return matchesFamily && matchesPhase;
 }
 
 /** Permits exploring an off-label scenario without claiming supplier approval. */
@@ -68,14 +100,7 @@ export function commercialPremixCompatibleWithProgramme(
   programmeId: string,
   phaseId?: string,
 ): boolean {
-  const family = programmeId.split(":")[0].toLowerCase();
-  const matchesFamily = premix.eligibleProgrammePrefixes.some((prefix) => family.startsWith(prefix));
-  const matchesPhase = !premix.eligiblePhaseClasses?.length || !phaseId ||
-    (() => {
-      const phase = feedProgrammePhaseById(programmeId, phaseId);
-      return !!phase && premix.eligiblePhaseClasses!.some((allowed) => allowed === phase.phaseClass);
-    })();
-  return (matchesFamily && matchesPhase) || commercialPremixSimulationOnlyForPhase(premix, programmeId, phaseId);
+  return eligibleOnLabel(premix, programmeId, phaseId) || commercialPremixSimulationOnlyForPhase(premix, programmeId, phaseId);
 }
 
 export function eligibleCommercialPremixes(programmeId: string, phaseId?: string): CommercialPremix[] {

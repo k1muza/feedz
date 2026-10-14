@@ -431,9 +431,12 @@ function premixOption(
 /**
  * Which alternative, if any, to suggest. A suggestion needs a recipe that
  * meets every hard requirement and a concrete improvement shown by its
- * re-run: fewer documentation gaps, more Chapter 7 recommendations met, a
- * hard requirement the current premix's recipe misses, or a lower cost.
- * Higher concentrations alone never count; only recommendations reached do.
+ * re-run: more Chapter 7 recommendations met, a hard requirement the current
+ * premix's recipe misses, or a lower complete-feed cost. Higher concentrations
+ * alone never count; only recommendations reached do. Fewer documentation
+ * gaps is reported alongside such an improvement, but a better-documented
+ * label is not evidence of better nutrition, so it never qualifies or ranks
+ * a suggestion by itself.
  */
 export function suggestPremixReplacement(
   current: PremixOption | null,
@@ -446,9 +449,6 @@ export function suggestPremixReplacement(
     if (current.status !== "optimal" || current.requirementsMet < current.requirementsTotal) {
       reasons.push(`meets all ${option.requirementsTotal} hard requirements; the current premix's recipe meets ${current.requirementsMet}`);
     }
-    if (option.documentationGapLabels.length < current.documentationGapLabels.length) {
-      reasons.push(`${option.documentationGapLabels.length ? option.documentationGapLabels.length : "no"} documentation gap${option.documentationGapLabels.length === 1 ? "" : "s"} instead of ${current.documentationGapLabels.length}`);
-    }
     if (option.supplementationAt > current.supplementationAt) {
       reasons.push(`${option.supplementationAt} of ${option.supplementationTotal} Chapter 7 recommendations reached instead of ${current.supplementationAt}`);
     }
@@ -456,15 +456,18 @@ export function suggestPremixReplacement(
       option.costPerTonne < current.costPerTonne - 0.005) {
       reasons.push(`$${(current.costPerTonne - option.costPerTonne).toFixed(2)}/t cheaper`);
     }
+    if (reasons.length && option.documentationGapLabels.length < current.documentationGapLabels.length) {
+      reasons.push(`${option.documentationGapLabels.length ? option.documentationGapLabels.length : "no"} documentation gap${option.documentationGapLabels.length === 1 ? "" : "s"} instead of ${current.documentationGapLabels.length}`);
+    }
     return reasons;
   };
   const ranked = alternatives
     .map((option) => ({ option, reasons: reasonsFor(option) }))
     .filter((entry) => entry.reasons.length)
     .sort((a, b) =>
-      a.option.documentationGapLabels.length - b.option.documentationGapLabels.length ||
       b.option.supplementationAt - a.option.supplementationAt ||
-      (a.option.costPerTonne ?? Infinity) - (b.option.costPerTonne ?? Infinity));
+      (a.option.costPerTonne ?? Infinity) - (b.option.costPerTonne ?? Infinity) ||
+      a.option.documentationGapLabels.length - b.option.documentationGapLabels.length);
   return ranked.length
     ? { suggestedPremixId: ranked[0].option.premixId, reasons: ranked[0].reasons }
     : { suggestedPremixId: null, reasons: [] };
