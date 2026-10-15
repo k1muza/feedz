@@ -7,13 +7,13 @@ import {
   ingredientProfileAttribution,
   nutrientValueSource,
   sidAminoAcidPct,
-  type IngredientNutrientRecord,
   type IngredientSourceRecord,
 } from "@/lib/ingredient-nutrients";
 import { getIngredientPrices } from "@/lib/ingredient-prices";
 import { ingredientDefaultPlanningPricePerTonne } from "@/lib/feed-ingredient-prices";
 import { commercialPremixById, premixNutrientContributions } from "@/lib/commercial-premixes";
-import { analyzeDiet } from "@/lib/diet-formula";
+import { analyzeDiet, type AnalyzedNutrient } from "@/lib/diet-formula";
+import { FEED_NUTRIENTS } from "@/lib/feed-nutrients";
 import { FEED_PROGRAMMES } from "@/lib/feed-programmes";
 import type { IngredientLibrary } from "@/lib/ingredient-nutrients";
 import { studioNutrientConstraints } from "@/lib/studio-programmes";
@@ -36,7 +36,6 @@ export interface CatalogueIngredient {
   nutrients: Record<CatalogueNutrientId, number | null>;
   /** Nutrients this kind of ingredient should have; a gap here is real missing data. */
   expected: CatalogueNutrientId[];
-  limits: { stage: string; maxPct: number; practicalPct?: number }[];
   /** Primary family; `combinedLimits` cap the SUM of the family's (or a group's) members. */
   family: {
     id: string;
@@ -78,6 +77,12 @@ export interface CatalogueIngredient {
   requirementValues: Partial<Record<"swine" | "broiler", Record<string, number>>>;
   /** Requirements the optimiser can't evaluate for this ingredient: missing data. */
   requirementMissing: Partial<Record<"swine" | "broiler", string[]>>;
+  /**
+   * Natural trace-mineral content (ppm) for each FEED_NUTRIENTS supplementation
+   * nutrient, per species, from the same single-ingredient analysis; null where
+   * the value is missing. Reference only: the optimiser never reads it.
+   */
+  traceMineralsPpm: Partial<Record<"swine" | "broiler", Record<string, number | null>>>;
   /** Specific references override profile-level source for individual values. */
   nutrientSources: Partial<Record<CatalogueNutrientId, {publisher: string; title: string; url: string}>>;
 }
@@ -107,16 +112,6 @@ const EXPECTED: Record<IngredientSourceRecord["category"], CatalogueNutrientId[]
   amino_acid: [],
   vitamin_mineral_premix: [],
 };
-
-const STAGES: [string, (r: IngredientNutrientRecord["recommendedInclusionPct"]) => { practical?: number; max: number } | undefined][] = [
-  ["Pig starter", (r) => r?.growingPigs?.starter],
-  ["Pig grower", (r) => r?.growingPigs?.grower],
-  ["Pig finisher", (r) => r?.growingPigs?.finisher],
-  ["Gestating sow", (r) => r?.sows?.gestation],
-  ["Lactating sow", (r) => r?.sows?.lactation],
-  ["Broiler starter", (r) => r?.broilers?.starter],
-  ["Broiler grower", (r) => r?.broilers?.grower],
-];
 
 const AGGREGATE_STAGES: [string, "swine" | "broiler", "starter" | "grower" | "finisher" | "gestation" | "lactation"][] = [
   ["Pig starter", "swine", "starter"],
@@ -162,6 +157,9 @@ function speciesConstraints(species: "swine" | "broiler") {
   return [...specs.values()];
 }
 
+/** Trace minerals the reference pages show; ids match the diet analysis keys. */
+const TRACE_MINERAL_IDS = FEED_NUTRIENTS.filter((n) => n.requirement === "supplementation").map((n) => n.id);
+
 /** Same coefficients as the optimiser's prepareIngredients. */
 function requirementProfile(id: string, library: IngredientLibrary, specs: ReturnType<typeof speciesConstraints>) {
   if (!library.ingredients.some((ingredient) => ingredient.id === id)) return null;
@@ -178,7 +176,12 @@ function requirementProfile(id: string, library: IngredientLibrary, specs: Retur
     if (!measure.complete) missing.push(spec.id);
     else if (Math.abs(measure.value) > 1e-9) values[spec.id] = +measure.value.toPrecision(6);
   }
-  return { values, missing };
+  const trace: Record<string, number | null> = {};
+  for (const id of TRACE_MINERAL_IDS) {
+    const measure = (single.traceMineralsPpm as Record<string, AnalyzedNutrient | undefined>)[id];
+    if (measure) trace[id] = measure.complete ? +measure.value.toPrecision(6) : null;
+  }
+  return { values, missing, trace };
 }
 
 /**
@@ -228,12 +231,6 @@ export async function getStudioCatalogue(): Promise<CatalogueIngredient[]> {
     const planningPricePerTonne = price
       ? ingredientDefaultPlanningPricePerTonne(ingredient.id, priceList)
       : undefined;
-    const limits = product
-      ? [{ stage: product.application, maxPct: product.inclusionPct }]
-      : STAGES.flatMap(([stage, pick]) => {
-        const rec = pick(stage.startsWith("Broiler") ? bird?.recommendedInclusionPct : pig?.recommendedInclusionPct);
-        return rec ? [{ stage, maxPct: rec.max, ...(rec.practical !== undefined ? { practicalPct: rec.practical } : {}) }] : [];
-      });
     const nutrients: Record<CatalogueNutrientId, number | null> = {
       mePig: pig?.energy.metabolizableKcalKg ?? null,
       mePoultry: bird?.energy.metabolizableKcalKg ?? null,
@@ -269,7 +266,6 @@ export async function getStudioCatalogue(): Promise<CatalogueIngredient[]> {
       } : null,
       nutrients,
       expected: product ? [] : EXPECTED[ingredient.category],
-      limits,
       family: familyOf(ingredient),
       ...(product ? { manufacturerSpecificationUrl: product.specificationUrl,
         verificationStatus: product.verificationStatus,
@@ -303,6 +299,10 @@ export async function getStudioCatalogue(): Promise<CatalogueIngredient[]> {
       requirementMissing: {
         ...(swineProfile?.missing.length ? { swine: swineProfile.missing } : {}),
         ...(broilerProfile?.missing.length ? { broiler: broilerProfile.missing } : {}),
+      },
+      traceMineralsPpm: {
+        ...(swineProfile ? { swine: swineProfile.trace } : {}),
+        ...(broilerProfile ? { broiler: broilerProfile.trace } : {}),
       },
     };
   });

@@ -2,8 +2,7 @@
 // names, unit and what it means. Everything else refers to a nutrient by this
 // id: programme requirements (studio-programmes.ts), the nutrient reference
 // pages, and the optimiser through `constraintId`. Plain data, safe for the
-// browser; values that need the ingredient library live in
-// feed-nutrient-values.ts.
+// browser.
 
 export type NutrientGroup =
   | "Energy & protein"
@@ -35,8 +34,12 @@ export type FeedNutrient = {
   units: readonly string[];
   description: string;
   formulationRole: string;
-  /** How programmes publish it: energy as a target, everything else as a minimum. Absent when no programme sets one. */
-  requirement?: "minimum" | "target";
+  /**
+   * How programmes publish it: energy as a target, other Chapter 5 nutrients as
+   * a minimum, trace minerals as Chapter 7 suggested supplementation (advisory,
+   * never an optimiser constraint). Absent when no programme sets one.
+   */
+  requirement?: "minimum" | "target" | "supplementation";
   /** Optimiser constraint that enforces it (feed-optimizer buildConstraintSpecs, ME basis for energy). */
   constraintId?: string;
   guide?: NutrientGuide;
@@ -366,23 +369,106 @@ export const FEED_NUTRIENTS: readonly FeedNutrient[] = [
       tooHigh: "Softer, oilier carcass fat in pigs.",
     },
   },
-  ...[
-    ["zinc", "Zinc", "Zn"],
-    ["iron", "Iron", "Fe"],
-    ["manganese", "Manganese", "Mn"],
-    ["copper", "Copper", "Cu"],
-    ["iodine", "Iodine", "I"],
-    ["selenium", "Selenium", "Se"],
-  ].map(([id, name, shortName]) => ({
-    id,
-    name,
-    shortName,
-    group: "Trace minerals" as const,
+  {
+    id: "zinc",
+    name: "Zinc",
+    shortName: "Zn",
+    group: "Trace minerals",
     units: ["ppm"],
-    description: `${name} trace-mineral concentration.`,
-    formulationRole:
-      "Ingredient composition can be tracked here; Chapter 7 supplementation guidance is kept separate from Chapter 5 animal requirements.",
-  })),
+    description: "Zinc trace-mineral concentration.",
+    formulationRole: "Chapter 7 suggests a supplementation level; it is checked as an advisory and never constrains the optimiser.",
+    requirement: "supplementation",
+    guide: {
+      noun: "zinc",
+      summary: "Needed for skin, hooves and immunity. Supplied mostly through the premix.",
+      measured: "Total zinc, ppm (mg/kg) as fed.",
+      role: "Part of many enzymes and needed for skin, hoof and feather health, immunity and growth. Phytate in grains and oilseed meals binds much of the zinc they contain.",
+      tooLow: "Skin lesions (parakeratosis in pigs), poor feathering and slower growth.",
+      tooHigh: "Ties up copper and iron, and ends up in manure; most countries cap it.",
+    },
+  },
+  {
+    id: "iron",
+    name: "Iron",
+    shortName: "Fe",
+    group: "Trace minerals",
+    units: ["ppm"],
+    description: "Iron trace-mineral concentration.",
+    formulationRole: "Chapter 7 suggests a supplementation level; it is checked as an advisory and never constrains the optimiser.",
+    requirement: "supplementation",
+    guide: {
+      noun: "iron",
+      summary: "Carries oxygen in the blood. Piglets are born with little.",
+      measured: "Total iron, ppm (mg/kg) as fed.",
+      role: "Part of haemoglobin and many enzymes. Most ingredients supply some, but availability varies; suckling piglets usually get an iron injection.",
+      tooLow: "Anaemia, pale skin and slow growth, especially in young piglets.",
+      tooHigh: "Can reduce uptake of other minerals; feed ingredients rarely supply an excess.",
+    },
+  },
+  {
+    id: "manganese",
+    name: "Manganese",
+    shortName: "Mn",
+    group: "Trace minerals",
+    units: ["ppm"],
+    description: "Manganese trace-mineral concentration.",
+    formulationRole: "Chapter 7 suggests a supplementation level; it is checked as an advisory and never constrains the optimiser.",
+    requirement: "supplementation",
+    guide: {
+      noun: "manganese",
+      summary: "Needed for bone and cartilage. Poultry need far more than pigs.",
+      measured: "Total manganese, ppm (mg/kg) as fed.",
+      role: "Needed for cartilage and bone formation, reproduction and enzyme function. Maize is low in manganese, so poultry diets rely on supplementation.",
+      tooLow: "Leg problems in broilers (perosis) and poorer reproduction.",
+      tooHigh: "Rare in practice; very high levels can slow growth.",
+    },
+  },
+  {
+    id: "copper",
+    name: "Copper",
+    shortName: "Cu",
+    group: "Trace minerals",
+    units: ["ppm"],
+    description: "Copper trace-mineral concentration.",
+    formulationRole: "Chapter 7 suggests a supplementation level; it is checked as an advisory and never constrains the optimiser.",
+    requirement: "supplementation",
+    guide: {
+      noun: "copper",
+      summary: "Needed for blood and connective tissue. Kept within legal maximums.",
+      measured: "Total copper, ppm (mg/kg) as fed.",
+      role: "Needed to use iron, form blood and connective tissue, and pigment hair and feathers.",
+      tooLow: "Anaemia, weak bones and blood vessels, and poor hair or feather colour.",
+      tooHigh: "Builds up in the liver and ends up in manure; most countries set a legal maximum.",
+    },
+  },
+  {
+    id: "iodine",
+    name: "Iodine",
+    shortName: "I",
+    group: "Trace minerals",
+    units: ["ppm"],
+    description: "Iodine trace-mineral concentration.",
+    formulationRole: "Chapter 7 suggests a supplementation level; it is checked as an advisory and never constrains the optimiser.",
+    requirement: "supplementation",
+  },
+  {
+    id: "selenium",
+    name: "Selenium",
+    shortName: "Se",
+    group: "Trace minerals",
+    units: ["ppm"],
+    description: "Selenium trace-mineral concentration.",
+    formulationRole: "Chapter 7 suggests a supplementation level; it is checked as an advisory and never constrains the optimiser.",
+    requirement: "supplementation",
+    guide: {
+      noun: "selenium",
+      summary: "Antioxidant partner of vitamin E, with a narrow gap between need and excess.",
+      measured: "Total selenium, ppm (mg/kg) as fed.",
+      role: "Works with vitamin E to protect cells from oxidative damage and supports immunity and fertility. Soil levels drive how much grains contain.",
+      tooLow: "Muscle damage (white muscle disease) and poorer fertility.",
+      tooHigh: "Toxic not far above requirement; legal maximums apply.",
+    },
+  },
   ...[
     ["vitamin-a", "Vitamin A", "Vit A", "IU/kg"],
     ["vitamin-d", "Vitamin D", "Vit D", "IU/kg"],

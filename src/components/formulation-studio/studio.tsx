@@ -1295,7 +1295,6 @@ function useStudio({ catalogue, programmes, featured: featuredList, showSolverDe
     const doc = formulations.docs.find((d) => d.id === docId);
     const advice = doc?.advice.find((a) => a.id === adviceId);
     if (!doc || !advice?.suggestion) return;
-    const base = doc.versions.find((x) => x.v === advice.v) || doc.versions[doc.versions.length - 1];
     update({ ...settingsState(doc, advice.suggestion, programmes), tab: "recipe", toast: "Opened " + advice.author + "’s suggestion · save to keep it as a new version" });
     run();
   };
@@ -2859,7 +2858,6 @@ function drawerVals(S: State, D: Draft, R: OptimalResult | null, ctx: { update: 
     whyTitle = R.setAside.includes(D.id) ? "Why it was set aside" : "Why it isn’t used";
     why = R.setAside.includes(D.id) ? "The catalogue is missing a nutrient value this stage needs, so FeedSport can’t check what it would add." : "At this price it costs more than the nutrients it supplies are worth in this recipe. “Why this recipe” shows how much could enter for a little more cost.";
   }
-  const meKey: CatalogueNutrientId = species === "broiler" ? "mePoultry" : "mePig";
   const pool = S.pool[D.id];
   const pctTxt = (x: number) => fmt(x, x < 1 ? 2 : 1);
   const batchKg = inR ? (inR.pct / 100) * S.batch : 0;

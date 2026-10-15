@@ -1,8 +1,9 @@
 import "server-only";
 
 import { FEED_PROGRAMMES } from "@/lib/feed-programmes";
-import { feedNutrientById } from "@/lib/feed-nutrients";
+import { FEED_NUTRIENTS, feedNutrientById } from "@/lib/feed-nutrients";
 import { buildConstraintSpecs } from "@/lib/feed-optimizer";
+import { supplementationGuidance } from "@/lib/formulation-assessment";
 import {
   BRAZILIAN_INCLUSION_SOURCE,
   aggregateInclusionRules,
@@ -45,6 +46,8 @@ export interface StudioPhase {
   programmeLimits: { name: string; maxPct: number }[];
   /** Nutrient constraints the optimiser enforces for this phase (ME basis), in its order. */
   constraintIds: string[];
+  /** Chapter 7 suggested supplementation by nutrient id (ppm), for nutrients FEED_NUTRIENTS marks as supplementation. Advisory only. */
+  supplementation: Record<string, number>;
 }
 
 export interface StudioProgramme {
@@ -127,9 +130,16 @@ const REQUIREMENT_PICKS: [nutrientId: string, pick: (phase: NutritionPhase) => n
 
 const REQUIREMENTS: (StudioRequirementField & { pick: (phase: NutritionPhase) => number | undefined })[] = REQUIREMENT_PICKS.map(([nutrientId, pick, broilerName]) => {
   const nutrient = feedNutrientById(nutrientId);
-  if (!nutrient?.requirement) throw new Error(`Requirement field ${nutrientId} needs a FEED_NUTRIENTS entry with a requirement kind`);
+  if (!nutrient?.requirement || nutrient.requirement === "supplementation") throw new Error(`Requirement field ${nutrientId} needs a FEED_NUTRIENTS entry with a minimum or target requirement`);
   return { nutrientId, name: nutrient.name, ...(broilerName ? { broilerName } : {}), unit: nutrient.units[0], kind: nutrient.requirement, pick };
 });
+
+const SUPPLEMENTATION_IDS = new Set(FEED_NUTRIENTS.filter((n) => n.requirement === "supplementation").map((n) => n.id));
+
+/** The phase's Chapter 7 levels, from the same guidance the formulation advisories compare against. */
+function supplementationOf(phase: NutritionPhase): Record<string, number> {
+  return Object.fromEntries(supplementationGuidance(phase).flatMap((spec) => (SUPPLEMENTATION_IDS.has(spec.id) && spec.recommended != null ? [[spec.id, spec.recommended]] : [])));
+}
 
 function programmeLimitsOf(phase: NutritionPhase) {
   const practical = phase.requirements.practical;
@@ -202,6 +212,7 @@ export function getStudioProgrammes(): StudioProgrammeData {
           requirements: REQUIREMENTS.map((field) => field.pick(phase) ?? null),
           programmeLimits: programmeLimitsOf(phase),
           constraintIds: studioNutrientConstraints(phase).map((spec) => spec.id),
+          supplementation: supplementationOf(phase),
         };
       }),
     };

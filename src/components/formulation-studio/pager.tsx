@@ -32,7 +32,7 @@ export function pagerVals(total: number, wantPage: number, size: number, setPage
   return { from, to, pager };
 }
 
-export type PagerVals = ReturnType<typeof pagerVals>["pager"];
+type PagerVals = ReturnType<typeof pagerVals>["pager"];
 
 // Footer of a paged table: the range shown, page size, and page buttons.
 export function Pager({ pg }: { pg: PagerVals }) {

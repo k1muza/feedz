@@ -14,6 +14,7 @@ import {
   fmtContent,
   fmtCost,
   fmtWithUnit,
+  isSupplementation,
   nutrientById,
   nutrientContent,
   nutrientCost,
@@ -150,7 +151,7 @@ function NutrientList({ ings, programmes, open, openSources, page, pageSize, set
                     <span key={p.id} title={p.name + (on ? "" : " · not set")} style={sx(`width:7px;height:11px;border-radius:2px;background:${on ? "#2f5a3f" : "#e2dfd6"}`)} />
                   ))}
                 </div>
-                <span style={sx("font:400 12px/1.2 'IBM Plex Sans',sans-serif;color:#45473f")}>{used ? used + " of " + progs.length + " programmes" : "Not required"}</span>
+                <span style={sx("font:400 12px/1.2 'IBM Plex Sans',sans-serif;color:#45473f")}>{isSupplementation(n) ? (used ? "Suggested in " + used + " of " + progs.length : "No suggested level") : used ? used + " of " + progs.length + " programmes" : "Not required"}</span>
               </div>
               <div style={sx("display:flex;flex-direction:column;gap:7px")}>
                 <div style={sx("height:6px;border-radius:3px;background:#ece8df;overflow:hidden")}>
@@ -288,6 +289,8 @@ interface Row {
 const BAR_PREVIEW = 12;
 const ROW_PREVIEW = 20;
 const TABLE_COLS = "display:grid;grid-template-columns:minmax(150px,1.5fr) 104px 96px minmax(120px,1fr) 88px 116px 120px;gap:14px";
+/** Trace minerals drop the cost and "to meet" columns. */
+const SUPP_TABLE_COLS = "display:grid;grid-template-columns:minmax(150px,1.5fr) 104px 96px minmax(120px,1fr) 88px;gap:14px";
 const ASCENDING_FIRST: SortKey[] = ["name", "cat", "cost", "need", "price"];
 
 function NutrientDetail({ ings, programmes, N, open, goList }: Inner & { N: NutrientRef }) {
@@ -306,23 +309,25 @@ function NutrientDetail({ ings, programmes, N, open, goList }: Inner & { N: Nutr
   const sp: Species = prog.species;
   const isMe = N.id === "metabolizable-energy";
   const pctUnit = N.unit === "%";
-  const uShort = pctUnit ? "%" : "kcal/kg";
+  const uShort = N.unit;
+  // Trace minerals: a Chapter 7 level met through the premix, so no "inclusion to meet" or cost views.
+  const supp = isSupplementation(N);
   const req = phaseRequirement(programmes, phase, N);
   const isTarget = N.requirement === "target";
-  const reqWord = isTarget ? "target" : "minimum";
+  const reqWord = supp ? "suggested supplementation" : isTarget ? "target" : "minimum";
   const speciesWord = sp === "broiler" ? "poultry" : "pigs";
   const fu = (v: number) => fmtWithUnit(N, v);
 
   const rows: Row[] = ings.map((g) => {
     const v = nutrientContent(g, N, sp);
-    return { g, v, cost: nutrientCost(g, N, v), need: v != null && v > 0 && req != null ? (req / v) * 100 : null, lim: phaseInclusionLimit(programmes, phase, g.id) };
+    return { g, v, cost: supp ? null : nutrientCost(g, N, v), need: !supp && v != null && v > 0 && req != null ? (req / v) * 100 : null, lim: phaseInclusionLimit(programmes, phase, g.id) };
   });
   const pos = rows.filter((r): r is Row & { v: number } => r.v != null && r.v > 0);
   const maxV = Math.max(0, ...pos.map((r) => r.v));
   const missing = rows.filter((r) => r.v == null);
   const zeroRows = rows.filter((r) => r.v === 0);
   const reqProgs = progs.filter((p) => programmeSets(programmes, p, N));
-  const metric: Metric = metricPick === "need" && !reqProgs.length ? "conc" : metricPick;
+  const metric: Metric = supp || (metricPick === "need" && !reqProgs.length) ? "conc" : metricPick;
   const richest = pos.slice().sort((a, b) => b.v - a.v)[0];
   const cheapest = pos.filter((r) => r.cost != null).sort((a, b) => a.cost! - b.cost!)[0];
 
@@ -376,7 +381,7 @@ function NutrientDetail({ ings, programmes, N, open, goList }: Inner & { N: Nutr
   const shownBars = barsAll ? bars : bars.slice(0, BAR_PREVIEW);
   const legend = [...new Set(shownBars.map((b) => b.r.g.category))].sort((a, b) => categoryRank(a) - categoryRank(b));
   const foot: { k: string; v: string }[] = [];
-  if (missing.length) foot.push({ k: "Missing data:", v: nameList(missing.map((r) => r.g.name)) + ". Treated as unknown, not zero; FeedSport sets these aside when this nutrient is required." });
+  if (missing.length) foot.push({ k: "Missing data:", v: nameList(missing.map((r) => r.g.name)) + ". Treated as unknown, not zero" + (supp ? "." : "; FeedSport sets these aside when this nutrient is required.") });
   if (metric === "cost") {
     const unpriced = pos.filter((r) => r.cost == null);
     if (unpriced.length) foot.push({ k: "No price:", v: nameList(unpriced.map((r) => r.g.name)) + "." });
@@ -390,10 +395,12 @@ function NutrientDetail({ ings, programmes, N, open, goList }: Inner & { N: Nutr
   const lo = Math.min(...reqVals);
   const hi = Math.max(...reqVals);
   const stats = [
-    { label: "Required by", val: reqProgs.length ? reqProgs.length + " of " + progs.length : "None", sub: reqProgs.length ? "feeding programmes" : "tracked for reference only" },
-    { label: (isTarget ? "Target" : "Minimum") + " across stages", val: reqVals.length ? (lo === hi ? fu(lo) : fmtContent(N, lo) + "–" + fu(hi)) : "—", sub: reqVals.length ? "lowest to highest stage" + (isMe ? ", " + speciesWord : "") : "no programme sets one" },
+    supp
+      ? { label: "Suggested in", val: reqProgs.length ? reqProgs.length + " of " + progs.length : "None", sub: "programmes · Chapter 7, advisory" }
+      : { label: "Required by", val: reqProgs.length ? reqProgs.length + " of " + progs.length : "None", sub: reqProgs.length ? "feeding programmes" : "tracked for reference only" },
+    { label: (supp ? "Suggested level" : isTarget ? "Target" : "Minimum") + " across stages", val: reqVals.length ? (lo === hi ? fu(lo) : fmtContent(N, lo) + "–" + fu(hi)) : "—", sub: reqVals.length ? "lowest to highest stage" + (isMe ? ", " + speciesWord : "") : "no programme sets one" },
     { label: "Richest source", val: richest ? richest.g.name : "—", sub: richest ? fu(richest.v) + " as fed" : "" },
-    { label: "Cheapest per " + (isMe ? "Mcal" : "kg"), val: cheapest ? cheapest.g.name : "—", sub: cheapest ? fmtCost(cheapest.cost!) + " per " + costUnit(N) : "no priced source" },
+    ...(supp ? [] : [{ label: "Cheapest per " + (isMe ? "Mcal" : "kg"), val: cheapest ? cheapest.g.name : "—", sub: cheapest ? fmtCost(cheapest.cost!) + " per " + costUnit(N) : "no priced source" }]),
     { label: phase.label, val: req != null ? fu(req) : "Not set", sub: prog.name + (req != null ? " · " + reqWord : " · no requirement") },
   ];
 
@@ -403,7 +410,7 @@ function NutrientDetail({ ings, programmes, N, open, goList }: Inner & { N: Nutr
   const lysIdx = requirementIndex(programmes, "sid-lysine");
   const reqEmptyText = !N.requirement
     ? "No FeedSport programme sets a " + N.name.toLowerCase() + " requirement. Ingredient inclusion limits keep it in check instead."
-    : prog.name + " sets no " + N.name.toLowerCase() + " requirement. Pick another programme above.";
+    : prog.name + " sets no " + (supp ? "suggested " + N.noun + " level" : N.name.toLowerCase() + " requirement") + ". Pick another programme above.";
 
   // ---- value map ----
   const priced = pos.filter((r) => r.g.price);
@@ -450,6 +457,8 @@ function NutrientDetail({ ings, programmes, N, open, goList }: Inner & { N: Nutr
     ["name", "Ingredient", "left"], ["cat", "Category", "left"], ["val", "Content, " + uShort, "right"], ["pct", "vs richest", "left"],
     ["price", "Price $/t", "right"], ["cost", isMe ? "$/Mcal" : "$/kg " + N.noun, "right"], ["need", "To meet " + (isTarget ? "target" : "min"), "right"],
   ];
+  const shownCols = supp ? cols.filter(([k]) => k !== "cost" && k !== "need") : cols;
+  const tableCols = supp ? SUPP_TABLE_COLS : TABLE_COLS;
   const sortOn = (k: SortKey) => {
     setSortD(sortK === k ? -sortD : ASCENDING_FIRST.includes(k) ? 1 : -1);
     setSortK(k);
@@ -525,7 +534,7 @@ function NutrientDetail({ ings, programmes, N, open, goList }: Inner & { N: Nutr
                   ["need", "Inclusion to meet"],
                 ] as [Metric, string][]
               )
-                .filter(([k]) => k !== "need" || reqProgs.length > 0)
+                .filter(([k]) => k === "conc" || (!supp && (k !== "need" || reqProgs.length > 0)))
                 .map(([k, label]) => (
                   <button key={k} type="button" aria-pressed={metric === k} onClick={() => setMetric(k)} style={sx(`border:0;${seg(metric === k)};font:500 13px/1 'IBM Plex Sans',sans-serif;padding:8px 11px;border-radius:6px`)}>{label}</button>
                 ))}
@@ -590,8 +599,14 @@ function NutrientDetail({ ings, programmes, N, open, goList }: Inner & { N: Nutr
       <div style={sx("display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,440px),1fr));gap:20px;align-items:start")}>
         <div style={sx(CARD)}>
           <div style={sx(`${CARD_HEAD};display:flex;flex-direction:column;gap:5px`)}>
-            <span style={sx(CARD_TITLE)}>Requirement by stage</span>
-            <span style={sx(CARD_SUB)}>{stageVals.length ? (isTarget ? "Target" : "Minimum") + " for each stage of " + prog.name + (pctUnit ? ", % of feed" : ", kcal/kg") + ". Select a stage to compare against it." : "Requirements set by FeedSport feeding programmes."}</span>
+            <span style={sx(CARD_TITLE)}>{supp ? "Suggested supplementation by stage" : "Requirement by stage"}</span>
+            <span style={sx(CARD_SUB)}>
+              {!stageVals.length
+                ? "Requirements set by FeedSport feeding programmes."
+                : supp
+                  ? "Brazilian Tables Chapter 7 level for each stage of " + prog.name + ", " + N.unit + ". It is added through the premix or a mineral source, so the natural content on this page doesn’t count toward it. Advisory only; it never constrains the optimiser."
+                  : (isTarget ? "Target" : "Minimum") + " for each stage of " + prog.name + ", " + (pctUnit ? "% of feed" : N.unit) + ". Select a stage to compare against it."}
+            </span>
           </div>
           <div style={sx("padding:10px 20px 18px;display:flex;flex-direction:column;gap:14px")}>
             {stageVals.length > 0 && (
@@ -613,7 +628,7 @@ function NutrientDetail({ ings, programmes, N, open, goList }: Inner & { N: Nutr
                       </span>
                       <span style={sx("display:flex;flex-direction:column;gap:3px;align-items:flex-end")}>
                         <span style={sx("font:500 12px/1 'IBM Plex Mono',monospace")}>{fmtContent(N, v)}</span>
-                        <span style={sx("font:400 11px/1 'IBM Plex Sans',sans-serif;color:#8d8a80")}>{(N.id === "sid-methionine-cysteine" || N.id === "sid-threonine") && lys ? Math.round((v / lys) * 100) + "% of lysine" : reqWord}</span>
+                        <span style={sx("font:400 11px/1 'IBM Plex Sans',sans-serif;color:#8d8a80")}>{(N.id === "sid-methionine-cysteine" || N.id === "sid-threonine") && lys ? Math.round((v / lys) * 100) + "% of lysine" : supp ? "suggested" : reqWord}</span>
                       </span>
                     </button>
                   );
@@ -624,6 +639,7 @@ function NutrientDetail({ ings, programmes, N, open, goList }: Inner & { N: Nutr
           </div>
         </div>
 
+        {!supp && (
         <div style={sx(CARD)}>
           <div style={sx(`${CARD_HEAD};display:flex;flex-direction:column;gap:5px`)}>
             <span style={sx(CARD_TITLE)}>Value map</span>
@@ -667,6 +683,7 @@ function NutrientDetail({ ings, programmes, N, open, goList }: Inner & { N: Nutr
             )}
           </div>
         </div>
+        )}
       </div>
 
       <div style={sx(CARD)}>
@@ -682,8 +699,8 @@ function NutrientDetail({ ings, programmes, N, open, goList }: Inner & { N: Nutr
         </div>
         <div style={sx("overflow:auto")}>
           <div style={sx("min-width:830px")}>
-            <div style={sx(`${TABLE_COLS};padding:0 20px;background:#faf8f3;border-bottom:1px solid #e2dfd6`)}>
-              {cols.map(([k, label, align]) => {
+            <div style={sx(`${tableCols};padding:0 20px;background:#faf8f3;border-bottom:1px solid #e2dfd6`)}>
+              {shownCols.map(([k, label, align]) => {
                 const on = sortK === k;
                 return (
                   <button key={k} type="button" onClick={() => sortOn(k)} style={sx(`border:0;background:transparent;padding:11px 0;text-align:${align};font:500 11px/1.2 'IBM Plex Mono',monospace;color:${on ? "#222420" : "#64665c"};text-transform:uppercase;letter-spacing:0.05em`)}>
@@ -699,7 +716,7 @@ function NutrientDetail({ ings, programmes, N, open, goList }: Inner & { N: Nutr
               const limOver = r.need != null && r.lim != null && r.need > r.lim && !over;
               const dot = categoryColor(r.g.category);
               return (
-                <div key={r.g.id} onMouseEnter={enter(r.g.id)} onMouseLeave={unhover} style={sx(`${TABLE_COLS};padding:11px 20px;border-top:1px solid #ece8df;align-items:center;font:400 13px/1.2 'IBM Plex Sans',sans-serif;background:${hover === r.g.id ? "#f7f3ea" : "#fff"}`)}>
+                <div key={r.g.id} onMouseEnter={enter(r.g.id)} onMouseLeave={unhover} style={sx(`${tableCols};padding:11px 20px;border-top:1px solid #ece8df;align-items:center;font:400 13px/1.2 'IBM Plex Sans',sans-serif;background:${hover === r.g.id ? "#f7f3ea" : "#fff"}`)}>
                   <span title={r.g.name} style={sx("font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis")}>{r.g.name}</span>
                   <span style={sx("display:flex;align-items:center;gap:7px;color:#45473f;min-width:0")}>
                     <span style={{ ...sx("flex:none;width:8px;height:8px;border-radius:2px"), background: dot }} />
@@ -713,8 +730,12 @@ function NutrientDetail({ ings, programmes, N, open, goList }: Inner & { N: Nutr
                     <span style={sx("font:400 11px/1 'IBM Plex Mono',monospace;color:#64665c;width:34px;text-align:right")}>{r.v != null && r.v > 0 && maxV ? Math.round((r.v / maxV) * 100) + "%" : "—"}</span>
                   </span>
                   <span style={sx("font:400 13px/1 'IBM Plex Mono',monospace;text-align:right;color:#45473f")}>{r.g.price ? fmt(r.g.price.usdPerTonne, 0) : "—"}</span>
+                  {!supp && (
+                    <>
                   <span style={sx(`font:400 13px/1 'IBM Plex Mono',monospace;text-align:right;color:${r.g.id === cheapest?.g.id ? "#2f5a3f" : r.cost != null ? "#45473f" : "#b9b6ab"}`)}>{r.cost != null ? fmtCost(r.cost) : "—"}</span>
                   <span style={sx(`font:400 13px/1 'IBM Plex Mono',monospace;text-align:right;color:${over ? "#8d8a80" : limOver ? "#8a5a14" : r.need != null ? "#45473f" : "#b9b6ab"}`)}>{req == null || r.need == null ? "—" : over ? ">100%" : fmt(r.need, r.need < 10 ? 2 : 1) + "%"}</span>
+                    </>
+                  )}
                 </div>
               );
             })}
@@ -726,7 +747,9 @@ function NutrientDetail({ ings, programmes, N, open, goList }: Inner & { N: Nutr
           </div>
         </div>
         <div style={sx("padding:11px 20px 14px;border-top:1px solid #ece8df;font:400 12px/1.45 'IBM Plex Sans',sans-serif;color:#64665c;text-wrap:pretty")}>
-          {(isMe ? "Energy values for " + speciesWord + ", following the selected stage. " : "") +
+          {supp
+            ? "Natural " + N.noun + " content as fed. FeedSport compares only " + N.noun + " added through the premix or mineral sources with the Chapter 7 level, so these values don’t count toward it. Missing values are unknown, not zero."
+            : (isMe ? "Energy values for " + speciesWord + ", following the selected stage. " : "") +
             "“To meet " + (isTarget ? "target" : "min") + "” is the inclusion needed to reach the " + phase.label + " " + reqWord + " (" + prog.name + ") from that ingredient alone; amber means it passes the stage’s inclusion limit. Missing values are unknown, not zero."}
         </div>
       </div>

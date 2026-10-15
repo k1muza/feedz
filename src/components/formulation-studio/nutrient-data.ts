@@ -15,18 +15,19 @@ import { fmt } from "./engine";
 export type Species = "swine" | "broiler";
 
 export type NutrientRef = FeedNutrient & {
-  unit: "%" | "kcal/kg";
+  unit: "%" | "kcal/kg" | "ppm";
   /** Lower-case name for sentences: "cheapest way to buy lysine". */
   noun: string;
   guide: NutrientGuide;
 };
 
 // Every nutrient with reference text, in FEED_NUTRIENTS order. Each needs a
-// value the catalogue carries: an optimiser constraint, or crude fibre.
+// value the catalogue carries: an optimiser constraint, crude fibre, or a
+// trace mineral (Chapter 7 supplementation).
 export const NUTRIENTS: NutrientRef[] = FEED_NUTRIENTS.flatMap((nutrient) => {
   const unit = nutrient.units[0];
   if (!nutrient.guide) return [];
-  if ((unit !== "%" && unit !== "kcal/kg") || (!nutrient.constraintId && nutrient.id !== "crude-fibre")) throw new Error(`Nutrient page ${nutrient.id} needs a % or kcal/kg unit and a value source`);
+  if ((unit !== "%" && unit !== "kcal/kg" && unit !== "ppm") || (!nutrient.constraintId && nutrient.id !== "crude-fibre" && nutrient.requirement !== "supplementation")) throw new Error(`Nutrient page ${nutrient.id} needs a %, kcal/kg or ppm unit and a value source`);
   return [{ ...nutrient, unit, noun: nutrient.guide.noun, guide: nutrient.guide }];
 });
 
@@ -34,8 +35,14 @@ export const NUTRIENT_GROUPS = [...new Set(NUTRIENTS.map((n) => n.group))];
 
 export const nutrientById = (id: string | null | undefined) => NUTRIENTS.find((n) => n.id === id) ?? null;
 
+/**
+ * Chapter 7 trace minerals: a suggested supplementation level, met by premixes
+ * and mineral sources, so an ingredient's natural content never "meets" it.
+ */
+export const isSupplementation = (n: NutrientRef) => n.requirement === "supplementation";
+
 export const CATEGORY_ORDER = ["Cereal", "Oil and fat", "Protein meal", "By-product", "Other", "Amino acid", "Mineral", "Premix"];
-export const CATEGORY_COLOR: Record<string, string> = {
+const CATEGORY_COLOR: Record<string, string> = {
   Cereal: "#d39a35",
   "Oil and fat": "#b5762a",
   "Protein meal": "#2f5a3f",
@@ -66,6 +73,11 @@ export function nutrientContent(g: CatalogueIngredient, n: NutrientRef, species:
     // Feedstuffs should carry a fibre value; oils, minerals and synthetics have none.
     return g.nutrients.cf ?? (g.expected.length > 1 ? null : 0);
   }
+  if (isSupplementation(n)) {
+    const trace = g.traceMineralsPpm[species];
+    // Not in this species' nutrient library at all, or the value is missing.
+    return trace?.[n.id] ?? null;
+  }
   const values = g.requirementValues[species];
   // Not in this species' nutrient library at all, or not a nutrient the optimiser measures.
   if (!values || !n.constraintId) return null;
@@ -76,13 +88,15 @@ export function nutrientContent(g: CatalogueIngredient, n: NutrientRef, species:
 /** What 1 Mcal (energy) or 1 kg of the nutrient costs bought through this ingredient, in $. */
 export function nutrientCost(g: CatalogueIngredient, n: NutrientRef, content: number | null): number | null {
   if (!(content != null && content > 0) || !g.price) return null;
+  if (n.unit === "ppm") return g.price.usdPerTonne / (content / 1000);
   return n.unit === "%" ? g.price.usdPerTonne / (10 * content) : g.price.usdPerTonne / content;
 }
 
 export const requirementIndex = (data: StudioProgrammeData, nutrientId: string) => data.requirementFields.findIndex((f) => f.nutrientId === nutrientId);
 
-/** The phase's published requirement for this nutrient, or null where it sets none. */
+/** The phase's published requirement (Chapter 7 level for trace minerals), or null where it sets none. */
 export function phaseRequirement(data: StudioProgrammeData, phase: StudioPhase, n: NutrientRef): number | null {
+  if (isSupplementation(n)) return phase.supplementation[n.id] ?? null;
   const i = requirementIndex(data, n.id);
   return i < 0 ? null : phase.requirements[i] ?? null;
 }
@@ -104,13 +118,14 @@ export function phaseParts(phase: StudioPhase) {
 export function fmtContent(n: NutrientRef, v: number | null) {
   if (v == null) return "—";
   if (v === 0) return "0";
+  if (n.unit === "ppm") return fmt(v, v >= 100 ? 0 : v >= 10 ? 1 : v >= 1 ? 2 : 3);
   if (n.unit !== "%") return fmt(v, 0);
   return fmt(v, v >= 10 ? 1 : 2);
 }
 
-export const fmtWithUnit = (n: NutrientRef, v: number) => fmtContent(n, v) + (n.unit === "%" ? "%" : " kcal/kg");
+export const fmtWithUnit = (n: NutrientRef, v: number) => fmtContent(n, v) + (n.unit === "%" ? "%" : " " + n.unit);
 
 export const fmtCost = (c: number) => "$" + fmt(c, c >= 100 ? 0 : c >= 10 ? 1 : c >= 1 ? 2 : 3);
 
 /** Unit a nutrient's cost is quoted in. */
-export const costUnit = (n: NutrientRef) => (n.unit === "%" ? "kg " + n.noun : "Mcal");
+export const costUnit = (n: NutrientRef) => (n.unit === "kcal/kg" ? "Mcal" : "kg " + n.noun);

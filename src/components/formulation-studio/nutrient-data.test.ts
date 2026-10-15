@@ -18,16 +18,16 @@ function ingredient(over: Partial<CatalogueIngredient>): CatalogueIngredient {
     id: "x", name: "X", aliases: [], category: "Cereal", price: null,
     nutrients: { mePig: null, mePoultry: null, cp: null, lys: null, mc: null, thr: null, ca: null, ap: null, na: null, cf: null },
     expected: ["mePig", "cp", "lys", "mc", "thr", "ca", "ap", "na"],
-    limits: [], family: { id: "x", name: "X", memberIds: ["x"], combinedLimits: [] },
+    family: { id: "x", name: "X", memberIds: ["x"], combinedLimits: [] },
     nutritionSource: { publisher: "", title: "", year: null, url: null, basis: "as-fed", sourceTable: null, sourcePage: null, verificationStatus: "published_reference", notes: [] },
-    requirementValues: {}, requirementMissing: {}, nutrientSources: {},
+    requirementValues: {}, requirementMissing: {}, traceMineralsPpm: {}, nutrientSources: {},
     ...over,
   };
 }
 
 const phase = (over: Partial<StudioPhase>): StudioPhase => ({
   id: "p1", label: "Grower: 26–47 kg", weightRange: "26–47 kg", sourceTable: "5.43", sourcePage: 1, limitsKey: "swine:grower", columnLabel: "grower",
-  requirements: [], programmeLimits: [], constraintIds: [], ...over,
+  requirements: [], programmeLimits: [], constraintIds: [], supplementation: {}, ...over,
 });
 
 const data = {
@@ -114,10 +114,34 @@ describe("formatting", () => {
 });
 
 describe("nutrient list", () => {
-  it("takes every page nutrient from FEED_NUTRIENTS, linked to the optimiser", () => {
+  it("takes every page nutrient from FEED_NUTRIENTS, each with a value source", () => {
     for (const n of NUTRIENTS) {
       assert.equal(FEED_NUTRIENTS.find((f) => f.id === n.id)?.name, n.name);
-      assert.ok(n.constraintId || n.id === "crude-fibre", n.id + " has no optimiser constraint");
+      assert.ok(n.constraintId || n.id === "crude-fibre" || n.requirement === "supplementation", n.id + " has no value source");
+      // Chapter 7 minerals are advisory: never linked to an optimiser constraint.
+      if (n.requirement === "supplementation") assert.equal(n.constraintId, undefined, n.id);
     }
+  });
+});
+
+describe("trace minerals", () => {
+  const ZINC = nutrientById("zinc")!;
+  it("reads natural content per species, null where missing", () => {
+    const meal = ingredient({ traceMineralsPpm: { swine: { zinc: 52, selenium: null } } });
+    assert.equal(nutrientContent(meal, ZINC, "swine"), 52);
+    assert.equal(nutrientContent(meal, nutrientById("selenium")!, "swine"), null);
+    assert.equal(nutrientContent(meal, ZINC, "broiler"), null, "not in the poultry library");
+  });
+
+  it("compares against the Chapter 7 level, not a requirement field", () => {
+    const ph = phase({ supplementation: { zinc: 105.7 } });
+    assert.equal(phaseRequirement(data, ph, ZINC), 105.7);
+    assert.equal(phaseRequirement(data, ph, nutrientById("copper")!), null);
+  });
+
+  it("formats ppm", () => {
+    assert.equal(fmtContent(ZINC, 137.4), "137");
+    assert.equal(fmtContent(ZINC, 15.21), "15.2");
+    assert.equal(fmtContent(nutrientById("selenium")!, 0.416), "0.416");
   });
 });

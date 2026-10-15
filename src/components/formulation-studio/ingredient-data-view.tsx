@@ -12,6 +12,7 @@ import {
   fmtContent,
   fmtCost,
   fmtWithUnit,
+  isSupplementation,
   nutrientById,
   nutrientContent,
   nutrientCost,
@@ -59,8 +60,10 @@ const FOOTPRINT = ["metabolizable-energy", "crude-protein", "sid-lysine", "sid-m
 const footLabel = (n: NutrientRef) => n.shortName.replace(/^SID /, "");
 
 const pigValue = (g: CatalogueIngredient, n: NutrientRef) => nutrientContent(g, n, "swine");
-/** Nutrients with no value for this ingredient, pig basis (poultry energy too). */
-const missingFor = (g: CatalogueIngredient) => NUTRIENTS.filter((n) => pigValue(g, n) == null || (n === ME && nutrientContent(g, ME, "broiler") == null));
+/** Nutrients that make a profile "complete": everything but the Chapter 7 trace minerals, which formulation doesn't need. */
+const PROFILE_NUTRIENTS = NUTRIENTS.filter((n) => !isSupplementation(n));
+/** Profile nutrients with no value for this ingredient, pig basis (poultry energy too). */
+const missingFor = (g: CatalogueIngredient) => PROFILE_NUTRIENTS.filter((n) => pigValue(g, n) == null || (n === ME && nutrientContent(g, ME, "broiler") == null));
 const fmtPrice = (g: CatalogueIngredient) => (g.price ? "$" + fmt(g.price.usdPerTonne, 0) : "No price");
 /** Catalogue order: by category, then name. */
 const byCatalogueOrder = (a: CatalogueIngredient, b: CatalogueIngredient) => categoryRank(a.category) - categoryRank(b.category) || a.name.localeCompare(b.name);
@@ -297,6 +300,9 @@ const DEFAULT_INCLUSION: Record<string, number> = { Cereal: 55, "Oil and fat": 3
 /** Slider range when the stage sets no limit. */
 const INCLUSION_RANGE: Record<string, number> = { "Oil and fat": 10, "Amino acid": 1, Mineral: 5, Premix: 5 };
 
+/** Share of the formulation nutrients two ingredients must both have values for to be compared as substitutes. */
+const SUBSTITUTE_MIN_SHARED = 0.6;
+
 /** "swine:grower" → "Pigs · grower". */
 const limitsKeyLabel = (key: string) => {
   const [species, column] = key.split(":");
@@ -343,7 +349,7 @@ function IngredientDetail({ g, catalogue, programmes, addTargets, open, goList, 
     { label: "Crude protein", val: cp ? fmtWithUnit(CP, cp) : cp == null ? "No data" : "None", sub: lys ? fmtWithUnit(LYS, lys) + " SID lysine" : "as fed", fg: "#222420" },
     { label: "Energy", val: me ? fmtWithUnit(ME, me) : me == null ? "No data" : "None", sub: me ? (sp === "broiler" ? "poultry" : "pigs") + (meOther ? " · " + fmt(meOther, 0) + " for " + (sp === "broiler" ? "pigs" : "poultry") : "") : "contributes no energy", fg: "#222420" },
     { label: "Max in " + phase.label, val: lim != null ? fmtLim(lim) : "No limit", sub: allLims.length ? (lo === hi ? fmtLim(lo) : fmtLim(lo) + "–" + fmtLim(hi)) + " across stages" : "in any stage", fg: "#222420" },
-    { label: "Nutrient data", val: NUTRIENTS.length - missing.length + " of " + NUTRIENTS.length, sub: missing.length ? "missing " + nameList(missing.map((n) => n.shortName), 4) : "complete", fg: missing.length ? "#45473f" : "#2f5a3f" },
+    { label: "Nutrient data", val: PROFILE_NUTRIENTS.length - missing.length + " of " + PROFILE_NUTRIENTS.length, sub: missing.length ? "missing " + nameList(missing.map((n) => n.shortName), 4) : "complete", fg: missing.length ? "#45473f" : "#2f5a3f" },
   ];
 
   // ---- what it contributes at an inclusion ----
@@ -351,7 +357,8 @@ function IngredientDetail({ g, catalogue, programmes, addTargets, open, goList, 
   const defIncl = g.premix ? g.premix.inclusionPct : DEFAULT_INCLUSION[g.category] ?? 10;
   const incl = Math.min(inclPick ?? defIncl, inclMax);
   const inclStep = inclMax <= 1 ? 0.01 : inclMax <= 10 ? 0.1 : 0.5;
-  const contrib = NUTRIENTS.flatMap((n) => {
+  // Natural trace-mineral content doesn't count toward Chapter 7 levels, so minerals are left out here.
+  const contrib = PROFILE_NUTRIENTS.flatMap((n) => {
     const req = phaseRequirement(programmes, phase, n);
     if (req == null) return [];
     const v = nutrientContent(g, n, sp);
@@ -378,9 +385,11 @@ function IngredientDetail({ g, catalogue, programmes, addTargets, open, goList, 
   });
 
   // ---- closest substitutes ----
+  // Compared on the formulation nutrients, and only against ingredients sharing most of them,
+  // so a sparse profile can't look "identical" on the few values it has.
   const subs = useMemo(() => {
-    const maxBy = new Map(NUTRIENTS.map((n) => [n.id, Math.max(0, ...others.map((x) => pigValue(x, n) ?? 0))]));
-    const vec = (x: CatalogueIngredient) => NUTRIENTS.map((n) => {
+    const maxBy = new Map(PROFILE_NUTRIENTS.map((n) => [n.id, Math.max(0, ...others.map((x) => pigValue(x, n) ?? 0))]));
+    const vec = (x: CatalogueIngredient) => PROFILE_NUTRIENTS.map((n) => {
       const v = pigValue(x, n), max = maxBy.get(n.id)!;
       return v == null || !max ? null : Math.sqrt(v / max);
     });
@@ -395,11 +404,12 @@ function IngredientDetail({ g, catalogue, programmes, addTargets, open, goList, 
           if (v != null && mine[i] != null) {
             s += (v - mine[i]!) ** 2;
             k++;
-            diffs.push({ n: NUTRIENTS[i], d: v - mine[i]! });
+            diffs.push({ n: PROFILE_NUTRIENTS[i], d: v - mine[i]! });
           }
         });
-        return { x, d: k ? Math.sqrt(s / k) : 1, diffs };
+        return { x, k, d: k ? Math.sqrt(s / k) : 1, diffs };
       })
+      .filter((r) => r.k >= SUBSTITUTE_MIN_SHARED * PROFILE_NUTRIENTS.length)
       .sort((a, b) => a.d - b.d)
       .slice(0, 3);
   }, [g, others]);
@@ -625,8 +635,9 @@ function NutrientProfile({ g, others, sp, openNutrient }: { g: CatalogueIngredie
     const sorted = [...vals].sort((a, b) => b.v - a.v);
     const rank = sorted.findIndex((t) => t.x.id === g.id) + 1;
     const med = sorted.length ? sorted[Math.floor(sorted.length / 2)].v : null;
-    const costs = vals.map((t) => ({ id: t.x.id, c: nutrientCost(t.x, n, t.v) })).filter((t): t is { id: string; c: number } => t.c != null).sort((a, b) => a.c - b.c);
-    const myCost = nutrientCost(g, n, v);
+    const costs = vals.map((t) => ({ id: t.x.id, c: isSupplementation(n) ? null : nutrientCost(t.x, n, t.v) })).filter((t): t is { id: string; c: number } => t.c != null).sort((a, b) => a.c - b.c);
+    // Buying a trace mineral through a feedstuff's natural content isn't a real option, so no cost for those.
+    const myCost = isSupplementation(n) ? null : nutrientCost(g, n, v);
     const cRank = costs.findIndex((t) => t.id === g.id) + 1;
     return { n, v, vals, L, rank, sorted, med, myCost, cRank, costs };
   });
