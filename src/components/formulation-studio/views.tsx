@@ -1,5 +1,5 @@
-import { Trash2 } from "lucide-react";
-import { useState, type ReactNode } from "react";
+import { PanelLeftClose, PanelLeftOpen, Trash2 } from "lucide-react";
+import { useEffect, useState, type ReactNode } from "react";
 
 import { IngredientPoolPanel } from "./ingredient-pool-panel";
 import { IngredientData } from "./ingredient-data-view";
@@ -23,15 +23,23 @@ export function StudioView(props: { loading: true; shell: ShellVals } | { loadin
   const v = props.loading ? null : props.v;
   const nav = v ? shell.nav : [];
   const refNav = v ? shell.refNav : [];
+  const [hiddenPref, setHidden] = useSidebarHidden();
+  // Only hide when the top bar is there to bring it back.
+  const hidden = hiddenPref && !!v?.showTop;
   return (
     <div className="fs-studio">
       <style dangerouslySetInnerHTML={{ __html: STUDIO_CSS }} />
       <div style={sx("display:flex;min-height:100vh;font-variant-numeric:tabular-nums;font-family:'IBM Plex Sans',sans-serif")}>
-        {shell.wide && (
+        {shell.wide && !hidden && (
           <div className="fs-sidebar" style={sx("flex:none;background:#222420;color:#d0cdc3;display:flex;flex-direction:column;padding:20px 14px;gap:22px;position:sticky;top:0;height:100vh")}>
-            <div style={sx("display:flex;align-items:center;gap:10px;padding:0 8px")}>
+            <div style={sx("display:flex;align-items:center;gap:10px;padding:0 0 0 8px")}>
               <div style={sx("width:24px;height:24px;border-radius:6px;background:#e3aa45")} />
               <div style={sx("font:600 16px/1 'IBM Plex Sans',sans-serif;color:#faf8f3")}>FeedSport</div>
+              {v && v.showTop && (
+                <button onClick={() => setHidden(true)} aria-label="Hide sidebar" title="Hide sidebar" className={hv("nav")} style={sx("margin-left:auto;border:0;background:transparent;color:#8d8a80;padding:6px;border-radius:6px;display:flex")}>
+                  <PanelLeftClose size={18} />
+                </button>
+              )}
             </div>
             <button onClick={shell.startGuided} className={hv("amber")} style={sx("border:0;background:#e3aa45;color:#222420;font:600 13px/1 'IBM Plex Sans',sans-serif;padding:11px 12px;border-radius:7px;display:flex;justify-content:space-between;align-items:center")}>
               <span>New formulation</span>
@@ -88,7 +96,7 @@ export function StudioView(props: { loading: true; shell: ShellVals } | { loadin
                   <button onClick={shell.startGuided} style={sx("flex:none;border:0;background:#e3aa45;color:#222420;font:600 13px/1 'IBM Plex Sans',sans-serif;padding:10px 12px;border-radius:6px")}>New</button>
                 </div>
               )}
-              {v && v.showTop && <TopBar v={v} shell={shell} />}
+              {v && v.showTop && <TopBar v={v} shell={shell} onShowSidebar={shell.wide && hidden ? () => setHidden(false) : undefined} />}
             </div>
           )}
 
@@ -131,10 +139,15 @@ function topBarFrame(v: StudioVals) {
   return "max-width:1600px;padding:10px clamp(16px,4vw,40px)";
 }
 
-function TopBar({ v, shell }: V & { shell: ShellVals }) {
+function TopBar({ v, shell, onShowSidebar }: V & { shell: ShellVals; onShowSidebar?: () => void }) {
   return (
     <div style={sx("background:#fff;border-bottom:1px solid #e2dfd6")}>
       <div style={sx("display:flex;align-items:center;gap:14px;width:100%;margin:0 auto;" + topBarFrame(v))}>
+        {onShowSidebar && (
+          <button onClick={onShowSidebar} aria-label="Show sidebar" title="Show sidebar" className={hv("pool")} style={sx("flex:none;border:1px solid #e2dfd6;background:#fff;color:#64665c;padding:7px;border-radius:8px;display:flex")}>
+            <PanelLeftOpen size={18} />
+          </button>
+        )}
         <div style={sx("position:relative;flex:1;max-width:600px;min-width:0")}>
           <div style={sx(`display:flex;align-items:center;gap:10px;padding:0 8px 0 12px;border:1px solid ${v.sBd};border-radius:8px;background:${v.sBg};box-shadow:${v.sRing}`)}>
             <span style={sx("flex:none;width:12px;height:12px;border:1.5px solid #64665c;border-radius:50%")} />
@@ -2515,4 +2528,23 @@ function Rules({ v }: V) {
       </div>
     </>
   );
+}
+
+const SIDEBAR_KEY = "fs-sidebar-hidden";
+
+// Whether the wide-screen sidebar is folded to a rail; remembered per browser.
+function useSidebarHidden() {
+  const [hidden, setHidden] = useState(false);
+  useEffect(() => {
+    try {
+      setHidden(localStorage.getItem(SIDEBAR_KEY) === "1");
+    } catch {}
+  }, []);
+  const set = (h: boolean) => {
+    setHidden(h);
+    try {
+      localStorage.setItem(SIDEBAR_KEY, h ? "1" : "0");
+    } catch {}
+  };
+  return [hidden, set] as const;
 }
