@@ -48,6 +48,8 @@ const ProductFormSchema = z.object({
   shipping: z.string().optional(),
   featured: z.boolean().optional(),
   active: z.boolean().optional(),
+  showOnProductsPage: z.boolean().optional(),
+  showInCatalog: z.boolean().optional(),
 });
 
 type FormValues = z.infer<typeof ProductFormSchema>;
@@ -83,6 +85,8 @@ export const ProductForm = ({ product, categories, nutritionIngredients }: Produ
           shipping: product?.shipping || '',
           featured: product?.featured || false,
           active: product?.active ?? true,
+          showOnProductsPage: product?.showOnProductsPage ?? true,
+          showInCatalog: product?.showInCatalog ?? true,
       }
   });
 
@@ -319,8 +323,17 @@ export const ProductForm = ({ product, categories, nutritionIngredients }: Produ
                     </div>
                     <div className="flex items-center space-x-2 mt-4">
                         <input type="checkbox" id="active" {...register('active')} className="h-4 w-4 rounded border-ash-600 bg-ash-700 text-harvest-600 focus:ring-harvest-500"/>
-                        <label htmlFor="active" className="text-sm font-medium text-ash-300">Visible in the public catalogue</label>
+                        <label htmlFor="active" className="text-sm font-medium text-ash-300">Active</label>
                     </div>
+                    <div className="flex items-center space-x-2 mt-4 pl-6">
+                        <input type="checkbox" id="showOnProductsPage" {...register('showOnProductsPage')} className="h-4 w-4 rounded border-ash-600 bg-ash-700 text-harvest-600 focus:ring-harvest-500"/>
+                        <label htmlFor="showOnProductsPage" className="text-sm font-medium text-ash-300">Show on products page</label>
+                    </div>
+                    <div className="flex items-center space-x-2 mt-4 pl-6">
+                        <input type="checkbox" id="showInCatalog" {...register('showInCatalog')} className="h-4 w-4 rounded border-ash-600 bg-ash-700 text-harvest-600 focus:ring-harvest-500"/>
+                        <label htmlFor="showInCatalog" className="text-sm font-medium text-ash-300">Show in PDF catalogue</label>
+                    </div>
+                    <p className="text-xs text-ash-400 mt-2">Inactive products are hidden everywhere, whatever these settings say.</p>
               </div>
               <div className="bg-ash-800/50 border border-ash-700 rounded-lg p-6">
                   <label className="block text-sm font-medium text-ash-300">Product Images</label>

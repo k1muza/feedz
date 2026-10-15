@@ -61,14 +61,23 @@ function rowToCatalogItem(row: PublicProductRow): FeedProductCatalogItem {
   };
 }
 
-/** Public catalogue rows from Supabase, enriched with technical values from JSON. */
-export const getPublishedProducts = cache(async (): Promise<FeedProduct[]> => {
+type VisibilityFlag = 'show_on_products_page' | 'show_in_catalog';
+
+/** Products shown on the public products pages, and used by the sitemap and AI tools. */
+export const getPublishedProducts = cache(() => getActiveProducts('show_on_products_page'));
+
+/** Products included in the downloadable PDF catalogue. */
+export const getCatalogProducts = cache(() => getActiveProducts('show_in_catalog'));
+
+/** Active rows from Supabase with the given visibility flag set, enriched with technical values from JSON. */
+async function getActiveProducts(flag: VisibilityFlag): Promise<FeedProduct[]> {
   if (!isSupabaseConfigured) return fallbackProducts.filter((product) => product.id !== 'premix');
 
   const { data, error } = await createPublicClient()
     .from('products')
     .select('id, nutrition_ingredient_id, name, search_terms, description, status, animals, grade_fallback, packaging, price, currency, pack_size_kg, stock, moq_kg, certifications, images, shipping, image_label, origin, product_categories!inner(name, slug)')
     .eq('active', true)
+    .eq(flag, true)
     .neq('id', 'premix')
     .order('name');
 
@@ -96,7 +105,7 @@ export const getPublishedProducts = cache(async (): Promise<FeedProduct[]> => {
       return [];
     }
   });
-});
+}
 
 export async function getPublishedProduct(id: string) {
   const resolvedId = resolveFeedProductId(id);

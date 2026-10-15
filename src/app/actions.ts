@@ -125,6 +125,8 @@ type ProductRow = {
   shipping: string | null;
   featured: boolean;
   active: boolean;
+  show_on_products_page: boolean;
+  show_in_catalog: boolean;
 };
 
 function rowToProduct(row: ProductRow): Product {
@@ -157,6 +159,8 @@ function rowToProduct(row: ProductRow): Product {
     shipping: row.shipping || undefined,
     featured: row.featured,
     active: row.active,
+    showOnProductsPage: row.show_on_products_page,
+    showInCatalog: row.show_in_catalog,
   };
 }
 
@@ -209,6 +213,8 @@ const ProductFormSchema = z.object({
   shipping: z.string().trim().max(1000).optional(),
   featured: z.boolean().optional(),
   active: z.boolean().optional(),
+  showOnProductsPage: z.boolean().optional(),
+  showInCatalog: z.boolean().optional(),
 });
 
 function slugify(value: string) {
@@ -339,6 +345,8 @@ export async function saveProduct(productData: unknown, productId?: string) {
     shipping: values.shipping || '',
     featured: values.featured ?? false,
     active: values.active ?? true,
+    show_on_products_page: values.showOnProductsPage ?? true,
+    show_in_catalog: values.showInCatalog ?? true,
   };
 
   let savedId = productId;

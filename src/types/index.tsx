@@ -158,6 +158,8 @@ export type Product = {
   shipping?: string;
   featured?: boolean;
   active: boolean;
+  showOnProductsPage: boolean;
+  showInCatalog: boolean;
 };
 
 export type ContactInquiry = {
