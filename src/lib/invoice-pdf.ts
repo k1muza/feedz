@@ -298,7 +298,7 @@ export async function renderInvoicePdf(invoice: Invoice) {
     line(totalsX, W - M, y, 0.5, C.hairline);
   };
   totalsRow('Subtotal', money(subtotal));
-  totalsRow(`Tax (${(invoice.taxRate * 100).toLocaleString('en-US', { maximumFractionDigits: 2 })}%)`, money(tax));
+  if (invoice.taxRate > 0) totalsRow(`Tax (${(invoice.taxRate * 100).toLocaleString('en-US', { maximumFractionDigits: 2 })}%)`, money(tax));
   y -= 6;
   box(totalsX, y, W - M - totalsX, 28, C.green);
   text('TOTAL DUE', totalsX + 12, 7.5, 'monoMedium', C.greenTint, y - 17.5);
