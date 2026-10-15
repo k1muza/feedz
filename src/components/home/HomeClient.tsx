@@ -54,9 +54,9 @@ export default function HomeClient({ articles, featuredProducts, categoryCounts 
               </div>
             </div>
             <div className="grid grid-cols-[repeat(auto-fit,minmax(150px,1fr))] border-t border-[#191b18]">
-              {[['Farmers', 'Start with your animal →', '#animals'], ['Feed manufacturers', 'Compare specs and MOQ →', '/products'], ['Nutritionists', 'Check a formulation →', '/formulations']].map(([label, copy, href]) => (
+              {[['Farmers', 'Start with your animal', '#animals'], ['Feed manufacturers', 'Compare specs and MOQ', '/products'], ['Nutritionists', 'Check a formulation', '/formulations']].map(([label, copy, href]) => (
                 <Link key={label} href={href} className="flex flex-col gap-1.5 px-0 pb-1 pt-4 text-[#191b18] no-underline">
-                  <span className="fs-label text-[#4f524b]">{label}</span><span className="pr-4 text-[15px] font-semibold leading-[1.35]">{copy}</span>
+                  <span className="fs-label text-[#4f524b]">{label}</span><span className="pr-4 text-[15px] font-semibold leading-[1.35]">{copy}{/* No-break space keeps the arrow on the last word's line. */}{'\u00a0'}<span aria-hidden="true">→</span></span>
                 </Link>
               ))}
             </div>
@@ -69,7 +69,7 @@ export default function HomeClient({ articles, featuredProducts, categoryCounts 
               <div className="grid grid-cols-3 border-t border-[#d9d4c7]">
                 {[...heroProduct.specs.slice(0, 2), { label: 'MOQ', value: heroProduct.moq, unit: '' }].map((spec, index) => <div key={spec.label} className={`px-4 py-2.5 ${index < 2 ? 'border-r border-[#d9d4c7]' : ''}`}><div className="fs-label text-[10px] text-[#4f524b]">{spec.label}</div><div className="text-[22px] font-semibold tabular-nums">{spec.value}<span className="ml-0.5 text-[11px] font-normal text-[#4f524b]">{spec.unit}</span></div></div>)}
               </div>
-              <Link href={`/products/${heroProduct.id}`} className="flex w-full justify-between bg-[#1d3a2a] px-4 py-[13px] text-[14px] font-semibold text-white no-underline">View full specification <span>→</span></Link>
+              <Link href={`/products/${heroProduct.id}`} className="flex w-full justify-between bg-[#1d3a2a] px-4 py-[13px] text-[14px] font-semibold text-white no-underline transition-colors hover:bg-[#2e5a40] hover:text-white">View full specification <span aria-hidden="true">→</span></Link>
             </div>}
           </DesignPlaceholder>
         </div>

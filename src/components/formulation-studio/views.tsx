@@ -11,6 +11,7 @@ import { ADV_LINK, CARD, DataTag, Diamond, MONO_HEAD, StatusGlyph } from "./mark
 import { STUDIO_CSS, hv, sx } from "./sx";
 import { UpperLimitAdvisories, UpperLimitTable } from "./upper-limit-cards";
 import { INCLUSION_INPUT_PROPS } from "@/lib/inclusion-input";
+import { BrandMark } from "@/components/common/BrandMark";
 
 // Markup for the formulation studio, transcribed from the prototype template in
 // design/FeedSport Prototype.html. Inline style strings are kept as written in
@@ -33,7 +34,7 @@ export function StudioView(props: { loading: true; shell: ShellVals } | { loadin
         {shell.wide && !hidden && (
           <div className="fs-sidebar" style={sx("flex:none;background:#222420;color:#d0cdc3;display:flex;flex-direction:column;padding:20px 14px;gap:22px;position:sticky;top:0;height:100vh")}>
             <div style={sx("display:flex;align-items:center;gap:10px;padding:0 0 0 8px")}>
-              <div style={sx("width:24px;height:24px;border-radius:6px;background:#e3aa45")} />
+              <BrandMark className="mx-[3.5px] h-[17px] w-[17px]" color="#e3aa45" />
               <div style={sx("font:600 16px/1 'IBM Plex Sans',sans-serif;color:#faf8f3")}>FeedSport</div>
               {v && v.showTop && (
                 <button onClick={() => setHidden(true)} aria-label="Hide sidebar" title="Hide sidebar" className={hv("nav")} style={sx("margin-left:auto;border:0;background:transparent;color:#8d8a80;padding:6px;border-radius:6px;display:flex")}>
@@ -84,7 +85,7 @@ export function StudioView(props: { loading: true; shell: ShellVals } | { loadin
             <div style={sx("position:sticky;top:0;z-index:10")}>
               {shell.narrow && (
                 <div style={sx("display:flex;align-items:center;gap:14px;padding:12px 16px;background:#222420;color:#faf8f3")}>
-                  <div style={sx("width:20px;height:20px;border-radius:5px;background:#e3aa45")} />
+                  <BrandMark className="mx-[3px] h-[14px] w-[14px]" color="#e3aa45" />
                   <button onClick={shell.goHome} style={sx("border:0;background:transparent;color:#faf8f3;font:600 15px/1 'IBM Plex Sans',sans-serif;padding:6px 0")}>FeedSport</button>
                   <div data-navscroll="1" style={sx("display:flex;gap:16px;overflow-x:auto;min-width:0;flex:1;scrollbar-width:none;-ms-overflow-style:none")}>
                     {[...nav, ...refNav].map((it) => (
@@ -386,7 +387,7 @@ function Auth({ a }: { a: NonNullable<StudioVals["auth"]> }) {
       <div className="fs-auth-aside" style={sx("flex:1 1 420px;background:#2f5a3f;color:#faf8f3;padding:clamp(28px,5vw,64px);display:flex;flex-direction:column;justify-content:space-between;gap:40px;min-height:220px")}>
         <div style={sx("display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap")}>
           <div style={sx("display:flex;align-items:center;gap:10px")}>
-            <div style={sx("width:26px;height:26px;border-radius:7px;background:#e3aa45")} />
+            <BrandMark className="mx-[4px] h-[18px] w-[18px]" color="#e3aa45" />
             <span style={sx("font:600 18px/1 'IBM Plex Sans',sans-serif")}>FeedSport</span>
           </div>
           <a href="/" className={hv("signout")} style={sx("color:#dbe7dc;font:500 14px/1 'IBM Plex Sans',sans-serif;text-decoration:none")}>← Back to FeedSport site</a>

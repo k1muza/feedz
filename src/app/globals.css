@@ -158,9 +158,16 @@ html.dark a:hover { color: #b3dcc0; }
 }
 :root:has(.admin-theme) a:hover { color: #f0c97f; }
 
+/* Height of the fixed bottom dock: the quick-action bar below 1080px, the Ask FeedSport button
+   (bottom-6 + 52px) from 1080px. The footer reserves this space so the dock never covers its links. */
+:root { --fs-dock-clearance: calc(69px + env(safe-area-inset-bottom)); }
+@media (min-width: 1080px) { :root { --fs-dock-clearance: 76px; } }
+
 html { scroll-behavior: smooth; }
 button, input, select, textarea { font-family: inherit; }
 a { text-underline-offset: 3px; }
+/* Plain-link hover. It outranks single-class colours, so links styled as filled buttons
+   must also set their own hover colour (see .fs-button-* below and hover:text-* utilities). */
 a:hover { color: #2e5a40; }
 :focus-visible { outline: 2px solid #d99a2b; outline-offset: 2px; }
 input[type="range"] { accent-color: #1d3a2a; }
@@ -214,11 +221,11 @@ input[type="range"] { accent-color: #1d3a2a; }
   transition: background .15s ease, color .15s ease, border-color .15s ease;
 }
 .fs-button-primary { border: 0; background: var(--fs-field); color: white; }
-.fs-button-primary:hover { background: #2e5a40; }
+.fs-button-primary:hover { background: #2e5a40; color: white; }
 .fs-button-secondary { border: 1.5px solid var(--fs-charcoal); background: transparent; color: var(--fs-charcoal); }
 .fs-button-secondary:hover { background: var(--fs-charcoal); color: var(--fs-grain); }
 .fs-button-amber { border: 0; background: var(--fs-amber); color: var(--fs-charcoal); }
-.fs-button-amber:hover { background: #c88a1e; }
+.fs-button-amber:hover { background: #c88a1e; color: var(--fs-charcoal); }
 .fs-photo {
   position: relative;
   overflow: hidden;

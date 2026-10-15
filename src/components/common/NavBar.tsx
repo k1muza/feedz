@@ -6,6 +6,7 @@ import { FormEvent, useEffect, useRef, useState } from 'react';
 import { ChevronDown, Lock, Search, X } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { createClient } from '@/lib/supabase/client';
+import { BrandMark } from '@/components/common/BrandMark';
 
 const links = [
   { href: '/products', label: 'Products' },
@@ -134,7 +135,7 @@ export default function NavBar() {
       <header className="sticky top-0 z-40 border-b border-[#d9d4c7] bg-[#f3f0e8]/95 backdrop-blur-[10px]">
         <div className="mx-auto flex h-[60px] max-w-[1320px] items-center gap-2 px-4 min-[1080px]:h-[72px] min-[1080px]:gap-7 min-[1080px]:px-10">
           <Link href="/" aria-label="FeedSport home" className="flex shrink-0 items-center gap-[9px] text-[#191b18] no-underline min-[1080px]:gap-[10px]">
-            <span className="h-[14px] w-[14px] rotate-45 rounded-[2px] bg-[#d99a2b] min-[1080px]:h-[15px] min-[1080px]:w-[15px]" />
+            <BrandMark className="h-[14px] w-[14px] min-[1080px]:h-[15px] min-[1080px]:w-[15px]" />
             <span className="text-[20px] font-extrabold tracking-[-.02em] min-[1080px]:text-[22px]">FeedSport</span>
           </Link>
 
@@ -212,7 +213,7 @@ export default function NavBar() {
             )}
             <div className="mt-4 grid grid-cols-2 gap-[10px]">
               {user
-                ? <Link href="/studio" className="flex h-[52px] items-center justify-center rounded-[4px] bg-[#1d3a2a] text-[16px] font-semibold text-white no-underline">Open Studio</Link>
+                ? <Link href="/studio" className="flex h-[52px] items-center justify-center rounded-[4px] bg-[#1d3a2a] text-[16px] font-semibold text-white no-underline transition-colors hover:bg-[#2e5a40] hover:text-white">Open Studio</Link>
                 : <Link href="/studio/login" className="flex h-[52px] items-center justify-center rounded-[4px] border-[1.5px] border-[#191b18] text-[16px] font-semibold text-[#191b18] no-underline">Sign in</Link>}
               <button onClick={() => { setMenuOpen(false); setQuoteOpen(true); }} className="h-[52px] rounded-[4px] border-0 bg-[#d99a2b] text-[16px] font-semibold text-[#191b18]">Get a quote</button>
             </div>
