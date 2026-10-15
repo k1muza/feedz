@@ -49,6 +49,7 @@ const InvoiceFormSchema = z.object({
   notes: z.string().optional(),
   paymentTerms: z.string().optional(),
   taxRate: z.coerce.number().min(0).max(100),
+  transport: z.coerce.number().min(0, 'Transport cannot be negative'),
 }).refine((data) => data.dueDate >= data.date, {
   message: 'Due date cannot be before the issue date.',
   path: ['dueDate'],
@@ -99,6 +100,7 @@ export const InvoiceForm = ({ invoice, products }: { invoice?: Invoice; products
       notes: invoice?.notes || 'Thank you for your business!',
       paymentTerms: invoice?.paymentTerms || 'Payment due within 30 days.',
       taxRate: invoice ? invoice.taxRate * 100 : 15,
+      transport: invoice?.transport ?? 0,
     }
   });
 
@@ -109,9 +111,10 @@ export const InvoiceForm = ({ invoice, products }: { invoice?: Invoice; products
 
   const watchedItems = form.watch('items');
   const taxRate = form.watch('taxRate') / 100;
+  const transport = Number(form.watch('transport')) || 0;
 
   const subtotal = watchedItems.reduce((acc, item) => acc + ((item.quantity || 0) * (item.price || 0)), 0);
-  const totalAmount = subtotal * (1 + taxRate);
+  const totalAmount = (subtotal + transport) * (1 + taxRate);
 
   const handleProductChange = (index: number, productId: string) => {
     form.setValue(`items.${index}.productId`, productId, { shouldDirty: true });
@@ -304,6 +307,11 @@ export const InvoiceForm = ({ invoice, products }: { invoice?: Invoice; products
           <div className="mt-6 pt-4 border-t border-ash-700 flex justify-end">
               <div className="text-right w-full max-w-sm space-y-2">
                   <div className="flex justify-between"><span className="text-ash-400">Subtotal</span><span>${subtotal.toFixed(2)}</span></div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-ash-400">Transport ($)</span>
+                    <input type="number" step="any" min="0" {...form.register('transport')} className="w-28 bg-ash-700 border-ash-600 rounded-md p-1 text-right"/>
+                  </div>
+                  {form.formState.errors.transport && <p className="text-red-500 text-xs">{form.formState.errors.transport.message}</p>}
                   <div className="flex justify-between items-center">
                     <span className="text-ash-400">Tax (%)</span>
                     <input type="number" {...form.register('taxRate')} className="w-20 bg-ash-700 border-ash-600 rounded-md p-1 text-right"/>

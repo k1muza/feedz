@@ -224,6 +224,7 @@ export type Invoice = {
     client: ClientInfo;
     items: InvoiceItem[];
     taxRate: number; // New field
+    transport: number;
     notes: string; // New field
     paymentTerms: string; // New field
     bank: BankInfo; // New field

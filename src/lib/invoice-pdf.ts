@@ -105,8 +105,9 @@ export async function renderInvoicePdf(invoice: Invoice) {
   const due = longDate(invoice.dueDate);
   const docRef = invoice.invoiceNumber;
   const subtotal = invoice.items.reduce((sum, item) => sum + item.quantity * item.price, 0);
-  const tax = subtotal * invoice.taxRate;
-  const total = subtotal + tax;
+  const transport = invoice.transport ?? 0;
+  const tax = (subtotal + transport) * invoice.taxRate;
+  const total = subtotal + transport + tax;
 
   let page: PDFPage = pdf.addPage([W, H]);
   let y = H;
@@ -298,6 +299,7 @@ export async function renderInvoicePdf(invoice: Invoice) {
     line(totalsX, W - M, y, 0.5, C.hairline);
   };
   totalsRow('Subtotal', money(subtotal));
+  if (transport > 0) totalsRow('Transport', money(transport));
   if (invoice.taxRate > 0) totalsRow(`Tax (${(invoice.taxRate * 100).toLocaleString('en-US', { maximumFractionDigits: 2 })}%)`, money(tax));
   y -= 6;
   box(totalsX, y, W - M - totalsX, 28, C.green);

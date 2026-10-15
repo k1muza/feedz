@@ -407,6 +407,7 @@ const InvoiceSchema = z.object({
   }),
   items: z.array(InvoiceItemSchema).min(1).max(100),
   taxRate: z.coerce.number().min(0).max(1),
+  transport: z.coerce.number().min(0, 'Transport cannot be negative.').default(0),
   notes: z.string().trim().max(5000).default(''),
   paymentTerms: z.string().trim().max(2000).default(''),
   bank: z.object({
@@ -421,8 +422,9 @@ const InvoiceSchema = z.object({
   path: ['dueDate'],
 });
 
-type InvoiceInput = Omit<Invoice, 'id' | 'invoiceNumber' | 'createdAt' | 'updatedAt' | 'totalAmount'> & {
+type InvoiceInput = Omit<Invoice, 'id' | 'invoiceNumber' | 'createdAt' | 'updatedAt' | 'totalAmount' | 'transport'> & {
   totalAmount?: number;
+  transport?: number;
 };
 
 type InvoiceRow = {
@@ -433,6 +435,7 @@ type InvoiceRow = {
   client: Invoice['client'];
   items: Invoice['items'];
   tax_rate: number | string;
+  transport: number | string;
   total_amount: number | string;
   notes: string;
   payment_terms: string;
@@ -455,7 +458,8 @@ function invoiceRow(validation: z.infer<typeof InvoiceSchema>) {
     items: validation.items,
     tax_rate: validation.taxRate,
     subtotal,
-    total_amount: money(subtotal * (1 + validation.taxRate)),
+    transport: money(validation.transport),
+    total_amount: money((subtotal + money(validation.transport)) * (1 + validation.taxRate)),
     notes: validation.notes,
     payment_terms: validation.paymentTerms,
     bank: validation.bank,
@@ -472,6 +476,7 @@ function rowToInvoice(row: InvoiceRow): Invoice {
     client: row.client,
     items: row.items,
     taxRate: Number(row.tax_rate),
+    transport: Number(row.transport),
     notes: row.notes,
     paymentTerms: row.payment_terms,
     bank: row.bank,
