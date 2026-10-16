@@ -27,7 +27,7 @@ import {
 import { resolveNutritionTargets, type EnergySystem } from "./nutrition-targets";
 import type { NutritionPhase } from "./nutrition";
 import type { FormulationAssessment } from "./formulation-assessment-model";
-import { nutrientFeasibilityTolerance } from "./numerical-tolerance";
+import { nutrientFeasibilityTolerance, withinBound } from "./numerical-tolerance";
 
 export type FormulationIngredientOption = {
   ingredientId: string;
@@ -71,6 +71,8 @@ export type FormulationDiagnostic = {
   actual: number;
   shortfall: number;
   excess: number;
+  /** Shortfall or excess as a percentage of the requirement (5 = 5% short of it). */
+  deviationPct: number;
 };
 
 export type FormulationSolution = {
@@ -149,7 +151,12 @@ export type LeastCostFormulationResult =
   | {
       status: "infeasible";
       diagnostics: FormulationDiagnostic[];
+      /** The closest achievable formulation: never compliant, never to be fed as is. */
       bestEffort?: FormulationSolution;
+      /** Every modeled requirement against the closest achievable formulation. */
+      bestEffortNutrientProfile?: FormulationNutrientComparison[];
+      /** How close it gets: the worst and the summed deviation, % of each requirement. */
+      closestAchievable?: { worstDeviationPct: number; totalDeviationPct: number };
       unsupportedRequirements: FormulationUnsupportedRequirement[];
       message: string;
       assessment?: FormulationAssessment;
@@ -393,13 +400,20 @@ export async function formulateLeastCostDiet(
     }
 
     const bestEffort = buildSolution(diagnostic.vars, prepared, library);
+    // Reported from the recomputed analysis, not the LP's own variables.
+    const diagnostics = describeDiagnostics(bestEffort.analysis, constraints);
     return {
       status: "infeasible",
-      diagnostics: describeDiagnostics(bestEffort.analysis, constraints),
+      diagnostics,
       bestEffort,
+      bestEffortNutrientProfile: buildNutrientProfile(bestEffort.analysis, constraints),
+      closestAchievable: {
+        worstDeviationPct: diagnostics.reduce((worst, d) => Math.max(worst, d.deviationPct), 0),
+        totalDeviationPct: diagnostics.reduce((sum, d) => sum + d.deviationPct, 0),
+      },
       unsupportedRequirements,
       message:
-        "No exact least-cost diet satisfies all modeled hard constraints. The diagnostic diet minimizes relative nutrient deviations.",
+        "No exact least-cost diet satisfies all modeled hard constraints. The closest achievable diet minimizes the largest relative nutrient deviation, then the total, then cost.",
     };
   } catch (error) {
     return {
@@ -1587,97 +1601,155 @@ async function buildAlternativeFormulations(
   return alternatives;
 }
 
+/**
+ * Room a later pass gets around an earlier optimum, so GLPK's floating-point
+ * output never makes it infeasible. Each pass's answer is then re-measured
+ * from its inclusions and only kept if it is no worse (LEXICOGRAPHIC_EQUAL),
+ * so cost can never buy back nutrient deviation.
+ */
+const LEXICOGRAPHIC_SLACK = (value: number) => 1e-12 + Math.abs(value) * 1e-10;
+const LEXICOGRAPHIC_EQUAL = (candidate: number, best: number) => candidate <= best + 1e-12 + Math.abs(best) * 1e-10;
+
+export type DiagnosticSolve =
+  | {
+      status: "optimal";
+      vars: Record<string, number>;
+      /** Pass 1: the largest relative deviation, as a fraction of its bound (0.05 = 5%). */
+      worstRelativeDeviation: number;
+      /** Pass 2: the sum of relative deviations, with the worst one held. */
+      totalRelativeDeviation: number;
+    }
+  | { status: "infeasible" };
+
+/**
+ * The closest achievable formulation: when no recipe meets every nutrient
+ * requirement, the inclusions that deviate least from them. Lexicographic,
+ * on one model:
+ *   1. minimise the worst relative deviation (minimax), so no single nutrient
+ *      is sacrificed to improve several others;
+ *   2. with that worst case held, minimise the total relative deviation;
+ *   3. with both held, minimise cost, purely as a tie-breaker.
+ * Only nutrient requirements are relaxed. Ingredient bounds (fixed amounts and
+ * manufacturer premix doses as lb == ub), family and group ceilings and the
+ * 100% total stay hard. A recipe from here never meets every requirement and
+ * must be assessed as infeasible.
+ */
 export async function solveDiagnostic(
   glpk: GLPK,
   ingredients: readonly PreparedIngredient[],
   constraints: readonly ConstraintSpec[],
-): Promise<{ status: "optimal"; vars: Record<string, number> } | { status: "infeasible" }> {
-  const {
-    GLP_DB,
-    GLP_FX,
-    GLP_LO,
-    GLP_MIN,
-    GLP_OPT,
-    GLP_UP,
-  } = glpk;
+): Promise<DiagnosticSolve> {
+  const { GLP_DB, GLP_FX, GLP_LO, GLP_MIN, GLP_OPT, GLP_UP } = glpk;
 
-  const deviationVars = constraints.map((constraint) => {
-    const name = `deviation_${constraint.id}`;
-    const scale = Math.max(Math.abs(constraint.bound), 1e-9);
-    return { name, coef: 1 / scale };
-  });
+  const deviation = (constraint: ConstraintSpec) => `deviation_${constraint.id}`;
+  // Deviations are in each nutrient's own unit; dividing by the bound makes
+  // 100 kcal of energy and 0.1% of lysine comparable.
+  const relative = constraints.map((constraint) => ({
+    name: deviation(constraint),
+    coef: 1 / Math.max(Math.abs(constraint.bound), 1e-9),
+  }));
+  const WORST = "worst_relative_deviation";
 
-  const lp = {
-    name: "FeedSportFormulationDiagnostic",
-    objective: {
-      direction: GLP_MIN,
-      name: "relative_nutrient_deviation",
+  const baseRows = [
+    {
+      name: "total_inclusion",
+      vars: ingredients.map((ingredient) => ({ name: ingredient.variable, coef: 1 })),
+      bnds: { type: GLP_FX, lb: 1, ub: 1 },
+    },
+    ...constraints.map((constraint) => ({
+      name: `nutrient_${constraint.id}`,
       vars: [
-        ...deviationVars,
-        // Resolve ties between equally deficient diets in favour of lower cost
-        // without allowing cost to outweigh nutrient feasibility.
         ...ingredients.map((ingredient) => ({
           name: ingredient.variable,
-          coef: ingredient.option.pricePerKg * 1e-9,
+          coef: ingredient.coefficients.get(constraint.id) ?? 0,
         })),
+        { name: deviation(constraint), coef: constraint.relation === "min" ? 1 : -1 },
       ],
-    },
-    subjectTo: [
-      {
-        name: "total_inclusion",
-        vars: ingredients.map((ingredient) => ({
-          name: ingredient.variable,
-          coef: 1,
-        })),
-        bnds: { type: GLP_FX, lb: 1, ub: 1 },
-      },
-      ...constraints.map((constraint) => ({
-        name: `nutrient_${constraint.id}`,
-        vars: [
-          ...ingredients.map((ingredient) => ({
-            name: ingredient.variable,
-            coef: ingredient.coefficients.get(constraint.id) ?? 0,
-          })),
-          {
-            name: `deviation_${constraint.id}`,
-            coef: constraint.relation === "min" ? 1 : -1,
-          },
-        ],
-        bnds:
-          constraint.relation === "min"
-            ? { type: GLP_LO, lb: constraint.bound, ub: 0 }
-            : { type: GLP_UP, lb: 0, ub: constraint.bound },
-      })),
-      // Inclusion ceilings stay hard: the best-effort diet relaxes only
-      // nutrient requirements, never ingredient, family or group limits.
-      ...aggregateInclusionRows(glpk, ingredients),
-    ],
-    bounds: [
-      ...ingredients.map((ingredient) => ({
-        name: ingredient.variable,
-        type:
-          Math.abs(ingredient.minFraction - ingredient.maxFraction) <= 1e-12
-            ? GLP_FX
-            : GLP_DB,
-        lb: ingredient.minFraction,
-        ub: ingredient.maxFraction,
-      })),
-      ...constraints.map((constraint) => ({
-        name: `deviation_${constraint.id}`,
-        type: GLP_LO,
-        lb: 0,
-        ub: 0,
-      })),
-    ],
+      bnds:
+        constraint.relation === "min"
+          ? { type: GLP_LO, lb: constraint.bound, ub: 0 }
+          : { type: GLP_UP, lb: 0, ub: constraint.bound },
+    })),
+    // Every relative deviation is at most the worst one.
+    ...relative.map((term) => ({
+      name: `minimax_${term.name}`,
+      vars: [term, { name: WORST, coef: -1 }],
+      bnds: { type: GLP_UP, lb: 0, ub: 0 },
+    })),
+    // Inclusion ceilings stay hard: the best-effort diet relaxes only
+    // nutrient requirements, never ingredient, family or group limits.
+    ...aggregateInclusionRows(glpk, ingredients),
+  ];
+  const bounds = [
+    ...ingredients.map((ingredient) => ({
+      name: ingredient.variable,
+      type: Math.abs(ingredient.minFraction - ingredient.maxFraction) <= 1e-12 ? GLP_FX : GLP_DB,
+      lb: ingredient.minFraction,
+      ub: ingredient.maxFraction,
+    })),
+    ...constraints.map((constraint) => ({ name: deviation(constraint), type: GLP_LO, lb: 0, ub: 0 })),
+    { name: WORST, type: GLP_LO, lb: 0, ub: 0 },
+  ];
+  const model = (name: string, vars: { name: string; coef: number }[], extraRows: typeof baseRows = []) => ({
+    name,
+    objective: { direction: GLP_MIN, name, vars },
+    subjectTo: [...baseRows, ...extraRows],
+    bounds,
+  });
+  // Relative deviations measured from the inclusions themselves, not from the
+  // LP's deviation variables, so every pass is judged on the same footing.
+  const measure = (vars: Record<string, number>) => {
+    let worst = 0;
+    let total = 0;
+    for (const constraint of constraints) {
+      const supplied = ingredients.reduce((sum, ingredient) => sum + (ingredient.coefficients.get(constraint.id) ?? 0) * (vars[ingredient.variable] ?? 0), 0);
+      const miss = Math.max(0, constraint.relation === "min" ? constraint.bound - supplied : supplied - constraint.bound) / Math.max(Math.abs(constraint.bound), 1e-9);
+      worst = Math.max(worst, miss);
+      total += miss;
+    }
+    return { worst, total };
   };
 
-  const result = await solveLp(glpk, lp);
+  // Pass 1: minimax.
+  const first = await solveLp(glpk, model("worst_relative_deviation", [{ name: WORST, coef: 1 }]));
+  if (first.result.status !== GLP_OPT) return { status: "infeasible" };
+  let vars = first.result.vars;
+  let best = measure(vars);
+  const holdWorst = {
+    name: "hold_worst_relative_deviation",
+    vars: [{ name: WORST, coef: 1 }],
+    bnds: { type: GLP_UP, lb: 0, ub: best.worst + LEXICOGRAPHIC_SLACK(best.worst) },
+  };
 
-  if (result.result.status !== GLP_OPT) {
-    return { status: "infeasible" };
+  // Pass 2: least total deviation without worsening the worst one.
+  const second = await solveLp(glpk, model("total_relative_deviation", relative, [holdWorst]));
+  if (second.result.status === GLP_OPT) {
+    const m = measure(second.result.vars);
+    if (LEXICOGRAPHIC_EQUAL(m.worst, best.worst) && LEXICOGRAPHIC_EQUAL(m.total, best.total)) {
+      vars = second.result.vars;
+      best = m;
+    }
   }
 
-  return { status: "optimal", vars: result.result.vars };
+  // Pass 3: cost, only among recipes equally close on both counts.
+  const holdTotal = {
+    name: "hold_total_relative_deviation",
+    vars: relative,
+    bnds: { type: GLP_UP, lb: 0, ub: best.total + LEXICOGRAPHIC_SLACK(best.total) },
+  };
+  const third = await solveLp(
+    glpk,
+    model("cost_per_kg", ingredients.map((ingredient) => ({ name: ingredient.variable, coef: ingredient.option.pricePerKg })), [holdWorst, holdTotal]),
+  );
+  if (third.result.status === GLP_OPT) {
+    const m = measure(third.result.vars);
+    if (LEXICOGRAPHIC_EQUAL(m.worst, best.worst) && LEXICOGRAPHIC_EQUAL(m.total, best.total)) {
+      vars = third.result.vars;
+      best = m;
+    }
+  }
+
+  return { status: "optimal", vars, worstRelativeDeviation: best.worst, totalRelativeDeviation: best.total };
 }
 
 export function buildSolution(
@@ -1741,7 +1813,8 @@ export function describeDiagnostics(
         ? Math.max(0, actual - constraint.bound)
         : 0;
 
-    if (shortfall <= 1e-7 && excess <= 1e-7) return [];
+    // The assessment's own boundary rule, so "unmet" here and there agree.
+    if (withinBound(constraint.relation, actual, constraint.bound, nutrientFeasibilityTolerance(constraint.bound))) return [];
 
     return [
       {
@@ -1753,6 +1826,7 @@ export function describeDiagnostics(
         actual,
         shortfall,
         excess,
+        deviationPct: ((shortfall + excess) / Math.max(Math.abs(constraint.bound), 1e-9)) * 100,
       },
     ];
   });

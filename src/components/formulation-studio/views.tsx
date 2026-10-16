@@ -6,6 +6,7 @@ import { IngredientData } from "./ingredient-data-view";
 import { InfoTip } from "./info-tip";
 import { NutrientData } from "./nutrient-data-view";
 import { Pager } from "./pager";
+import { Playground } from "./playground";
 import type { ShellVals, StudioVals } from "./studio";
 import { ADV_LINK, CARD, DataTag, Diamond, MONO_HEAD, StatusGlyph } from "./marks";
 import { STUDIO_CSS, hv, sx } from "./sx";
@@ -113,6 +114,12 @@ export function StudioView(props: { loading: true; shell: ShellVals } | { loadin
           {v && v.isNutrientsRef && <NutrientData {...v.nutView} />}
           {v && v.isCatalogue && <IngredientData {...v.ingView} />}
           {v && v.isCompare && <Compare v={v} />}
+          {/* Kept mounted once visited, so a mix in progress survives visiting other screens. */}
+          {v && v.playgroundSeen && (
+            <div hidden={!v.isPlayground}>
+              <Playground {...v.playground} />
+            </div>
+          )}
         </div>
 
         {v && v.d && <Drawer v={v} d={v.d} />}
@@ -135,6 +142,7 @@ type V = { v: StudioVals };
 // content pages, full width like the workspace and guided setup.
 function topBarFrame(v: StudioVals) {
   if (v.isWorkspace) return "max-width:none;padding:10px clamp(16px,3vw,32px)";
+  if (v.isPlayground) return "max-width:none;padding:10px clamp(14px,2.5vw,32px)";
   if (v.isSetup) return "max-width:none;padding:10px clamp(16px,4vw,48px)";
   if (v.isHome) return "max-width:1600px;padding:10px clamp(16px,4vw,48px)";
   return "max-width:1600px;padding:10px clamp(16px,4vw,40px)";

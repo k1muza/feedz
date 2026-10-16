@@ -68,6 +68,7 @@ import { useFormulations } from "./use-formulations";
 import { MAX_LIST_LABEL, useMyLists, type MyLists } from "./use-my-lists";
 import { NUTRIENTS, nutrientById } from "./nutrient-data";
 import { DEFAULT_PAGE_SIZE, PAGE_SIZES, pageCount, pagerVals } from "./pager";
+import type { PlaygroundDraft } from "./playground";
 import { StudioView } from "./views";
 import { upperLimitAdvisoryVals } from "./upper-limit-advisory";
 
@@ -110,7 +111,7 @@ const ST: Record<"met" | "below" | "above" | "adv" | "none", StatusMark> = {
   none: { label: "Not formulated", color: "#64665c", bg: "#d0cdc3", r: "50%", rot: "0deg" },
 };
 
-type Screen = "home" | "setup" | "workspace" | "list" | "compare" | "ingredients" | "programmes" | "nutrients" | "catalogue" | AuthScreen;
+type Screen = "home" | "setup" | "workspace" | "list" | "compare" | "playground" | "ingredients" | "programmes" | "nutrients" | "catalogue" | AuthScreen;
 type AuthScreen = "signin" | "signup" | "forgot" | "reset";
 /** Screens drawn in the full-page auth layout, without the sidebar. */
 const isAuthScreen = (screen: Screen): screen is AuthScreen => screen === "signin" || screen === "signup" || screen === "forgot" || screen === "reset";
@@ -405,6 +406,7 @@ const SIMPLE_ROUTES: [Screen, string][] = [
   ["home", ""],
   ["setup", "/new"],
   ["catalogue", "/catalogue"],
+  ["playground", "/playground"],
   ["signup", "/signup"],
   ["forgot", "/forgot-password"],
   ["reset", "/reset-password"],
@@ -1305,6 +1307,27 @@ function useStudio({ catalogue, programmes, featured: featuredList, showSolverDe
     if (runNow) run();
   };
 
+  /**
+   * A Playground mix as a new, unsaved formulation: its exact amounts, locked
+   * (fixed) amounts, premix dose and prices. Its settings are formulated first,
+   * then the Playground amounts go back over the result as a manual recipe, as
+   * reopening a saved manual version does. The recipe it started from is untouched.
+   */
+  const openPlaygroundDraft = (d: PlaygroundDraft) => {
+    const { programme, phase } = phaseOf(programmes, d.programmeId, d.phaseId);
+    update({
+      ...RESET_RESULT, screen: "workspace", species: programme.species, programmeId: programme.id, phaseId: phase.id, pool: clone(d.pool), premixByUser: true,
+      goal: "least_cost", batch: 1000, batchMode: "1000", customBatch: "1000", docName: d.name, docId: null, pendingDoc: null,
+      restoreManual: manualAmounts(d.recipe, Object.keys(d.pool)), toast: "Draft “" + d.name + "” created in Studio · save it to keep it",
+    });
+    run();
+  };
+  // The Playground stays mounted once visited, so its mix survives moving around the studio.
+  const [playgroundSeen, setPlaygroundSeen] = useState(false);
+  useEffect(() => {
+    if (S.screen === "playground") setPlaygroundSeen(true);
+  }, [S.screen]);
+
   const stale = !!S.result && S.runSig !== sigOf(S);
   const manualView: ManualView | null =
     S.mode === "manual" && S.result?.status === "optimal"
@@ -1419,6 +1442,7 @@ function useStudio({ catalogue, programmes, featured: featuredList, showSolverDe
         [
           ["home", "Home", ""],
           ["list", "Formulations", formulations.status === "ready" ? String(formulations.docs.length) : ""],
+          ["playground", "Playground", ""],
           ["ingredients", "My ingredients", myLists.status === "ready" ? myLists.lists.length + (myLists.lists.length === 1 ? " list" : " lists") : ""],
         ] as [Screen, string, string][]
       ).map(([k, label, count]) => {
@@ -2157,6 +2181,8 @@ function useStudio({ catalogue, programmes, featured: featuredList, showSolverDe
     goList: () => update({ screen: "list", drawer: null, advisoriesOpen: false }),
     startBlank: () => openWorkspace({}, "Untitled formulation"),
     isHome: S.screen === "home", isSetup: S.screen === "setup", isWorkspace: S.screen === "workspace", isList: S.screen === "list", isCompare: S.screen === "compare",
+    isPlayground: S.screen === "playground", playgroundSeen: playgroundSeen || S.screen === "playground",
+    playground: { engine, featured: featuredList, featuredResults: featured, docs, flash, onOpenDraft: openPlaygroundDraft },
     savedLoading: formulations.status === "loading" || formulations.status === "idle", savedError: formulations.status === "error", retrySaved: () => void formulations.reload(), pendingDoc: !!S.pendingDoc,
     recent, steps, step1: S.step === 1, step2: S.step === 2, step3: S.step === 3, speciesOpts, stageOpts, setOpts, setNote, ingGroups, ingQ: S.ingQ, onIngQ: (e: InputEvent) => update({ ingQ: e.target.value }), tickCount: tickedN + " of " + poolIds.length + " ticked", catMatches, hasCatMatches: catMatches.length > 0, ingNoMatch: !!iq && ingRows.length === 0, dataLine, completionPanel, batchOpts, batchCustom: S.batchMode === "custom", customBatch: S.customBatch,
     setupProgrammes, setupProgrammeId: P.id, onSetupProgramme: (e: InputEvent) => update(programmeChoice(e.target.value)),
@@ -3317,7 +3343,7 @@ function topBarVals(
 
   add("Actions", "+", "New formulation", "Guided: animal, ingredients, goal", () => { close(); ctx.startGuided(); }, "create start formulate");
   add("Actions", "+", "Open a blank workspace", "Skip the guide and set everything yourself", () => { close(); ctx.startBlank(); }, "advanced new");
-  ([["home", "Home"], ["list", "Formulations"], ["ingredients", "My ingredients"], ["programmes", "Feeding programmes"], ["nutrients", "Nutrient data"], ["catalogue", "Ingredient catalogue"]] as [Screen, string][]).forEach(([screen, label]) =>
+  ([["home", "Home"], ["list", "Formulations"], ["playground", "Playground"], ["ingredients", "My ingredients"], ["programmes", "Feeding programmes"], ["nutrients", "Nutrient data"], ["catalogue", "Ingredient catalogue"]] as [Screen, string][]).forEach(([screen, label]) =>
     add("Pages", "→", label, "Go to page", nav({ screen, ...(screen === "nutrients" ? { nutSel: null, nutSources: false } : {}), ...(screen === "catalogue" ? { catSel: null } : {}) }), "page"),
   );
   ctx.docs.forEach((d) => {

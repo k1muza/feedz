@@ -115,6 +115,8 @@ export interface Shortfall {
   kind: "min" | "max";
   best: number;
   req: number;
+  /** How far the closest achievable recipe misses it, % of the requirement. Absent on older saved results. */
+  deviationPct?: number;
 }
 
 export interface Opportunity {
@@ -165,7 +167,11 @@ export type FormulateResult =
   | { status: "blocked"; errs: Issue[]; warns: Issue[] }
   | { status: "infeasible"; warns: Issue[]; shortfalls: Shortfall[]; activeCount: number; setAside: string[]; assessment: FormulationAssessment;
       /** The optimizer's closest recipe; shown for diagnosis, never to be mixed. */
-      closest: Array<{ id: string; pct: number }>; costT: number | null; costExcludesPremix: boolean; premixComparison: PremixComparison | null }
+      closest: Array<{ id: string; pct: number }>; costT: number | null; costExcludesPremix: boolean; premixComparison: PremixComparison | null;
+      /** Every requirement against the closest recipe. Absent on older saved results. */
+      closestNutrients?: NutrientResult[];
+      /** Its worst and summed deviation, % of each requirement. Absent on older saved results. */
+      closestAchievable?: { worstDeviationPct: number; totalDeviationPct: number } }
   | { status: "error"; warns: Issue[]; message: string }
   | OptimalResult;
 
@@ -453,12 +459,14 @@ export async function formulate(snap: Snapshot, ctx: EngineContext): Promise<For
       warns,
       activeCount: usable.length,
       setAside: active.filter((id) => !usable.includes(id)),
-      shortfalls: result.diagnostics.map((d) => ({ id: d.constraintId, name: d.label, unit: d.unit, dp: distinguishingDp(d.actual, d.bound, exactDp(d.bound, nutrientDp(d.constraintId, d.unit))), kind: d.relation, best: d.actual, req: d.bound })),
+      shortfalls: result.diagnostics.map((d) => ({ id: d.constraintId, name: d.label, unit: d.unit, dp: distinguishingDp(d.actual, d.bound, exactDp(d.bound, nutrientDp(d.constraintId, d.unit))), kind: d.relation, best: d.actual, req: d.bound, ...(d.deviationPct != null ? { deviationPct: d.deviationPct } : {}) })),
       assessment: result.assessment,
       closest: result.bestEffort ? pctList(result.bestEffort) : [],
       costT: result.bestEffort ? result.bestEffort.costPerKg * 1000 : null,
       costExcludesPremix: missingPremixPrice,
       premixComparison: result.premixComparison ?? null,
+      ...(result.bestEffortNutrientProfile ? { closestNutrients: nutrientRows(result.bestEffortNutrientProfile) } : {}),
+      ...(result.closestAchievable ? { closestAchievable: result.closestAchievable } : {}),
     };
   }
 

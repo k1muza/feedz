@@ -55,6 +55,11 @@ export const HOVER = {
   back: "color:#1f3e2b",
   edge: "border-color:#8d8a80",
   stage: "background:#f7f5ef",
+  // Playground (design/FeedSport Playground.html).
+  deep: "background:#1f3e2b",
+  mint: "background:#f1f5ef",
+  libItem: "border-color:#b9b6ab !important;box-shadow:0 2px 6px rgba(34,36,32,.06)",
+  addBtn: "background:#f1f5ef !important;border-color:#2f5a3f",
 } as const;
 
 export const hv = (k: keyof typeof HOVER) => "fsh-" + k;
