@@ -30,6 +30,14 @@ import { createPublicClient, getAdminClient } from '@/lib/supabase/server';
 import { sendInquiryNotification } from '@/lib/email';
 import { INGREDIENT_LIBRARY, type IngredientNutrientRecord } from '@/lib/ingredient-nutrients';
 import { siteConfig } from '@/lib/seo';
+import {
+  InvoiceSchema,
+  invoiceRow,
+  invoiceValidationError,
+  rowToInvoice,
+  type InvoiceInput,
+  type InvoiceRow,
+} from '@/lib/invoices';
 
 const staticModeError = 'This operation is unavailable while FeedSport is running in static mode.';
 const unavailable = () => ({ success: false, error: staticModeError });
@@ -393,110 +401,6 @@ export async function deleteProduct(id: string) {
   if (error) return { success: false, error: 'Failed to delete the product.' };
   revalidateProducts(id);
   return { success: true };
-}
-
-const InvoiceItemSchema = z.object({
-  id: z.string().trim().min(1).max(100),
-  productId: z.string().trim().max(100).optional(),
-  description: z.string().trim().min(1, 'Every line item needs a description.').max(300),
-  quantity: z.coerce.number().positive('Line item quantities must be greater than zero.'),
-  price: z.coerce.number().min(0, 'Line item prices cannot be negative.'),
-});
-
-const InvoiceSchema = z.object({
-  date: z.coerce.date(),
-  dueDate: z.coerce.date(),
-  client: z.object({
-    name: z.string().trim().min(1).max(160),
-    email: z.string().trim().email().max(254),
-    address: z.string().trim().min(1).max(300),
-    city: z.string().trim().min(1).max(120),
-    phone: z.string().trim().min(1).max(60),
-  }),
-  items: z.array(InvoiceItemSchema).min(1).max(100),
-  taxRate: z.coerce.number().min(0).max(1),
-  transport: z.coerce.number().min(0, 'Transport cannot be negative.').default(0),
-  notes: z.string().trim().max(5000).default(''),
-  paymentTerms: z.string().trim().max(2000).default(''),
-  bank: z.object({
-    name: z.string().trim().max(160),
-    accountName: z.string().trim().max(160),
-    accountNumber: z.string().trim().max(100),
-    branch: z.string().trim().max(160),
-  }),
-  status: z.enum(['draft', 'sent', 'paid', 'void']),
-}).refine((invoice) => invoice.dueDate >= invoice.date, {
-  message: 'Due date cannot be before the issue date.',
-  path: ['dueDate'],
-});
-
-type InvoiceInput = Omit<Invoice, 'id' | 'invoiceNumber' | 'createdAt' | 'updatedAt' | 'totalAmount' | 'transport'> & {
-  totalAmount?: number;
-  transport?: number;
-};
-
-type InvoiceRow = {
-  id: string;
-  invoice_number: string;
-  issue_date: string;
-  due_date: string;
-  client: Invoice['client'];
-  items: Invoice['items'];
-  tax_rate: number | string;
-  transport: number | string;
-  total_amount: number | string;
-  notes: string;
-  payment_terms: string;
-  bank: Invoice['bank'];
-  status: Invoice['status'];
-  created_at: string;
-  updated_at: string;
-};
-
-function money(value: number) {
-  return Math.round((value + Number.EPSILON) * 100) / 100;
-}
-
-function invoiceRow(validation: z.infer<typeof InvoiceSchema>) {
-  const subtotal = money(validation.items.reduce((sum, item) => sum + item.quantity * item.price, 0));
-  return {
-    issue_date: validation.date.toISOString().slice(0, 10),
-    due_date: validation.dueDate.toISOString().slice(0, 10),
-    client: validation.client,
-    items: validation.items,
-    tax_rate: validation.taxRate,
-    subtotal,
-    transport: money(validation.transport),
-    total_amount: money((subtotal + money(validation.transport)) * (1 + validation.taxRate)),
-    notes: validation.notes,
-    payment_terms: validation.paymentTerms,
-    bank: validation.bank,
-    status: validation.status,
-  };
-}
-
-function rowToInvoice(row: InvoiceRow): Invoice {
-  return {
-    id: row.id,
-    invoiceNumber: row.invoice_number,
-    date: row.issue_date,
-    dueDate: row.due_date,
-    client: row.client,
-    items: row.items,
-    taxRate: Number(row.tax_rate),
-    transport: Number(row.transport),
-    notes: row.notes,
-    paymentTerms: row.payment_terms,
-    bank: row.bank,
-    totalAmount: Number(row.total_amount),
-    status: row.status,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
-  };
-}
-
-function invoiceValidationError(error: z.ZodError) {
-  return error.issues.map((issue) => issue.message).join(' ');
 }
 
 function revalidateInvoices(id?: string) {

@@ -79,9 +79,19 @@ interface Source {
 type Proposal = { sig: string } & (
   | { status: "solving" }
   | { status: "problem"; title: string; lines: string[] }
-  | { status: "ok"; pct: Record<string, number>; costT: number; costExcludesPremix: boolean; met: number; total: number; meets: boolean; setAside: string[] }
-  | { status: "closest"; pct: Record<string, number>; costT: number | null; costExcludesPremix: boolean; met: number; total: number; unmet: Unmet[]; worstPct: number | null; hint: string }
+  | ({ status: "ok"; costT: number; costExcludesPremix: boolean; met: number; total: number; meets: boolean; setAside: string[] } & Applied)
+  | ({ status: "closest"; /** Its details are showing in the modal. */ open: boolean; costT: number | null; costExcludesPremix: boolean; met: number; total: number; unmet: Unmet[]; worstPct: number | null; hint: string } & Applied)
 );
+
+/** A solver answer before it is applied: one of the two answers, without its before-state. */
+type Unapplied = Extract<Proposal, { status: "ok" | "closest" }> extends infer P ? (P extends unknown ? Omit<P, "sig" | "from" | "costBefore"> : never) : never;
+
+/** A solver answer already applied to the mix: the amounts before and after. */
+interface Applied {
+  pct: Record<string, number>;
+  from: Record<string, number>;
+  costBefore: number;
+}
 
 /** A requirement the closest achievable mix still misses. */
 interface Unmet {
@@ -407,6 +417,24 @@ export function Playground(props: PlaygroundProps) {
     const items = S.items;
     const r = await formulate(snapOf(S.programmeId, S.phaseId, items, catalogue), engine);
     const land = (p: Proposal) => setS((s) => (s.proposal?.sig === sig && solveSig(s.sourceKey!, s.items) === sig ? { ...s, proposal: p } : s));
+    // The answer goes straight into the mix as one undo step; the card then says what changed.
+    const apply = (p: Unapplied) => {
+      lastCo.current = null;
+      setS((s) => {
+        if (s.proposal?.sig !== sig || solveSig(s.sourceKey!, s.items) !== sig) return s;
+        const from = Object.fromEntries(s.items.map((i) => [i.id, i.pct]));
+        const m = cloneMix(s);
+        for (const i of m.items) {
+          i.pct = p.pct[i.id] ?? 0;
+          if (Math.abs(i.pct) < 1e-10) i.pct = 0;
+        }
+        const changed = m.items.some((i) => Math.abs(i.pct - from[i.id]) > 1e-12);
+        const applied = { ...p, from, costBefore: costOf(s.items).costT, sig: solveSig(s.sourceKey!, m.items) } as Proposal;
+        return changed
+          ? { ...s, ...m, hist: [...s.hist, cloneMix(s)].slice(-80), fut: [], msg: null, edit: null, proposal: applied }
+          : { ...s, proposal: applied };
+      });
+    };
     if (r.status === "blocked") return land({ sig, status: "problem", title: "Almost there", lines: r.errs.map((e) => e.title + ". " + e.body) });
     if (r.status === "error") return land({ sig, status: "problem", title: "Couldn’t work it out", lines: [r.message] });
     if (r.status === "manufacturer_recipe") return land({ sig, status: "problem", title: "This premix fixes the whole recipe", lines: [r.message] });
@@ -417,7 +445,7 @@ export function Playground(props: PlaygroundProps) {
       const lost = r.setAside.filter((id) => items.some((i) => i.id === id && i.role !== "free"));
       if (!r.closest.length || lost.length)
         return land({ sig, status: "problem", title: "These ingredients can’t meet every need", lines: [(short.length ? "They can’t reach the target for " + short.join(" or ") + ". " : "") + hint] });
-      // The closest achievable mix: offered to look at and try, never as a recipe that meets the needs.
+      // No mix meets every need, so the closest achievable one is used, clearly marked as not meeting them.
       const pct: Record<string, number> = {};
       for (const x of r.closest) pct[x.id] = x.pct;
       for (const i of items) if (i.role !== "free") pct[i.id] = i.fixedPct ?? i.pct;
@@ -428,7 +456,7 @@ export function Playground(props: PlaygroundProps) {
         return { id: x.id, name: friendly(x.id, x.name), kind: x.kind, best: v(x.best), req: v(x.req), deviationPct: x.deviationPct ?? null };
       }).sort((a, b) => (b.deviationPct ?? 0) - (a.deviationPct ?? 0));
       const { met, total } = requirementCounts(r.assessment);
-      return land({ sig, status: "closest", pct, costT: r.costT, costExcludesPremix: r.costExcludesPremix, met, total, unmet, worstPct: r.closestAchievable?.worstDeviationPct ?? null, hint });
+      return apply({ status: "closest", open: true, pct, costT: r.costT, costExcludesPremix: r.costExcludesPremix, met, total, unmet, worstPct: r.closestAchievable?.worstDeviationPct ?? null, hint });
     }
     const lostLocked = r.setAside.filter((id) => items.some((i) => i.id === id && i.role !== "free"));
     if (lostLocked.length) return land({ sig, status: "problem", title: "Almost there", lines: lostLocked.map((id) => nm(id) + " is locked but is missing nutrient data. Unlock it or take it out.") });
@@ -437,7 +465,7 @@ export function Playground(props: PlaygroundProps) {
     // Locked amounts and premix doses go back exactly as they were, never as the solver rounded them.
     for (const i of items) if (i.role !== "free") pct[i.id] = i.fixedPct ?? i.pct;
     const { met, total } = requirementCounts(r.assessment);
-    land({ sig, status: "ok", pct, costT: r.costT, costExcludesPremix: r.costExcludesPremix, met, total, meets: r.assessment.verdict === "meets_requirements", setAside: r.setAside });
+    apply({ status: "ok", pct, costT: r.costT, costExcludesPremix: r.costExcludesPremix, met, total, meets: r.assessment.verdict === "meets_requirements", setAside: r.setAside });
   };
 
   // ---- derived ----
@@ -461,7 +489,7 @@ export function Playground(props: PlaygroundProps) {
       case "meets":
         return { bg: "#2f5a3f", fg: "#faf8f3", title: "Meets all " + nReq + " needs", sub: "For " + programme.name + " · " + phase.label + ", at the amounts shown." };
       case "fails":
-        return { bg: "#f8ebe5", fg: "#5e2417", title: (failed.length || failedNames.length) + " of " + nReq + " needs not met", sub: "Check " + failedNames.join(", ") + " below. “Balance the rest for me” can try to fix it." };
+        return { bg: "#f8ebe5", fg: "#5e2417", title: (failed.length || failedNames.length) + " of " + nReq + " needs not met", sub: "Check " + failedNames.join(", ") + " below. " + (S.proposal?.status === "closest" && S.proposal.sig === solveSig(S.sourceKey!, S.items) ? "These ingredients can’t meet them all; try adding another ingredient." : "“Balance the rest for me” can try to fix it.") };
       case "incomplete":
         return { bg: "#f7ecd6", fg: "#5c3d0a", title: "Your mix adds up to " + fmtPct(total) + "%", sub: (total < 100 ? "Add " + fmtPct(100 - total) + "% more" : "Take " + fmtPct(total - 100) + "% out") + " to see whether it meets every need. Bars below show what’s there so far." };
       case "unknown":
@@ -852,8 +880,13 @@ export function Playground(props: PlaygroundProps) {
                 <button onClick={() => set({ proposal: null })} style={sx("align-self:flex-start;border:0;background:transparent;padding:0;font:500 12px/1 'IBM Plex Sans',sans-serif;color:#45473f;text-decoration:underline")}>OK</button>
               </div>
             )}
-            {p?.status === "closest" && <ClosestCard p={p} items={S.items} costNow={costT} nm={nm} onApply={() => commit((m) => m.items.forEach((i) => (i.pct = p.pct[i.id] ?? 0)))} onDiscard={() => set({ proposal: null })} />}
-            {p?.status === "ok" && <ProposalCard p={p} items={S.items} costNow={costT} nm={nm} onApply={() => commit((m) => m.items.forEach((i) => (i.pct = p.pct[i.id] ?? 0)))} onDiscard={() => set({ proposal: null })} />}
+            {p?.status === "closest" && (
+              <div role="status" style={sx("padding:10px 12px;border-radius:7px;background:#f8ebe5;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;font:400 13px/1.4 'IBM Plex Sans',sans-serif;color:#5e2417")}>
+                <span>{"Closest mix applied · " + (p.total - p.met > 0 ? p.total - p.met + " of " + p.total : "some") + " needs still not met"}</span>
+                <button onClick={() => set((s) => (s.proposal?.status === "closest" ? { proposal: { ...s.proposal, open: true } } : {}))} style={sx("border:0;background:transparent;padding:0;font:600 13px/1 'IBM Plex Sans',sans-serif;color:#5e2417;text-decoration:underline")}>Details</button>
+              </div>
+            )}
+            {p?.status === "ok" && <ProposalCard p={p} nm={nm} onUndo={() => undoRedo(-1)} onDismiss={() => set({ proposal: null })} />}
           </div>
 
           {notes.length > 0 && (
@@ -874,6 +907,15 @@ export function Playground(props: PlaygroundProps) {
         </div>
       </div>
 
+      {p?.status === "closest" && p.open && (
+        <ClosestModal
+          p={p}
+          nm={nm}
+          onUndo={() => undoRedo(-1)}
+          // Closing keeps the result, so the panel and status still say these ingredients can't meet every need.
+          onClose={() => set((s) => (s.proposal?.status === "closest" ? { proposal: { ...s.proposal, open: false } } : {}))}
+        />
+      )}
       {M && (
         <div style={sx("position:fixed;inset:0;background:rgba(34,36,32,.42);display:flex;align-items:center;justify-content:center;padding:16px;z-index:50")}>
           <div role="dialog" aria-modal="true" aria-label={M.type === "source" ? "Start a new mix?" : "Use this mix in Studio"} style={sx("background:#fff;border-radius:12px;width:460px;max-width:100%;box-shadow:0 20px 60px rgba(0,0,0,.25);animation:fsin .2s ease-out")}>
@@ -1130,32 +1172,32 @@ function MixCard({ it, name: n, dot, hi, isBal, hasData, msg: m, editing, ...on 
   );
 }
 
-function ProposalCard({ p, items, costNow, nm, onApply, onDiscard }: { p: Extract<Proposal, { status: "ok" }>; items: PgItem[]; costNow: number; nm: (id: string) => string; onApply: () => void; onDiscard: () => void }) {
-  const d = p.costT - costNow;
-  const changes = changesOf(items, p.pct);
+type CardProps<K extends "ok" | "closest"> = { p: Extract<Proposal, { status: K }>; nm: (id: string) => string; onUndo: () => void; onDismiss: () => void };
+
+/** The cheapest mix, already applied: what it costs, what changed, and Undo. */
+function ProposalCard({ p, nm, onUndo, onDismiss }: CardProps<"ok">) {
+  const d = p.costT - p.costBefore;
+  const changes = changesOf(p.from, p.pct);
   const sub = (p.meets ? "Meets all " + p.total + " needs. " : p.met + " of " + p.total + " needs met. ") + "Locked amounts unchanged." + (p.costExcludesPremix ? " Cost leaves out the unpriced premix." : "") + (p.setAside.length ? " " + p.setAside.map(nm).join(", ") + " left out: missing nutrient data." : "");
   return (
     <div style={sx("border:1px solid #2f5a3f;border-radius:8px;overflow:hidden;animation:fsin .2s ease-out")}>
       <div style={sx("padding:10px 12px;background:#f1f5ef;display:flex;flex-direction:column;gap:4px")}>
-        <span style={sx("font:600 14px/1.25 'IBM Plex Sans',sans-serif;color:#2f5a3f")}>{"$" + fmt(p.costT, 2) + " per tonne" + (Math.abs(d) < 0.005 ? "" : " (" + (d < 0 ? "saves $" : "adds $") + fmt(Math.abs(d), 2) + ")")}</span>
+        <span style={sx("font:600 14px/1.25 'IBM Plex Sans',sans-serif;color:#2f5a3f")}>{(changes.length ? "Cheapest mix applied: $" : "$") + fmt(p.costT, 2) + " per tonne" + (Math.abs(d) < 0.005 ? "" : " (" + (d < 0 ? "saved $" : "added $") + fmt(Math.abs(d), 2) + ")")}</span>
         <span style={sx("font:400 12px/1.4 'IBM Plex Sans',sans-serif;color:#45473f")}>{sub}</span>
       </div>
       <div style={sx("padding:8px 12px;display:flex;flex-direction:column;gap:5px")}>
         {changes.length ? (
           changes.map((x) => (
-            <div key={x.i.id} style={sx("display:flex;justify-content:space-between;gap:8px;font:400 12px/1.3 'IBM Plex Sans',sans-serif")}>
-              <span style={sx("white-space:nowrap;overflow:hidden;text-overflow:ellipsis")}>{nm(x.i.id)}</span>
-              <span style={sx("font:400 12px/1.3 'IBM Plex Mono',monospace;color:#45473f;white-space:nowrap")}>{fmtPct(x.i.pct) + " → " + fmtPct(x.to) + "%"}</span>
+            <div key={x.id} style={sx("display:flex;justify-content:space-between;gap:8px;font:400 12px/1.3 'IBM Plex Sans',sans-serif")}>
+              <span style={sx("white-space:nowrap;overflow:hidden;text-overflow:ellipsis")}>{nm(x.id)}</span>
+              <span style={sx("font:400 12px/1.3 'IBM Plex Mono',monospace;color:#45473f;white-space:nowrap")}>{fmtPct(x.was) + " → " + fmtPct(x.to) + "%"}</span>
             </div>
           ))
         ) : (
           <span style={sx("font:400 12px/1.3 'IBM Plex Sans',sans-serif;color:#45473f")}>Your mix is already the cheapest these ingredients allow.</span>
         )}
       </div>
-      <div style={sx("padding:10px 12px;border-top:1px solid #e2dfd6;display:flex;gap:8px")}>
-        <button onClick={onApply} style={sx("border:0;background:#2f5a3f;color:#faf8f3;font:600 13px/1 'IBM Plex Sans',sans-serif;padding:9px 12px;border-radius:6px")}>Use this mix</button>
-        <button onClick={onDiscard} style={sx("border:0;background:transparent;color:#45473f;font:500 13px/1 'IBM Plex Sans',sans-serif;padding:9px 6px")}>No thanks</button>
-      </div>
+      <CardActions changed={changes.length > 0} onUndo={onUndo} onDismiss={onDismiss} />
     </div>
   );
 }
@@ -1165,60 +1207,87 @@ function fmtNutrient(n: { unit: string; dp: number }, v: number) {
   return n.unit === "%" ? fmt(v, n.dp) + "%" : fmt(v, 0) + " " + (n.unit.includes("kcal") ? "kcal" : n.unit);
 }
 
-/** The ingredient changes a proposal makes, largest first. */
-function changesOf(items: PgItem[], pct: Record<string, number>) {
-  return items
-    .map((i) => ({ i, to: pct[i.id] ?? 0 }))
-    .filter((x) => Math.abs(x.to - x.i.pct) > 1e-4)
-    .sort((a, b) => Math.abs(b.to - b.i.pct) - Math.abs(a.to - a.i.pct))
+/** The ingredient changes an applied answer made, largest first. */
+function changesOf(from: Record<string, number>, to: Record<string, number>) {
+  return Object.keys(from)
+    .map((id) => ({ id, was: from[id], to: to[id] ?? 0 }))
+    .filter((x) => Math.abs(x.to - x.was) > 1e-4)
+    .sort((a, b) => Math.abs(b.to - b.was) - Math.abs(a.to - a.was))
     .slice(0, 6);
+}
+
+function CardActions({ changed, onUndo, onDismiss }: { changed: boolean; onUndo: () => void; onDismiss: () => void }) {
+  return (
+    <div style={sx("padding:10px 12px;border-top:1px solid #e2dfd6;display:flex;gap:8px;flex-wrap:wrap;align-items:center")}>
+      {changed && <button onClick={onUndo} style={sx("border:1px solid #d6d2c6;background:#fff;color:#222420;font:600 13px/1 'IBM Plex Sans',sans-serif;padding:9px 12px;border-radius:6px")}>Undo</button>}
+      <button onClick={onDismiss} style={sx("border:0;background:transparent;color:#45473f;font:500 13px/1 'IBM Plex Sans',sans-serif;padding:9px 6px")}>OK</button>
+    </div>
+  );
 }
 
 /**
  * When no mix of these ingredients meets every need: the one that misses
- * them least (worst miss first, then the total, then cost). Shown with what
- * it still misses and by how much; it is never called suitable.
+ * them least (worst miss first, then the total, then cost), already applied.
+ * A modal, so it can't be missed, saying what it still misses and by how
+ * much; it is never called suitable.
  */
-function ClosestCard({ p, items, costNow, nm, onApply, onDiscard }: { p: Extract<Proposal, { status: "closest" }>; items: PgItem[]; costNow: number; nm: (id: string) => string; onApply: () => void; onDiscard: () => void }) {
-  const changes = changesOf(items, p.pct);
+function ClosestModal({ p, nm, onUndo, onClose }: { p: Extract<Proposal, { status: "closest" }>; nm: (id: string) => string; onUndo: () => void; onClose: () => void }) {
+  const changes = changesOf(p.from, p.pct);
   const missing = p.total - p.met;
   return (
-    <div role="alert" style={sx("border:1px solid #c0573f;border-radius:8px;overflow:hidden;animation:fsin .2s ease-out")}>
-      <div style={sx("padding:10px 12px;background:#f8ebe5;display:flex;flex-direction:column;gap:4px;color:#5e2417")}>
-        <span style={sx("font:600 14px/1.25 'IBM Plex Sans',sans-serif")}>These ingredients can’t meet every need</span>
-        <span style={sx("font:400 12px/1.45 'IBM Plex Sans',sans-serif;text-wrap:pretty")}>
-          {"This is the closest they can get: still " + (missing > 0 ? missing + " of " + p.total : "some") + " needs not met. Not suitable for feeding as it is. " + p.hint}
-        </span>
-      </div>
-      <div style={sx("padding:8px 12px;display:flex;flex-direction:column;gap:6px;border-bottom:1px solid #e2dfd6")}>
-        <span style={sx("font:600 12px/1.3 'IBM Plex Sans',sans-serif;color:#45473f")}>Still not met</span>
-        {p.unmet.map((u) => (
-          <div key={u.id} style={sx("display:flex;flex-direction:column;gap:2px;font:400 12px/1.35 'IBM Plex Sans',sans-serif")}>
-            <span style={sx("display:flex;justify-content:space-between;gap:8px")}>
-              <span style={sx("font-weight:500")}>{u.name}</span>
-              <span style={sx("font:500 12px/1.3 'IBM Plex Mono',monospace;color:#a8432f;white-space:nowrap")}>{u.deviationPct != null ? fmtPct(u.deviationPct) + "% " + (u.kind === "min" ? "short" : "over") : u.kind === "min" ? "short" : "over"}</span>
+    <div onClick={onClose} style={sx("position:fixed;inset:0;background:rgba(34,36,32,.42);display:flex;align-items:center;justify-content:center;padding:16px;z-index:50")}>
+      <div
+        role="alertdialog"
+        aria-modal="true"
+        aria-labelledby="fs-pg-closest-title"
+        aria-describedby="fs-pg-closest-sub"
+        onClick={(e) => e.stopPropagation()}
+        onKeyDown={(e) => e.key === "Escape" && onClose()}
+        style={sx("background:#fff;border-radius:12px;width:520px;max-width:100%;max-height:min(88vh,760px);display:flex;flex-direction:column;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.25);animation:fsin .2s ease-out")}
+      >
+        <div style={sx("padding:18px 20px 16px;background:#f8ebe5;color:#5e2417;display:flex;justify-content:space-between;align-items:flex-start;gap:12px")}>
+          <span style={sx("display:flex;flex-direction:column;gap:6px;min-width:0")}>
+            <span id="fs-pg-closest-title" style={sx("font:600 18px/1.25 'IBM Plex Sans',sans-serif")}>These ingredients can’t meet every need</span>
+            <span id="fs-pg-closest-sub" style={sx("font:400 14px/1.5 'IBM Plex Sans',sans-serif;text-wrap:pretty")}>
+              {(changes.length ? "Your mix is now the closest they can get: still " : "Your mix is already the closest they can get: still ") + (missing > 0 ? missing + " of " + p.total : "some") + " needs not met. Not suitable for feeding as it is. " + p.hint}
             </span>
-            <span style={sx("color:#64665c")}>{"Best " + u.best + " · needs " + (u.kind === "min" ? "at least " : "at most ") + u.req}</span>
-          </div>
-        ))}
-      </div>
-      <div style={sx("padding:8px 12px;display:flex;flex-direction:column;gap:5px")}>
-        {p.costT != null && (
-          <span style={sx("font:400 12px/1.35 'IBM Plex Sans',sans-serif;color:#45473f")}>
-            {"$" + fmt(p.costT, 2) + " per tonne (" + (p.costT - costNow < 0 ? "−" : "+") + "$" + fmt(Math.abs(p.costT - costNow), 2) + ")" + (p.costExcludesPremix ? ", not counting the unpriced premix" : "") + ". Locked amounts unchanged."}
           </span>
-        )}
-        {changes.map((x) => (
-          <div key={x.i.id} style={sx("display:flex;justify-content:space-between;gap:8px;font:400 12px/1.3 'IBM Plex Sans',sans-serif")}>
-            <span style={sx("white-space:nowrap;overflow:hidden;text-overflow:ellipsis")}>{nm(x.i.id)}</span>
-            <span style={sx("font:400 12px/1.3 'IBM Plex Mono',monospace;color:#45473f;white-space:nowrap")}>{fmtPct(x.i.pct) + " → " + fmtPct(x.to) + "%"}</span>
+          <button onClick={onClose} aria-label="Close" title="Close" className={hv("soft")} style={sx("flex:none;border:0;background:transparent;color:#5e2417;font:400 20px/1 'IBM Plex Sans',sans-serif;width:30px;height:30px;border-radius:6px")}>×</button>
+        </div>
+        <div style={sx("overflow-y:auto;min-height:0")}>
+          <div style={sx("padding:14px 20px;display:flex;flex-direction:column;gap:10px;border-bottom:1px solid #e2dfd6")}>
+            <span style={sx("font:600 13px/1.3 'IBM Plex Sans',sans-serif;color:#45473f")}>Still not met</span>
+            {p.unmet.map((u) => (
+              <div key={u.id} style={sx("display:flex;flex-direction:column;gap:3px;font:400 13px/1.35 'IBM Plex Sans',sans-serif")}>
+                <span style={sx("display:flex;justify-content:space-between;gap:8px")}>
+                  <span style={sx("font-weight:500")}>{u.name}</span>
+                  <span style={sx("font:500 13px/1.3 'IBM Plex Mono',monospace;color:#a8432f;white-space:nowrap")}>{u.deviationPct != null ? fmtPct(u.deviationPct) + "% " + (u.kind === "min" ? "short" : "over") : u.kind === "min" ? "short" : "over"}</span>
+                </span>
+                <span style={sx("color:#64665c")}>{"Best " + u.best + " · needs " + (u.kind === "min" ? "at least " : "at most ") + u.req}</span>
+              </div>
+            ))}
           </div>
-        ))}
-        {!changes.length && <span style={sx("font:400 12px/1.3 'IBM Plex Sans',sans-serif;color:#45473f")}>Your mix is already as close as these ingredients get.</span>}
-      </div>
-      <div style={sx("padding:10px 12px;border-top:1px solid #e2dfd6;display:flex;gap:8px;flex-wrap:wrap;align-items:center")}>
-        {changes.length > 0 && <button onClick={onApply} style={sx("border:1px solid #2f5a3f;background:#fff;color:#2f5a3f;font:600 13px/1 'IBM Plex Sans',sans-serif;padding:9px 12px;border-radius:6px")}>Try this mix</button>}
-        <button onClick={onDiscard} style={sx("border:0;background:transparent;color:#45473f;font:500 13px/1 'IBM Plex Sans',sans-serif;padding:9px 6px")}>{changes.length ? "No thanks" : "OK"}</button>
+          <div style={sx("padding:14px 20px;display:flex;flex-direction:column;gap:6px")}>
+            <span style={sx("font:600 13px/1.3 'IBM Plex Sans',sans-serif;color:#45473f")}>{changes.length ? "What changed" : "No changes"}</span>
+            {p.costT != null && (
+              <span style={sx("font:400 13px/1.4 'IBM Plex Sans',sans-serif;color:#45473f")}>
+                {"$" + fmt(p.costT, 2) + " per tonne (" + (p.costT - p.costBefore < 0 ? "−" : "+") + "$" + fmt(Math.abs(p.costT - p.costBefore), 2) + ")" + (p.costExcludesPremix ? ", not counting the unpriced premix" : "") + ". Locked amounts unchanged."}
+              </span>
+            )}
+            {changes.map((x) => (
+              <div key={x.id} style={sx("display:flex;justify-content:space-between;gap:8px;font:400 13px/1.3 'IBM Plex Sans',sans-serif")}>
+                <span style={sx("white-space:nowrap;overflow:hidden;text-overflow:ellipsis")}>{nm(x.id)}</span>
+                <span style={sx("font:400 13px/1.3 'IBM Plex Mono',monospace;color:#45473f;white-space:nowrap")}>{fmtPct(x.was) + " → " + fmtPct(x.to) + "%"}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div style={sx("padding:14px 20px;border-top:1px solid #ece8df;display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap")}>
+          {changes.length > 0 && (
+            <button onClick={onUndo} style={sx("border:1px solid #d6d2c6;background:#fff;border-radius:7px;padding:10px 14px;font:500 14px/1 'IBM Plex Sans',sans-serif;color:#222420")}>Undo</button>
+          )}
+          <button autoFocus onClick={onClose} style={sx("border:0;background:#2f5a3f;color:#faf8f3;border-radius:7px;padding:10px 14px;font:600 14px/1 'IBM Plex Sans',sans-serif")}>OK</button>
+        </div>
       </div>
     </div>
   );

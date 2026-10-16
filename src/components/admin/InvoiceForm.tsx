@@ -17,6 +17,7 @@ import { Calendar as CalendarIcon } from "lucide-react"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { cn } from '@/lib/utils';
+import { INVOICE_DEFAULTS } from '@/lib/invoices';
 import { formatKg, packLabel } from '@/lib/product-units';
 
 
@@ -93,12 +94,12 @@ export const InvoiceForm = ({ invoice, products }: { invoice?: Invoice; products
       },
       status: invoice?.status || 'draft',
       date: invoice ? getTimestamp(invoice.date) : new Date(),
-      dueDate: invoice ? getTimestamp(invoice.dueDate) : new Date(new Date().setDate(new Date().getDate() + 30)),
+      dueDate: invoice ? getTimestamp(invoice.dueDate) : new Date(new Date().setDate(new Date().getDate() + INVOICE_DEFAULTS.paymentDueDays)),
       items: invoice?.items.map(item => ({...item, id: item.id || crypto.randomUUID()})) || [
         { id: crypto.randomUUID(), productId: '', description: '', quantity: 1, price: 0 },
       ],
-      notes: invoice?.notes || 'Thank you for your business!',
-      paymentTerms: invoice?.paymentTerms || 'Payment due within 30 days.',
+      notes: invoice?.notes || INVOICE_DEFAULTS.notes,
+      paymentTerms: invoice?.paymentTerms || INVOICE_DEFAULTS.paymentTerms,
       taxRate: invoice ? invoice.taxRate * 100 : 15,
       transport: invoice?.transport ?? 0,
     }

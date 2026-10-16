@@ -87,6 +87,9 @@ const longDate = (value: Invoice['date']) => {
 // Draft invoices go out as proforma invoices: a quotation, not a demand for payment.
 export const invoiceDocumentTitle = (invoice: Pick<Invoice, 'status'>) => (invoice.status === 'draft' ? 'Proforma invoice' : 'Invoice');
 
+export const invoicePdfFilename = (invoice: Pick<Invoice, 'status' | 'invoiceNumber'>) =>
+  `feedsport-${invoiceDocumentTitle(invoice).toLowerCase().replace(' ', '-')}-${invoice.invoiceNumber.replace(/[^A-Za-z0-9-]+/g, '-')}.pdf`;
+
 export async function renderInvoicePdf(invoice: Invoice) {
   const documentTitle = invoiceDocumentTitle(invoice);
   const pdf = await PDFDocument.create();

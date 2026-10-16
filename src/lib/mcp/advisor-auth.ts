@@ -25,10 +25,26 @@ export interface SupabaseTokenClaims {
   expiresAt: number;
 }
 
+/**
+ * What an account may do on the advisor endpoint: advisors read saved
+ * formulations and leave advice; admins also manage invoices.
+ */
+export type AdvisorRole = "advisor" | "admin";
+
 export interface AdvisorDirectory {
   /** Verifies the token's signature and expiry; null when it is not a valid Supabase token. */
   verifyToken(token: string): Promise<SupabaseTokenClaims | null>;
-  isAdvisor(userId: string): Promise<boolean>;
+  /** The account's role, or null when it is neither an advisor nor an admin. */
+  roleOf(userId: string): Promise<AdvisorRole | null>;
+}
+
+/**
+ * The admin user id behind a verified request, or null. Only OAuth sign-ins
+ * carry one: the static token is not a user, so it never gets admin access.
+ */
+export function adminUserId(authInfo: AuthInfo | undefined): string | null {
+  const extra = authInfo?.extra;
+  return extra?.via === "oauth" && extra.role === "admin" && typeof extra.userId === "string" ? extra.userId : null;
 }
 
 /** A valid sign-in for an account that is not an advisor. */
@@ -58,13 +74,14 @@ export function createAdvisorVerifier(options: {
       }
       const claims = await options.directory.verifyToken(token);
       if (!claims) throw new OAuthError(OAuthErrorCode.InvalidToken, "The access token is invalid or has expired.");
-      if (!(await options.directory.isAdvisor(claims.userId))) throw new NotAdvisorError(claims.email);
+      const role = await options.directory.roleOf(claims.userId);
+      if (!role) throw new NotAdvisorError(claims.email);
       return {
         token,
         clientId: claims.clientId ?? "supabase-session",
         scopes: [],
         expiresAt: claims.expiresAt,
-        extra: { via: "oauth", userId: claims.userId, ...(claims.email ? { email: claims.email } : {}) },
+        extra: { via: "oauth", userId: claims.userId, role, ...(claims.email ? { email: claims.email } : {}) },
       };
     },
   };

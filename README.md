@@ -148,3 +148,12 @@ Connect:
 - **Claude Code:** `claude mcp add --transport http feedsport-advisor https://www.feedsport.co.zw/api/mcp/advisor`, then run `/mcp` and choose Authenticate. With the static token instead: add `--header "Authorization: Bearer $FEEDSPORT_MCP_ADVISOR_TOKEN"`.
 
 Revoke a person's access by deleting their `advisor_users` row (takes effect on their next request); OAuth grants can also be revoked in Supabase. Rotate the static token by changing the env var.
+
+### Invoice tools (admins only)
+
+Accounts in `admin_users` that sign in to the advisor endpoint with OAuth also get `list_customers`, `list_invoices`, `get_invoice`, `create_invoice`, `update_invoice`, `convert_proforma_to_invoice` and `generate_invoice_pdf` (`src/lib/mcp/feedsport-invoices.ts`). They run with the admin's own access token, so the invoices table's row-level security applies as in the web app; advisors and the static token never see them. Invoices are validated, totalled and numbered exactly as in `/admin/invoices` (`src/lib/invoices.ts`), and the PDF is the one the web app serves.
+
+1. Apply `supabase/migrations/20261016000000_invoice_idempotency.sql` (lets `create_invoice` retries return the invoice already created).
+2. Optionally set `FEEDSPORT_INVOICE_LINK_SECRET` (at least 32 characters) to sign the 15-minute PDF download links; otherwise a key derived from `SUPABASE_SECRET_KEY` is used.
+
+Through MCP an admin can create proformas and invoices, edit proformas, and convert a proforma to an invoice. Sending, payments, voiding and deleting stay in the web app. `src/lib/invoices.db.test.ts` checks numbering, idempotency and row-level security against the real migrations when Postgres server binaries are available (`FEEDSPORT_TEST_PG_BIN=/path/to/postgres/bin npm test`).

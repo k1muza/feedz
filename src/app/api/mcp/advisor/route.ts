@@ -8,7 +8,7 @@ import {
 
 import { getIngredientPrices } from "@/lib/ingredient-prices";
 import { NotAdvisorError, createAdvisorVerifier } from "@/lib/mcp/advisor-auth";
-import { advisorResourceUrl, supabaseAdvisorDirectory } from "@/lib/mcp/advisor-oauth";
+import { advisorInvoiceAccess, advisorResourceUrl, supabaseAdvisorDirectory } from "@/lib/mcp/advisor-oauth";
 import { createSupabaseFeaturedStore } from "@/lib/mcp/feedsport-featured";
 import { createSupabaseFormulationStore } from "@/lib/mcp/feedsport-formulations";
 import { createFeedSportMcpServer } from "@/lib/mcp/feedsport-mcp-server";
@@ -22,14 +22,17 @@ export const runtime = "nodejs";
  * OAuth access token for an advisor or admin account, or the static
  * FEEDSPORT_MCP_ADVISOR_TOKEN. Without one it answers 401 with a pointer to
  * the protected-resource metadata, which is how OAuth clients such as
- * claude.ai discover where to sign in.
+ * claude.ai discover where to sign in. Admin accounts signed in with OAuth
+ * also get the invoice tools (src/lib/mcp/feedsport-invoices.ts).
  */
 const handler = createMcpHandler(
-  () => {
+  ({ authInfo, requestInfo }) => {
     const supabase = createSecretClient();
     return createFeedSportMcpServer(getIngredientPrices, {
       formulations: supabase ? createSupabaseFormulationStore(supabase) : null,
       featured: supabase ? createSupabaseFeaturedStore(supabase) : null,
+      // Admin sign-ins only, running as the admin rather than with the secret key.
+      invoices: advisorInvoiceAccess(authInfo, requestInfo),
     });
   },
   { onerror: (error) => console.error("FeedSport advisor MCP error:", error) },

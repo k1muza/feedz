@@ -35,6 +35,18 @@ import {
   setFeaturedPublishedTool,
   type FeaturedStore,
 } from "./feedsport-featured";
+import {
+  INVOICE_TYPES,
+  convertProformaTool,
+  createInvoiceTool,
+  generateInvoicePdfTool,
+  getInvoiceTool,
+  listCustomersTool,
+  listInvoicesTool,
+  updateInvoiceTool,
+  type InvoiceAccess,
+} from "./feedsport-invoices";
+import { INVOICE_CURRENCIES } from "@/lib/invoices";
 
 export const FEEDSPORT_MCP_VERSION = "0.6.0";
 
@@ -72,6 +84,20 @@ Advice rules:
 - Treat user data as confidential: share it only with the nutritionist.
 
 Featured formulations (the starting points on FeedSport Studio's Home screen): list_featured_formulations → preview_featured_formulation (read-only) → save_featured_formulation → set_featured_formulation_published. These are public, with recipes formulated at planning prices. Commercial premix prices are Alibaba-derived planning defaults unless a supplier quote overrides them. Revalidate or unpublish old cards referencing the retired premix. A recipe that meets its hard requirements is not described as micronutrient-complete; Chapter 7 supplementation is an advisory.`;
+
+const INVOICE_INSTRUCTIONS = `
+
+Invoices (FeedSport admin accounts only): you can create proforma invoices and invoices, edit proformas, turn a proforma into an invoice and fetch the PDF the FeedSport web app produces. Invoice data is commercially confidential: share it only with the signed-in admin.
+
+Invoice workflow: list_customers → create_invoice (dry_run: true to show the user first) → create_invoice → generate_invoice_pdf. A proforma (status "draft") stays editable with update_invoice until convert_proforma_to_invoice issues it as an invoice awaiting payment; issued, paid and void invoices cannot be changed here.
+
+Invoice rules:
+- Bill existing customers by customer_id from list_customers. create_invoice refuses new customer details that match an existing customer, so never work around that by altering the name.
+- Give quantities, units and unit prices exactly as the user stated them; FeedSport calculates every line amount, subtotal, tax and total. Never state a total FeedSport did not return.
+- Never add tax or VAT unless the user explicitly asks for it and gives the rate; FeedSport does not assume VAT registration.
+- Invoices are in USD. There is no discount field: if the user agrees a discount, ask them for the discounted unit price.
+- Send one idempotency_key per new invoice (e.g. a fresh UUID) and reuse it only to retry the same request.
+- You cannot send invoices, record payments, void or delete invoices; the admin does that in FeedSport admin.`;
 
 const READ_ONLY = {
   readOnlyHint: true,
@@ -146,6 +172,8 @@ export type AdvisorOptions = {
   formulations: FormulationStore | null;
   /** Featured formulations on Studio Home; null when the secret key is not configured. */
   featured: FeaturedStore | null;
+  /** Invoice tools, only for a signed-in FeedSport admin; omitted for advisors and the static token. */
+  invoices?: InvoiceAccess | null;
 };
 
 /**
@@ -159,7 +187,7 @@ export function createFeedSportMcpServer(
 ): McpServer {
   const server = new McpServer(
     { name: "feedsport", title: "FeedSport", version: FEEDSPORT_MCP_VERSION },
-    { instructions: advisor ? INSTRUCTIONS + ADVISOR_INSTRUCTIONS : INSTRUCTIONS },
+    { instructions: advisor ? INSTRUCTIONS + ADVISOR_INSTRUCTIONS + (advisor.invoices ? INVOICE_INSTRUCTIONS : "") : INSTRUCTIONS },
   );
   const context = async (): Promise<FeedSportServiceContext> => ({ prices: await loadPrices() });
 
@@ -442,6 +470,7 @@ export function createFeedSportMcpServer(
   );
 
   if (advisor) registerAdvisorTools(server, advisor, context);
+  if (advisor?.invoices) registerInvoiceTools(server, advisor.invoices);
 
   return server;
 }
@@ -646,5 +675,202 @@ function registerAdvisorTools(
       annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
     },
     async (args) => withStore((s) => addFormulationAdviceTool(args, s, context)),
+  );
+}
+
+function registerInvoiceTools(server: McpServer, access: InvoiceAccess) {
+  const invoiceRef = z
+    .string()
+    .trim()
+    .min(1)
+    .max(100)
+    .describe('Invoice id (UUID) or invoice number, e.g. "INV-20261016-01".');
+  const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Use YYYY-MM-DD.");
+  const money = (what: string) => z.number().nonnegative().max(100_000_000).describe(`${what}, in the invoice currency, with at most 2 decimal places.`);
+
+  const customerDetails = z
+    .strictObject({
+      name: z.string().trim().min(1).max(160),
+      email: z.string().trim().max(254).optional(),
+      address: z.string().trim().max(300).optional(),
+      city: z.string().trim().max(120).optional(),
+      phone: z.string().trim().max(60).optional(),
+    })
+    .partial()
+    .describe("A new customer's details (name, email, address, city and phone are all required), or, with customer_id, corrections to the existing customer's details.");
+
+  const lineItem = z.strictObject({
+    description: z
+      .string()
+      .trim()
+      .min(1)
+      .max(250)
+      .optional()
+      .describe("What is sold, e.g. \"Wheat bran\". Optional when product is given. The unit is appended for display, e.g. \"Wheat bran (1 tonne)\"."),
+    product: z
+      .string()
+      .trim()
+      .min(1)
+      .max(160)
+      .optional()
+      .describe('Optional FeedSport catalogue product id or exact name, e.g. "wheat-bran". Links the line to the product and, without unit or unit_price, uses its pack size and catalogue price.'),
+    quantity: z.number().positive().max(10_000_000).describe("Number of units, with at most 3 decimal places, e.g. 5 for 5 tonnes."),
+    unit: z
+      .enum(["tonne", "kg", "bag", "each"])
+      .optional()
+      .describe('What one unit of quantity is. "bag" needs bag_size_kg unless the catalogue product is sold in bags.'),
+    bag_size_kg: z.number().positive().max(5000).optional().describe('Bag size for unit "bag", e.g. 50.'),
+    unit_price: money("Price per unit").optional().describe("Price per unit as the user stated it, e.g. 250 for $250 per tonne. Required unless a catalogue product's own pack price applies."),
+  });
+
+  const invoiceFields = {
+    customer_id: z.string().trim().min(1).max(200).optional().describe("Existing customer from list_customers."),
+    customer: customerDetails.optional(),
+    transport: money("Delivery or transport charge for the whole invoice").optional(),
+    tax_rate_percent: z
+      .number()
+      .min(0)
+      .max(100)
+      .optional()
+      .describe("Tax rate in percent. Defaults to 0 (no tax). Only set it when the user explicitly asks for tax and gives the rate."),
+    currency: z.enum(INVOICE_CURRENCIES).optional().describe("Invoice currency. FeedSport issues invoices in USD only."),
+    issue_date: isoDate.optional().describe("Issue date, YYYY-MM-DD. Defaults to today (Harare). The invoice number is derived from it."),
+    due_date: isoDate.optional().describe("Payment due date, YYYY-MM-DD. Give this or payment_due_days."),
+    payment_due_days: z.number().int().min(0).max(365).optional().describe("Days after the issue date that payment is due. Defaults to 30."),
+    payment_terms: z.string().trim().max(2000).optional().describe('Printed payment terms. Defaults to "Payment due within N days.".'),
+    notes: z.string().trim().max(5000).optional().describe('Printed notes. Defaults to "Thank you for your business!".'),
+  };
+
+  const write = (idempotent: boolean, destructive = false) =>
+    ({ readOnlyHint: false, destructiveHint: destructive, idempotentHint: idempotent, openWorldHint: false }) as const;
+
+  server.registerTool(
+    "list_customers",
+    {
+      title: "List invoice customers",
+      description:
+        "Customers FeedSport has invoiced, with their customer_id, contact details from their latest invoice and invoice count. Look a customer up here before create_invoice and bill them by customer_id.",
+      inputSchema: z.object({
+        query: z.string().trim().max(160).optional().describe("Filter by name, email or city."),
+        limit: z.number().int().min(1).max(200).default(50),
+      }),
+      annotations: READ_ONLY,
+    },
+    async (args) => run(() => listCustomersTool(args, access)),
+  );
+
+  server.registerTool(
+    "list_invoices",
+    {
+      title: "List invoices",
+      description:
+        "List FeedSport invoices and proforma invoices, newest first, with number, type, status, customer, dates and total. Filter by customer, status, type or issue-date range.",
+      inputSchema: z.object({
+        customer: z.string().trim().max(160).optional().describe("Customer id from list_customers, or part of the customer's name."),
+        status: z.enum(["draft", "sent", "paid", "void"]).optional().describe("draft = proforma, sent = awaiting payment, paid, void."),
+        type: z.enum(INVOICE_TYPES).optional().describe("proforma (draft) or standard (sent, paid or void)."),
+        date_from: isoDate.optional().describe("Earliest issue date, YYYY-MM-DD."),
+        date_to: isoDate.optional().describe("Latest issue date, YYYY-MM-DD."),
+        limit: z.number().int().min(1).max(200).default(50),
+      }),
+      annotations: READ_ONLY,
+    },
+    async (args) => run(() => listInvoicesTool(args, access)),
+  );
+
+  server.registerTool(
+    "get_invoice",
+    {
+      title: "Get an invoice",
+      description:
+        "One invoice or proforma invoice: customer, line items, totals (subtotal, transport, tax, total), dates, terms, status, whether it can still be edited, and a short-lived PDF download link.",
+      inputSchema: z.object({ invoice: invoiceRef }),
+      annotations: READ_ONLY,
+    },
+    async (args) => run(() => getInvoiceTool(args, access)),
+  );
+
+  server.registerTool(
+    "create_invoice",
+    {
+      title: "Create an invoice",
+      description:
+        "Create a proforma invoice (default) or a standard invoice for an existing customer (customer_id) or a new one (customer). FeedSport assigns the invoice number and calculates every amount from the line items, transport and tax rate. Retrying with the same idempotency_key returns the invoice already created instead of a duplicate. dry_run: true previews the invoice and totals without saving. Returns the invoice with its totals and a PDF link.",
+      inputSchema: z.strictObject({
+        type: z.enum(INVOICE_TYPES).default("proforma").describe("proforma (a quotation that stays editable) or standard (issued, awaiting payment)."),
+        ...invoiceFields,
+        line_items: z.array(lineItem).min(1).max(100),
+        idempotency_key: z
+          .string()
+          .regex(/^[A-Za-z0-9._:-]{8,100}$/, "Use 8-100 letters, digits, dots, colons, underscores or hyphens.")
+          .describe("A unique key for this invoice, e.g. a fresh UUID. Reuse it only to retry the same request."),
+        dry_run: dryRun,
+      }),
+      annotations: write(true),
+    },
+    async (args) => run(() => createInvoiceTool(args, access)),
+  );
+
+  server.registerTool(
+    "update_invoice",
+    {
+      title: "Update a proforma invoice",
+      description:
+        "Change a proforma invoice (status draft). Only the fields given change; line_items replaces every line. Issued, paid and void invoices are refused. Moving the issue date renumbers the invoice for the new date. dry_run: true previews without saving.",
+      inputSchema: z.strictObject({
+        invoice: invoiceRef,
+        ...invoiceFields,
+        line_items: z.array(lineItem).min(1).max(100).optional().describe("The complete new list of line items."),
+        dry_run: dryRun,
+      }),
+      annotations: write(true, true),
+    },
+    async (args) => run(() => updateInvoiceTool(args, access)),
+  );
+
+  server.registerTool(
+    "convert_proforma_to_invoice",
+    {
+      title: "Convert a proforma to an invoice",
+      description:
+        "Issue a proforma invoice as an invoice awaiting payment, keeping its number, dates and amounts, as FeedSport admin does when a proforma's status is changed to sent. It can no longer be edited here afterwards. Confirm with the user first; dry_run: true previews.",
+      inputSchema: z.strictObject({ invoice: invoiceRef, dry_run: dryRun }),
+      annotations: write(true),
+    },
+    async (args) => run(() => convertProformaTool(args, access)),
+  );
+
+  server.registerTool(
+    "generate_invoice_pdf",
+    {
+      title: "Get an invoice PDF",
+      description:
+        "Render the invoice's PDF with FeedSport's invoice template, identical to the PDF downloaded from the FeedSport web app, and return a download link valid for 15 minutes. embed_pdf: true also attaches the PDF itself.",
+      inputSchema: z.object({
+        invoice: invoiceRef,
+        embed_pdf: z.boolean().default(false).describe("Also attach the PDF file to the result."),
+      }),
+      annotations: READ_ONLY,
+    },
+    async ({ invoice, embed_pdf }) => {
+      try {
+        const { bytes, result } = await generateInvoicePdfTool({ invoice }, access);
+        const content: CallToolResult["content"] = [{ type: "text", text: JSON.stringify(result, null, 2) }];
+        if (result.pdf.url) {
+          content.push({ type: "resource_link", uri: result.pdf.url, name: result.pdf.filename, mimeType: "application/pdf", title: `${result.document_title} ${result.invoice_number}` });
+        }
+        if (embed_pdf || !result.pdf.url) {
+          content.push({
+            type: "resource",
+            resource: { uri: result.pdf.url ?? `feedsport://invoices/${result.invoice_id}/pdf`, mimeType: "application/pdf", blob: Buffer.from(bytes).toString("base64") },
+          });
+        }
+        return { content, structuredContent: result as unknown as Record<string, unknown> };
+      } catch (error) {
+        return run(() => {
+          throw error;
+        });
+      }
+    },
   );
 }
