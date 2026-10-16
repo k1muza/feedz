@@ -21,21 +21,39 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
 import { useToast } from "../ui/use-toast";
-import { Supplier } from "@/types";
+import { SUPPLIER_VERIFICATIONS, Supplier, SupplierVerification } from "@/types";
 import { deleteSupplier, saveSupplier, type SupplierFormValues } from "@/app/actions";
 
 const emptyForm: SupplierFormValues = {
   company: '',
   contactName: '',
   phone: '',
+  phone2: '',
+  phone3: '',
   email: '',
   location: '',
   supplies: '',
+  verification: '',
+  source: '',
   notes: '',
   active: true,
 };
 
 const inputClass = "mt-1 block w-full bg-ash-700 border-ash-600 rounded-md p-2";
+
+const verificationLabels: Record<SupplierVerification, string> = {
+  verified: 'Verified',
+  corroborated: 'Corroborated',
+  unverified: 'Unverified',
+};
+
+const verificationBadgeClass: Record<SupplierVerification, string> = {
+  verified: 'bg-emerald-500/15 text-emerald-400',
+  corroborated: 'bg-sky-500/15 text-sky-400',
+  unverified: 'bg-amber-500/15 text-amber-400',
+};
+
+const supplierPhones = (supplier: Supplier) => [supplier.phone, supplier.phone2, supplier.phone3].filter(Boolean);
 
 const SupplierFormModal = ({ supplier, isOpen, onClose, onSave }: {
   supplier: Supplier | null;
@@ -53,9 +71,13 @@ const SupplierFormModal = ({ supplier, isOpen, onClose, onSave }: {
       company: supplier.company,
       contactName: supplier.contactName,
       phone: supplier.phone,
+      phone2: supplier.phone2,
+      phone3: supplier.phone3,
       email: supplier.email,
       location: supplier.location,
       supplies: supplier.supplies.join(', '),
+      verification: supplier.verification ?? '',
+      source: supplier.source,
       notes: supplier.notes,
       active: supplier.active,
     } : emptyForm);
@@ -64,7 +86,7 @@ const SupplierFormModal = ({ supplier, isOpen, onClose, onSave }: {
 
   if (!isOpen) return null;
 
-  const set = (field: keyof SupplierFormValues) => (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+  const set = (field: keyof SupplierFormValues) => (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
     setForm((current) => ({ ...current, [field]: event.target.value }));
 
   const handleSubmit = async (event: React.FormEvent) => {
@@ -105,15 +127,23 @@ const SupplierFormModal = ({ supplier, isOpen, onClose, onSave }: {
               <label htmlFor="contactName" className="block text-sm font-medium text-ash-300">Contact Person</label>
               <input id="contactName" value={form.contactName} onChange={set('contactName')} className={inputClass} />
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
                 <label htmlFor="phone" className="block text-sm font-medium text-ash-300">Phone / WhatsApp</label>
                 <input id="phone" type="tel" value={form.phone} onChange={set('phone')} className={inputClass} />
               </div>
               <div>
-                <label htmlFor="email" className="block text-sm font-medium text-ash-300">Email</label>
-                <input id="email" type="email" value={form.email} onChange={set('email')} className={inputClass} />
+                <label htmlFor="phone2" className="block text-sm font-medium text-ash-300">Phone 2</label>
+                <input id="phone2" type="tel" value={form.phone2} onChange={set('phone2')} className={inputClass} />
               </div>
+              <div>
+                <label htmlFor="phone3" className="block text-sm font-medium text-ash-300">Phone 3</label>
+                <input id="phone3" type="tel" value={form.phone3} onChange={set('phone3')} className={inputClass} />
+              </div>
+            </div>
+            <div>
+              <label htmlFor="email" className="block text-sm font-medium text-ash-300">Email</label>
+              <input id="email" type="email" value={form.email} onChange={set('email')} className={inputClass} />
             </div>
             <div>
               <label htmlFor="location" className="block text-sm font-medium text-ash-300">Location</label>
@@ -122,6 +152,21 @@ const SupplierFormModal = ({ supplier, isOpen, onClose, onSave }: {
             <div>
               <label htmlFor="supplies" className="block text-sm font-medium text-ash-300">Supplies</label>
               <input id="supplies" value={form.supplies} onChange={set('supplies')} className={inputClass} placeholder="Comma separated, e.g. Soybean meal, Lysine, DCP" />
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label htmlFor="verification" className="block text-sm font-medium text-ash-300">Verification</label>
+                <select id="verification" value={form.verification} onChange={set('verification')} className={inputClass}>
+                  <option value="">Not assessed</option>
+                  {SUPPLIER_VERIFICATIONS.map((value) => (
+                    <option key={value} value={value}>{verificationLabels[value]}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label htmlFor="source" className="block text-sm font-medium text-ash-300">Source</label>
+                <input id="source" value={form.source} onChange={set('source')} className={inputClass} placeholder="Where this contact came from" />
+              </div>
             </div>
             <div>
               <label htmlFor="notes" className="block text-sm font-medium text-ash-300">Notes</label>
@@ -167,7 +212,7 @@ export const SupplierManagement = ({ initialSuppliers }: { initialSuppliers: Sup
     const term = query.trim().toLowerCase();
     if (!term) return suppliers;
     return suppliers.filter((supplier) =>
-      [supplier.company, supplier.contactName, supplier.location, supplier.phone, supplier.email, ...supplier.supplies]
+      [supplier.company, supplier.contactName, supplier.location, ...supplierPhones(supplier), supplier.email, ...supplier.supplies]
         .some((value) => value.toLowerCase().includes(term))
     );
   }, [suppliers, query]);
@@ -244,6 +289,9 @@ export const SupplierManagement = ({ initialSuppliers }: { initialSuppliers: Sup
                     <td className="px-6 py-4 align-top">
                       <div className="text-sm font-medium text-ash-100 flex items-center gap-2">
                         {supplier.company}
+                        {supplier.verification && (
+                          <span className={`px-2 text-xs rounded-full ${verificationBadgeClass[supplier.verification]}`}>{verificationLabels[supplier.verification]}</span>
+                        )}
                         {!supplier.active && <span className="px-2 text-xs rounded-full bg-ash-700 text-ash-300">Inactive</span>}
                       </div>
                       {supplier.location && <div className="text-xs text-ash-400 mt-1">{supplier.location}</div>}
@@ -251,9 +299,9 @@ export const SupplierManagement = ({ initialSuppliers }: { initialSuppliers: Sup
                     </td>
                     <td className="px-6 py-4 align-top text-sm text-ash-300 space-y-1">
                       {supplier.contactName && <div className="text-ash-100">{supplier.contactName}</div>}
-                      {supplier.phone && (
-                        <a href={`tel:${supplier.phone}`} className="flex items-center gap-1.5 hover:text-harvest-400"><Phone className="w-3.5 h-3.5" />{supplier.phone}</a>
-                      )}
+                      {supplierPhones(supplier).map((phone) => (
+                        <a key={phone} href={`tel:${phone.replace(/\s+/g, '')}`} className="flex items-center gap-1.5 hover:text-harvest-400"><Phone className="w-3.5 h-3.5" />{phone}</a>
+                      ))}
                       {supplier.email && (
                         <a href={`mailto:${supplier.email}`} className="flex items-center gap-1.5 hover:text-harvest-400"><Mail className="w-3.5 h-3.5" />{supplier.email}</a>
                       )}

@@ -14,9 +14,10 @@ import type {
   TeamMember,
   User,
   Supplier,
+  SupplierVerification,
   Lead,
 } from '@/types';
-import { LEAD_STATUSES } from '@/types';
+import { LEAD_STATUSES, SUPPLIER_VERIFICATIONS } from '@/types';
 import type { Conversation } from '@/types/chat';
 import { revalidatePath } from 'next/cache';
 import { after } from 'next/server';
@@ -716,9 +717,13 @@ const SupplierFormSchema = z.object({
   company: z.string().trim().min(1, 'Company is required').max(160),
   contactName: z.string().trim().max(120).default(''),
   phone: z.string().trim().max(60).default(''),
+  phone2: z.string().trim().max(60).default(''),
+  phone3: z.string().trim().max(60).default(''),
   email: optionalEmail,
   location: z.string().trim().max(160).default(''),
   supplies: z.string().max(2000).default(''),
+  verification: z.enum(SUPPLIER_VERIFICATIONS).or(z.literal('')).default(''),
+  source: z.string().trim().max(200).default(''),
   notes: z.string().trim().max(5000).default(''),
   active: z.boolean().default(true),
 });
@@ -730,9 +735,13 @@ type SupplierRow = {
   company: string;
   contact_name: string;
   phone: string;
+  phone_2: string;
+  phone_3: string;
   email: string;
   location: string;
   supplies: string[] | null;
+  verification: SupplierVerification | null;
+  source: string;
   notes: string;
   active: boolean;
   created_at: string;
@@ -745,9 +754,13 @@ function rowToSupplier(row: SupplierRow): Supplier {
     company: row.company,
     contactName: row.contact_name,
     phone: row.phone,
+    phone2: row.phone_2,
+    phone3: row.phone_3,
     email: row.email,
     location: row.location,
     supplies: row.supplies || [],
+    verification: row.verification,
+    source: row.source,
     notes: row.notes,
     active: row.active,
     createdAt: row.created_at,
@@ -773,8 +786,15 @@ export async function saveSupplier(values: SupplierFormValues, supplierId?: stri
   const admin = await requireAdmin();
   if ('error' in admin) return { success: false, error: admin.error };
 
-  const { contactName, supplies, ...rest } = validation.data;
-  const row = { ...rest, contact_name: contactName, supplies: commaList(supplies) };
+  const { contactName, phone2, phone3, supplies, verification, ...rest } = validation.data;
+  const row = {
+    ...rest,
+    contact_name: contactName,
+    phone_2: phone2,
+    phone_3: phone3,
+    supplies: commaList(supplies),
+    verification: verification || null,
+  };
   const { error } = supplierId
     ? await admin.supabase.from('suppliers').update(row).eq('id', supplierId)
     : await admin.supabase.from('suppliers').insert(row);

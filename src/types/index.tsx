@@ -345,14 +345,21 @@ export interface TopRankedNutrient {
   avg: number;
 }
 
+export const SUPPLIER_VERIFICATIONS = ['verified', 'corroborated', 'unverified'] as const;
+export type SupplierVerification = (typeof SUPPLIER_VERIFICATIONS)[number];
+
 export type Supplier = {
   id: string;
   company: string;
   contactName: string;
   phone: string;
+  phone2: string;
+  phone3: string;
   email: string;
   location: string;
   supplies: string[];
+  verification: SupplierVerification | null;
+  source: string;
   notes: string;
   active: boolean;
   createdAt: string;
