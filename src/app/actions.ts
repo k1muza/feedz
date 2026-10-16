@@ -14,10 +14,10 @@ import type {
   TeamMember,
   User,
   Supplier,
-  SupplierVerification,
   Lead,
 } from '@/types';
-import { LEAD_STATUSES, SUPPLIER_VERIFICATIONS } from '@/types';
+import { LEAD_STATUSES, SUPPLIER_PRICE_BASES, SUPPLIER_PRICE_UNITS, SUPPLIER_VERIFICATIONS } from '@/types';
+import { SupplierConflictError, createSupabaseSupplierStore, type SupplierStore } from '@/lib/suppliers';
 import type { Conversation } from '@/types/chat';
 import { revalidatePath } from 'next/cache';
 import { after } from 'next/server';
@@ -399,6 +399,7 @@ export async function deleteProduct(id: string) {
   const admin = await requireAdmin();
   if ('error' in admin) return { success: false, error: admin.error };
   const { error } = await admin.supabase.from('products').delete().eq('id', id);
+  if (error?.code === '23503') return { success: false, error: 'Suppliers have this product on record. Mark the product inactive instead, which keeps their prices.' };
   if (error) return { success: false, error: 'Failed to delete the product.' };
   revalidateProducts(id);
   return { success: true };
@@ -712,102 +713,106 @@ export async function deleteTeamMember(memberId: string) {
 // Suppliers ---------------------------------------------------------------------
 
 const optionalEmail = z.string().trim().max(254).email('Enter a valid email').or(z.literal('')).default('');
+const uuid = z.string().uuid();
+const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Use a valid date');
 
 const SupplierFormSchema = z.object({
   company: z.string().trim().min(1, 'Company is required').max(160),
-  contactName: z.string().trim().max(120).default(''),
   phone: z.string().trim().max(60).default(''),
   phone2: z.string().trim().max(60).default(''),
   phone3: z.string().trim().max(60).default(''),
   email: optionalEmail,
   location: z.string().trim().max(160).default(''),
-  supplies: z.string().max(2000).default(''),
   verification: z.enum(SUPPLIER_VERIFICATIONS).or(z.literal('')).default(''),
   source: z.string().trim().max(200).default(''),
-  notes: z.string().trim().max(5000).default(''),
   active: z.boolean().default(true),
 });
 
 export type SupplierFormValues = z.input<typeof SupplierFormSchema>;
 
-type SupplierRow = {
-  id: string;
-  company: string;
-  contact_name: string;
-  phone: string;
-  phone_2: string;
-  phone_3: string;
-  email: string;
-  location: string;
-  supplies: string[] | null;
-  verification: SupplierVerification | null;
-  source: string;
-  notes: string;
-  active: boolean;
-  created_at: string;
-  updated_at: string;
-};
+const SupplierContactSchema = z.object({
+  name: z.string().trim().min(1, "The contact's name is required").max(120),
+  role: z.string().trim().max(120).default(''),
+  phone: z.string().trim().max(60).default(''),
+  email: optionalEmail,
+  isPrimary: z.boolean().default(false),
+});
 
-function rowToSupplier(row: SupplierRow): Supplier {
-  return {
-    id: row.id,
-    company: row.company,
-    contactName: row.contact_name,
-    phone: row.phone,
-    phone2: row.phone_2,
-    phone3: row.phone_3,
-    email: row.email,
-    location: row.location,
-    supplies: row.supplies || [],
-    verification: row.verification,
-    source: row.source,
-    notes: row.notes,
-    active: row.active,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
-  };
-}
+export type SupplierContactValues = z.input<typeof SupplierContactSchema>;
 
-export async function getAllSuppliers(): Promise<Supplier[]> {
-  const admin = await requireAdmin();
-  if ('error' in admin) return [];
-  const { data, error } = await admin.supabase.from('suppliers').select('*').order('company');
-  if (error) {
-    console.error('Error loading suppliers:', error.message);
-    return [];
-  }
-  return (data as SupplierRow[]).map(rowToSupplier);
-}
+const SupplierPriceSchema = z
+  .object({
+    productId: z.string().trim().min(1, 'Choose a product').max(100),
+    price: z.coerce.number().positive('Enter the quoted price').max(100_000_000),
+    currency: z.string().trim().regex(/^[A-Za-z]{3}$/, 'Use a 3-letter currency code').default('USD'),
+    unit: z.enum(SUPPLIER_PRICE_UNITS),
+    packSizeKg: z.coerce.number().positive().max(1000).optional(),
+    minQuantityTonnes: z.coerce.number().min(0).max(100_000).default(0),
+    basis: z.enum(SUPPLIER_PRICE_BASES).default('ex_works'),
+    deliveryLocation: z.string().trim().max(160).default(''),
+    quotedOn: isoDate,
+    validUntil: isoDate.or(z.literal('')).default(''),
+    source: z.string().trim().max(200).default(''),
+    notes: z.string().trim().max(2000).default(''),
+  })
+  .refine((v) => v.unit !== 'bag' || v.packSizeKg, { message: 'Give the bag size in kg', path: ['packSizeKg'] })
+  .refine((v) => !v.validUntil || v.validUntil >= v.quotedOn, { message: 'Valid until cannot be before the quote date', path: ['validUntil'] });
 
-export async function saveSupplier(values: SupplierFormValues, supplierId?: string) {
-  if (supplierId && !z.string().uuid().safeParse(supplierId).success) return { success: false, error: 'Invalid supplier ID.' };
-  const validation = SupplierFormSchema.safeParse(values);
-  if (!validation.success) return { success: false, error: invoiceValidationError(validation.error) };
+export type SupplierPriceValues = z.input<typeof SupplierPriceSchema>;
+
+type ActionResult = { success: boolean; error?: string };
+
+/** Runs a supplier write as the signed-in admin and refreshes the suppliers page. */
+async function supplierAction(write: (store: SupplierStore) => Promise<unknown>, failure: string): Promise<ActionResult> {
   const admin = await requireAdmin();
   if ('error' in admin) return { success: false, error: admin.error };
-
-  const { contactName, phone2, phone3, supplies, verification, ...rest } = validation.data;
-  const row = {
-    ...rest,
-    contact_name: contactName,
-    phone_2: phone2,
-    phone_3: phone3,
-    supplies: commaList(supplies),
-    verification: verification || null,
-  };
-  const { error } = supplierId
-    ? await admin.supabase.from('suppliers').update(row).eq('id', supplierId)
-    : await admin.supabase.from('suppliers').insert(row);
-  if (error) {
-    console.error('Error saving supplier:', error.message);
-    return { success: false, error: 'Failed to save the supplier.' };
+  try {
+    await write(createSupabaseSupplierStore(admin.supabase));
+  } catch (error) {
+    if (error instanceof SupplierConflictError) return { success: false, error: error.message };
+    console.error(`${failure}:`, error instanceof Error ? error.message : error);
+    return { success: false, error: `${failure}.` };
   }
   revalidatePath('/admin/suppliers');
   return { success: true };
 }
 
+const invalid = (error: z.ZodError): ActionResult => ({ success: false, error: invoiceValidationError(error) });
+
+export async function getAllSuppliers(): Promise<Supplier[]> {
+  const admin = await requireAdmin();
+  if ('error' in admin) return [];
+  try {
+    return await createSupabaseSupplierStore(admin.supabase).list();
+  } catch (error) {
+    console.error('Error loading suppliers:', error instanceof Error ? error.message : error);
+    return [];
+  }
+}
+
+/** Catalogue products a supplier can be linked to. */
+export async function getSupplierCatalogue(): Promise<{ id: string; name: string }[]> {
+  const admin = await requireAdmin();
+  if ('error' in admin) return [];
+  try {
+    return (await createSupabaseSupplierStore(admin.supabase).listProducts()).map(({ id, name }) => ({ id, name }));
+  } catch (error) {
+    console.error('Error loading products for suppliers:', error instanceof Error ? error.message : error);
+    return [];
+  }
+}
+
+export async function saveSupplier(values: SupplierFormValues, supplierId?: string) {
+  if (supplierId && !uuid.safeParse(supplierId).success) return { success: false, error: 'Invalid supplier ID.' };
+  const validation = SupplierFormSchema.safeParse(values);
+  if (!validation.success) return invalid(validation.error);
+  const { phone2, phone3, verification, ...rest } = validation.data;
+  const row = { ...rest, phone_2: phone2, phone_3: phone3, verification: verification || null };
+  return supplierAction((store) => (supplierId ? store.update(supplierId, row) : store.create(row)), 'Failed to save the supplier');
+}
+
 export async function deleteSupplier(supplierId: string) {
-  if (!z.string().uuid().safeParse(supplierId).success) return { success: false, error: 'Invalid supplier ID.' };
+  if (!uuid.safeParse(supplierId).success) return { success: false, error: 'Invalid supplier ID.' };
   const admin = await requireAdmin();
   if ('error' in admin) return { success: false, error: admin.error };
   const { error } = await admin.supabase.from('suppliers').delete().eq('id', supplierId);
@@ -817,6 +822,74 @@ export async function deleteSupplier(supplierId: string) {
   }
   revalidatePath('/admin/suppliers');
   return { success: true };
+}
+
+export async function saveSupplierContact(supplierId: string, values: SupplierContactValues, contactId?: string) {
+  if (!uuid.safeParse(supplierId).success || (contactId && !uuid.safeParse(contactId).success)) return { success: false, error: 'Invalid contact.' };
+  const validation = SupplierContactSchema.safeParse(values);
+  if (!validation.success) return invalid(validation.error);
+  const { isPrimary, ...rest } = validation.data;
+  const row = { ...rest, is_primary: isPrimary };
+  return supplierAction((store) => (contactId ? store.updateContact(contactId, row) : store.addContact(supplierId, row)), 'Failed to save the contact');
+}
+
+export async function deleteSupplierContact(contactId: string) {
+  if (!uuid.safeParse(contactId).success) return { success: false, error: 'Invalid contact.' };
+  return supplierAction((store) => store.deleteContact(contactId), 'Failed to remove the contact');
+}
+
+export async function addSupplierNote(supplierId: string, body: string) {
+  const note = z.string().trim().min(1, 'Write a note first').max(5000).safeParse(body);
+  if (!uuid.safeParse(supplierId).success) return { success: false, error: 'Invalid supplier ID.' };
+  if (!note.success) return invalid(note.error);
+  return supplierAction((store) => store.addNote(supplierId, note.data), 'Failed to add the note');
+}
+
+export async function deleteSupplierNote(noteId: string) {
+  if (!uuid.safeParse(noteId).success) return { success: false, error: 'Invalid note.' };
+  return supplierAction((store) => store.deleteNote(noteId), 'Failed to delete the note');
+}
+
+export async function setSupplierProduct(supplierId: string, productId: string, values: { available?: boolean; notes?: string }) {
+  const fields = z.object({ available: z.boolean().optional(), notes: z.string().trim().max(2000).optional() }).safeParse(values);
+  if (!uuid.safeParse(supplierId).success || !z.string().trim().min(1).max(100).safeParse(productId).success) return { success: false, error: 'Invalid product.' };
+  if (!fields.success) return invalid(fields.error);
+  return supplierAction((store) => store.setProduct(supplierId, productId, fields.data), 'Failed to save the product');
+}
+
+export async function removeSupplierProduct(supplierProductId: string) {
+  if (!uuid.safeParse(supplierProductId).success) return { success: false, error: 'Invalid product.' };
+  return supplierAction((store) => store.removeProduct(supplierProductId), 'Failed to remove the product');
+}
+
+export async function addSupplierPrice(supplierId: string, values: SupplierPriceValues) {
+  if (!uuid.safeParse(supplierId).success) return { success: false, error: 'Invalid supplier ID.' };
+  const validation = SupplierPriceSchema.safeParse(values);
+  if (!validation.success) return invalid(validation.error);
+  const v = validation.data;
+  return supplierAction(async (store) => {
+    const supplier = await store.get(supplierId);
+    if (!supplier) throw new Error('Supplier not found');
+    const link = supplier.products.find((p) => p.productId === v.productId) ?? (await store.setProduct(supplierId, v.productId, { available: true }));
+    return store.addPrice(link.id, {
+      price: v.price,
+      currency: v.currency.toUpperCase(),
+      unit: v.unit,
+      pack_size_kg: v.unit === 'bag' ? v.packSizeKg! : null,
+      min_quantity_tonnes: v.minQuantityTonnes,
+      basis: v.basis,
+      delivery_location: v.deliveryLocation,
+      quoted_on: v.quotedOn,
+      valid_until: v.validUntil || null,
+      source: v.source,
+      notes: v.notes,
+    });
+  }, 'Failed to record the price');
+}
+
+export async function deleteSupplierPrice(priceId: string) {
+  if (!uuid.safeParse(priceId).success) return { success: false, error: 'Invalid price.' };
+  return supplierAction((store) => store.deletePrice(priceId), 'Failed to delete the price');
 }
 
 // Leads -------------------------------------------------------------------------

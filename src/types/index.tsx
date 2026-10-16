@@ -348,22 +348,80 @@ export interface TopRankedNutrient {
 export const SUPPLIER_VERIFICATIONS = ['verified', 'corroborated', 'unverified'] as const;
 export type SupplierVerification = (typeof SUPPLIER_VERIFICATIONS)[number];
 
+export const SUPPLIER_PRICE_UNITS = ['tonne', 'kg', 'bag'] as const;
+export type SupplierPriceUnit = (typeof SUPPLIER_PRICE_UNITS)[number];
+
+export const SUPPLIER_PRICE_BASES = ['ex_works', 'delivered'] as const;
+export type SupplierPriceBasis = (typeof SUPPLIER_PRICE_BASES)[number];
+
+/** A named person at a supplier. */
+export type SupplierContact = {
+  id: string;
+  name: string;
+  role: string;
+  phone: string;
+  email: string;
+  isPrimary: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type SupplierNote = {
+  id: string;
+  body: string;
+  /** Email of the admin who wrote it; empty for imported notes. */
+  authorEmail: string;
+  createdAt: string;
+}
+
+/** A dated price quote for one of a supplier's products. */
+export type SupplierPrice = {
+  id: string;
+  price: number;
+  currency: string;
+  unit: SupplierPriceUnit;
+  /** Bag size, for unit "bag". */
+  packSizeKg: number | null;
+  /** The smallest order, in tonnes, the price applies to. */
+  minQuantityTonnes: number;
+  basis: SupplierPriceBasis;
+  deliveryLocation: string;
+  quotedOn: string;
+  validUntil: string | null;
+  source: string;
+  notes: string;
+  pricePerTonne: number;
+  createdAt: string;
+}
+
+/** A catalogue product a supplier offers, with its quotes newest first. */
+export type SupplierProduct = {
+  id: string;
+  productId: string;
+  productName: string;
+  available: boolean;
+  notes: string;
+  prices: SupplierPrice[];
+}
+
 export type Supplier = {
   id: string;
   company: string;
-  contactName: string;
+  /** Company switchboard lines and general email; people are in contacts. */
   phone: string;
   phone2: string;
   phone3: string;
   email: string;
   location: string;
-  supplies: string[];
   verification: SupplierVerification | null;
   source: string;
-  notes: string;
   active: boolean;
   createdAt: string;
   updatedAt: string;
+  contacts: SupplierContact[];
+  /** Newest first. */
+  notes: SupplierNote[];
+  products: SupplierProduct[];
 }
 
 export const LEAD_STATUSES = ['new', 'contacted', 'qualified', 'won', 'lost'] as const;

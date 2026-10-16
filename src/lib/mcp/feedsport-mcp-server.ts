@@ -46,9 +46,24 @@ import {
   updateInvoiceTool,
   type InvoiceAccess,
 } from "./feedsport-invoices";
+import {
+  addSupplierContactTool,
+  addSupplierNoteTool,
+  compareSupplierPricesTool,
+  createSupplierTool,
+  getSupplierTool,
+  listSuppliersTool,
+  recordSupplierPriceTool,
+  removeSupplierContactTool,
+  setSupplierProductTool,
+  updateSupplierContactTool,
+  updateSupplierTool,
+  type SupplierAccess,
+} from "./feedsport-suppliers";
 import { INVOICE_CURRENCIES } from "@/lib/invoices";
+import { SUPPLIER_PRICE_BASES, SUPPLIER_PRICE_UNITS, SUPPLIER_VERIFICATIONS } from "@/types";
 
-export const FEEDSPORT_MCP_VERSION = "0.6.0";
+export const FEEDSPORT_MCP_VERSION = "0.7.0";
 
 const INSTRUCTIONS = `FeedSport formulates and analyses pig and poultry feeds with its ingredient database, loaded programme phases and GLPK least-cost optimizer. Only formulate programmes listed by get_programmes; do not assume a layer programme exists.
 
@@ -98,6 +113,20 @@ Invoice rules:
 - Invoices are in USD. There is no discount field: if the user agrees a discount, ask them for the discounted unit price.
 - Send one idempotency_key per new invoice (e.g. a fresh UUID) and reuse it only to retry the same request.
 - You cannot send invoices, record payments, void or delete invoices; the admin does that in FeedSport admin.`;
+
+const SUPPLIER_INSTRUCTIONS = `
+
+Suppliers (FeedSport admin accounts only): FeedSport's raw-material supplier directory. Each supplier has company phone lines and email, named contacts (people), timestamped notes, the catalogue products it offers and dated price quotes for each product. Supplier data is commercially confidential: share it only with the signed-in admin.
+
+Supplier workflow: list_suppliers (filter by product, location or verification) → get_supplier → record_supplier_price / add_supplier_note / add_supplier_contact after a call. compare_supplier_prices ranks current quotes for one product by price per tonne against FeedSport's selling price.
+
+Supplier rules:
+- Record prices exactly as the supplier quoted them: the price, its unit (tonne, kg or a bag of bag_size_kg), currency, the smallest order it applies to (min_quantity_tonnes), ex_works or delivered (with delivery_location) and the date it was quoted. FeedSport converts to price per tonne; never convert or round a quote yourself.
+- Quotes are history: record a new quote rather than editing an old one.
+- Contacts are named people. Never invent a name; a company switchboard number belongs in update_supplier's phone fields.
+- verification is the admin's judgement of how well the supplier is established (verified, corroborated, unverified). Change it only when the admin says so. Unverified suppliers need a quotation, physical address, company and bank identity, stock evidence and ideally an inspection before any payment.
+- Write notes as the admin dictates them; each note is timestamped and attributed to the signed-in admin.
+- You cannot delete suppliers; set active: false with update_supplier, or the admin deletes them in FeedSport admin.`;
 
 const READ_ONLY = {
   readOnlyHint: true,
@@ -174,6 +203,8 @@ export type AdvisorOptions = {
   featured: FeaturedStore | null;
   /** Invoice tools, only for a signed-in FeedSport admin; omitted for advisors and the static token. */
   invoices?: InvoiceAccess | null;
+  /** Supplier directory tools, only for a signed-in FeedSport admin; omitted for advisors and the static token. */
+  suppliers?: SupplierAccess | null;
 };
 
 /**
@@ -187,7 +218,11 @@ export function createFeedSportMcpServer(
 ): McpServer {
   const server = new McpServer(
     { name: "feedsport", title: "FeedSport", version: FEEDSPORT_MCP_VERSION },
-    { instructions: advisor ? INSTRUCTIONS + ADVISOR_INSTRUCTIONS + (advisor.invoices ? INVOICE_INSTRUCTIONS : "") : INSTRUCTIONS },
+    {
+      instructions: advisor
+        ? INSTRUCTIONS + ADVISOR_INSTRUCTIONS + (advisor.invoices ? INVOICE_INSTRUCTIONS : "") + (advisor.suppliers ? SUPPLIER_INSTRUCTIONS : "")
+        : INSTRUCTIONS,
+    },
   );
   const context = async (): Promise<FeedSportServiceContext> => ({ prices: await loadPrices() });
 
@@ -471,6 +506,7 @@ export function createFeedSportMcpServer(
 
   if (advisor) registerAdvisorTools(server, advisor, context);
   if (advisor?.invoices) registerInvoiceTools(server, advisor.invoices);
+  if (advisor?.suppliers) registerSupplierTools(server, advisor.suppliers);
 
   return server;
 }
@@ -872,5 +908,206 @@ function registerInvoiceTools(server: McpServer, access: InvoiceAccess) {
         });
       }
     },
+  );
+}
+
+function registerSupplierTools(server: McpServer, access: SupplierAccess) {
+  const supplierRef = z.string().trim().min(1).max(160).describe("Supplier id from list_suppliers, or the company name.");
+  const productRef = z.string().trim().min(1).max(160).describe('Catalogue product id or name, e.g. "soybean-meal" or "Wheat bran".');
+  const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Use YYYY-MM-DD.");
+  const email = z.string().trim().max(254).email().or(z.literal(""));
+  const phone = z.string().trim().max(60);
+  const write = (idempotent: boolean, destructive = false) =>
+    ({ readOnlyHint: false, destructiveHint: destructive, idempotentHint: idempotent, openWorldHint: false }) as const;
+
+  const supplierFields = {
+    phone: phone.optional().describe("Main company phone line."),
+    phone_2: phone.optional().describe("Second company line."),
+    phone_3: phone.optional().describe("Third company line."),
+    email: email.optional().describe("General company email."),
+    location: z.string().trim().max(160).optional().describe('City or area, e.g. "Harare" or "Chegutu / Harare".'),
+    verification: z.enum(SUPPLIER_VERIFICATIONS).nullable().optional().describe("How well the supplier is established; null = not assessed."),
+    source: z.string().trim().max(200).optional().describe("Where this supplier came from, e.g. a referral or directory."),
+  };
+  const contactFields = {
+    name: z.string().trim().min(1).max(120).describe("The person's name."),
+    role: z.string().trim().max(120).optional().describe('e.g. "Sales manager".'),
+    phone: phone.optional(),
+    email: email.optional(),
+    is_primary: z.boolean().optional().describe("Make this the supplier's main contact (replaces any other primary contact)."),
+  };
+
+  server.registerTool(
+    "list_suppliers",
+    {
+      title: "List suppliers",
+      description:
+        "FeedSport's raw-material suppliers with company lines, primary contact, verification and the products they offer with each product's latest quote. Filter by product, location, verification or free text (company, contact, phone, email).",
+      inputSchema: z.object({
+        query: z.string().trim().max(160).optional(),
+        product: productRef.optional().describe("Only suppliers offering this catalogue product."),
+        location: z.string().trim().max(160).optional(),
+        verification: z.enum(SUPPLIER_VERIFICATIONS).optional(),
+        include_inactive: z.boolean().default(false),
+        limit: z.number().int().min(1).max(200).default(50),
+      }),
+      annotations: READ_ONLY,
+    },
+    async (args) => run(() => listSuppliersTool(args, access)),
+  );
+
+  server.registerTool(
+    "get_supplier",
+    {
+      title: "Get a supplier",
+      description: "One supplier in full: company lines, every contact, every product with its full price history (newest first), and all notes (newest first).",
+      inputSchema: z.object({ supplier: supplierRef }),
+      annotations: READ_ONLY,
+    },
+    async (args) => run(() => getSupplierTool(args, access)),
+  );
+
+  server.registerTool(
+    "create_supplier",
+    {
+      title: "Add a supplier",
+      description: "Add a supplier, optionally with its contacts, the catalogue products it offers and a first note. Company names are unique; an existing supplier is refused.",
+      inputSchema: z.strictObject({
+        company: z.string().trim().min(1).max(160),
+        ...supplierFields,
+        products: z.array(productRef).max(50).optional(),
+        contacts: z.array(z.strictObject(contactFields)).max(20).optional(),
+        note: z.string().trim().min(1).max(5000).optional(),
+      }),
+      annotations: write(false),
+    },
+    async (args) => run(() => createSupplierTool(args, access)),
+  );
+
+  server.registerTool(
+    "update_supplier",
+    {
+      title: "Update a supplier",
+      description: "Change a supplier's company details, verification or active flag. Only the fields given change. Set active: false to retire a supplier.",
+      inputSchema: z.strictObject({
+        supplier: supplierRef,
+        company: z.string().trim().min(1).max(160).optional(),
+        ...supplierFields,
+        active: z.boolean().optional(),
+      }),
+      annotations: write(true),
+    },
+    async (args) => run(() => updateSupplierTool(args, access)),
+  );
+
+  server.registerTool(
+    "add_supplier_contact",
+    {
+      title: "Add a supplier contact",
+      description: "Add a named person at a supplier, with their role, phone and email.",
+      inputSchema: z.strictObject({ supplier: supplierRef, ...contactFields }),
+      annotations: write(false),
+    },
+    async (args) => run(() => addSupplierContactTool(args, access)),
+  );
+
+  server.registerTool(
+    "update_supplier_contact",
+    {
+      title: "Update a supplier contact",
+      description: "Change a contact's name, role, phone, email or primary flag. Only the fields given change. contact_id comes from get_supplier.",
+      inputSchema: z.strictObject({
+        supplier: supplierRef,
+        contact_id: z.string().uuid(),
+        ...contactFields,
+        name: contactFields.name.optional(),
+      }),
+      annotations: write(true),
+    },
+    async (args) => run(() => updateSupplierContactTool(args, access)),
+  );
+
+  server.registerTool(
+    "remove_supplier_contact",
+    {
+      title: "Remove a supplier contact",
+      description: "Remove a person who no longer works with the supplier. Confirm with the user first.",
+      inputSchema: z.strictObject({ supplier: supplierRef, contact_id: z.string().uuid() }),
+      annotations: write(true, true),
+    },
+    async (args) => run(() => removeSupplierContactTool(args, access)),
+  );
+
+  server.registerTool(
+    "add_supplier_note",
+    {
+      title: "Add a supplier note",
+      description: "Add a timestamped note to a supplier, e.g. the outcome of a call or visit. Notes are attributed to the signed-in admin and cannot be edited here.",
+      inputSchema: z.strictObject({ supplier: supplierRef, note: z.string().trim().min(1).max(5000) }),
+      annotations: write(false),
+    },
+    async (args) => run(() => addSupplierNoteTool(args, access)),
+  );
+
+  server.registerTool(
+    "set_supplier_product",
+    {
+      title: "Set a supplier product",
+      description:
+        "Record that a supplier offers a catalogue product, or update that link: available: false when they currently cannot supply it, plus notes such as grade or packaging. Price history is kept.",
+      inputSchema: z.strictObject({
+        supplier: supplierRef,
+        product: productRef,
+        available: z.boolean().optional(),
+        notes: z.string().trim().max(2000).optional(),
+      }),
+      annotations: write(true),
+    },
+    async (args) => run(() => setSupplierProductTool(args, access)),
+  );
+
+  server.registerTool(
+    "record_supplier_price",
+    {
+      title: "Record a supplier price",
+      description:
+        "Record a price a supplier quoted for a catalogue product, exactly as quoted. FeedSport computes the price per tonne and adds the product to the supplier if needed. Returns the change from their previous quote on the same basis.",
+      inputSchema: z.strictObject({
+        supplier: supplierRef,
+        product: productRef,
+        price: z.number().positive().max(100_000_000).describe("The quoted price, at most 2 decimal places."),
+        currency: z.string().regex(/^[A-Za-z]{3}$/).default("USD"),
+        unit: z.enum(SUPPLIER_PRICE_UNITS).describe("What the price is per: tonne, kg, or bag (give bag_size_kg)."),
+        bag_size_kg: z.number().positive().max(1000).optional(),
+        min_quantity_tonnes: z.number().min(0).max(100_000).default(0).describe("Smallest order, in tonnes, this price applies to (price tier)."),
+        basis: z.enum(SUPPLIER_PRICE_BASES).default("ex_works").describe("ex_works (collect from the supplier) or delivered."),
+        delivery_location: z.string().trim().max(160).optional().describe("Where a delivered price delivers to."),
+        quoted_on: isoDate.optional().describe("Date the supplier gave the price; defaults to today."),
+        valid_until: isoDate.optional(),
+        source: z.string().trim().max(200).optional().describe('How it was quoted, e.g. "phone call", "WhatsApp", "written quotation".'),
+        notes: z.string().trim().max(2000).optional(),
+      }),
+      annotations: write(false),
+    },
+    async (args) => run(() => recordSupplierPriceTool(args, access)),
+  );
+
+  server.registerTool(
+    "compare_supplier_prices",
+    {
+      title: "Compare supplier prices",
+      description:
+        "Rank suppliers of one catalogue product by their best current quote per tonne (newest quote per price tier and basis), with FeedSport's selling price per tonne and margin. Suppliers with no matching quote are listed with their phone lines so they can be called.",
+      inputSchema: z.object({
+        product: productRef,
+        basis: z.enum(SUPPLIER_PRICE_BASES).optional(),
+        quantity_tonnes: z.number().positive().max(100_000).optional().describe("Order size; only quotes whose tier applies to it are used."),
+        currency: z.string().regex(/^[A-Za-z]{3}$/).default("USD"),
+        include_expired: z.boolean().default(false),
+        include_inactive: z.boolean().default(false),
+      }),
+      annotations: READ_ONLY,
+    },
+    async (args) => run(() => compareSupplierPricesTool(args, access)),
   );
 }

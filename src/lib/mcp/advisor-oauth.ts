@@ -15,6 +15,8 @@ import { createUserTokenClient } from "@/lib/supabase/user-token";
 
 import { adminUserId, type AdvisorDirectory } from "./advisor-auth";
 import { createSupabaseInvoiceStore, type InvoiceAccess } from "./feedsport-invoices";
+import type { SupplierAccess } from "./feedsport-suppliers";
+import { createSupabaseSupplierStore } from "@/lib/suppliers";
 
 // Supabase Auth's OAuth 2.1 server signs advisors in; this app is only the
 // resource server plus the consent page (/oauth/consent). See the OAuth
@@ -94,4 +96,10 @@ export function advisorInvoiceAccess(authInfo: AuthInfo | undefined, request: Re
     userId,
     pdfLink: (invoiceId) => (secret ? signedInvoicePdfUrl(origin, secret, invoiceId) : null),
   };
+}
+
+/** Supplier directory tools for an admin's OAuth sign-in, acting as that admin; null for advisors and the static token. */
+export function advisorSupplierAccess(authInfo: AuthInfo | undefined): SupplierAccess | null {
+  if (!adminUserId(authInfo) || !authInfo || !isSupabaseConfigured) return null;
+  return { store: createSupabaseSupplierStore(createUserTokenClient(authInfo.token)) };
 }

@@ -157,3 +157,11 @@ Accounts in `admin_users` that sign in to the advisor endpoint with OAuth also g
 2. Optionally set `FEEDSPORT_INVOICE_LINK_SECRET` (at least 32 characters) to sign the 15-minute PDF download links; otherwise a key derived from `SUPABASE_SECRET_KEY` is used.
 
 Through MCP an admin can create proformas and invoices, edit proformas, and convert a proforma to an invoice. Sending, payments, voiding and deleting stay in the web app. `src/lib/invoices.db.test.ts` checks numbering, idempotency and row-level security against the real migrations when Postgres server binaries are available (`FEEDSPORT_TEST_PG_BIN=/path/to/postgres/bin npm test`).
+
+### Supplier tools (admins only)
+
+Admin OAuth sign-ins also get the supplier directory that `/admin/suppliers` manages (`src/lib/mcp/feedsport-suppliers.ts`, data access in `src/lib/suppliers.ts`): `list_suppliers`, `get_supplier`, `create_supplier`, `update_supplier`, `add_supplier_contact`, `update_supplier_contact`, `remove_supplier_contact`, `add_supplier_note`, `set_supplier_product`, `record_supplier_price` and `compare_supplier_prices`. Like the invoice tools they run with the admin's own token, so the tables' admin-only row-level security applies.
+
+A supplier has company phone lines and email, named contacts (`supplier_contacts`), timestamped notes attributed to the admin who wrote them (`supplier_notes`), the catalogue products it offers (`supplier_products`, referencing `products`) and dated price quotes per product (`supplier_prices`: price as quoted per tonne, kg or bag, price tier, ex-works or delivered, validity; the database computes `price_per_tonne`). Quotes are history: a new quote is recorded rather than an old one edited. Suppliers are retired with `active: false` through MCP; deleting stays in the web app. A product that suppliers have on record cannot be deleted; mark it inactive instead.
+
+Apply `supabase/migrations/20261016030000_supplier_relations.sql`. It moves existing contact names, notes and supplies into the new tables before dropping those columns, so deploy the matching app code at the same time.
